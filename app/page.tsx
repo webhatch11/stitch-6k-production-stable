@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface HeroSlide {
   badge: string;
@@ -83,6 +84,87 @@ export default function Home() {
 
   // Newsletter email state
   const [newsletterEmail, setNewsletterEmail] = useState("");
+
+  // Reviews interactive states
+  interface Review {
+    id: string;
+    name: string;
+    location: string;
+    rating: number;
+    comment: string;
+    avatar: string;
+  }
+
+  const [reviews, setReviews] = useState<Review[]>([
+    {
+      id: "rev-1",
+      name: "Aditya Verma",
+      location: "Bengaluru, India",
+      rating: 5,
+      comment: "The craftsmanship is unparalleled. You can literally feel the quality of the South Indian textile heritage in the weave. Delivered to Bangalore in just 2 days.",
+      avatar: "AV"
+    },
+    {
+      id: "rev-2",
+      name: "Faisal Al-Rashid",
+      location: "Dubai, UAE",
+      rating: 5,
+      comment: "I ordered 3 formal shirts to Dubai. They arrived beautifully packaged. The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price.",
+      avatar: "FA"
+    },
+    {
+      id: "rev-3",
+      name: "Michael Turner",
+      location: "Miami, USA",
+      rating: 5,
+      comment: "Found this brand on Instagram. The pure linen shirts are a lifesaver for the Florida heat. Shipping to the US was surprisingly fast and hassle-free.",
+      avatar: "MT"
+    }
+  ]);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newHoverRating, setNewHoverRating] = useState<number | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newLocation, setNewLocation] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newLocation.trim() || !newComment.trim()) return;
+
+    setSubmittingReview(true);
+    setTimeout(() => {
+      const getInitials = (n: string) => {
+        const parts = n.trim().split(" ");
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return n.slice(0, 2).toUpperCase();
+      };
+
+      const newRev: Review = {
+        id: "rev-" + Date.now(),
+        name: newName,
+        location: newLocation,
+        rating: newRating,
+        comment: newComment,
+        avatar: getInitials(newName)
+      };
+
+      setReviews([newRev, ...reviews]);
+      setNewName("");
+      setNewLocation("");
+      setNewComment("");
+      setNewRating(5);
+      setSubmittingReview(false);
+      setShowAddForm(false);
+
+      // Trigger visual toast
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3500);
+    }, 1000);
+  };
 
   // Preloader transition
   useEffect(() => {
@@ -1050,31 +1132,69 @@ export default function Home() {
         <section className="py-24 px-6 lg:px-20 bg-surface relative overflow-hidden">
           {/* Subtle Global Map Background */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex justify-center items-center overflow-hidden">
-            <span
-              className="material-symbols-outlined text-[800px] text-on-surface"
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 180, repeat: Infinity, ease: "linear" }}
+              className="material-symbols-outlined text-[800px] text-on-surface select-none"
               style={{ fontVariationSettings: "'FILL' 0" }}
             >
               public
-            </span>
+            </motion.span>
           </div>
 
           <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.15 }
+                }
+              }}
+              className="text-center mb-16"
+            >
+              <motion.p
+                variants={{
+                  hidden: { opacity: 0, y: 15 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+                }}
+                className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4"
+              >
                 Born in Tamil Nadu. Worn Worldwide.
-              </p>
-              <h2 className="font-headline text-3xl md:text-5xl font-black tracking-tight mb-4 text-on-surface uppercase">
+              </motion.p>
+              <motion.h2
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
+                }}
+                className="font-headline text-3xl md:text-5xl font-black tracking-tight mb-4 text-on-surface uppercase"
+              >
                 FROM OUR LOOMS
                 <br />
                 TO THE WORLD.
-              </h2>
-              <p className="text-surface-variant max-w-xl mx-auto text-sm leading-relaxed mb-10">
+              </motion.h2>
+              <motion.p
+                variants={{
+                  hidden: { opacity: 0, y: 15 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+                }}
+                className="text-surface-variant max-w-xl mx-auto text-sm leading-relaxed mb-10"
+              >
                 We handcraft every premium shirt in our Tamil Nadu workshop, shipping absolute luxury to discerning
                 gentlemen across India and across the globe.
-              </p>
+              </motion.p>
 
               {/* Trust Badges */}
-              <div className="flex justify-center items-center gap-6 flex-wrap">
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, scale: 0.95 },
+                  visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } }
+                }}
+                className="flex justify-center items-center gap-6 flex-wrap"
+              >
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-outline">
                   <span className="material-symbols-outlined text-secondary text-xl">flight_takeoff</span>
                   <span>International Shipping</span>
@@ -1084,100 +1204,212 @@ export default function Home() {
                   <span className="material-symbols-outlined text-secondary text-xl">verified</span>
                   <span>10k+ Happy Customers</span>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Review Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Review 1 */}
-              <div className="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 group">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex gap-1 text-secondary">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  </div>
-                  <span className="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">
-                    format_quote
-                  </span>
-                </div>
-                <p className="font-body text-sm italic leading-relaxed mb-8 text-on-surface">
-                  &ldquo;The craftsmanship is unparalleled. You can literally feel the quality of the South Indian textile
-                  heritage in the weave. Delivered to Bangalore in just 2 days.&rdquo;
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">
-                    AV
-                  </div>
-                  <div>
-                    <p className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">Aditya Verma</p>
-                    <p className="text-outline text-[10px] uppercase tracking-widest">Bengaluru, India</p>
-                  </div>
-                </div>
-              </div>
+            <motion.div
+              layout
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              <AnimatePresence mode="popLayout">
+                {reviews.map((rev, index) => (
+                  <motion.div
+                    key={rev.id}
+                    layout
+                    initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -30 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 100,
+                      damping: 15,
+                      delay: index * 0.05
+                    }}
+                    whileHover={{
+                      y: -8,
+                      borderColor: "rgba(212, 175, 55, 0.4)",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.12)",
+                    }}
+                    className="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 transition-all duration-300 group flex flex-col justify-between h-full relative"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex gap-1 text-secondary">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <motion.span
+                              key={i}
+                              className="material-symbols-outlined text-sm select-none"
+                              style={{ fontVariationSettings: `'FILL' ${i < rev.rating ? 1 : 0}` }}
+                              animate={i < rev.rating ? { scale: [1, 1.2, 1] } : {}}
+                              transition={{
+                                delay: i * 0.1,
+                                duration: 0.4,
+                                repeat: Infinity,
+                                repeatDelay: 6 + Math.random() * 4
+                              }}
+                            >
+                              star
+                            </motion.span>
+                          ))}
+                        </div>
+                        <span className="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/30 transition-colors transform group-hover:rotate-12 duration-500 select-none">
+                          format_quote
+                        </span>
+                      </div>
+                      <p className="font-body text-sm italic leading-relaxed mb-8 text-on-surface">
+                        &ldquo;{rev.comment}&rdquo;
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs group-hover:bg-[#fed488] group-hover:text-black transition-colors duration-300">
+                        {rev.avatar}
+                      </div>
+                      <div>
+                        <p className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface group-hover:text-secondary transition-colors duration-300">
+                          {rev.name}
+                        </p>
+                        <p className="text-outline text-[10px] uppercase tracking-widest">{rev.location}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
-              {/* Review 2 */}
-              <div className="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 group">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex gap-1 text-secondary">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  </div>
-                  <span className="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">
-                    format_quote
-                  </span>
-                </div>
-                <p className="font-body text-sm italic leading-relaxed mb-8 text-on-surface">
-                  &ldquo;I ordered 3 formal shirts to Dubai. They arrived beautifully packaged. The fit is immaculate,
-                  easily competing with Savile Row tailors but at a much fairer price.&rdquo;
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">
-                    FA
-                  </div>
-                  <div>
-                    <p className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">
-                      Faisal Al-Rashid
-                    </p>
-                    <p className="text-outline text-[10px] uppercase tracking-widest">Dubai, UAE</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Review 3 */}
-              <div className="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 group">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex gap-1 text-secondary">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  </div>
-                  <span className="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">
-                    format_quote
-                  </span>
-                </div>
-                <p className="font-body text-sm italic leading-relaxed mb-8 text-on-surface">
-                  &ldquo;Found this brand on Instagram. The pure linen shirts are a lifesaver for the Florida heat. Shipping to
-                  the US was surprisingly fast and hassle-free.&rdquo;
-                </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">
-                    MT
-                  </div>
-                  <div>
-                    <p className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">Michael Turner</p>
-                    <p className="text-outline text-[10px] uppercase tracking-widest">Miami, USA</p>
-                  </div>
-                </div>
-              </div>
+            {/* Leave a Review Button */}
+            <div className="flex justify-center mt-12">
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="bg-transparent border border-secondary/50 text-[#775a19] px-8 py-3.5 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 rounded-none relative overflow-hidden group"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">rate_review</span>
+                  {showAddForm ? "Close Form" : "Share Your Experience"}
+                </span>
+                <span className="absolute inset-0 bg-[#775a19] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></span>
+              </button>
             </div>
+
+            {/* Interactive Review Drawer */}
+            <AnimatePresence>
+              {showAddForm && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 32 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden max-w-2xl mx-auto border border-outline-variant/30 bg-surface-container-low p-8 relative rounded-none shadow-lg"
+                >
+                  <h3 className="font-headline text-lg font-black uppercase tracking-wider mb-6 text-on-surface text-center">
+                    Leave a Review
+                  </h3>
+                  <form onSubmit={handleReviewSubmit} className="space-y-6">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2 text-center">
+                        Rating
+                      </label>
+                      <div className="flex justify-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <motion.button
+                            key={star}
+                            type="button"
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => setNewRating(star)}
+                            onMouseEnter={() => setNewHoverRating(star)}
+                            onMouseLeave={() => setNewHoverRating(null)}
+                            className="text-2xl text-[#775a19] bg-transparent border-none cursor-pointer p-1"
+                          >
+                            <span className="material-symbols-outlined">
+                              {star <= (newHoverRating !== null ? newHoverRating : newRating) ? "star" : "star_rate"}
+                            </span>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="reviewerName" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                          Full Name
+                        </label>
+                        <input
+                          id="reviewerName"
+                          type="text"
+                          required
+                          placeholder="e.g. Aditya Verma"
+                          value={newName}
+                          onChange={(e) => setNewName(e.target.value)}
+                          className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="reviewerLocation" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                          Location
+                        </label>
+                        <input
+                          id="reviewerLocation"
+                          type="text"
+                          required
+                          placeholder="e.g. Bengaluru, India"
+                          value={newLocation}
+                          onChange={(e) => setNewLocation(e.target.value)}
+                          className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="reviewerComment" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                        Review
+                      </label>
+                      <textarea
+                        id="reviewerComment"
+                        required
+                        rows={4}
+                        maxLength={300}
+                        placeholder="Share your thoughts on the fabrics, fit, and craftsmanship..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="w-full bg-surface border border-outline-variant/30 focus:border-secondary p-4 text-xs font-medium outline-none text-on-surface transition-all"
+                      />
+                      <div className="text-right text-[9px] font-bold text-outline uppercase tracking-wider mt-1">
+                        {newComment.length}/300 characters
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <button
+                        type="submit"
+                        disabled={submittingReview}
+                        className="bg-on-surface text-surface px-12 py-4 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 disabled:opacity-50"
+                      >
+                        {submittingReview ? "Submitting..." : "Submit Review"}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Dynamic Toast Success Banner */}
+            <AnimatePresence>
+              {showSuccessMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                  exit={{ opacity: 0, y: 20, scale: 0.9, x: "-50%" }}
+                  className="fixed bottom-10 left-1/2 bg-black border border-secondary/50 text-white px-8 py-4 z-[999] shadow-2xl flex items-center gap-3 rounded-none"
+                >
+                  <span className="material-symbols-outlined text-secondary">check_circle</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    Thank you! Your review has been submitted.
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
       </main>

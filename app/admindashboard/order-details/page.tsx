@@ -3,7 +3,8 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { RegistryManager, Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 function OrderDetailsContent() {
   const router = useRouter();
@@ -29,7 +30,6 @@ function OrderDetailsContent() {
   };
 
   useEffect(() => {
-    RegistryManager.init();
     loadOrderDetails();
 
     // Listen for storage events
@@ -44,11 +44,12 @@ function OrderDetailsContent() {
     };
   }, [orderId]);
 
-  const loadOrderDetails = () => {
-    const orders = RegistryManager.getOrders();
+  const loadOrderDetails = async () => {
+    const orders = await db.getOrders();
     const matched = orders.find((o) => o.id === orderId) || (orders.length > 0 ? orders[0] : null);
     setOrder(matched);
-    setProducts(RegistryManager.getProducts());
+    const prods = await db.getProducts();
+    setProducts(prods);
   };
 
   if (!order) {
@@ -67,32 +68,33 @@ function OrderDetailsContent() {
   }
 
   // Update order status directly
-  const handleUpdateStatus = (newStatus: string) => {
+  const handleUpdateStatus = async (newStatus: string) => {
     if (!confirm(`Are you sure you want to update the status of Order #${order.id} to "${newStatus}"?`)) {
       return;
     }
-    const orders = RegistryManager.getOrders();
+    const orders = await db.getOrders();
     const idx = orders.findIndex((o) => o.id === order.id);
     if (idx !== -1) {
       orders[idx].status = newStatus;
-      localStorage.setItem("registry_orders", JSON.stringify(orders));
+      await db.saveOrder(orders[idx]);
       triggerToast(`Order status updated to: ${newStatus}`);
-      loadOrderDetails();
+      await loadOrderDetails();
     }
   };
 
   // Return flows
-  const handleApprovePickup = () => {
+  const handleApprovePickup = async () => {
     if (!confirm(`Confirm scheduled pickup for Order #${order.id}? This will set the order status to "Return in Transit".`)) {
       return;
     }
-    if (RegistryManager.approveReturnPickup(order.id)) {
+    const success = await db.approveReturnPickup(order.id);
+    if (success) {
       triggerToast('Pickup scheduled. Status: "Return in Transit"');
-      loadOrderDetails();
+      await loadOrderDetails();
     }
   };
 
-  const handleConfirmReceipt = () => {
+  const handleConfirmReceipt = async () => {
     const wPaid = order.walletPaid || 0;
     const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
     const pRedeemed = order.pointsRedeemed || 0;
@@ -119,17 +121,18 @@ function OrderDetailsContent() {
 
     if (!confirm(confirmMsg)) return;
 
-    if (RegistryManager.processReturnRefund(order.id, qualityCheck === "passed")) {
+    const success = await db.processReturnRefund(order.id, qualityCheck === "passed");
+    if (success) {
       triggerToast(
         qualityCheck === "passed"
           ? "Quality Check Passed: Refunded & Stock Restocked"
           : "Quality Check Failed: Refunded & Stock Unrestocked"
       );
-      loadOrderDetails();
+      await loadOrderDetails();
     }
   };
 
-  const handleRejectReturn = () => {
+  const handleRejectReturn = async () => {
     if (!rejectReason.trim()) {
       alert("Please enter a rejection reason.");
       return;
@@ -137,11 +140,12 @@ function OrderDetailsContent() {
     if (!confirm(`Are you sure you want to REJECT the return request for Order #${order.id}?\n\nReason: "${rejectReason}"\n\nNo refund will be processed and the return request will be closed.`)) {
       return;
     }
-    if (RegistryManager.rejectReturn(order.id, rejectReason)) {
+    const success = await db.rejectReturn(order.id, rejectReason);
+    if (success) {
       setRejectModalOpen(false);
       setRejectReason("");
       triggerToast("Return Request Rejected");
-      loadOrderDetails();
+      await loadOrderDetails();
     }
   };
 

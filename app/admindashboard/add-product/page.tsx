@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { RegistryManager, Product } from "@/lib/registry";
+import { Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 function AddProductContent() {
   const router = useRouter();
@@ -60,60 +61,61 @@ function AddProductContent() {
 
   // Detect Edit Mode & Pre-populate
   useEffect(() => {
-    RegistryManager.init();
+    const loadProductData = async () => {
+      if (editProductId) {
+        const items = await db.getProducts();
+        const p = items.find((prod) => prod.id === editProductId);
 
-    if (editProductId) {
-      const items = RegistryManager.getProducts();
-      const p = items.find((prod) => prod.id === editProductId);
+        if (p) {
+          setTitle(p.title || "");
+          setSku(p.id || "");
+          setCategory(p.category || "Cotton");
+          setDescription(p.description || "");
 
-      if (p) {
-        setTitle(p.title || "");
-        setSku(p.id || "");
-        setCategory(p.category || "Cotton");
-        setDescription(p.description || "");
+          // Stock Matrix
+          const sizeStock = p.sizeStock || {};
+          setStockS(sizeStock.S || 0);
+          setStockM(sizeStock.M || 0);
+          setStockL(sizeStock.L || 0);
+          setStockXL(sizeStock.XL || 0);
+          setStockXXL(sizeStock.XXL || 0);
 
-        // Stock Matrix
-        const sizeStock = p.sizeStock || {};
-        setStockS(sizeStock.S || 0);
-        setStockM(sizeStock.M || 0);
-        setStockL(sizeStock.L || 0);
-        setStockXL(sizeStock.XL || 0);
-        setStockXXL(sizeStock.XXL || 0);
+          // Specs
+          setSpecFabric(p.specFabric || "");
+          setSpecFit(p.specFit || "");
+          setSpecCollar(p.specCollar || "");
+          setSpecSleeve(p.specSleeve || "");
+          setSpecCare(p.specCare || "");
 
-        // Specs
-        setSpecFabric(p.specFabric || "");
-        setSpecFit(p.specFit || "");
-        setSpecCollar(p.specCollar || "");
-        setSpecSleeve(p.specSleeve || "");
-        setSpecCare(p.specCare || "");
+          // Highlights
+          setBadgeNew(p.isNew !== undefined ? !!p.isNew : true);
+          setBadgeExclusive(!!p.isAtelierExclusive);
 
-        // Highlights
-        setBadgeNew(p.isNew !== undefined ? !!p.isNew : true);
-        setBadgeExclusive(!!p.isAtelierExclusive);
+          // Pricing
+          setBasePrice(p.basePrice || p.price || 0);
+          setGstRate(p.gstRate || 12);
+          setDiscountRate(p.discountRate || 0);
 
-        // Pricing
-        setBasePrice(p.basePrice || p.price || 0);
-        setGstRate(p.gstRate || 12);
-        setDiscountRate(p.discountRate || 0);
+          // Images
+          const imgList = p.images || (p.image ? [p.image] : []);
+          const hasUrlLinks = imgList.some(
+            (img) => img && (img.startsWith("http") || img.startsWith("//") || img.startsWith("data:") === false)
+          );
 
-        // Images
-        const imgList = p.images || (p.image ? [p.image] : []);
-        const hasUrlLinks = imgList.some(
-          (img) => img && (img.startsWith("http") || img.startsWith("//") || img.startsWith("data:") === false)
-        );
-
-        if (hasUrlLinks) {
-          setImageMode("urls");
-          if (imgList[0]) setImgUrl1(imgList[0]);
-          if (imgList[1]) setImgUrl2(imgList[1]);
-          if (imgList[2]) setImgUrl3(imgList[2]);
-          if (imgList[3]) setImgUrl4(imgList[3]);
-        } else {
-          setImageMode("upload");
-          setSelectedImages(imgList);
+          if (hasUrlLinks) {
+            setImageMode("urls");
+            if (imgList[0]) setImgUrl1(imgList[0]);
+            if (imgList[1]) setImgUrl2(imgList[1]);
+            if (imgList[2]) setImgUrl3(imgList[2]);
+            if (imgList[3]) setImgUrl4(imgList[3]);
+          } else {
+            setImageMode("upload");
+            setSelectedImages(imgList);
+          }
         }
       }
-    }
+    };
+    loadProductData();
   }, [editProductId]);
 
   // Aggregate values
@@ -164,7 +166,7 @@ function AddProductContent() {
   };
 
   // Submit and Save
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!title.trim()) {
       triggerToast("Please enter a product title");
       return;
@@ -216,28 +218,27 @@ function AddProductContent() {
       specCare: specCare.trim() || "Dry clean only.",
     };
 
-    const list = RegistryManager.getProducts();
-
-    if (editProductId) {
-      // Edit Mode
-      const idx = list.findIndex((prod) => prod.id === editProductId);
-      if (idx !== -1) {
-        list[idx] = payload;
-        localStorage.setItem("registry_products", JSON.stringify(list));
+    try {
+      if (editProductId) {
+        // Edit Mode
+        await db.saveProduct(payload);
         alert("Product updated successfully!");
         router.push("/admindashboard/inventory");
+      } else {
+        // Add Mode
+        const list = await db.getProducts();
+        const exists = list.some((prod) => prod.id === finalSKU);
+        if (exists) {
+          triggerToast("SKU already exists. Please choose a unique SKU reference.");
+          return;
+        }
+        await db.saveProduct(payload);
+        alert("Product created successfully!");
+        router.push("/admindashboard/inventory");
       }
-    } else {
-      // Add Mode
-      const exists = list.some((prod) => prod.id === finalSKU);
-      if (exists) {
-        triggerToast("SKU already exists. Please choose a unique SKU reference.");
-        return;
-      }
-      list.push(payload);
-      localStorage.setItem("registry_products", JSON.stringify(list));
-      alert("Product created successfully!");
-      router.push("/admindashboard/inventory");
+    } catch (e) {
+      console.error(e);
+      triggerToast("Failed to save product details");
     }
   };
 

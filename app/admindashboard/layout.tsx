@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { RegistryManager } from "@/lib/registry";
+
 
 export default function AdminLayout({
   children,
@@ -55,10 +55,7 @@ export default function AdminLayout({
     return pathname.startsWith(link.href);
   };
 
-  useEffect(() => {
-    // Initialize RegistryManager on admin layouts
-    RegistryManager.init();
-  }, []);
+
 
   return (
     <div className="bg-[#f9fafb] text-[#111827] font-body min-h-screen flex antialiased">

@@ -40,4 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /scratch/registry.js
+/scratch/db.js
+/scratch/supabase.js
 

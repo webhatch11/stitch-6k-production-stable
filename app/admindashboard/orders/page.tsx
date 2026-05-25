@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RegistryManager, Order } from "@/lib/registry";
+import { Order } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function OrdersLedgerPage() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function OrdersLedgerPage() {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
 
   useEffect(() => {
-    RegistryManager.init();
     loadOrders();
 
     // Listen for storage events
@@ -33,8 +33,9 @@ export default function OrdersLedgerPage() {
     setSelectedOrderIds([]);
   }, [currentFilter, searchQuery]);
 
-  const loadOrders = () => {
-    setOrders(RegistryManager.getOrders());
+  const loadOrders = async () => {
+    const list = await db.getOrders();
+    setOrders(list);
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,21 +54,20 @@ export default function OrdersLedgerPage() {
     }
   };
 
-  const handleBulkStatusChange = (newStatus: string) => {
+  const handleBulkStatusChange = async (newStatus: string) => {
     if (selectedOrderIds.length === 0) return;
     if (confirm(`Are you sure you want to change status to "${newStatus}" for the ${selectedOrderIds.length} selected order(s)?`)) {
-      const allOrders = RegistryManager.getOrders();
+      const allOrders = await db.getOrders();
       let count = 0;
-      const updated = allOrders.map((o) => {
+      for (const o of allOrders) {
         if (selectedOrderIds.includes(o.id)) {
           count++;
-          return { ...o, status: newStatus };
+          o.status = newStatus;
+          await db.saveOrder(o);
         }
-        return o;
-      });
-      localStorage.setItem("registry_orders", JSON.stringify(updated));
+      }
       window.dispatchEvent(new Event("storage"));
-      loadOrders();
+      await loadOrders();
       setSelectedOrderIds([]);
       alert(`Successfully updated status for ${count} order(s) to "${newStatus}".`);
     }

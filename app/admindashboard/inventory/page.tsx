@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Product } from "@/lib/registry";
+import { Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function InventoryLedgerPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,7 +25,6 @@ export default function InventoryLedgerPage() {
   };
 
   useEffect(() => {
-    RegistryManager.init();
     loadProducts();
 
     // Listen for storage events
@@ -39,20 +39,21 @@ export default function InventoryLedgerPage() {
     };
   }, []);
 
-  const loadProducts = () => {
-    setProducts(RegistryManager.getProducts());
+  const loadProducts = async () => {
+    const list = await db.getProducts();
+    setProducts(list);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm("Are you sure you want to remove this product from the inventory?")) {
-      RegistryManager.deleteProduct(id);
+      await db.deleteProduct(id);
       triggerToast("Product removed successfully");
-      loadProducts();
+      await loadProducts();
     }
   };
 
-  const handleInlineAdjust = (productId: string, size: "S" | "M" | "L" | "XL" | "XXL", diff: number) => {
-    const allProducts = RegistryManager.getProducts();
+  const handleInlineAdjust = async (productId: string, size: "S" | "M" | "L" | "XL" | "XXL", diff: number) => {
+    const allProducts = await db.getProducts();
     const idx = allProducts.findIndex((p) => p.id === productId);
     if (idx !== -1) {
       const p = allProducts[idx];
@@ -73,15 +74,15 @@ export default function InventoryLedgerPage() {
         (newSizeStock.XL || 0) +
         (newSizeStock.XXL || 0);
       
-      allProducts[idx] = {
+      const updatedProduct = {
         ...p,
         sizeStock: newSizeStock,
         stock: newTotal
       };
       
-      localStorage.setItem("registry_products", JSON.stringify(allProducts));
+      await db.saveProduct(updatedProduct);
       window.dispatchEvent(new Event("storage"));
-      loadProducts();
+      await loadProducts();
       triggerToast(`Adjusted size ${size} stock for ${p.title}`);
     }
   };

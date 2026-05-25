@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Order, WalletTransaction, LoyaltyTransaction } from "@/lib/registry";
+import { Order, WalletTransaction, LoyaltyTransaction } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function MyProfilePage() {
   const [activeTab, setActiveTab] = useState<"profile" | "loyalty">("profile");
@@ -17,8 +18,6 @@ export default function MyProfilePage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    RegistryManager.init();
-
     // Load URL hashes if deep-linked to #loyalty
     if (typeof window !== "undefined" && window.location.hash === "#loyalty") {
       setActiveTab("loyalty");
@@ -42,14 +41,17 @@ export default function MyProfilePage() {
     };
   }, []);
 
-  const loadProfileData = () => {
-    setWalletBalance(RegistryManager.getWalletBalance());
-    setWalletTxs(RegistryManager.getWalletTransactions());
-    setLoyaltyPoints(RegistryManager.getLoyaltyPoints());
-    setLoyaltyTxs(RegistryManager.getLoyaltyTransactions());
+  const loadProfileData = async () => {
+    const balance = await db.getWalletBalance();
+    const wTxs = await db.getWalletTransactions();
+    const points = await db.getLoyaltyPoints();
+    const lTxs = await db.getLoyaltyTransactions();
+    const orders = await db.getOrders();
 
-    // Show top 3 recent orders
-    const orders = RegistryManager.getOrders();
+    setWalletBalance(balance);
+    setWalletTxs(wTxs);
+    setLoyaltyPoints(points);
+    setLoyaltyTxs(lTxs);
     setRecentOrders(orders.slice(0, 3));
   };
 

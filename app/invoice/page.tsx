@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { RegistryManager, Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 function InvoiceContent() {
   const router = useRouter();
@@ -13,17 +14,20 @@ function InvoiceContent() {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    RegistryManager.init();
-    const orders = RegistryManager.getOrders();
-    setProducts(RegistryManager.getProducts());
+    async function loadInvoiceData() {
+      const allProducts = await db.getProducts();
+      const allOrders = await db.getOrders();
+      setProducts(allProducts);
 
-    let order = orders.find((o) => o.id === orderIdParam);
-    if (!order && orders.length > 0) {
-      order = orders[0];
+      let order = allOrders.find((o) => o.id === orderIdParam);
+      if (!order && allOrders.length > 0) {
+        order = allOrders[0];
+      }
+      if (order) {
+        setMatchedOrder(order);
+      }
     }
-    if (order) {
-      setMatchedOrder(order);
-    }
+    loadInvoiceData();
   }, [orderIdParam]);
 
   if (!matchedOrder) {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RegistryManager } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 interface CartItem {
   productName: string;
@@ -55,9 +55,6 @@ export default function CheckoutPage() {
 
   // Load Initial Data
   useEffect(() => {
-    // Registry Manager Init
-    RegistryManager.init();
-
     // Fetch Cart
     let savedCart: CartItem[] = [];
     try {
@@ -80,8 +77,13 @@ export default function CheckoutPage() {
     setCart(savedCart);
 
     // Fetch Available Perks
-    setAvailablePoints(RegistryManager.getLoyaltyPoints());
-    setAvailableWallet(RegistryManager.getWalletBalance());
+    const fetchPerks = async () => {
+      const points = await db.getLoyaltyPoints();
+      const wallet = await db.getWalletBalance();
+      setAvailablePoints(points);
+      setAvailableWallet(wallet);
+    };
+    fetchPerks();
   }, []);
 
   // Recalculate Totals
@@ -119,7 +121,7 @@ export default function CheckoutPage() {
   };
 
   // Coupon Code Validation
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     const code = couponCode.trim();
     if (!code) {
       setAppliedDiscount(0);
@@ -128,7 +130,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const coupon = RegistryManager.validateCoupon(code);
+    const coupon = await db.validateCoupon(code);
 
     if (coupon) {
       let disc = 0;
@@ -168,7 +170,7 @@ export default function CheckoutPage() {
   };
 
   // Handle Main Submit Button
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (currentStep === 1) {
@@ -183,17 +185,17 @@ export default function CheckoutPage() {
         const orderId = "ORD-" + Math.floor(Math.random() * 9000 + 1000);
 
         if (walletDeduction > 0) {
-          RegistryManager.applyWalletDebit(walletDeduction, orderId);
+          await db.applyWalletDebit(walletDeduction, orderId);
         }
         if (pointsRedeemed > 0) {
-          RegistryManager.applyLoyaltyDebit(pointsRedeemed, orderId);
+          await db.applyLoyaltyDebit(pointsRedeemed, orderId);
         }
 
         // Earn points on netTotal
-        RegistryManager.awardLoyaltyPoints(netTotal, orderId);
+        await db.awardLoyaltyPoints(netTotal, orderId);
 
         // Save Order
-        RegistryManager.saveOrder({
+        await db.saveOrder({
           id: orderId,
           customer: customerName,
           date: new Date().toLocaleDateString("en-IN", {

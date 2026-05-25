@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { RegistryManager, Product } from "@/lib/registry";
+import { Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function ShopAllShirts() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,10 +20,11 @@ export default function ShopAllShirts() {
 
   // Load products and initialize cart count
   useEffect(() => {
-    // Run Registry initialization
-    RegistryManager.init();
-    const allProducts = RegistryManager.getProducts();
-    setProducts(allProducts);
+    const fetchProducts = async () => {
+      const allProducts = await db.getProducts();
+      setProducts(allProducts);
+    };
+    fetchProducts();
 
     // Initial cart count
     const count = parseInt(localStorage.getItem("cartCount") || "0");

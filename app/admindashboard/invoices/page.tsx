@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Order } from "@/lib/registry";
+import { Order } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function InvoicesLedgerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -10,7 +11,6 @@ export default function InvoicesLedgerPage() {
   const [activeInvoicesCount, setActiveInvoicesCount] = useState(0);
 
   useEffect(() => {
-    RegistryManager.init();
     loadInvoices();
 
     // Listen for storage events
@@ -25,8 +25,8 @@ export default function InvoicesLedgerPage() {
     };
   }, []);
 
-  const loadInvoices = () => {
-    const ordersList = RegistryManager.getOrders();
+  const loadInvoices = async () => {
+    const ordersList = await db.getOrders();
     setOrders(ordersList);
 
     // Sum billed revenues and count active invoices (exclude Returned or Cancelled)

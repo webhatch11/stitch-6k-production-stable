@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function AdminDashboardPage() {
   // Metrics
@@ -31,7 +32,6 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    RegistryManager.init();
     loadAdminData();
 
     // Listen for storage updates
@@ -50,40 +50,42 @@ export default function AdminDashboardPage() {
     };
   }, []);
 
-  const loadAdminData = () => {
-    const rawMetrics = RegistryManager.getDashboardMetrics();
+  const loadAdminData = async () => {
+    const rawMetrics = await db.getDashboardMetrics();
     setMetrics(rawMetrics);
-    setOrders(RegistryManager.getOrders());
-    setProducts(RegistryManager.getProducts());
+    const ordersList = await db.getOrders();
+    setOrders(ordersList);
+    const productsList = await db.getProducts();
+    setProducts(productsList);
   };
 
-  const handleDeleteProduct = (id: string) => {
+  const handleDeleteProduct = async (id: string) => {
     if (confirm("Are you sure you want to remove this shirt from the official inventory?")) {
-      RegistryManager.deleteProduct(id);
+      await db.deleteProduct(id);
       triggerToast("Item removed");
-      loadAdminData();
+      await loadAdminData();
     }
   };
 
   // Simulate updating status from the admin board for testing returns
-  const handleUpdateStatus = (orderId: string, nextStatus: string) => {
-    const ordersList = RegistryManager.getOrders();
+  const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
+    const ordersList = await db.getOrders();
     const orderIndex = ordersList.findIndex((o) => o.id === orderId);
     if (orderIndex !== -1) {
       ordersList[orderIndex].status = nextStatus;
-      localStorage.setItem("registry_orders", JSON.stringify(ordersList));
+      await db.saveOrder(ordersList[orderIndex]);
       triggerToast(`Order #${orderId} status set to ${nextStatus}`);
-      loadAdminData();
+      await loadAdminData();
     }
   };
 
   // Process manual refund return simulation
-  const handleApproveReturn = (orderId: string) => {
+  const handleApproveReturn = async (orderId: string) => {
     // Quality check passes
-    const success = RegistryManager.processReturnRefund(orderId, true);
+    const success = await db.processReturnRefund(orderId, true);
     if (success) {
       triggerToast(`Return Refund Processed for #${orderId}`);
-      loadAdminData();
+      await loadAdminData();
     }
   };
 

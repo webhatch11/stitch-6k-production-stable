@@ -2,18 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Order } from "@/lib/registry";
+import { Order } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function OrderConfirmedPage() {
   const [lastOrder, setLastOrder] = useState<Order | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    RegistryManager.init();
-    const orders = RegistryManager.getOrders();
-    if (orders.length > 0) {
-      setLastOrder(orders[0]); // Fetch the most recently placed order
+    async function loadLastOrder() {
+      const orders = await db.getOrders();
+      if (orders.length > 0) {
+        setLastOrder(orders[0]); // Fetch the most recently placed order
+      }
     }
+    loadLastOrder();
   }, []);
 
   const orderId = lastOrder ? lastOrder.id : "ORD-4022";

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { RegistryManager, Order } from "@/lib/registry";
+import { Order } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function OrderHistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -29,7 +30,6 @@ export default function OrderHistoryPage() {
   };
 
   useEffect(() => {
-    RegistryManager.init();
     loadOrders();
 
     // Listen for storage events from admin or other tabs
@@ -44,8 +44,9 @@ export default function OrderHistoryPage() {
     };
   }, []);
 
-  const loadOrders = () => {
-    setOrders(RegistryManager.getOrders());
+  const loadOrders = async () => {
+    const list = await db.getOrders();
+    setOrders(list);
   };
 
   // Helper date parser
@@ -114,7 +115,7 @@ export default function OrderHistoryPage() {
     }
   };
 
-  const handleSubmitReturnRequest = () => {
+  const handleSubmitReturnRequest = async () => {
     if (!selectedOrderId) return;
 
     const payload = {
@@ -124,11 +125,11 @@ export default function OrderHistoryPage() {
       refundOption: refundOption,
     };
 
-    const success = RegistryManager.requestManualReturn(selectedOrderId, payload);
+    const success = await db.requestManualReturn(selectedOrderId, payload);
     if (success) {
       triggerToast(`Return Request Submitted for #${selectedOrderId}`);
       handleCloseReturnModal();
-      loadOrders();
+      await loadOrders();
     } else {
       triggerToast("Failed to submit return. Order may not be eligible.");
     }

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { RegistryManager, Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 function OrderTrackingContent() {
   const router = useRouter();
@@ -26,7 +27,6 @@ function OrderTrackingContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    RegistryManager.init();
     loadRecentOrders();
 
     if (orderIdParam) {
@@ -36,9 +36,9 @@ function OrderTrackingContent() {
     }
   }, [orderIdParam]);
 
-  const loadRecentOrders = () => {
+  const loadRecentOrders = async () => {
     // Show up to 3 recent orders
-    const orders = RegistryManager.getOrders();
+    const orders = await db.getOrders();
     setRecentOrders(orders.slice(0, 3));
   };
 
@@ -69,11 +69,11 @@ function OrderTrackingContent() {
       setLoadingStatusText(messages[msgIndex]);
     }, 200);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       clearInterval(msgInterval);
 
       // Search registry
-      const ordersList = RegistryManager.getOrders();
+      const ordersList = await db.getOrders();
       const order = ordersList.find((o) => o.id.toUpperCase() === orderId.toUpperCase());
 
       if (!order) {
@@ -85,7 +85,7 @@ function OrderTrackingContent() {
       setMatchedOrder(order);
 
       // Search matching product
-      const products = RegistryManager.getProducts();
+      const products = await db.getProducts();
       const product = products.find((p) => p.title.toLowerCase() === order.items[0].toLowerCase());
       setMatchedProduct(product || null);
 

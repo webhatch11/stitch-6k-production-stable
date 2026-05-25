@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RegistryManager, Coupon } from "@/lib/registry";
+import { Coupon } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -25,7 +26,6 @@ export default function CouponsLedgerPage() {
   };
 
   useEffect(() => {
-    RegistryManager.init();
     loadCoupons();
 
     // Listen for storage events
@@ -40,11 +40,12 @@ export default function CouponsLedgerPage() {
     };
   }, []);
 
-  const loadCoupons = () => {
-    setCoupons(RegistryManager.getCoupons());
+  const loadCoupons = async () => {
+    const list = await db.getCoupons();
+    setCoupons(list);
   };
 
-  const handleCreateCoupon = (e: React.FormEvent) => {
+  const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = cpnCode.trim().toUpperCase();
     if (!code) {
@@ -56,7 +57,7 @@ export default function CouponsLedgerPage() {
       return;
     }
 
-    const list = RegistryManager.getCoupons();
+    const list = await db.getCoupons();
     const exists = list.some((c) => c.code.toUpperCase() === code);
     if (exists) {
       triggerToast("Coupon code already exists");
@@ -71,20 +72,20 @@ export default function CouponsLedgerPage() {
       active: true,
     };
 
-    RegistryManager.saveCoupon(newCoupon);
+    await db.saveCoupon(newCoupon);
     setAddModalOpen(false);
     setCpnCode("");
     setCpnValue(0);
     setCpnType("percent");
     triggerToast("Coupon code created successfully");
-    loadCoupons();
+    await loadCoupons();
   };
 
-  const handleDeleteCoupon = (id: string) => {
+  const handleDeleteCoupon = async (id: string) => {
     if (confirm("Are you sure you want to delete this coupon?")) {
-      RegistryManager.deleteCoupon(id);
+      await db.deleteCoupon(id);
       triggerToast("Coupon deleted successfully");
-      loadCoupons();
+      await loadCoupons();
     }
   };
 

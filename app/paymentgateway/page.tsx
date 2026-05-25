@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RegistryManager } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 interface CheckoutState {
   customer: string;
@@ -29,8 +29,6 @@ export default function PaymentGatewayPage() {
   const [successState, setSuccessState] = useState(false);
 
   useEffect(() => {
-    RegistryManager.init();
-
     // Read state from sessionStorage
     const stateStr = sessionStorage.getItem("checkoutState");
     if (stateStr) {
@@ -66,44 +64,48 @@ export default function PaymentGatewayPage() {
     // Timeline simulations
     setTimeout(() => {
       setRzpStatus("Securing Transaction...");
-      setTimeout(() => {
+      setTimeout(async () => {
         setRzpStatus("Payment Successful");
         setSuccessState(true);
 
-        // SAVE ORDER to RegistryManager
+        // SAVE ORDER to db
         const orderId = "ORD-" + Math.floor(Math.random() * 9000 + 1000);
 
-        if (state.walletDeduction > 0) {
-          RegistryManager.applyWalletDebit(state.walletDeduction, orderId);
-        }
-        if (state.pointsRedeemed > 0) {
-          RegistryManager.applyLoyaltyDebit(state.pointsRedeemed, orderId);
-        }
+        try {
+          if (state.walletDeduction > 0) {
+            await db.applyWalletDebit(state.walletDeduction, orderId);
+          }
+          if (state.pointsRedeemed > 0) {
+            await db.applyLoyaltyDebit(state.pointsRedeemed, orderId);
+          }
 
-        // Earn loyalty points on net total spendings
-        RegistryManager.awardLoyaltyPoints(state.netTotal, orderId);
+          // Earn loyalty points on net total spendings
+          await db.awardLoyaltyPoints(state.netTotal, orderId);
 
-        // Save formal order
-        RegistryManager.saveOrder({
-          id: orderId,
-          customer: state.customer,
-          date: new Date().toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-          total: state.netTotal,
-          originalTotal: state.originalTotal,
-          couponDiscount: state.couponDiscount,
-          couponCode: state.couponCode,
-          walletPaid: state.walletDeduction,
-          gatewayPaid: state.finalPayable,
-          pointsRedeemed: state.pointsRedeemed,
-          pointsDiscount: state.pointsDiscount,
-          pointsEarned: Math.floor(state.netTotal / 10),
-          status: "Paid",
-          items: state.items,
-        });
+          // Save formal order
+          await db.saveOrder({
+            id: orderId,
+            customer: state.customer,
+            date: new Date().toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            total: state.netTotal,
+            originalTotal: state.originalTotal,
+            couponDiscount: state.couponDiscount,
+            couponCode: state.couponCode,
+            walletPaid: state.walletDeduction,
+            gatewayPaid: state.finalPayable,
+            pointsRedeemed: state.pointsRedeemed,
+            pointsDiscount: state.pointsDiscount,
+            pointsEarned: Math.floor(state.netTotal / 10),
+            status: "Paid",
+            items: state.items,
+          });
+        } catch (err) {
+          console.error("Failed to complete database transaction for payment:", err);
+        }
 
         setTimeout(() => {
           router.push("/orderconfirmed");

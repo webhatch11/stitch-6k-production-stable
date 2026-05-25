@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4, .font-headline {
+    font-family: 'Manrope', sans-serif;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.reveal {
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.active {
+    opacity: 1;
+    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Toast Notification Styling (Top Positioned) */
+#prototype-toast {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    transform: translateY(-150px);
+    background: #1a1c1c;
+    color: #ffffff;
+    padding: 1rem 2rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    z-index: 9999;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid #775a19;
+}
+
+#prototype-toast.active {
+    transform: translateY(0);
+}
+
+@media (max-w: 768px) {
+    #prototype-toast {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%) translateY(-150px);
+    }
+    #prototype-toast.active {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Cart Icon Micro-Animation */
+@keyframes cartBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.cart-animate {
+    animation: cartBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Premium Button Active Press Feedback */
+.btn-active-scale {
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-active-scale:active {
+    transform: scale(0.96) !important;
+}
+
+/* Autofill Floating Label Fix */
+input:-webkit-autofill ~ label,
+textarea:-webkit-autofill ~ label {
+    transform: translateY(-2rem) scale(0.9) !important;
+    color: #775a19 !important;
+}
+
+/* Admin Metric Counter */
+.counter-value {
+    display: inline-block;
+}
+
+/* Announcement Marquee Styles */
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+    animation: marquee 30s linear infinite;
+}
+
+.marquee-container:hover .animate-marquee {
+    animation-play-state: paused;
+}
+
+.text-gold-gradient {
+    background: linear-gradient(45deg, #775a19, #fed488);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+

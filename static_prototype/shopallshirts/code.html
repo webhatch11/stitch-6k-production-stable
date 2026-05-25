@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>6K Shirts | Shirts Collection</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .quick-view-btn {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .product-card:hover .quick-view-btn {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .filter-underline {
+      position: relative;
+    }
+
+    .filter-underline::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background-color: #d1c5b4;
+      opacity: 0.3;
+    }
+  </style>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#474646",
+            "primary": "#5f5e5e",
+            "surface-bright": "#faf9f8",
+            "on-error": "#ffffff",
+            "surface-container-highest": "#e3e2e1",
+            "surface-container-low": "#f4f3f2",
+            "on-secondary": "#ffffff",
+            "outline-variant": "#d1c5b4",
+            "on-surface": "#1a1c1c",
+            "error-container": "#ffdad6",
+            "surface-container-lowest": "#ffffff",
+            "tertiary-fixed": "#ffdbd1",
+            "secondary-fixed-dim": "#e9c176",
+            "on-tertiary-fixed-variant": "#7a2f18",
+            "tertiary": "#98462d",
+            "surface-tint": "#5f5e5e",
+            "primary-container": "#a7a5a4",
+            "inverse-primary": "#c8c6c5",
+            "primary-fixed": "#e5e2e1",
+            "tertiary-container": "#f08a6c",
+            "secondary-container": "#fed488",
+            "surface-dim": "#dadad9",
+            "on-secondary-container": "#785a1a",
+            "secondary": "#775a19",
+            "surface-variant": "#e3e2e1",
+            "surface-container": "#eeeeed",
+            "on-surface-variant": "#4e4639",
+            "tertiary-fixed-dim": "#ffb5a0",
+            "on-primary-fixed": "#1c1b1b",
+            "on-secondary-fixed-variant": "#5d4201",
+            "primary-fixed-dim": "#c8c6c5",
+            "surface": "#faf9f8",
+            "on-tertiary": "#ffffff",
+            "on-tertiary-fixed": "#3b0a00",
+            "inverse-surface": "#2f3130",
+            "on-background": "#1a1c1c",
+            "outline": "#7f7667",
+            "background": "#faf9f8",
+            "on-primary-container": "#3b3b3b",
+            "inverse-on-surface": "#f1f0f0",
+            "on-tertiary-container": "#6a240e",
+            "on-primary": "#ffffff",
+            "surface-container-high": "#e9e8e7",
+            "error": "#ba1a1a",
+            "secondary-fixed": "#ffdea5",
+            "on-secondary-fixed": "#261900",
+            "on-error-container": "#93000a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0px",
+            "lg": "0px",
+            "xl": "0px",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Manrope"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="../prototype-styles.css">
+  <script src="../prototype-core.js" defer></script>
+</head>
+
+<body class="bg-surface font-body text-on-surface">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+  <!-- TopNavBar -->
+  <header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-4">
+    <div class="flex items-center justify-between max-w-7xl mx-auto">
+      <div class="flex items-center gap-12">
+        <a href="../index.html" class="flex items-center gap-2 group">
+          <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+            <svg fill="none" viewBox="0 0 48 48">
+              <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <h2 class="text-on-surface font-headline text-xl font-extrabold tracking-tighter">6K</h2>
+        </a>
+        <nav class="hidden md:flex items-center gap-8">
+          <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../index.html">Home</a>
+          <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../shopallshirts/code.html">Shop All</a>
+          <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../orderhistory/code.html">Order History</a>
+          <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../ordertracking/code.html">Track Order</a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-6">
+        <a href="../shoppingbag/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">shopping_bag</a>
+        <a href="../myprofile/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">person</a>
+        <a href="../admindashboard/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">admin_panel_settings</a>
+        <button id="menuBtn" class="material-symbols-outlined md:hidden">menu</button>
+      </div>
+    </div>
+    <div id="mobileMenu" class="hidden flex-col mt-4 space-y-4 md:hidden">
+      <a class="block text-[10px] font-black uppercase tracking-widest" href="../index.html">Home</a>
+      <a class="block text-[10px] font-black uppercase tracking-widest" href="../shopallshirts/code.html">Shop All</a>
+      <a class="block text-[10px] font-black uppercase tracking-widest" href="../orderhistory/code.html">Order History</a>
+      <a class="block text-[10px] font-black uppercase tracking-widest" href="../ordertracking/code.html">Track Order</a>
+    </div>
+
+  </header>
+  <!-- Main Content Canvas -->
+  <main class="pt-24 md:pt-32 pb-16 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 min-h-screen">
+
+    <!-- HEADER -->
+    <header class="mb-10 md:mb-16 flex flex-col lg:flex-row justify-between gap-6">
+
+      <div class="max-w-xl">
+        <h1 class="text-2xl sm:text-3xl md:text-5xl font-extrabold uppercase mb-3 md:mb-4">
+          The Heritage Shirt
+        </h1>
+
+        <p class="text-sm sm:text-base text-gray-500 leading-relaxed">
+          Premium handcrafted shirts blending traditional Indian textiles with modern style.
+        </p>
+      </div>
+
+      <!-- SORT -->
+      <div class="flex items-center gap-3 text-xs uppercase font-bold text-gray-500">
+        <span>Sort:</span>
+        <select id="sort-select" class="bg-transparent text-black font-bold cursor-pointer">
+          <option value="popularity">Popularity</option>
+          <option value="newest">Newest</option>
+          <option value="low-high">Low → High</option>
+          <option value="high-low">High → Low</option>
+        </select>
+      </div>
+
+    </header>
+
+
+    <!-- MAIN GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+      <!-- FILTER (Mobile Toggle Style) -->
+      <aside id="shop-filters" class="lg:col-span-1 space-y-8">
+
+        <!-- FILTER BOX -->
+        <div class="bg-surface-container-lowest border border-outline-variant/10 p-6 space-y-6 shadow-sm">
+
+          <!-- MATERIAL -->
+          <div>
+            <h3 class="text-xs font-bold uppercase mb-3">Material</h3>
+            <div class="space-y-2 text-xs" id="material-filters">
+              <label class="flex gap-2"><input type="checkbox" value="Linen" class="material-filter"> Linen</label>
+              <label class="flex gap-2"><input type="checkbox" value="Cotton" class="material-filter" checked> Cotton</label>
+              <label class="flex gap-2"><input type="checkbox" value="Silk" class="material-filter"> Silk Blend</label>
+              <label class="flex gap-2"><input type="checkbox" value="Denim" class="material-filter"> Denim</label>
+            </div>
+          </div>
+
+          <!-- SIZE -->
+          <div>
+            <h3 class="text-xs font-bold uppercase mb-3 text-on-surface/80 tracking-widest">Size</h3>
+            <div class="grid grid-cols-4 gap-2" id="size-filters">
+              <button class="border border-on-surface text-surface bg-on-surface py-2 text-[10px] font-black uppercase tracking-widest size-filter btn-active-scale" data-size="S">S</button>
+              <button class="border border-outline-variant/60 text-outline py-2 text-[10px] font-black uppercase tracking-widest bg-transparent hover:border-on-surface hover:text-on-surface transition-all duration-300 size-filter btn-active-scale" data-size="M">M</button>
+              <button class="border border-outline-variant/60 text-outline py-2 text-[10px] font-black uppercase tracking-widest bg-transparent hover:border-on-surface hover:text-on-surface transition-all duration-300 size-filter btn-active-scale" data-size="L">L</button>
+              <button class="border border-outline-variant/60 text-outline py-2 text-[10px] font-black uppercase tracking-widest bg-transparent hover:border-on-surface hover:text-on-surface transition-all duration-300 size-filter btn-active-scale" data-size="XL">XL</button>
+            </div>
+          </div>
+
+          <!-- PRICE -->
+          <div>
+            <h3 class="text-xs font-bold uppercase mb-3 text-on-surface/80 tracking-widest">Max Price: <span id="price-val" class="font-bold text-secondary">₹12,000</span></h3>
+            <input type="range" id="price-filter" min="1000" max="12000" step="500" value="12000" class="w-full accent-secondary">
+            <div class="flex justify-between text-[10px] font-bold uppercase tracking-widest mt-2 text-outline">
+              <span>₹1K</span>
+              <span>₹12K</span>
+            </div>
+          </div>
+
+        </div>
+
+      </aside>
+
+
+      <!-- PRODUCTS -->
+      <section class="lg:col-span-3">
+
+        <!-- GRID -->
+        <div id="productGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-10">
+          <!-- Dynamic Products Injected Here -->
+        </div>
+
+        <!-- Dynamic Registry Script -->
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+              const grid = document.getElementById('productGrid');
+              const materialCheckboxes = document.querySelectorAll('.material-filter');
+              const priceFilter = document.getElementById('price-filter');
+              const priceVal = document.getElementById('price-val');
+              const sortSelect = document.getElementById('sort-select');
+
+              // Toggle size filter active styling
+              const sizeButtons = document.querySelectorAll('.size-filter');
+              sizeButtons.forEach(btn => {
+                  btn.addEventListener('click', () => {
+                      sizeButtons.forEach(b => {
+                          b.className = 'border border-outline-variant/60 text-outline py-2 text-[10px] font-black uppercase tracking-widest bg-transparent hover:border-on-surface hover:text-on-surface transition-all duration-300 size-filter btn-active-scale';
+                      });
+                      btn.className = 'border border-on-surface text-surface bg-on-surface py-2 text-[10px] font-black uppercase tracking-widest size-filter btn-active-scale';
+                      filterProducts();
+                  });
+              });
+
+              function filterProducts() {
+                  let products = RegistryManager.getProducts();
+
+                  // 1. Filter by Material / Category
+                  const selectedMaterials = Array.from(materialCheckboxes)
+                      .filter(cb => cb.checked)
+                      .map(cb => cb.value.toLowerCase());
+
+                  if (selectedMaterials.length > 0) {
+                      products = products.filter(p => {
+                          const category = p.category ? p.category.toLowerCase() : '';
+                          return selectedMaterials.some(m => category.includes(m));
+                      });
+                  }
+
+                  // 2. Filter by Price
+                  const maxPrice = parseInt(priceFilter.value);
+                  priceVal.innerText = `₹${maxPrice.toLocaleString('en-IN')}`;
+                  products = products.filter(p => p.price <= maxPrice);
+
+                  // 3. Sort products
+                  const sortValue = sortSelect.value;
+                  if (sortValue === 'low-high') {
+                      products.sort((a, b) => a.price - b.price);
+                  } else if (sortValue === 'high-low') {
+                      products.sort((a, b) => b.price - a.price);
+                  } else if (sortValue === 'newest') {
+                      products.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+                  }
+
+                  // Render
+                  renderProducts(products);
+              }
+
+              function renderProducts(items) {
+                  if (!grid) return;
+                  if (items.length === 0) {
+                      grid.innerHTML = `
+                          <div class="col-span-full py-20 text-center">
+                              <p class="text-gray-400 text-sm uppercase tracking-widest">No products match your filters.</p>
+                          </div>
+                      `;
+                      return;
+                  }
+
+                  grid.innerHTML = items.map((p, index) => {
+                      
+                      // Trust Signal Injector
+                      let trustSignal = '';
+                      if (index > 0 && index % 5 === 0) {
+                          trustSignal = `
+                            <div class="col-span-full lg:col-span-1 aspect-[3/4] bg-[#0A0A0A] flex flex-col items-center justify-center text-center p-8 text-white scroll-reveal opacity-0 transition-opacity duration-500">
+                              <span class="material-symbols-outlined text-secondary text-4xl mb-6">local_shipping</span>
+                              <h4 class="text-sm font-headline font-black uppercase tracking-widest mb-3">Global Shipping</h4>
+                              <p class="text-[10px] text-white/50 uppercase tracking-widest leading-loose">Free 2-day delivery across India.<br>DHL Express worldwide.</p>
+                            </div>
+                          `;
+                      }
+
+                      // Dynamic Badging
+                      let badge = '';
+                      if (p.isNew) {
+                          badge = '<span class="absolute top-3 left-3 bg-surface-container-lowest/95 backdrop-blur-md text-secondary border border-secondary/20 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 shadow-sm">New Arrival</span>';
+                      } else if (p.stock && p.stock < 30) {
+                          badge = `<span class="absolute top-3 left-3 bg-surface-container-lowest/95 backdrop-blur-md text-red-700 border border-red-200 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 shadow-sm flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span> Only ${p.stock} Left</span>`;
+                      } else if (p.price > 1800) {
+                          badge = '<span class="absolute top-3 left-3 bg-on-surface text-secondary-fixed px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 border border-secondary/30 shadow-sm">Atelier Exclusive</span>';
+                      }
+
+                      // Secondary Image Fallback
+                      const secondaryImg = (p.images && p.images.length > 1) ? p.images[1] : p.image;
+
+                      return trustSignal + `
+                      <div class="group scroll-reveal opacity-0 transition-opacity duration-500 relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500">
+                        <a href="../signatureshirtblack/code.html" class="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10">
+                          
+                          <!-- Primary Image -->
+                          <img class="absolute inset-0 w-full h-full object-cover transition-all duration-[1000ms] cubic-bezier(0.25, 1, 0.5, 1) group-hover:scale-105"
+                            src="${p.image}" alt="${p.title}" 
+                            onerror="this.src='https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800';"/>
+                          
+                          <!-- Secondary Lifestyle Image (Reveals on Hover) -->
+                          <img class="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] cubic-bezier(0.25, 1, 0.5, 1) scale-[1.05] opacity-0 group-hover:opacity-100 group-hover:scale-100"
+                            src="${secondaryImg}" alt="${p.title} Lifestyle" 
+                            onerror="this.src='https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800';"/>
+                          
+                          ${badge}
+
+                          <!-- Quick Add Frosted Glass Hover Panel -->
+                          <div class="absolute bottom-0 left-0 w-full bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant/10 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20">
+                              <p class="text-[9px] font-bold uppercase tracking-widest text-center mb-3 text-outline">Quick Add - Select Size</p>
+                              <div class="grid grid-cols-4 gap-2">
+                                <button class="border border-outline-variant/50 text-on-surface hover:bg-secondary hover:text-white hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale" onclick="event.preventDefault(); showToast('Size S added to bag'); incrementCart();">S</button>
+                                <button class="border border-outline-variant/50 text-on-surface hover:bg-secondary hover:text-white hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale" onclick="event.preventDefault(); showToast('Size M added to bag'); incrementCart();">M</button>
+                                <button class="border border-outline-variant/50 text-on-surface hover:bg-secondary hover:text-white hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale" onclick="event.preventDefault(); showToast('Size L added to bag'); incrementCart();">L</button>
+                                <button class="border border-outline-variant/50 text-on-surface hover:bg-secondary hover:text-white hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale" onclick="event.preventDefault(); showToast('Size XL added to bag'); incrementCart();">XL</button>
+                              </div>
+                          </div>
+                        </a>
+
+                        <div class="pt-4 px-2 pb-2">
+                          <div class="flex justify-between items-start gap-3">
+                            <div class="space-y-1">
+                              <h4 class="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer">${p.title}</h4>
+                              <p class="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">${p.category} • Atelier Series</p>
+                            </div>
+                            <p class="font-headline font-black text-secondary text-xs shrink-0">₹${p.price.toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      </div>
+                  `}).join('');
+
+                  // Quick fade-in helper
+                  setTimeout(() => {
+                      grid.querySelectorAll('.scroll-reveal').forEach((el, i) => {
+                          setTimeout(() => {
+                              el.style.opacity = '1';
+                              el.classList.add('active'); // trigger CSS animation if any
+                          }, i * 50); // Staggered fade in
+                      });
+                  }, 50);
+
+                  if (typeof initAnimations === 'function') {
+                      initAnimations();
+                  }
+              }
+
+              // Event listeners
+              materialCheckboxes.forEach(cb => cb.addEventListener('change', filterProducts));
+              priceFilter.addEventListener('input', filterProducts);
+              sortSelect.addEventListener('change', filterProducts);
+
+              // Initial trigger
+              filterProducts();
+          });
+        </script>
+
+
+        <!-- PAGINATION -->
+        <div class="mt-12 md:mt-20 flex flex-wrap justify-center gap-6 text-xs uppercase">
+
+          <button class="text-gray-300">Prev</button>
+
+          <div class="flex gap-4">
+            <span class="border-b border-black">01</span>
+            <span>02</span>
+            <span>03</span>
+          </div>
+
+          <button>Next</button>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Sticky Cart Icon -->
+  <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-4">
+    <button
+      class="bg-on-surface text-surface w-14 h-14 flex flex-col items-center justify-center group relative hover:bg-secondary transition-colors rounded-full shadow-2xl hover-scale">
+      <span class="material-symbols-outlined text-xl" data-icon="shopping_cart">shopping_cart</span>
+      <span
+        class="text-[8px] font-black absolute top-1 right-1 bg-tertiary w-4 h-4 flex items-center justify-center rounded-full">2</span>
+    </button>
+  </div>
+
+  <!-- Mobile Sort & Filter Sticky Pill -->
+  <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] lg:hidden">
+    <a href="#shop-filters" class="bg-surface/90 backdrop-blur-md border border-outline/20 text-on-surface px-8 py-3.5 rounded-full flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform" onclick="window.scrollTo({top: document.getElementById('shop-filters').offsetTop - 100, behavior: 'smooth'}); return false;">
+        <span class="material-symbols-outlined text-[18px]">tune</span>
+        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Filter & Sort</span>
+    </a>
+  </div>
+  <!-- Global Footer -->
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="../admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="../return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="../terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="../contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="../privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+  <script>
+    const menuBtn = document.getElementById("menuBtn");
+    const mobileMenu = document.getElementById("mobileMenu");
+
+    menuBtn.addEventListener("click", () => {
+      mobileMenu.classList.toggle("hidden");
+    });
+  </script>
+</body>
+
+</html>

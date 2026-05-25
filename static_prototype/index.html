@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>6K | Predefining Luxury</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f4f3f2",
+                        "primary-fixed": "#e5e2e1",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#c8c6c5",
+                        "on-surface": "#1a1c1c",
+                        "secondary-fixed-dim": "#e9c176",
+                        "inverse-on-surface": "#f1f0f0",
+                        "on-secondary-fixed-variant": "#5d4201",
+                        "error-container": "#ffdad6",
+                        "surface-dim": "#dadad9",
+                        "surface-variant": "#e3e2e1",
+                        "outline": "#7f7667",
+                        "on-surface-variant": "#4e4639",
+                        "surface": "#faf9f8",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#faf9f8",
+                        "primary-container": "#a7a5a4",
+                        "surface-tint": "#5f5e5e",
+                        "on-primary-fixed": "#1c1b1b",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "on-tertiary-fixed-variant": "#7a2f18",
+                        "on-primary-container": "#3b3b3b",
+                        "on-secondary-fixed": "#261900",
+                        "on-primary-fixed-variant": "#474646",
+                        "outline-variant": "#d1c5b4",
+                        "error": "#ba1a1a",
+                        "primary": "#5f5e5e",
+                        "inverse-surface": "#2f3130",
+                        "surface-container-high": "#e9e8e7",
+                        "on-tertiary-fixed": "#3b0a00",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eeeeed",
+                        "tertiary-fixed-dim": "#ffb5a0",
+                        "surface-container-highest": "#e3e2e1",
+                        "tertiary": "#98462d",
+                        "on-tertiary-container": "#6a240e",
+                        "background": "#faf9f8",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#ffdea5",
+                        "secondary-container": "#fed488",
+                        "secondary": "#775a19",
+                        "on-secondary-container": "#785a1a",
+                        "on-background": "#1a1c1c",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdbd1",
+                        "tertiary-container": "#f08a6c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+    <!-- Prototype Enhancements -->
+    <link rel="stylesheet" href="prototype-styles.css">
+    <script src="prototype-core.js" defer></script>
+
+<style>
+        /* Smooth scrolling across the entire document */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Premium Text Gradients */
+        .text-gold-gradient {
+            background: linear-gradient(45deg, #775a19, #fed488);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-nav {
+            background: rgba(250, 249, 248, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(127, 118, 103, 0.1);
+        }
+
+        /* Mobile Menu Drawer Animation */
+        .mobile-menu-drawer {
+            clip-path: circle(0% at top right);
+            transition: clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .mobile-menu-drawer.open {
+            clip-path: circle(150% at top right);
+        }
+
+        /* Hover Scale Interactions */
+        .hover-scale {
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .hover-scale:hover {
+            transform: scale(1.02) translateY(-2px);
+        }
+        .hover-scale:active {
+            transform: scale(0.98);
+        }
+
+        /* Skeleton Loading States */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.05) 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+        .skeleton-dark {
+            background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.1) 37%, rgba(0,0,0,0.05) 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            animation: marquee 30s linear infinite;
+        }
+        .marquee-container:hover .animate-marquee {
+            animation-play-state: paused;
+        }
+
+        /* Preloader Animations */
+        @keyframes draw-and-fill {
+            0% {
+                stroke-dasharray: 200;
+                stroke-dashoffset: 200;
+                fill: transparent;
+                fill-opacity: 0;
+            }
+            60% {
+                stroke-dashoffset: 0;
+                fill: transparent;
+                fill-opacity: 0;
+            }
+            100% {
+                stroke-dashoffset: 0;
+                fill: url(#goldGradient);
+                fill-opacity: 1;
+            }
+        }
+        @keyframes subtle-zoom {
+            0% { transform: scale(0.96); }
+            100% { transform: scale(1.02); }
+        }
+        @keyframes shimmer-ring {
+            0% { transform: scale(1.05) rotate(0deg); opacity: 0; }
+            50% { opacity: 0.3; }
+            100% { transform: scale(1.15) rotate(360deg); opacity: 0; }
+        }
+        @keyframes premium-text {
+            0% {
+                transform: translateY(15px);
+                opacity: 0;
+                letter-spacing: 0.1em;
+                filter: blur(4px);
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+                letter-spacing: 0.3em;
+                filter: blur(0);
+            }
+        }
+        @keyframes premium-subtext {
+            0% {
+                transform: translateY(10px);
+                opacity: 0;
+                letter-spacing: 0.3em;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+                letter-spacing: 0.55em;
+            }
+        }
+        @keyframes gold-line {
+            0% { width: 0%; opacity: 0; }
+            100% { width: 80px; opacity: 1; }
+        }
+
+        .animate-draw-and-fill {
+            animation: draw-and-fill 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .animate-subtle-zoom {
+            animation: subtle-zoom 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .animate-shimmer-ring {
+            animation: shimmer-ring 4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+        }
+        .animate-premium-text {
+            animation: premium-text 1.6s cubic-bezier(0.25, 1, 0.5, 1) 0.5s forwards;
+        }
+        .animate-gold-line {
+            animation: gold-line 1.4s cubic-bezier(0.25, 1, 0.5, 1) 1s forwards;
+        }
+        .animate-premium-subtext {
+            animation: premium-subtext 1.6s cubic-bezier(0.25, 1, 0.5, 1) 1.2s forwards;
+        }
+
+        /* Upgraded Premium Preloader Animations */
+        @keyframes text-shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer-text {
+            background: linear-gradient(90deg, #ffffff 0%, #fed488 25%, #ffffff 50%, #fed488 75%, #ffffff 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: text-shimmer 6s linear infinite;
+        }
+        @keyframes premium-bg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animate-premium-bg {
+            background: linear-gradient(-45deg, #0a0a0a, #14110b, #050505, #1f180a);
+            background-size: 400% 400%;
+            animation: premium-bg 15s ease infinite;
+        }
+        @keyframes float-particle {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-10vh) scale(1);
+                opacity: 0;
+            }
+        }
+        .gold-particle {
+            position: absolute;
+            background: radial-gradient(circle, #fed488 0%, rgba(254, 212, 136, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-particle 10s linear infinite;
+        }
+        @keyframes fill-progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress-line {
+            height: 1.5px;
+            background: linear-gradient(90deg, transparent, #fed488, transparent);
+            animation: fill-progress 2.7s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .loader-exit {
+            transform: translateY(-100%) scale(0.96);
+            opacity: 0 !important;
+            transition: transform 1.2s cubic-bezier(0.85, 0, 0.15, 1), opacity 1.2s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+
+        /* Gold Orbital & Monogram Animations */
+        @keyframes fade-in-monogram {
+            0% { opacity: 0; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in-monogram {
+            animation: fade-in-monogram 1.5s cubic-bezier(0.25, 1, 0.5, 1) 1.2s forwards;
+            opacity: 0;
+            transform-origin: center;
+        }
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes spin-reverse-slow {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 20s linear infinite;
+        }
+        .animate-spin-reverse-slow {
+            animation: spin-reverse-slow 25s linear infinite;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.15; transform: scale(0.9); }
+            50% { opacity: 0.35; transform: scale(1.1); }
+        }
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 0.1; transform: scale(0.95); }
+            50% { opacity: 0.25; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s ease-in-out infinite;
+        }
+        .animate-pulse-fast {
+            animation: pulse-fast 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-secondary-container">
+<!-- Glowing Brand Splash Preloader -->
+<div id="brand-loader" class="fixed inset-0 bg-[#000000] flex flex-col items-center justify-center z-[9999] opacity-100 overflow-hidden">
+  <!-- Fine luxury noise overlay -->
+  <div class="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#fed488_1px,transparent_1px)] [background-size:16px_16px]"></div>
+  
+  <!-- Floating Golden Dust Particles -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="gold-particle w-1.5 h-1.5" style="left: 10%; animation-delay: 0s; animation-duration: 12s;"></div>
+    <div class="gold-particle w-1 h-1" style="left: 25%; animation-delay: 2s; animation-duration: 9s;"></div>
+    <div class="gold-particle w-2 h-2" style="left: 45%; animation-delay: 4s; animation-duration: 14s;"></div>
+    <div class="gold-particle w-1 h-1" style="left: 60%; animation-delay: 1s; animation-duration: 10s;"></div>
+    <div class="gold-particle w-1.5 h-1.5" style="left: 80%; animation-delay: 3s; animation-duration: 11s;"></div>
+    <div class="gold-particle w-2.5 h-2.5" style="left: 15%; animation-delay: 6s; animation-duration: 16s;"></div>
+    <div class="gold-particle w-1 h-1" style="left: 35%; animation-delay: 5s; animation-duration: 8s;"></div>
+    <div class="gold-particle w-1.5 h-1.5" style="left: 70%; animation-delay: 7s; animation-duration: 13s;"></div>
+    <div class="gold-particle w-2 h-2" style="left: 90%; animation-delay: 2s; animation-duration: 15s;"></div>
+    <div class="gold-particle w-1 h-1" style="left: 50%; animation-delay: 8s; animation-duration: 11s;"></div>
+  </div>
+  
+  <div class="flex flex-col items-center gap-6 relative select-none z-10">
+    <!-- Glowing SVG Brand Mark Container -->
+    <div class="relative size-36 flex items-center justify-center animate-subtle-zoom">
+      <!-- Golden Concentric Active Orbital Rings & Glow Layers -->
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+        <!-- Glow effect circles -->
+        <div class="absolute inset-0 bg-[#775a19]/25 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div class="absolute inset-4 bg-[#fed488]/10 rounded-full blur-2xl animate-pulse-fast"></div>
+        <!-- Active spinning borders -->
+        <div class="absolute size-36 border border-[#fed488]/20 rounded-full animate-spin-slow"></div>
+        <div class="absolute size-44 border border-dashed border-[#fed488]/10 rounded-full animate-spin-reverse-slow"></div>
+        <div class="absolute size-52 border border-[#fed488]/5 rounded-full animate-pulse-slow"></div>
+      </div>
+      
+      <!-- Premium Triangle Logo with Stroke Trace & Gold Gradient Fill -->
+      <svg class="size-28 drop-shadow-[0_0_20px_rgba(254,212,136,0.4)] relative z-10" fill="none" viewBox="0 0 48 48">
+        <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" 
+              class="animate-draw-and-fill"
+              stroke="url(#goldGradient)"
+              stroke-width="1"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+        <text x="24" y="25.5" 
+              fill="#000000" 
+              font-family="Manrope" 
+              font-weight="900" 
+              font-size="12.5" 
+              text-anchor="middle"
+              letter-spacing="-0.03em"
+              class="animate-fade-in-monogram">6K</text>
+        <defs>
+          <linearGradient id="goldGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#5d4201" />
+            <stop offset="35%" stop-color="#fed488" />
+            <stop offset="65%" stop-color="#ffffff" />
+            <stop offset="80%" stop-color="#fed488" />
+            <stop offset="100%" stop-color="#775a19" />
+          </linearGradient>
+        </defs>
+      </svg>
+      
+      <!-- Golden Shimmer Ring (Circular light sweep) -->
+      <div class="absolute inset-0 border border-[#fed488]/10 rounded-full scale-110 animate-shimmer-ring"></div>
+    </div>
+    
+    <!-- Brand Name Text with Kerning Expansion -->
+    <div class="text-center space-y-3 relative z-10">
+      <h1 class="font-headline text-3xl font-black tracking-[0.2em] uppercase opacity-0 animate-premium-text">
+        <span class="shimmer-text">6K Shirts</span>
+      </h1>
+      <!-- Sleek Gold Accent Divider Line -->
+      <div class="h-[1.5px] bg-gradient-to-r from-transparent via-[#fed488]/80 to-transparent mx-auto opacity-0 animate-gold-line"></div>
+      <p class="text-[9px] font-black tracking-[0.5em] text-[#fed488]/60 uppercase opacity-0 animate-premium-subtext">
+        Predefining Luxury
+      </p>
+    </div>
+  </div>
+
+  <!-- Sleek Progress Line -->
+  <div class="absolute bottom-0 left-0 w-full h-[1.5px] bg-white/5 z-20">
+    <div class="animate-progress-line"></div>
+  </div>
+</div>
+
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+<!-- Shared Header (Embedded Logic) -->
+<!-- Shared Header (Glassmorphic & Mobile First) -->
+<header class="sticky top-0 z-[100] glass-nav transition-all duration-300">
+  <div class="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-4">
+    <div class="flex items-center gap-12">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center gap-2 group hover-scale">
+        <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+          <svg fill="none" viewBox="0 0 48 48">
+            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2 class="text-on-surface font-headline text-2xl font-extrabold tracking-tighter">6K</h2>
+      </a>
+
+      <!-- Desktop Menu -->
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="index.html">Home</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="shopallshirts/code.html">Shop All</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="orderhistory/code.html">Order History</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="ordertracking/code.html">Track Order</a>
+      </nav>
+    </div>
+
+    <!-- Right Icons -->
+    <div class="flex items-center gap-5">
+      <a href="shoppingbag/code.html" class="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300">shopping_bag</a>
+      <a href="myprofile/code.html" class="hidden md:block material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300">person</a>
+      <!-- Hamburger Menu Button (Mobile) -->
+      <button id="menuBtn" class="md:hidden relative z-[110] size-10 flex flex-col justify-center items-center gap-1.5 focus:outline-none group">
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:rotate-45 group-[.open]:translate-y-2"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:opacity-0"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:-rotate-45 group-[.open]:-translate-y-2"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div id="mobileMenu" class="mobile-menu-drawer fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 md:hidden">
+    <nav class="flex flex-col items-center gap-10 text-center">
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="index.html">Home</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="shopallshirts/code.html">Shop All</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="orderhistory/code.html">Order History</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="ordertracking/code.html">Track Order</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="myprofile/code.html">Profile</a>
+    </nav>
+    <div class="absolute bottom-12 flex gap-6 border-t border-outline/10 pt-8 w-full justify-center px-10">
+        <a class="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface" href="admindashboard/code.html">Admin</a>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Mobile Menu Toggle Logic
+  const menuBtn = document.getElementById('menuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  
+  menuBtn.addEventListener('click', () => {
+    menuBtn.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+    document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+  });
+</script>
+
+<main>
+<!-- Section 1: Hero -->
+<section class="relative min-h-[100svh] lg:min-h-screen flex flex-col justify-center overflow-hidden bg-on-surface py-32 lg:py-0">
+  <!-- Layered Backgrounds for Cross-Fade -->
+  <div class="absolute inset-0 z-0 select-none pointer-events-none">
+    <div id="hero-bg-0" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-100 scale-100" style="background-image: url('assets/noir_hero_bg.png'); filter: brightness(0.4);"></div>
+    <div id="hero-bg-1" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0 scale-100" style="background-image: url('assets/white_hero_bg.png'); filter: brightness(0.35);"></div>
+    <div id="hero-bg-2" class="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0 scale-100" style="background-image: url('assets/navy_hero_bg.png'); filter: brightness(0.35);"></div>
+    <!-- Ambient Organic glow gradient (Earthy Saffron & Gold depth) -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl"></div>
+    <!-- Vignette overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-on-surface via-transparent to-on-surface/50"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-20">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+      
+      <!-- Left Panel: Editorial Typography (Columns 1-7) -->
+      <div class="lg:col-span-7 flex flex-col items-start gap-6 lg:gap-8 mt-12 lg:mt-0">
+        
+        <!-- Collection Tag -->
+        <span id="hero-badge" class="text-surface font-label text-xs uppercase tracking-[0.4em] bg-tertiary px-4 py-1.5 transition-all duration-500">
+          Premium Series 01
+        </span>
+        
+        <!-- Main Text Details (Responsive Typography) -->
+        <div class="space-y-4 w-full">
+          <h1 id="hero-title" class="text-surface font-headline font-black leading-[1.05] tracking-tight transition-all duration-500 select-none text-balance" style="font-size: clamp(3rem, 7vw, 6rem);">
+            OUR FINEST<br/>
+            <span class="text-gold-gradient">HANDMADE SHIRTS.</span>
+          </h1>
+          
+          <div class="flex flex-wrap items-baseline gap-4 mt-2">
+            <span id="hero-product-id" class="text-xs font-black tracking-widest text-secondary uppercase transition-all duration-500">
+              Product Code: NOIR-001
+            </span>
+            <span id="hero-price" class="text-sm font-bold text-surface/50 transition-all duration-500">
+              ₹8,999
+            </span>
+          </div>
+          
+          <p id="hero-desc" class="text-surface-variant text-base lg:text-lg font-body max-w-lg leading-relaxed transition-all duration-500 select-none">
+            Handcrafted in small batches from high-quality black silk-linen fabric. Designed for comfort, style, and long-lasting quality.
+          </p>
+        </div>
+
+        <!-- Specifications (Responsive Stacking) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-md bg-white/5 backdrop-blur-md p-6 select-none border border-white/5 rounded-sm">
+          <div>
+            <div class="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Fabric</div>
+            <div id="spec-weave" class="text-xs font-bold text-surface tracking-wider uppercase transition-all duration-500">Silk-Linen</div>
+          </div>
+          <div>
+            <div class="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Time to Make</div>
+            <div id="spec-time" class="text-xs font-bold text-surface tracking-wider uppercase transition-all duration-500">32 Hours</div>
+          </div>
+          <div>
+            <div class="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Stock Status</div>
+            <div id="spec-rarity" class="text-xs font-bold text-secondary tracking-wider uppercase transition-all duration-500">150 Items</div>
+          </div>
+        </div>
+
+        <!-- Action & Exploration -->
+        <div class="flex flex-wrap gap-4 items-center">
+          <a id="hero-cta" href="signatureshirtblack/code.html" class="inline-block transition-transform duration-300 hover:scale-[1.03]">
+            <button class="bg-gradient-to-r from-secondary to-secondary-container text-on-secondary px-10 py-5 text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-secondary/15 transition-all btn-active-scale">
+              Buy Now
+            </button>
+          </a>
+          <a href="shopallshirts/code.html" class="inline-block transition-transform duration-300 hover:scale-[1.03]">
+            <button class="bg-surface/5 text-surface border border-surface/10 px-10 py-5 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-surface hover:text-on-surface transition-all btn-active-scale">
+              View All Shirts
+            </button>
+          </a>
+        </div>
+
+        <!-- Bottom Controls / Slide Navigation Thumbnails -->
+        <div class="grid grid-cols-3 gap-3 w-full max-w-lg mt-4 lg:mt-8">
+          <!-- Slide 0 Thumb -->
+          <button id="hero-thumb-0" onclick="setActiveSlide(0, true)" class="hero-thumb active text-left p-3 bg-surface/10 hover:bg-surface/10 transition-all group relative">
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-secondary scale-x-100 group-[.active]:scale-x-100 transition-transform origin-left duration-500" id="thumb-line-0"></div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 overflow-hidden bg-surface-container shrink-0">
+                <img src="assets/noir_hero_bg.png" alt="Noir Preview" class="w-full h-full object-cover scale-110" />
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[8px] uppercase tracking-widest text-surface/40 font-bold mb-0.5">01 / NOIR</div>
+                <div class="text-[9px] font-black text-surface tracking-wider uppercase truncate">Black Shirt</div>
+              </div>
+            </div>
+          </button>
+          <!-- Slide 1 Thumb -->
+          <button id="hero-thumb-1" onclick="setActiveSlide(1, true)" class="hero-thumb text-left p-3 bg-surface/5 hover:bg-surface/10 transition-all group relative">
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-secondary scale-x-0 group-[.active]:scale-x-100 transition-transform origin-left duration-500" id="thumb-line-1"></div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 overflow-hidden bg-surface-container shrink-0">
+                <img src="assets/white_hero_bg.png" alt="White Preview" class="w-full h-full object-cover scale-110" />
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[8px] uppercase tracking-widest text-surface/40 font-bold mb-0.5">02 / WHITE</div>
+                <div class="text-[9px] font-black text-surface tracking-wider uppercase truncate">White Shirt</div>
+              </div>
+            </div>
+          </button>
+          <!-- Slide 2 Thumb -->
+          <button id="hero-thumb-2" onclick="setActiveSlide(2, true)" class="hero-thumb text-left p-3 bg-surface/5 hover:bg-surface/10 transition-all group relative">
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-secondary scale-x-0 group-[.active]:scale-x-100 transition-transform origin-left duration-500" id="thumb-line-2"></div>
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 overflow-hidden bg-surface-container shrink-0">
+                <img src="assets/navy_hero_bg.png" alt="Navy Preview" class="w-full h-full object-cover scale-110" />
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[8px] uppercase tracking-widest text-surface/40 font-bold mb-0.5">03 / NAVY</div>
+                <div class="text-[9px] font-black text-surface tracking-wider uppercase truncate">Navy Shirt</div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Right Panel: Asymmetric Editorial Canvas (Columns 8-12) -->
+      <div class="lg:col-span-5 relative flex justify-center">
+        <!-- Floating details tag (artisan registry ID) -->
+        <div class="absolute top-6 right-6 z-20 bg-surface/10 backdrop-blur-md px-4 py-3 select-none">
+          <div class="text-[8px] uppercase tracking-widest text-surface/60 font-bold">Product Code</div>
+          <div id="hero-registry-id" class="text-[10px] font-black text-surface tracking-wider uppercase mt-0.5 transition-all duration-500">
+            NOIR-001
+          </div>
+        </div>
+
+        <!-- Layered Main Images for cross-fading inside the editorial frame -->
+        <div class="relative overflow-hidden aspect-[3/4] w-full max-w-[400px] shadow-2xl shadow-on-surface/50 border border-surface/5">
+          <img id="hero-img-0" src="assets/noir_hero_bg.png" alt="Varanasi Noir detail" class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out opacity-100 scale-100 hover:scale-105" />
+          <img id="hero-img-1" src="assets/white_hero_bg.png" alt="Egyptian Cotton White detail" class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out opacity-0 scale-100 hover:scale-105" />
+          <img id="hero-img-2" src="assets/navy_hero_bg.png" alt="Midnight Navy Linen detail" class="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out opacity-0 scale-100 hover:scale-105" />
+          
+          <!-- Elegant overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-on-surface/40 to-transparent pointer-events-none"></div>
+        </div>
+
+        <!-- Frame border shadow/effect below image -->
+        <div class="absolute -bottom-4 -left-4 w-full h-full bg-gradient-to-br from-secondary/5 to-tertiary/5 -z-10 aspect-[3/4] max-w-[400px]"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Animated Scroll Down Indicator -->
+  <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
+    <span class="text-[8px] uppercase tracking-[0.3em] text-surface font-bold">Scroll Details</span>
+    <div class="w-[1px] h-8 bg-surface-variant relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-1/2 bg-secondary animate-bounce"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Section 2: Promotional Spotlight -->
+<section class="bg-surface-container-low py-16 px-6 lg:px-20">
+  <div class="relative max-w-7xl mx-auto w-full h-56 lg:h-72 flex items-center justify-center overflow-hidden bg-on-surface scroll-reveal">
+    <img alt="Elegant dark silk fabric texture with subtle gold threading and deep shadows reflecting premium craftsmanship" class="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.35] hover:scale-105 transition-transform duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBt_dM_PwNyCwIwT-O1Hdc00MIZ22eGAUgYi9vEfWdoVc132M9C6iGLoFpcH8jO3Ef-tMj5hHNCSqM6luyueIIuCAzB2muFZoy5zrcS6-J6xi7bbBWJq9Vyy44Q5AaYLfV6B6xsYzHw0ZkNcVDrBXiQK17gSFXF9x3nD3Q9pNhJWSjTd_zcb6fo_VxbX_1BNBczo3rMeCVhL6lBg88mr66F5-9-dmZp16Hwth9jmqvFTgyCzd5dvpwfsUpu5d-js0dRPMLDm1UPQmA"/>
+    <div class="relative z-10 text-center flex flex-col items-center gap-4 px-6">
+      <span class="text-secondary font-label text-xs uppercase tracking-[0.4em]">Limited Time Offer</span>
+      <h2 class="text-surface font-headline text-3xl lg:text-5xl font-black tracking-tight uppercase">OUR NEW SEASON</h2>
+      <p class="text-surface-variant font-label text-sm uppercase tracking-[0.2em]">GET 10% OFF WITH CODE: <span class="text-secondary-fixed-dim font-bold">FESTIVE24</span></p>
+      <div class="mt-4">
+        <a href="shopallshirts/code.html" class="bg-gradient-to-r from-secondary to-secondary-container text-on-secondary px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-transform hover:scale-105 inline-block">
+          Shop The Collection
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Section 3: Best Sellers -->
+<section class="py-24 px-6 lg:px-20 bg-surface">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6 scroll-reveal">
+      <div>
+        <p class="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">Best Sellers</p>
+        <h2 class="text-on-surface font-headline text-4xl lg:text-5xl font-black tracking-tighter">OUR FAVORITE SHIRTS</h2>
+      </div>
+      <a class="text-xs font-bold uppercase tracking-widest border-b border-on-surface pb-1 hover:text-secondary hover:border-secondary transition-all" href="shopallshirts/code.html">View All Shirts</a>
+    </div>
+    
+    <style>
+      .sling-container::-webkit-scrollbar { display: none; }
+      .sling-container { -ms-overflow-style: none; scrollbar-width: none; scroll-behavior: smooth; }
+      .product-card-hover img { transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+      .product-card-hover:hover img { transform: scale(1.08); }
+      .quick-add-btn { transform: translateY(10px); opacity: 0; transition: all 0.4s ease; }
+      .product-card-hover:hover .quick-add-btn { transform: translateY(0); opacity: 1; }
+    </style>
+    
+    <!-- Contained carousel that fills the width but has enough items to suggest scrolling -->
+    <div id="favoriteShirtsSling" class="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 lg:gap-6 pb-12 sling-container -mx-6 px-6 lg:-mx-0 lg:px-0">
+      
+      <!-- Card Template (Repeated 8 times for a true carousel feel) -->
+      <!-- Item 1 -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Premium Egyptian cotton white formal shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwdRWxiVyBxsKKcbtQFgAA_GBYnoadMo4hsVcyjNgMYJwjn7Am_m6a2GuaqHX3pQbBkcQp1JaEYpe8jKH6NO6r8j-hckF0bsW2ufyS77McMl_ozgeOwhB4qUMj43rHl7BP72Cr-mtRz7UmVMsBkmPa0Yt1s7L1X409Z0ohFfraRtXxM04RR34LiAsrEkMhtLqftk4U7w8vNwYSJlOyCRN9jpSqtTvfUNZLh2pA3OgHnTpeZo803s3b-VI6rKq7uiy4O59ijyT119Q"/>
+          <div class="absolute top-3 left-3 bg-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] shadow-sm">Bestseller</div>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Premium White</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Egyptian Cotton</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹4,999</p>
+        </div>
+      </div>
+
+      <!-- Item 2 -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Luxury midnight navy linen shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa0KgfQ4n3rvlg1Re0WvcfC0pKLNlGZct0zsjO9D5gttUwN6wFOelDolj9GX8D7-9ZkH4mCRcPsTfYiL_XAGcPaySk4sC4VmJRKkEeQYfrQZE5_LnEswAqUOMWnn3TklqX6vnBQGPRkCtf_44c84Ck4AyDG98jJNw9hL1ouUJlJxBIvVhL9a-9najaOWkf81cAAy4P0U13OqYy3ewFmtaSSAu3ytgfEr8ayHS17RhXwCKjBYHeGZ37jFtj5hRr3kNF-G9_KRzWraw"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Navy Linen</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Breathable Weave</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹3,499</p>
+        </div>
+      </div>
+
+      <!-- Item 3 -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Earthy saffron silk formal shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjhduJXRCnpRLc1-oHdDtrtOND6smXt8mK5rxpxWDSr-1_O6De-PRIW4cOAZbqpeA2IX8nk6sDjOEEVBy7oggv8RlFLDqNjuGkXXDPaafz4e1NCqvJsrH5jVlJQR3Hs8gfy6bVgFW9zwAvQ7_xGmrwPKF8_rFCYXqwtuVIgezSqTvUQXF4HEpjlxD9r9LM-kcmZjJYpJ06enGoJhba8wvz9HLRs8tPqPRCOjdz2zN-ECKG99sfqVJQzp7oeEPELV5IFLGD5RSnfb0"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Saffron Silk</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Festive Blend</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹5,999</p>
+        </div>
+      </div>
+
+      <!-- Item 4 -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Charcoal Oxford Cotton Shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYR7Qf-bSfveC_J94IAFp_Ecz6A7SOFKAPKzjjiJVGh82SLmMPgrYTsl_c5W_Jjkn35ocGrTNDJLYuSRqm3AvOrDWUE5rPrUbMuAQ1MzPHveY3mOhSO8HmWgITP5gplbNje2Tn05eHLEpTU98Eu1nO581HVApaYfZmd27and9xaF44qb3eoo0NN6M_VTePsIZm7IkSLFeCDvoTdCCzAMsjwuTdXyb71Czon4BeC42zWlG407yLenkFI6mzVJPF3cEKm0ABsKqJQ8M"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Charcoal Oxford</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Office Essential</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹2,999</p>
+        </div>
+      </div>
+
+      <!-- Item 5 (Duplicated for infinite scroll effect) -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Premium Egyptian cotton white formal shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwdRWxiVyBxsKKcbtQFgAA_GBYnoadMo4hsVcyjNgMYJwjn7Am_m6a2GuaqHX3pQbBkcQp1JaEYpe8jKH6NO6r8j-hckF0bsW2ufyS77McMl_ozgeOwhB4qUMj43rHl7BP72Cr-mtRz7UmVMsBkmPa0Yt1s7L1X409Z0ohFfraRtXxM04RR34LiAsrEkMhtLqftk4U7w8vNwYSJlOyCRN9jpSqtTvfUNZLh2pA3OgHnTpeZo803s3b-VI6rKq7uiy4O59ijyT119Q"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Crisp Evening</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">French Cuff</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹4,299</p>
+        </div>
+      </div>
+
+      <!-- Item 6 (Duplicated) -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Luxury midnight navy linen shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa0KgfQ4n3rvlg1Re0WvcfC0pKLNlGZct0zsjO9D5gttUwN6wFOelDolj9GX8D7-9ZkH4mCRcPsTfYiL_XAGcPaySk4sC4VmJRKkEeQYfrQZE5_LnEswAqUOMWnn3TklqX6vnBQGPRkCtf_44c84Ck4AyDG98jJNw9hL1ouUJlJxBIvVhL9a-9najaOWkf81cAAy4P0U13OqYy3ewFmtaSSAu3ytgfEr8ayHS17RhXwCKjBYHeGZ37jFtj5hRr3kNF-G9_KRzWraw"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Azure Depth</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Cotton Blend</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹3,999</p>
+        </div>
+      </div>
+
+      <!-- Item 7 (Duplicated) -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Earthy saffron silk formal shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjhduJXRCnpRLc1-oHdDtrtOND6smXt8mK5rxpxWDSr-1_O6De-PRIW4cOAZbqpeA2IX8nk6sDjOEEVBy7oggv8RlFLDqNjuGkXXDPaafz4e1NCqvJsrH5jVlJQR3Hs8gfy6bVgFW9zwAvQ7_xGmrwPKF8_rFCYXqwtuVIgezSqTvUQXF4HEpjlxD9r9LM-kcmZjJYpJ06enGoJhba8wvz9HLRs8tPqPRCOjdz2zN-ECKG99sfqVJQzp7oeEPELV5IFLGD5RSnfb0"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Golden Hour</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Raw Silk</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹6,499</p>
+        </div>
+      </div>
+
+      <!-- Item 8 (Duplicated) -->
+      <div class="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover scroll-reveal">
+        <a href="shoppingbag/code.html" class="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
+          <img alt="Charcoal Oxford Cotton Shirt" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYR7Qf-bSfveC_J94IAFp_Ecz6A7SOFKAPKzjjiJVGh82SLmMPgrYTsl_c5W_Jjkn35ocGrTNDJLYuSRqm3AvOrDWUE5rPrUbMuAQ1MzPHveY3mOhSO8HmWgITP5gplbNje2Tn05eHLEpTU98Eu1nO581HVApaYfZmd27and9xaF44qb3eoo0NN6M_VTePsIZm7IkSLFeCDvoTdCCzAMsjwuTdXyb71Czon4BeC42zWlG407yLenkFI6mzVJPF3cEKm0ABsKqJQ8M"/>
+          <button class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-colors quick-add-btn">
+            <span class="material-symbols-outlined text-[18px]">add_shopping_cart</span>
+          </button>
+        </a>
+        <div class="flex justify-between items-start gap-4 pr-2">
+          <div>
+            <h3 class="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">Slate Oxford</h3>
+            <p class="text-surface-variant font-label text-[10px] uppercase tracking-widest">Wrinkle Free</p>
+          </div>
+          <p class="text-secondary font-headline text-sm font-bold">₹3,299</p>
+        </div>
+      </div>
+
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const sling = document.getElementById('favoriteShirtsSling');
+        let autoScrollInterval;
+        let isHovered = false;
+
+        function startAutoScroll() {
+          autoScrollInterval = setInterval(() => {
+            if (isHovered) return;
+            if (sling.scrollLeft + sling.clientWidth >= sling.scrollWidth - 10) {
+              sling.scrollLeft = 0; // Reset to start
+            } else {
+              const cardWidth = sling.querySelector('.snap-start').offsetWidth + 24; // width + gap
+              sling.scrollLeft += cardWidth;
+            }
+          }, 3000); // Scroll every 3 seconds
+        }
+
+        sling.addEventListener('mouseenter', () => isHovered = true);
+        sling.addEventListener('mouseleave', () => isHovered = false);
+        sling.addEventListener('touchstart', () => isHovered = true);
+        sling.addEventListener('touchend', () => isHovered = false);
+
+        startAutoScroll();
+      });
+    </script>
+  </div>
+</section>
+<!-- Section 4: Category Showcase -->
+<section class="py-24 px-6 lg:px-20 bg-on-surface">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 scroll-reveal">
+      <p class="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">Explore Categories</p>
+      <h2 class="text-surface font-headline text-3xl lg:text-4xl font-black tracking-tighter">OUR SHIRT STYLES</h2>
+    </div>
+    
+    <div class="flex flex-col lg:flex-row gap-2 min-h-[100svh] lg:min-h-[600px] h-auto w-full">
+      
+      <!-- Casual Shirts -->
+      <a href="shopallshirts/code.html" class="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest scroll-reveal">
+        <img alt="Man wearing a relaxed linen shirt" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVQQvaUkwRXjjqhKuMU_pyS28T6zwu2ybrqELpyl3ghzcvbtgaVVSTQaL1l0yCvk-g-wHSqIXfOm-3S2LE57yZIBT1sqv8x60YhPv8XOfU3TKLo7Tto7YV0pwQn22CmZc5PeuWD8g84DYC_XRfjsj-X6CyBiQ7jx718ICGdaW_vYq_pqmKEjJ6R7AJ7dcC-gmOyy_Gm9WyniwEb7NnYVQVB91xeNRkKf3b79hCMt1dpwJoS2S5BYwXvlp8E32k1rvXCbNhUza8vLA"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
+        <div class="relative z-10 w-full">
+          <div class="flex items-center gap-3 mb-3">
+             <span class="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">01 / Styles</span>
+             <div class="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
+          </div>
+          <h3 class="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">CASUAL SHIRTS</h3>
+          
+          <div class="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
+            <div class="overflow-hidden">
+              <p class="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">Comfortable and stylish shirts designed for your relaxed weekends and off-duty elegance.</p>
+            </div>
+          </div>
+        </div>
+      </a>
+      
+      <!-- Formal Shirts -->
+      <a href="shopallshirts/code.html" class="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest scroll-reveal">
+        <img alt="Crisp white luxury formal shirt details" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOKWKyR0ZDQd-3JB62byc_gJu1nFHoSuWGZ8WJq5ZgrX_otOWTAzmaY0ZS3STh4AoN4-_uIdZ4UHh0jRNTQdPMv7c8zMc8G-5pj4fT1XLHKTVnLFjrGtr8uRTc0bCaQazTIBUriEvSNZVG_FmcrpcQivX-yYGZCnjk862z65HR3oao4YaCCndnQTWsmzaQq4q_PlbTVifN4NcRGlwoTixiAfXe7yR2uWOVUg8PmCz0BEw2gHllfHVMnXfoVGRSd7jKAkJL9RNO6gc"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
+        <div class="relative z-10 w-full">
+          <div class="flex items-center gap-3 mb-3">
+             <span class="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">02 / Styles</span>
+             <div class="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
+          </div>
+          <h3 class="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">FORMAL SHIRTS</h3>
+          
+          <div class="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
+            <div class="overflow-hidden">
+              <p class="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">Sharp, immaculate tailoring built for the boardroom and your most important formal events.</p>
+            </div>
+          </div>
+        </div>
+      </a>
+      
+      <!-- Linen Shirts -->
+      <a href="shopallshirts/code.html" class="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest scroll-reveal">
+        <img alt="Soft textured linen shirts folded neatly" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBozZZR8AKDktOII20_q4LdZj5SAYtPw8IwtypMH2NFWvqGOmY7257NPPPuJfdhg4SJH9y6AROY_SrR4UCz-wAynEeQaqKxxNmPo3n_vm2LAVnSI8b5KcsAneKzKfUckb-AmmGdRbwjTx3oE51xUdijhO5JGY9C1QsYO4zmDkmKtUN5qvoVVz7W4_mGn5QMx4GB4pcN-SZNfyRty4SyJeoqnyx5Jp2x2hzt0BLB-dO5RKcPZi4rDKFxQ1B_tbkrse6NHIqbI6ZN_A"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
+        <div class="relative z-10 w-full">
+          <div class="flex items-center gap-3 mb-3">
+             <span class="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">03 / Styles</span>
+             <div class="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
+          </div>
+          <h3 class="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">LINEN SHIRTS</h3>
+          
+          <div class="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
+            <div class="overflow-hidden">
+              <p class="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">Incredibly light and breathable woven linen garments tailored for warm weather comfort.</p>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Section 5: Connected Trust Section -->
+<section class="py-24 px-6 lg:px-20 bg-[#F5F5F5] overflow-hidden">
+  <div class="max-w-7xl mx-auto relative">
+    
+    <!-- The Connecting Background Line (Desktop Only) -->
+    <div class="hidden md:block absolute top-[40px] left-[16.66%] right-[16.66%] h-[1px] bg-outline/20 z-0"></div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-0 text-center relative z-10">
+      
+      <!-- Point 1 -->
+      <div class="flex flex-col items-center gap-6 group/item scroll-reveal relative cursor-default">
+        <!-- Glowing Connecting Line (Shoots to the right on hover) -->
+        <div class="hidden md:block absolute top-[39px] left-1/2 w-0 h-[2px] bg-secondary shadow-[0_0_12px_rgba(212,175,55,0.8)] z-0 transition-all duration-700 ease-in-out group-hover/item:w-full"></div>
+        
+        <!-- Icon Container -->
+        <div class="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+          <span class="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+        </div>
+        
+        <div class="relative z-10 px-4">
+          <h4 class="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3 transition-colors duration-300">Direct from Atelier</h4>
+          <p class="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">Master tailors overseeing every stitch, from proprietary weave to final hand-finished seam.</p>
+        </div>
+      </div>
+
+      <!-- Point 2 -->
+      <div class="flex flex-col items-center gap-6 group/item scroll-reveal relative cursor-default">
+        <!-- Glowing Connecting Line (Shoots to the right on hover) -->
+        <div class="hidden md:block absolute top-[39px] left-1/2 w-0 h-[2px] bg-secondary shadow-[0_0_12px_rgba(212,175,55,0.8)] z-0 transition-all duration-700 ease-in-out group-hover/item:w-full"></div>
+        
+        <!-- Icon Container -->
+        <div class="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+          <span class="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]" style="font-variation-settings: 'FILL' 1;">diamond</span>
+        </div>
+        
+        <div class="relative z-10 px-4">
+          <h4 class="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3 transition-colors duration-300">Premium Fabric</h4>
+          <p class="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">We source only the finest long-staple cotton and Belgian flax for unmatched comfort.</p>
+        </div>
+      </div>
+
+      <!-- Point 3 -->
+      <div class="flex flex-col items-center gap-6 group/item scroll-reveal relative cursor-default">
+        <!-- Icon Container -->
+        <div class="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+          <span class="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]" style="font-variation-settings: 'FILL' 1;">local_shipping</span>
+        </div>
+        
+        <div class="relative z-10 px-4">
+          <h4 class="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3 transition-colors duration-300">Fast Delivery</h4>
+          <p class="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">Concierge delivery service across 200+ Indian cities in 2-4 business days.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+<!-- Section 6: Social Proof (Global Reach) -->
+<section class="py-24 px-6 lg:px-20 bg-surface relative overflow-hidden">
+  
+  <!-- Subtle Global Map Background -->
+  <div class="absolute inset-0 opacity-[0.03] pointer-events-none flex justify-center items-center overflow-hidden">
+    <span class="material-symbols-outlined text-[800px] text-on-surface" style="font-variation-settings: 'FILL' 0;">public</span>
+  </div>
+
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="text-center mb-16 scroll-reveal">
+      <p class="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4">Born in Tamil Nadu. Worn Worldwide.</p>
+      <h2 class="font-headline text-3xl md:text-5xl font-black tracking-tight mb-4 text-on-surface uppercase">FROM OUR LOOMS<br>TO THE WORLD.</h2>
+      <p class="text-surface-variant max-w-xl mx-auto text-sm leading-relaxed mb-10">We handcraft every premium shirt in our Tamil Nadu workshop, shipping absolute luxury to discerning gentlemen across India and across the globe.</p>
+      
+      <!-- Trust Badges -->
+      <div class="flex justify-center items-center gap-6 flex-wrap">
+        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-outline">
+          <span class="material-symbols-outlined text-secondary text-xl">flight_takeoff</span>
+          <span>International Shipping</span>
+        </div>
+        <div class="hidden md:block w-1 h-1 bg-outline/30 rounded-full"></div>
+        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-outline">
+          <span class="material-symbols-outlined text-secondary text-xl">verified</span>
+          <span>10k+ Happy Customers</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Review 1 (Local/India) -->
+      <div class="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 scroll-reveal group">
+        <div class="flex justify-between items-start mb-6">
+          <div class="flex gap-1 text-secondary">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+          </div>
+          <span class="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">format_quote</span>
+        </div>
+        <p class="font-body text-sm italic leading-relaxed mb-8 text-on-surface">"The craftsmanship is unparalleled. You can literally feel the quality of the South Indian textile heritage in the weave. Delivered to Bangalore in just 2 days."</p>
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">AV</div>
+          <div>
+            <p class="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">Aditya Verma</p>
+            <p class="text-outline text-[10px] uppercase tracking-widest">Bengaluru, India</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review 2 (Middle East) -->
+      <div class="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 scroll-reveal group delay-100">
+        <div class="flex justify-between items-start mb-6">
+          <div class="flex gap-1 text-secondary">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+          </div>
+          <span class="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">format_quote</span>
+        </div>
+        <p class="font-body text-sm italic leading-relaxed mb-8 text-on-surface">"I ordered 3 formal shirts to Dubai. They arrived beautifully packaged. The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price."</p>
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">FA</div>
+          <div>
+            <p class="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">Faisal Al-Rashid</p>
+            <p class="text-outline text-[10px] uppercase tracking-widest">Dubai, UAE</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review 3 (West) -->
+      <div class="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 hover:border-secondary/30 hover:shadow-xl transition-all duration-500 scroll-reveal group delay-200">
+        <div class="flex justify-between items-start mb-6">
+          <div class="flex gap-1 text-secondary">
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+            <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+          </div>
+          <span class="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/20 transition-colors">format_quote</span>
+        </div>
+        <p class="font-body text-sm italic leading-relaxed mb-8 text-on-surface">"Found this brand on Instagram. The pure linen shirts are a lifesaver for the Florida heat. Shipping to the US was surprisingly fast and hassle-free."</p>
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs">MT</div>
+          <div>
+            <p class="font-headline font-bold text-xs uppercase tracking-wider text-on-surface">Michael Turner</p>
+            <p class="text-outline text-[10px] uppercase tracking-widest">Miami, USA</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+</main>
+<!-- Footer -->
+<!-- Global Footer -->
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+<!-- WhatsApp Sticky Button -->
+<a class="fixed bottom-8 right-8 z-[100] bg-[#25D366] text-white size-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group" href="https://wa.me/91XXXXXXXXXX" target="_blank">
+<svg class="size-8" fill="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"></path>
+</svg>
+<span class="absolute right-full mr-4 bg-on-surface text-surface py-2 px-4 whitespace-nowrap text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Chat with Stylist</span>
+</a>
+
+<script>
+  // --- Hero Section Carousel/Slider Logic ---
+  const heroSlides = [
+    {
+      badge: "Premium Series 01",
+      title: "OUR FINEST<br><span class=\"text-gold-gradient\">HANDMADE SHIRTS.</span>",
+      productId: "Product Code: NOIR-001",
+      price: "₹8,999",
+      desc: "Handcrafted in small batches from high-quality black silk-linen fabric. Designed for comfort, style, and long-lasting quality.",
+      weave: "Silk-Linen",
+      time: "32 Hours",
+      rarity: "150 Items",
+      registryId: "NOIR-001",
+      ctaLink: "signatureshirtblack/code.html"
+    },
+    {
+      badge: "Premium Series 02",
+      title: "CRISP & CLASSIC<br><span class=\"text-gold-gradient\">COTTON SHIRTS.</span>",
+      productId: "Product Code: WHITE-002",
+      price: "₹4,999",
+      desc: "Made from the finest cotton, this crisp white shirt has a modern, clean look that fits perfectly for any formal or smart occasion.",
+      weave: "Premium Cotton",
+      time: "18 Hours",
+      rarity: "500 Items",
+      registryId: "WHITE-002",
+      ctaLink: "shopallshirts/code.html"
+    },
+    {
+      badge: "Premium Series 03",
+      title: "RELAXED & COOL<br><span class=\"text-gold-gradient\">LINEN SHIRTS.</span>",
+      productId: "Product Code: NAVY-003",
+      price: "₹3,499",
+      desc: "A breathable, light navy blue linen shirt colored with soft, natural dyes. Ideal for warm weather, outdoor events, or casual smart wear.",
+      weave: "Linen Fabric",
+      time: "24 Hours",
+      rarity: "300 Items",
+      registryId: "NAVY-003",
+      ctaLink: "shopallshirts/code.html"
+    }
+  ];
+
+  let currentHeroSlide = 0;
+  let autoPlay = true;
+
+  function setActiveSlide(index, manual = false) {
+    if (index === currentHeroSlide) return;
+
+    if (manual && autoPlay) {
+      clearInterval(autoRotateInterval);
+      autoPlay = false;
+    }
+
+    currentHeroSlide = index;
+
+    // 1. Cross-fade Background Images and Front Images
+    for (let i = 0; i < heroSlides.length; i++) {
+      const bg = document.getElementById(`hero-bg-${i}`);
+      const img = document.getElementById(`hero-img-${i}`);
+      if (i === index) {
+        if (bg) bg.className = "absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-100 scale-100";
+        if (img) img.className = "absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out opacity-100 scale-100 hover:scale-105";
+      } else {
+        if (bg) bg.className = "absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out opacity-0 scale-100";
+        if (img) img.className = "absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out opacity-0 scale-100 hover:scale-105";
+      }
+    }
+
+    // 2. Animate and Update Content Elements
+    const textElements = [
+      document.getElementById('hero-badge'),
+      document.getElementById('hero-title'),
+      document.getElementById('hero-product-id'),
+      document.getElementById('hero-price'),
+      document.getElementById('hero-desc'),
+      document.getElementById('spec-weave'),
+      document.getElementById('spec-time'),
+      document.getElementById('spec-rarity'),
+      document.getElementById('hero-registry-id')
+    ];
+
+    // Fade out and translate down slightly
+    textElements.forEach(el => {
+      if (el) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(10px)';
+        el.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+      }
+    });
+
+    setTimeout(() => {
+      const slide = heroSlides[index];
+      
+      // Update contents
+      if (document.getElementById('hero-badge')) document.getElementById('hero-badge').innerHTML = slide.badge;
+      if (document.getElementById('hero-title')) document.getElementById('hero-title').innerHTML = slide.title;
+      if (document.getElementById('hero-product-id')) document.getElementById('hero-product-id').innerHTML = slide.productId;
+      if (document.getElementById('hero-price')) document.getElementById('hero-price').innerHTML = slide.price;
+      if (document.getElementById('hero-desc')) document.getElementById('hero-desc').innerHTML = slide.desc;
+      if (document.getElementById('spec-weave')) document.getElementById('spec-weave').innerHTML = slide.weave;
+      if (document.getElementById('spec-time')) document.getElementById('spec-time').innerHTML = slide.time;
+      if (document.getElementById('spec-rarity')) document.getElementById('spec-rarity').innerHTML = slide.rarity;
+      if (document.getElementById('hero-registry-id')) document.getElementById('hero-registry-id').innerHTML = slide.registryId;
+      
+      const cta = document.getElementById('hero-cta');
+      if (cta) cta.href = slide.ctaLink;
+
+      // Fade back in
+      textElements.forEach(el => {
+        if (el) {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }
+      });
+    }, 300);
+
+    // 3. Update Thumbnails Active Styling & Border Lines
+    document.querySelectorAll('.hero-thumb').forEach((thumb, idx) => {
+      const line = document.getElementById(`thumb-line-${idx}`);
+      if (idx === index) {
+        thumb.classList.add('active');
+        thumb.classList.remove('bg-surface/5');
+        thumb.classList.add('bg-surface/10');
+        if (line) {
+          line.style.transform = 'scaleX(1)';
+        }
+      } else {
+        thumb.classList.remove('active');
+        thumb.classList.remove('bg-surface/10');
+        thumb.classList.add('bg-surface/5');
+        if (line) {
+          line.style.transform = 'scaleX(0)';
+        }
+      }
+    });
+  }
+
+  // Auto-play interval (rotates slides every 8 seconds unless stopped by manual click)
+  let autoRotateInterval = setInterval(() => {
+    let nextSlide = (currentHeroSlide + 1) % heroSlides.length;
+    setActiveSlide(nextSlide);
+  }, 8000);
+
+  // Preloader Logic
+  document.addEventListener("DOMContentLoaded", () => {
+      const loader = document.getElementById("brand-loader");
+      if (loader) {
+          // Disable body scroll while loading
+          document.body.style.overflow = "hidden";
+          
+          setTimeout(() => {
+              // Theatrical slide-up and scale transition
+              loader.classList.add("loader-exit", "pointer-events-none");
+              // Enable body scroll
+              document.body.style.overflow = "";
+              
+              // Remove from DOM completely after transition completes
+              setTimeout(() => {
+                  loader.remove();
+              }, 1200);
+          }, 2700); // Extended to 2.7s to let the rich self-drawing and shimmer animations complete
+      }
+  });
+</script>
+
+</body></html>

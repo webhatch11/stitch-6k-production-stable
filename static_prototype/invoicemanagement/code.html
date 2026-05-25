@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Invoice Management | 6K Shirts HQ</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0a0a0a",
+                        "secondary": "#775a19",
+                        "accent": "#fed488",
+                        "surface": "#ffffff",
+                        "background": "#fbfbfb",
+                        "border": "#e5e7eb",
+                        "text-main": "#111827",
+                        "text-muted": "#6b7280"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .command-sidebar { background-color: #0a0a0a; }
+        .nav-link-active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border-left: 3px solid #fed488;
+        }
+        .nav-link { transition: all 0.2s ease; }
+        .nav-link:hover { background-color: rgba(255, 255, 255, 0.05); color: #ffffff; }
+    </style>
+    <link rel="stylesheet" href="../prototype-styles.css">
+    <script src="../prototype-core.js" defer></script>
+</head>
+
+<body class="bg-background text-text-main font-body antialiased selection:bg-accent/30">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+
+<div class="flex min-h-screen">
+    <!-- Command Sidebar -->
+    <aside id="adminSidebar" class="fixed inset-y-0 left-0 w-72 command-sidebar flex-col z-[60] transform -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen transition-transform duration-300 ease-in-out flex">
+        <!-- Brand Identity -->
+        <div class="p-8 border-b border-white/10 mb-8">
+            <div class="flex items-center gap-4">
+                <div class="size-10 bg-accent text-primary flex items-center justify-center font-headline font-black rounded-none shadow-lg shadow-accent/10">6K</div>
+                <div>
+                    <h1 class="font-headline font-bold text-sm uppercase tracking-widest text-white">Admin Portal</h1>
+                    <p class="text-[9px] text-white/40 uppercase tracking-[0.2em]">6K Shirts Management</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-4 space-y-2">
+            <p class="px-4 text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4">Management</p>
+            <a href="#" class="flex items-center gap-4 px-4 py-3.5 text-white/50 rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">dashboard</span>
+                <span class="text-xs font-bold uppercase tracking-widest">Dashboard</span>
+            </a>
+            <a href="../productmanagementadmin/code.html" class="flex items-center gap-4 px-4 py-3.5 text-white/50 rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">inventory_2</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-inherit">Inventory</span>
+            </a>
+            <a href="../ordermanagementadmin/code.html" class="flex items-center gap-4 px-4 py-3.5 text-white/50 rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">shopping_basket</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-inherit">Orders</span>
+            </a>
+            <a href="../invoicemanagement/code.html" class="flex items-center gap-4 px-4 py-3.5 nav-link-active rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">description</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-inherit">Invoices</span>
+            </a>
+            <a href="../addadmin/code.html" class="flex items-center gap-4 px-4 py-3.5 text-white/50 rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">add_box</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-inherit">Add Product</span>
+            </a>
+            <a href="../couponmanagementadmin/code.html" class="flex items-center gap-4 px-4 py-3.5 text-white/50 rounded-none nav-link">
+                <span class="material-symbols-outlined text-lg">confirmation_number</span>
+                <span class="text-xs font-bold uppercase tracking-widest text-inherit">Coupons</span>
+            </a>
+            
+
+        </nav>
+
+        <!-- User Signature -->
+        <div class="p-6 bg-white/5 border-t border-white/10">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="size-10 rounded-full border border-white/20 overflow-hidden grayscale">
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6xa6ruDCMP9kBSz3b3EreQQYy2XrjpjpjalxZrWvcPRXlV9elzVqOZYuVzNR_jN5lZivQYms2L4mocCLFSHKw_j-ry0h32weEBX3ZVTBQRuJrs2zRjmJvi6VEacc46PSP5JqQcDsdK_f_PqZvr5uJXGJvNSkKPNGaXZw_w4k2ulrt6W5xOYIyP_-WLtx9qXcjyRdq6d9bHV9EhjRYFTjm9oNlUBNSwBAmbfzszKwodgLLDUeN3EJJKLv3x-ZjyRCmZtt4RGwsDm0" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <p class="text-xs font-bold font-headline text-white">Workshop Manager</p>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span class="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                        <p class="text-[9px] text-white/40 uppercase tracking-widest">Signed In</p>
+                    </div>
+                </div>
+            </div>
+            <a href="../index.html" class="flex items-center justify-center gap-2 w-full py-3 bg-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-accent hover:text-primary transition-all btn-active-scale">
+                Storefront <span class="material-symbols-outlined text-sm">open_in_new</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 lg:p-16 overflow-y-auto bg-[#f9fafb]">
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
+            <div>
+                <nav class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">
+                    <span>Admin Portal</span>
+                    <span class="material-symbols-outlined text-sm opacity-30">chevron_right</span>
+                    <span class="text-primary italic">Invoice Archive</span>
+                </nav>
+                <h2 class="text-5xl font-headline font-black tracking-tighter text-primary uppercase leading-none">Invoices</h2>
+                <p class="text-xs text-text-muted mt-4 font-bold uppercase tracking-widest italic opacity-70">A record of all customer order invoices.</p>
+            </div>
+            <div class="flex gap-4">
+                 <button class="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg shadow-primary/10 btn-active-scale">Export Invoices</button>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+             <div class="bg-white p-8 border border-border">
+                <p class="text-[10px] font-black uppercase tracking-[.25em] text-text-muted mb-4">Billed Revenue</p>
+                <h3 id="totalBilled" class="text-3xl font-headline font-black tracking-tighter">₹0</h3>
+            </div>
+            <div class="bg-white p-8 border border-border">
+                <p class="text-[10px] font-black uppercase tracking-[.25em] text-text-muted mb-4">Active Invoices</p>
+                <h3 id="manifestCount" class="text-3xl font-headline font-black tracking-tighter">0</h3>
+            </div>
+        </section>
+
+        <!-- Table -->
+        <div class="bg-white border border-border shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-[9px] font-black uppercase tracking-[.2em] text-text-muted border-b border-border bg-white">
+                        <th class="px-8 py-6 font-black">Invoice ID</th>
+                        <th class="px-8 py-6 font-black">Generation Date</th>
+                        <th class="px-8 py-6 font-black">Entity / Customer</th>
+                        <th class="px-8 py-6 font-black">Total Amount</th>
+                        <th class="px-8 py-6 font-black text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceLedgerBody" class="divide-y divide-border">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ledgerBody = document.getElementById('invoiceLedgerBody');
+        const orders = RegistryManager.getOrders();
+        
+        let revenue = 0;
+        let activeCount = 0;
+        orders.forEach(o => {
+            if (o.status !== 'Returned' && o.status !== 'Cancelled') {
+                revenue += o.total;
+                activeCount++;
+            }
+        });
+        
+        document.getElementById('totalBilled').innerText = '₹' + revenue.toLocaleString('en-IN');
+        document.getElementById('manifestCount').innerText = activeCount;
+
+        if (orders.length === 0) {
+            ledgerBody.innerHTML = `<tr><td colspan="5" class="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-text-muted opacity-40">No invoices generated</td></tr>`;
+            return;
+        }
+
+        ledgerBody.innerHTML = orders.map(order => `
+            <tr class="hover:bg-[#f9fafb] transition-colors">
+                <td class="px-8 py-8 text-sm font-black font-headline text-primary">#INV-${order.id}</td>
+                <td class="px-8 py-8 text-[10px] font-black uppercase tracking-widest text-text-muted">${order.date}</td>
+                <td class="px-8 py-8">
+                    <span class="text-[11px] font-black uppercase tracking-tight">${order.customer}</span>
+                </td>
+                <td class="px-8 py-8 text-sm font-black font-headline text-secondary">
+                    ₹${order.total.toLocaleString('en-IN')}
+                    ${order.status === 'Returned' ? '<span class="ml-2 inline-block text-[9px] font-black uppercase tracking-widest bg-red-50 text-red-600 px-2 py-0.5">Refunded</span>' : ''}
+                    ${order.status === 'Cancelled' ? '<span class="ml-2 inline-block text-[9px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 px-2 py-0.5">Cancelled</span>' : ''}
+                </td>
+                <td class="px-8 py-8 text-right">
+                    <a href="../invoice/index.html?orderId=${order.id}" class="inline-block bg-primary text-white px-6 py-2.5 text-[9px] font-black uppercase tracking-widest hover:bg-secondary transition-colors btn-active-scale">View Invoice</a>
+                </td>
+            </tr>
+        `).join('');
+    });
+</script>
+</body>
+</html>

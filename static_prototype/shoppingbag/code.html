@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shopping Bag | 6K Shirts Minimalist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#faf9f8",
+                        "surface-container-low": "#f4f3f2",
+                        "on-primary-container": "#3b3b3b",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "on-surface-variant": "#4e4639",
+                        "surface-tint": "#5f5e5e",
+                        "on-surface": "#1a1c1c",
+                        "secondary-fixed": "#ffdea5",
+                        "surface": "#faf9f8",
+                        "primary": "#5f5e5e",
+                        "outline-variant": "#d1c5b4",
+                        "inverse-surface": "#2f3130",
+                        "outline": "#7f7667",
+                        "inverse-primary": "#c8c6c5",
+                        "primary-fixed": "#e5e2e1",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-container": "#6a240e",
+                        "on-tertiary-fixed-variant": "#7a2f18",
+                        "on-primary-fixed-variant": "#474646",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#e9c176",
+                        "primary-container": "#a7a5a4",
+                        "on-secondary-fixed-variant": "#5d4201",
+                        "tertiary-fixed-dim": "#ffb5a0",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#f08a6c",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#261900",
+                        "on-background": "#1a1c1c",
+                        "surface-variant": "#e3e2e1",
+                        "background": "#faf9f8",
+                        "on-primary-fixed": "#1c1b1b",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed": "#ffdbd1",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f1f0f0",
+                        "surface-dim": "#dadad9",
+                        "secondary-container": "#fed488",
+                        "on-secondary-container": "#785a1a",
+                        "surface-container": "#eeeeed",
+                        "on-primary": "#ffffff",
+                        "secondary": "#775a19",
+                        "surface-container-high": "#e9e8e7",
+                        "on-tertiary-fixed": "#3b0a00",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e3e2e1",
+                        "tertiary": "#98462d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        .editorial-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2rem;
+        }
+    </style>
+    <link rel="stylesheet" href="../prototype-styles.css">
+    <script src="../prototype-core.js" defer></script>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-secondary-container">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+<!-- Header Navigation (Simplified for Process Flow) -->
+<!-- Shared Header -->
+<header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-4">
+  <div class="flex items-center justify-between max-w-7xl mx-auto">
+    <div class="flex items-center gap-12">
+      <a href="../index.html" class="flex items-center gap-2 group">
+        <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+          <svg fill="none" viewBox="0 0 48 48">
+            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2 class="text-on-surface font-headline text-xl font-extrabold tracking-tighter">6K</h2>
+      </a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../index.html">Home</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../shopallshirts/code.html">Shop All</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../orderhistory/code.html">Order History</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../ordertracking/code.html">Track Order</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="../shoppingbag/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">shopping_bag</a>
+      <a href="../myprofile/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">person</a>
+      <a href="../admindashboard/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">admin_panel_settings</a>
+      <button id="menuBtn" class="material-symbols-outlined md:hidden">menu</button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="hidden flex-col mt-4 space-y-4 md:hidden">
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../index.html">Home</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../shopallshirts/code.html">Shop All</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../orderhistory/code.html">Order History</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../ordertracking/code.html">Track Order</a>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto px-6 lg:px-12 py-12 lg:py-20">
+<div class="flex flex-col lg:flex-row gap-16">
+<!-- Left Column: Items List -->
+<div class="flex-grow space-y-12">
+<div class="border-b border-on-surface/5 pb-6">
+<h2 class="font-headline text-5xl font-black tracking-tight mb-2">Shopping Bag</h2>
+<p id="cartItemsCountText" class="text-outline font-medium">0 ITEMS SELECTED</p>
+</div>
+<div id="cartItemsContainer" class="space-y-10">
+<!-- Injected Dynamically -->
+</div>
+<!-- Trust Signals -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-on-surface/5">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary">verified</span>
+<p class="text-[10px] font-bold uppercase tracking-[0.15em]">Handcrafted in India</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary">published_with_changes</span>
+<p class="text-[10px] font-bold uppercase tracking-[0.15em]">Easy 7-Day Returns</p>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary">local_shipping</span>
+<p class="text-[10px] font-bold uppercase tracking-[0.15em]">Complimentary Shipping</p>
+</div>
+</div>
+</div>
+<!-- Right Column: Order Summary -->
+<div id="summaryContainer" class="w-full lg:w-[400px] hidden">
+<div class="bg-surface-container-lowest p-8 lg:sticky lg:top-32 border-0">
+<h3 class="font-headline text-2xl font-black tracking-tight mb-8">Order Summary</h3>
+<div class="space-y-4 mb-8">
+<div class="flex justify-between text-sm font-medium">
+<span class="text-outline uppercase tracking-wider">Subtotal</span>
+<span id="bagSubtotal">₹0.00</span>
+</div>
+<div class="flex justify-between text-sm font-medium">
+<span class="text-outline uppercase tracking-wider">Shipping</span>
+<span class="text-secondary font-bold uppercase tracking-widest">Free</span>
+</div>
+<div class="flex justify-between text-sm font-medium">
+<span class="text-outline uppercase tracking-wider">Estimated Tax / GST</span>
+<span id="bagGST">₹0.00</span>
+</div>
+</div>
+<div class="border-t border-on-surface/10 pt-6 mb-8">
+<div class="flex justify-between items-end">
+<span class="font-headline font-bold text-lg uppercase tracking-widest">Total</span>
+<span id="bagTotal" class="font-headline font-black text-3xl">₹0.00</span>
+</div>
+</div>
+<a href="../checkout/code.html"><button class="w-full bg-on-surface text-surface py-5 font-headline font-bold text-sm uppercase tracking-[0.3em] hover:bg-on-surface/90 transition-all flex items-center justify-center gap-3 btn-active-scale">
+                        Proceed to Checkout
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button></a>
+<div class="mt-8 space-y-4">
+<div class="p-4 bg-secondary-container/10 flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary">info</span>
+<p class="text-xs leading-relaxed font-medium">
+                                Members get <span class="text-secondary font-bold">FREE SHIPPING</span> and exclusive access to the Heritage Collection. <a class="underline" href="#">Join Now</a>.
+                            </p>
+</div>
+<div class="flex justify-center gap-4 opacity-40 grayscale">
+<img alt="Visa" class="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvWjR0FxPlD1Bbr8IIGvOem2_CS0oAoiGJkcdUXUFzFJCcyCeCOoPUVL7_8nl7gnSvlCWHzkSMSIvvPz8jzgcYLTWovOCL3smbP52wVGRFIGHFwiWrSL4wBUud8Vy2QBRLEnDaAsqu2Yj_9bR3uJZFXEZ3IywkCdS-IADrHPUmXxuyvR3lNpLq82fvrUBdLeIm-bwB9tqLR2scB8oEUNYL5H9ypBTjDXwpNDoVTyDm_uru-Y5vy_6DeVnFboBxjzp1VLcGcvMfprA"/>
+<img alt="Mastercard" class="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGXq4UBQBpQT0nMdqNkTaV_7dLj6zRsVrJJZaRjzCrdOQ-WmJjrv7q9O6n-rDea8R11-CyFA2v9_3zYnSf-iW0tvvfnoEhJm3Sst2jjlFFSHx0w9wHJa6Q9TnWGvwx4jmDA3RkmiqYpgl7OCjlP1IXFbPWPZTnvrd4bg8H5KIIUlLIzkxMZMgti9xIa-x3WG3YpXD-oH5Hn9SlWnh0AdDTHlzNEclh_yweIy_khg-sCu5s0Afm73FAo533o_4zsYb55CHMbcguhz8"/>
+<img alt="PayPal" class="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPGHpGdJ1hE36tsfZ3daofkcNJb-27h_RECwh_WjVU9xMyK668uJuktG4wJEwynAnnOAbl560BmZDiB2NmNDneNedC63-yDciK7y9zAp4vjV6IYX-QwiqdajfQ1F9M22Rr9iRE3-_jHIBzIZ5A-TjeJajQ1e2k1PMdDFStplFhtqSCSz__Ghd2pmahBFWBcuKZOuYS58oCMM9xozGNFMTuI__LoG0nQN92WZdvX7t85pGYDl336TIeejJ7ZIFVsjIf5jUV8OVXQ6Y"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Cross-sell Section -->
+<section class="mt-32 pt-20 border-t border-outline-variant/30">
+<div class="flex justify-between items-end mb-12">
+<div>
+<span class="text-secondary font-bold text-xs uppercase tracking-[0.3em] mb-4 block">Curated for You</span>
+<h2 class="font-headline text-4xl font-black tracking-tight">You May Also Like</h2>
+</div>
+<a class="text-xs font-bold uppercase tracking-widest border-b border-on-surface pb-1" href="../shopallshirts/code.html">View Collection</a>
+</div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+<!-- Product Card 1 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container overflow-hidden mb-6">
+<img class="w-full h-full object-cover group-hover:scale-105 transition"
+src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf" /></div>
+<div class="space-y-1">
+<h4 class="font-headline font-bold text-sm uppercase tracking-widest">Premium Trousers (Khaki)</h4>
+<p class="text-secondary font-bold font-headline">₹5,200</p>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container overflow-hidden mb-6">
+<img alt="Oversized cotton shirt" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Modern Indian menswear: An oversized hand-spun cotton shirt in a deep clay red color against a textured white wall" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeiDw3huheb21HblGgonS4l78232XPejmqsgttbASBTtIrDIrTBPK_jt1FTJCpNstQfWi3FZKI9nXjJxlK_lLDlaU13BH2sRTklsW5VHbxGne_J2b0ruxPIsb4vUVMoEJkA2ABSiqOU96dBRsoHvm6tQJLT3pM4rn7V9XNuTNl_SAhk8jJY7lEhwFcRhUJbKY-QCfZ_AeZfOzEf8oaB19-7BP3ZUwJBxq6UO0yQ2peXxYIjlQwp3wUTcLLh_HIk4qQ89wlmk7vbAk"/>
+</div>
+<div class="space-y-1">
+<h4 class="font-headline font-bold text-sm uppercase tracking-widest">Clay Overshirt</h4>
+<p class="text-secondary font-bold font-headline">₹3,900</p>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container overflow-hidden mb-6">
+<img class="w-full h-full object-cover group-hover:scale-105 transition"
+src="https://images.unsplash.com/photo-1603252109303-2751441dd157" />
+</div>
+<div class="space-y-1">
+<h4 class="font-headline font-bold text-sm uppercase tracking-widest">Premium Slide</h4>
+<p class="text-secondary font-bold font-headline">₹4,800</p>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="group cursor-pointer">
+<div class="aspect-[3/4] bg-surface-container overflow-hidden mb-6">
+<img class="w-full h-full object-cover group-hover:scale-105 transition"
+src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c" />
+</div>
+<div class="space-y-1">
+<h4 class="font-headline font-bold text-sm uppercase tracking-widest">Signature White Tee</h4>
+<p class="text-secondary font-bold font-headline">₹1,500</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<!-- Global Footer -->
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="../admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="../return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="../terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="../contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="../privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn.addEventListener("click", () => {
+    mobileMenu.classList.toggle("hidden");
+  });
+
+  function groupCartItems(cart) {
+      const groups = {};
+      cart.forEach((item) => {
+          const key = `${item.productName}_${item.size || 'M'}`;
+          if (!groups[key]) {
+              groups[key] = {
+                  productName: item.productName,
+                  price: item.price || 0,
+                  size: item.size || 'M',
+                  image: item.image || '',
+                  quantity: 0
+              };
+          }
+          groups[key].quantity += 1;
+      });
+      return Object.values(groups);
+  }
+
+  function handleIncrement(productName, price, size, image) {
+      let cart = JSON.parse(localStorage.getItem('cart_items') || '[]');
+      cart.push({ productName, price: parseFloat(price) || 0, size, image });
+      localStorage.setItem('cart_items', JSON.stringify(cart));
+      localStorage.setItem('cartCount', cart.length);
+      renderCart();
+      if (typeof updateCartDisplay === 'function') {
+          updateCartDisplay(true);
+      }
+  }
+
+  function handleDecrement(productName, size) {
+      let cart = JSON.parse(localStorage.getItem('cart_items') || '[]');
+      const idx = cart.findIndex(item => item.productName === productName && (item.size || 'M') === size);
+      if (idx !== -1) {
+          cart.splice(idx, 1);
+          localStorage.setItem('cart_items', JSON.stringify(cart));
+          localStorage.setItem('cartCount', cart.length);
+          renderCart();
+          if (typeof updateCartDisplay === 'function') {
+              updateCartDisplay(true);
+          }
+      }
+  }
+
+  function handleRemove(productName, size) {
+      let cart = JSON.parse(localStorage.getItem('cart_items') || '[]');
+      const updatedCart = cart.filter(item => !(item.productName === productName && (item.size || 'M') === size));
+      localStorage.setItem('cart_items', JSON.stringify(updatedCart));
+      localStorage.setItem('cartCount', updatedCart.length);
+      renderCart();
+      if (typeof updateCartDisplay === 'function') {
+          updateCartDisplay(true);
+      }
+  }
+
+  function renderCart() {
+      let cart = [];
+      try {
+          cart = JSON.parse(localStorage.getItem('cart_items') || '[]');
+      } catch(e) {
+          console.error("Failed to load cart items:", e);
+      }
+
+      const countText = document.getElementById('cartItemsCountText');
+      const container = document.getElementById('cartItemsContainer');
+      const summaryContainer = document.getElementById('summaryContainer');
+
+      if (countText) {
+          countText.innerText = `${cart.length} ITEM${cart.length !== 1 ? 'S' : ''} SELECTED`;
+      }
+
+      if (cart.length === 0) {
+          if (container) {
+              container.innerHTML = `
+                  <div class="text-center py-20 border border-dashed border-outline-variant/30 space-y-6">
+                    <span class="material-symbols-outlined text-6xl text-outline/40">shopping_bag</span>
+                    <h3 class="font-headline text-2xl font-bold uppercase tracking-tight">Your Bag is Empty</h3>
+                    <p class="text-xs text-outline uppercase tracking-widest max-w-sm mx-auto leading-relaxed">
+                      Explore our limited-run collections and South Indian woven heritage series.
+                    </p>
+                    <a href="../shopallshirts/code.html" class="inline-block bg-on-surface text-surface px-10 py-4 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors btn-active-scale mt-4">
+                      Shop Collection
+                    </a>
+                  </div>
+              `;
+          }
+          if (summaryContainer) {
+              summaryContainer.classList.add('hidden');
+          }
+          return;
+      }
+
+      if (summaryContainer) {
+          summaryContainer.classList.remove('hidden');
+      }
+
+      const grouped = groupCartItems(cart);
+      
+      if (container) {
+          container.innerHTML = grouped.map(item => {
+              const itemPrice = item.price || 0;
+              const formattedPrice = `₹${(itemPrice * item.quantity).toLocaleString('en-IN')}`;
+              const imageSrc = item.image || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf';
+              return `
+                  <div class="flex flex-col md:flex-row gap-8 relative group border-b border-on-surface/5 pb-10">
+                      <div class="w-full md:w-48 aspect-[3/4] bg-surface-container overflow-hidden">
+                          <img alt="${item.productName}" class="w-full h-full object-cover" src="${imageSrc}"/>
+                      </div>
+                      <div class="flex-grow flex flex-col justify-between py-2">
+                          <div>
+                              <div class="flex justify-between items-start mb-2">
+                                  <h3 class="font-headline text-xl font-bold">${item.productName}</h3>
+                                  <p class="font-headline font-bold text-lg">${formattedPrice}</p>
+                              </div>
+                              <div class="space-y-1 text-sm text-outline font-medium uppercase tracking-wider mb-4">
+                                  <p>Size: ${item.size}</p>
+                                  <p>Color: Atelier Choice</p>
+                              </div>
+                          </div>
+                          <div class="flex items-center justify-between mt-6">
+                              <div class="flex items-center border border-outline-variant">
+                                  <button onclick="handleDecrement('${item.productName}', '${item.size}')" class="px-3 py-2 hover:bg-surface-container-low transition-colors btn-active-scale"><span class="material-symbols-outlined">remove</span></button>
+                                  <span class="px-4 font-headline font-bold">${item.quantity}</span>
+                                  <button onclick="handleIncrement('${item.productName}', ${itemPrice}, '${item.size}', '${imageSrc}')" class="px-3 py-2 hover:bg-surface-container-low transition-colors btn-active-scale"><span class="material-symbols-outlined">add</span></button>
+                              </div>
+                              <button onclick="handleRemove('${item.productName}', '${item.size}')" class="text-xs font-bold uppercase tracking-widest border-b border-on-surface/20 pb-0.5 hover:border-on-surface transition-colors btn-active-scale">Remove</button>
+                          </div>
+                      </div>
+                  </div>
+              `;
+          }).join('');
+      }
+
+      // Calculate Totals
+      let subtotal = cart.reduce((sum, item) => sum + (item.price || 0), 0);
+      let gst = subtotal * 0.12;
+      let total = subtotal + gst;
+
+      document.getElementById('bagSubtotal').innerText = `₹${subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('bagGST').innerText = `₹${gst.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('bagTotal').innerText = `₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  }
+
+  // Render on load
+  document.addEventListener('DOMContentLoaded', renderCart);
+</script>
+
+</body></html>

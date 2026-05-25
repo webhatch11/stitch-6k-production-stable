@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Track Your Order | 6K Shirts</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdbd1",
+                    "on-secondary-fixed": "#261900",
+                    "surface": "#faf9f8",
+                    "outline": "#7f7667",
+                    "secondary": "#775a19",
+                    "on-primary-container": "#3b3b3b",
+                    "on-secondary-fixed-variant": "#5d4201",
+                    "surface-bright": "#faf9f8",
+                    "on-secondary": "#ffffff",
+                    "surface-container-low": "#f4f3f2",
+                    "outline-variant": "#d1c5b4",
+                    "inverse-on-surface": "#f1f0f0",
+                    "on-background": "#1a1c1c",
+                    "on-surface-variant": "#4e4639",
+                    "on-primary-fixed": "#1c1b1b",
+                    "on-tertiary": "#ffffff",
+                    "inverse-primary": "#c8c6c5",
+                    "tertiary": "#98462d",
+                    "on-surface": "#1a1c1c",
+                    "on-tertiary-fixed": "#3b0a00",
+                    "on-primary-fixed-variant": "#474646",
+                    "surface-variant": "#e3e2e1",
+                    "secondary-container": "#fed488",
+                    "secondary-fixed": "#ffdea5",
+                    "primary-fixed-dim": "#c8c6c5",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#eeeeed",
+                    "surface-tint": "#5f5e5e",
+                    "surface-dim": "#dadad9",
+                    "surface-container-high": "#e9e8e7",
+                    "background": "#faf9f8",
+                    "tertiary-container": "#f08a6c",
+                    "on-error": "#ffffff",
+                    "on-primary-container": "#3b3b3b",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#ffb5a0",
+                    "on-tertiary-fixed-variant": "#7a2f18",
+                    "surface-container-highest": "#e3e2e1",
+                    "on-tertiary-container": "#6a240e",
+                    "primary-fixed": "#e5e2e1",
+                    "inverse-surface": "#2f3130",
+                    "primary": "#5f5e5e",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#785a1a",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .luxury-gradient {
+            background: linear-gradient(45deg, #775a19 0%, #fed488 100%);
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1c5b4; }
+
+        /* Glassmorphism Utilities */
+        .glass-nav {
+            background: rgba(250, 249, 248, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(127, 118, 103, 0.1);
+        }
+
+        /* Mobile Menu Drawer Animation */
+        .mobile-menu-drawer {
+            clip-path: circle(0% at top right);
+            transition: clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .mobile-menu-drawer.open {
+            clip-path: circle(150% at top right);
+        }
+
+        /* Hover Scale Interactions */
+        .hover-scale {
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .hover-scale:hover {
+            transform: scale(1.02) translateY(-2px);
+        }
+        .hover-scale:active {
+            transform: scale(0.98);
+        }
+
+        /* Progress loader animations */
+        @keyframes progress-bar {
+            0% { left: -30%; width: 30%; }
+            50% { left: 40%; width: 40%; }
+            100% { left: 100%; width: 30%; }
+        }
+        .animate-progress-bar {
+            animation: progress-bar 1.5s infinite linear;
+        }
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 4s infinite linear;
+        }
+
+        /* Luxury button shine sweep micro-animation */
+        .shine-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .shine-btn::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -100%;
+            width: 50%;
+            height: 200%;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: rotate(25deg);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+        }
+        .shine-btn:hover::after {
+            left: 150%;
+            opacity: 1;
+        }
+
+        /* Pulsing ring animation for the latest tracking milestone node */
+        @keyframes status-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(119, 90, 25, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(119, 90, 25, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(119, 90, 25, 0); }
+        }
+        .active-status-pulse {
+            animation: status-pulse 2s infinite ease-in-out;
+        }
+
+        /* Flowing beam animation along the vertical timeline connector */
+        @keyframes line-flow {
+            0% { top: -20%; height: 20%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; height: 20%; opacity: 0; }
+        }
+        .timeline-glow-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to bottom, transparent, #fed488, transparent);
+            animation: line-flow 4s infinite linear;
+        }
+    </style>
+    <link rel="stylesheet" href="../prototype-styles.css">
+    <script src="../prototype-core.js" defer></script>
+</head>
+
+<body class="bg-surface text-on-surface font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+<!-- Shared Header (Glassmorphic & Mobile First) -->
+<header class="sticky top-0 z-[100] glass-nav transition-all duration-300">
+  <div class="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-4">
+    <div class="flex items-center gap-12">
+      <!-- Logo -->
+      <a href="../index.html" class="flex items-center gap-2 group hover-scale">
+        <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+          <svg fill="none" viewBox="0 0 48 48">
+            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2 class="text-on-surface font-headline text-2xl font-extrabold tracking-tighter">6K</h2>
+      </a>
+
+      <!-- Desktop Menu -->
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../index.html">Home</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../shopallshirts/code.html">Shop All</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../orderhistory/code.html">Order History</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../ordertracking/code.html">Track Order</a>
+      </nav>
+    </div>
+
+    <!-- Right Icons -->
+    <div class="flex items-center gap-5">
+      <a href="../shoppingbag/code.html" class="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300">shopping_bag</a>
+      <a href="../myprofile/code.html" class="hidden md:block material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300">person</a>
+      <!-- Hamburger Menu Button (Mobile) -->
+      <button id="menuBtn" class="md:hidden relative z-[110] size-10 flex flex-col justify-center items-center gap-1.5 focus:outline-none group">
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:rotate-45 group-[.open]:translate-y-2"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:opacity-0"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:-rotate-45 group-[.open]:-translate-y-2"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div id="mobileMenu" class="mobile-menu-drawer fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 md:hidden">
+    <nav class="flex flex-col items-center gap-10 text-center">
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../index.html">Home</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../shopallshirts/code.html">Shop All</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../orderhistory/code.html">Order History</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../ordertracking/code.html">Track Order</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../myprofile/code.html">Profile</a>
+    </nav>
+    <div class="absolute bottom-12 flex gap-6 border-t border-outline/10 pt-8 w-full justify-center px-10">
+        <a class="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface" href="../admindashboard/code.html">Admin</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-12 lg:py-24">
+  <!-- Search/Entry Container -->
+  <div id="searchContainer" class="hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-24">
+      <!-- Left Column: Editorial Brand Heading -->
+      <div class="lg:col-span-6 flex flex-col justify-center">
+        <span class="text-[10px] font-black uppercase tracking-[0.4em] text-secondary">Logistics Tracking</span>
+        <h1 class="font-headline text-5xl lg:text-7xl font-black tracking-tighter text-on-surface uppercase mt-4 leading-[1.1] mb-6">
+          Track Your<br/><span class="text-gold-gradient font-black">Shipment</span>
+        </h1>
+        <p class="text-xs font-semibold text-outline uppercase tracking-widest leading-relaxed max-w-md">
+          Verify real-time status and Shiprocket transit history for your custom atelier orders.
+        </p>
+      </div>
+
+      <!-- Right Column: Premium Search Station Card -->
+      <div class="lg:col-span-6">
+        <div class="bg-[#0a0a0a] text-surface p-8 lg:p-12 relative overflow-hidden border border-white/10 shadow-2xl hover:shadow-[0_0_50px_rgba(254,212,136,0.12)] transition-all duration-500 hover:border-accent/20 group">
+          <!-- Geometric Accent -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-secondary/15 -translate-y-16 translate-x-16 rounded-full blur-3xl group-hover:bg-accent/20 transition-all duration-700"></div>
+          
+          <h3 class="font-headline text-lg font-black uppercase tracking-widest text-white mb-8">Track Order</h3>
+          <form id="trackingForm" onsubmit="handleSearchSubmit(event)" class="space-y-6">
+            <div class="relative border-b border-white/20 focus-within:border-accent transition-colors pb-2">
+              <label for="orderIdInput" class="block text-[9px] font-black uppercase tracking-[0.2em] text-white/50 mb-2">Order ID</label>
+              <input type="text" id="orderIdInput" placeholder="e.g., ORD-101" required class="bg-transparent border-none outline-none focus:ring-0 w-full text-sm font-black uppercase tracking-widest text-white placeholder-white/20 py-2 px-0"/>
+            </div>
+            <button type="submit" class="w-full bg-secondary-container text-on-secondary-container py-4.5 text-xs font-black uppercase tracking-[0.3em] hover:bg-white hover:text-primary transition-all duration-300 btn-active-scale flex items-center justify-center gap-3 shine-btn">
+              <span>Track</span>
+              <span class="material-symbols-outlined text-sm">local_shipping</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Shipments -->
+    <section class="border-t border-outline-variant/30 pt-16">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
+        <div>
+          <span class="text-[9px] font-black uppercase tracking-[0.3em] text-secondary mb-2 block">Recent Activity</span>
+          <h3 class="font-headline text-3xl font-black uppercase tracking-tight">Recent Shipments</h3>
+        </div>
+        <p class="text-[10px] text-outline font-bold uppercase tracking-widest italic opacity-75">Auto-saved Locally</p>
+      </div>
+      <div id="recentOrdersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Loading Container -->
+  <div id="loadingContainer" class="hidden min-h-[50vh] flex flex-col items-center justify-center py-12">
+    <div class="flex flex-col items-center max-w-md text-center p-8 bg-surface-container-low border border-outline-variant/10 relative">
+      <!-- Spinning/Breathing Logo -->
+      <div class="size-20 text-secondary mb-6 relative animate-pulse flex items-center justify-center">
+        <svg class="w-16 h-16" fill="none" viewBox="0 0 48 48">
+          <path d="M24 6L40 34H8L24 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin-slow origin-center"/>
+        </svg>
+        <div class="absolute inset-0 flex items-center justify-center font-headline text-lg font-black tracking-tighter">6K</div>
+      </div>
+      <h3 class="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">Connecting to Shiprocket</h3>
+      <p id="loadingStatusText" class="text-[10px] text-outline font-bold uppercase tracking-widest leading-relaxed mb-4">
+        Establishing connection to Shiprocket routing nodes...
+      </p>
+      <div class="w-48 h-1 bg-outline-variant/20 overflow-hidden relative">
+        <div class="absolute top-0 bottom-0 left-0 bg-secondary animate-progress-bar w-1/3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tracking Dashboard Container -->
+  <div id="dashboardContainer" class="hidden">
+    <section class="mb-12">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-8 border-b border-on-surface/10">
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-[0.4em] text-secondary">Logistics Support</span>
+          <h1 class="font-headline text-4xl lg:text-5xl font-black tracking-tighter text-on-surface uppercase mt-2">
+            Order Tracking
+          </h1>
+          <p class="text-xs font-bold text-outline uppercase tracking-widest mt-2">
+            Order Reference: <span id="dashOrderId" class="text-on-surface font-black"></span>
+          </p>
+        </div>
+        <div class="flex flex-col items-start md:items-end gap-2">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-outline">Expected Delivery</p>
+          <p id="dashExpectedDate" class="font-headline text-2xl font-black text-on-surface"></p>
+          <button onclick="clearTracking()" class="mt-2 text-[9px] font-black uppercase tracking-widest text-secondary hover:text-on-surface flex items-center gap-1 group transition-colors">
+            <span class="material-symbols-outlined text-sm group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+            Track Another Order
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shiprocket Horizontal Info Bar -->
+    <section class="mb-16">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-outline-variant/20 border border-outline-variant/10 shadow-sm">
+        <div class="bg-surface-container-low p-6">
+          <p class="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Status</p>
+          <div class="flex items-center gap-2">
+            <span id="dashStatusDot" class="size-2 rounded-full"></span>
+            <span id="dashStatusText" class="text-xs font-bold uppercase tracking-widest"></span>
+          </div>
+        </div>
+        <div class="bg-surface-container-low p-6">
+          <p class="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Logistics Partner</p>
+          <div class="flex items-center gap-2">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvivqP5wPfTLq-ZkS_YoExleAIdHcpU9K9Ow-hBPRIotwqIO6Z5uV5-4MgxQMo_Hq2WYSfr3wpSStyU2Q_V3UhhlxRwCIeRPOJfBkJUkW4v6ZE6WLl5RW5r8BCoFbR6iTBl80vDzyRWbUrsuMus7ixEiMRje26GBFmCY0lU9clvqbqM-XqsFosSzSuHoTczoavRQBD27C1pD1Owdf7lBnhuzr5N7H2mkTt1OJ9gUC-YQqeGY9PT1-f1X9WZdD2IyDUjSE3XmAKdew" class="h-3 grayscale invert brightness-0" alt="Shiprocket">
+            <span class="text-xs font-bold uppercase tracking-widest ml-1">SR-Xpress</span>
+          </div>
+        </div>
+        <div class="bg-surface-container-low p-6">
+          <p class="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Waybill Number</p>
+          <span id="dashWaybill" class="text-xs font-bold font-mono tracking-tight"></span>
+        </div>
+        <div class="bg-surface-container-low p-6">
+          <p class="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Priority Tier</p>
+          <span class="text-xs font-bold uppercase text-secondary">Premium Express</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-16">
+      <!-- Left: Movement Timeline -->
+      <div class="lg:col-span-7 space-y-12">
+        <div class="space-y-10">
+          <h2 class="font-headline text-xs font-black uppercase tracking-[0.4em] border-l-4 border-secondary pl-6">Tracking History</h2>
+          <div id="timelineContainer" class="relative pl-10 space-y-16">
+            <!-- Dynamically Injected -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Summary & Support -->
+      <div class="lg:col-span-5 space-y-12">
+        <!-- Order Details Card -->
+        <div class="bg-surface-container-highest p-8 border border-outline-variant/10 shadow-sm">
+          <h3 class="font-headline text-[10px] font-black uppercase tracking-[0.4em] mb-8">Order Details</h3>
+          <div class="flex gap-6 items-start">
+            <div class="w-20 h-28 bg-surface-container overflow-hidden flex-shrink-0 relative border border-outline-variant/15">
+              <img id="dashProductImage" src="" class="w-full h-full object-cover" alt="Product">
+            </div>
+            <div>
+              <h4 id="dashProductTitle" class="font-headline font-black text-xl uppercase tracking-tighter"></h4>
+              <p id="dashProductCategory" class="text-[9px] font-bold uppercase tracking-widest text-outline mt-1"></p>
+              <p id="dashProductPrice" class="font-headline font-black text-xl mt-4 text-on-surface"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Destination Card -->
+        <div class="space-y-6">
+          <h3 class="font-headline text-[10px] font-black uppercase tracking-[0.4em]">Delivery Address</h3>
+          <div class="p-8 bg-surface-container-low border border-outline-variant/5">
+            <p id="dashCustomerName" class="font-headline font-black text-xl uppercase tracking-tighter mb-4"></p>
+            <p class="text-sm text-on-surface-variant leading-relaxed font-medium"> 
+              Apt 402, Sky-High Residency<br/>
+              7th Main, Sector 4, HSR Layout<br/>
+              Bengaluru, Karnataka 560102<br/>
+              India
+            </p>
+          </div>
+        </div>
+
+        <!-- Concierge Support Card -->
+        <div class="p-8 bg-on-surface text-surface relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-secondary/10 -translate-y-16 translate-x-16 rounded-full blur-3xl"></div>
+          <h4 class="font-headline font-black text-xl uppercase tracking-tighter mb-4">Concierge Support</h4>
+          <p class="text-[10px] text-surface-variant leading-relaxed mb-8 uppercase tracking-widest">Connect with our dedicated delivery team for secure inquiries or bespoke scheduling.</p>
+          <button onclick="requestConciergeSupport()" class="w-full border border-surface-variant py-4 font-headline font-black uppercase text-[10px] tracking-[0.3em] hover:bg-surface hover:text-on-surface transition-all btn-active-scale">Request Assistance</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error/Not Found Container -->
+  <div id="errorContainer" class="hidden min-h-[50vh] flex flex-col items-center justify-center py-12 text-center">
+    <div class="flex flex-col items-center max-w-md mx-auto p-8 bg-surface-container-low border border-outline-variant/10">
+      <div class="size-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 mb-6 text-red-600">
+        <span class="material-symbols-outlined text-4xl">warning</span>
+      </div>
+      <h3 class="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">Shipment Not Found</h3>
+      <p class="text-xs text-outline leading-relaxed uppercase tracking-wider font-semibold opacity-70 mb-8">
+        We couldn't locate tracking details for order reference <span id="errorOrderId" class="text-on-surface font-bold"></span>. Please check the order reference number and try again.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 w-full">
+        <button onclick="clearTracking()" class="flex-1 bg-on-surface hover:bg-secondary text-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 btn-active-scale hover-scale border border-on-surface/10">
+          Back to Search
+        </button>
+        <a href="../orderhistory/code.html" class="flex-1 border border-outline-variant/60 text-outline hover:text-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-surface-container-low transition-all duration-300 btn-active-scale">
+          View History
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Global Footer -->
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="../admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="../return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="../terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="../contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="../privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script>
+  // Mobile drawer menu transition
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn.addEventListener("click", () => {
+    menuBtn.classList.toggle("open");
+    mobileMenu.classList.toggle("open");
+    document.body.style.overflow = mobileMenu.classList.contains("open") ? "hidden" : "";
+  });
+
+  // Robust date parsing helper
+  function getOrderDate(dateStr) {
+      if (!dateStr) return new Date();
+      let d = new Date(dateStr);
+      if (!isNaN(d.getTime())) return d;
+      
+      const parts = dateStr.split(/[\/\-]/);
+      if (parts.length === 3) {
+          const p0 = parseInt(parts[0]);
+          const p1 = parseInt(parts[1]);
+          const p2 = parseInt(parts[2]);
+          if (p1 > 12) {
+              return new Date(p2, p0 - 1, p1);
+          }
+          return new Date(p2, p1 - 1, p0);
+      }
+      
+      const spaceParts = dateStr.replace(',', '').split(' ');
+      if (spaceParts.length === 3) {
+          let day = parseInt(spaceParts[0]);
+          let monthStr = spaceParts[1].toLowerCase();
+          let year = parseInt(spaceParts[2]);
+          if (isNaN(day)) {
+              monthStr = spaceParts[0].toLowerCase();
+              day = parseInt(spaceParts[1]);
+          }
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.findIndex(m => monthStr.startsWith(m));
+          if (monthIndex !== -1 && !isNaN(day) && !isNaN(year)) {
+              return new Date(year, monthIndex, day);
+          }
+      }
+      
+      return new Date();
+  }
+
+  function formatTimelineDate(date, daysOffset = 0, timeStr = "") {
+      const d = new Date(date);
+      d.setDate(d.getDate() + daysOffset);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const formattedDate = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+      return timeStr ? `${formattedDate} • ${timeStr}` : formattedDate;
+  }
+
+  function showView(viewId) {
+      ['searchContainer', 'loadingContainer', 'dashboardContainer', 'errorContainer'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+              if (id === viewId) {
+                  el.classList.remove('hidden');
+              } else {
+                  el.classList.add('hidden');
+              }
+          }
+      });
+  }
+
+  let loadingInterval = null;
+  function startLoadingAnimation(callback) {
+      showView('loadingContainer');
+      const statusText = document.getElementById('loadingStatusText');
+      const messages = [
+          "Establishing connection to Shiprocket routing nodes...",
+          "Authenticating Waybill with Xpress logistics...",
+          "Downloading transit logs and ETA estimations...",
+          "Resolving delivery agent profile..."
+      ];
+      let index = 0;
+      if (statusText) {
+          statusText.innerText = messages[0];
+          clearInterval(loadingInterval);
+          loadingInterval = setInterval(() => {
+              index = (index + 1) % messages.length;
+              statusText.innerText = messages[index];
+          }, 200);
+      }
+
+      setTimeout(() => {
+          clearInterval(loadingInterval);
+          callback();
+      }, 800);
+  }
+
+  function fetchShiprocketTracking(orderId) {
+      if (!orderId) {
+          showView('searchContainer');
+          renderRecentOrders();
+          return;
+      }
+
+      startLoadingAnimation(() => {
+          const order = RegistryManager.getOrders().find(o => o.id.toUpperCase() === orderId.toUpperCase());
+          if (!order) {
+              const errorOrderId = document.getElementById('errorOrderId');
+              if (errorOrderId) errorOrderId.innerText = orderId;
+              showView('errorContainer');
+              return;
+          }
+
+          // Found! Display details
+          document.getElementById('dashOrderId').innerText = '#' + order.id;
+          
+          // Status styling
+          const statusDot = document.getElementById('dashStatusDot');
+          const statusText = document.getElementById('dashStatusText');
+          let statusColor = 'bg-stone-500';
+          if (order.status === 'Delivered') statusColor = 'bg-green-500';
+          else if (order.status === 'Returned' || order.status === 'Return Rejected') statusColor = 'bg-red-500';
+          else if (order.status === 'Return Requested' || order.status === 'Return in Transit') statusColor = 'bg-amber-500';
+          else if (order.status === 'Paid' || order.status === 'Paid via Wallet') statusColor = 'bg-blue-500';
+
+          if (statusDot) {
+              statusDot.className = `size-2 rounded-full ${statusColor}`;
+          }
+          if (statusText) {
+              statusText.innerText = order.status;
+          }
+
+          // AWB / Waybill
+          const waybill = document.getElementById('dashWaybill');
+          if (waybill) {
+              const numericId = order.id.replace(/\D/g, "") || "4022";
+              waybill.innerText = `SR772${numericId}`;
+          }
+
+          // Expected Delivery Calculation
+          const parsedDate = getOrderDate(order.date);
+          const dashExpectedDate = document.getElementById('dashExpectedDate');
+          if (dashExpectedDate) {
+              let daysToAdd = 5;
+              if (order.status === 'Delivered') daysToAdd = 3;
+              else if (order.status === 'Returned' || order.status === 'Return Rejected') daysToAdd = 4;
+              
+              dashExpectedDate.innerText = formatTimelineDate(parsedDate, daysToAdd).toUpperCase();
+          }
+
+          // Product details resolution
+          const matchingProduct = RegistryManager.getProducts().find(p => p.title.toLowerCase() === order.items[0].toLowerCase());
+          const productImage = document.getElementById('dashProductImage');
+          const productTitle = document.getElementById('dashProductTitle');
+          const productCategory = document.getElementById('dashProductCategory');
+          const productPrice = document.getElementById('dashProductPrice');
+
+          if (productTitle) productTitle.innerText = order.items[0];
+          if (productPrice) productPrice.innerText = `₹${order.total.toLocaleString('en-IN')}`;
+          
+          if (matchingProduct) {
+              if (productImage) productImage.src = matchingProduct.image || (matchingProduct.images ? matchingProduct.images[0] : '');
+              if (productCategory) productCategory.innerText = `${matchingProduct.category || 'Atelier Collection'} • Reserve`;
+          } else {
+              if (productImage) productImage.src = "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200";
+              if (productCategory) productCategory.innerText = "Custom Heritage • Reserve";
+          }
+
+          // Customer name
+          const customerName = document.getElementById('dashCustomerName');
+          if (customerName) customerName.innerText = order.customer || "Valued Client";
+
+          // Generate Timeline
+          generateTimelineMarkup(order);
+
+          showView('dashboardContainer');
+      });
+  }
+
+  function generateTimelineMarkup(order) {
+      const orderDate = getOrderDate(order.date);
+      const container = document.getElementById('timelineContainer');
+      if (!container) return;
+
+      let html = '<!-- Vertical Line -->\n<div class="absolute left-[24px] top-2 bottom-2 w-[1px] bg-outline-variant/30 overflow-hidden"><div class="timeline-glow-line"></div></div>\n';
+      const status = order.status;
+      let milestones = [];
+
+      // Step templates
+      const stepPlaced = {
+          title: "Order Placed & Confirmed",
+          dateStr: formatTimelineDate(orderDate, 0, "10:00 AM"),
+          desc: "Your order has been verified and registered. Materials prepared for weaving.",
+          icon: "inventory_2",
+          state: "active"
+      };
+
+      const stepDispatched = {
+          title: "Workshop Dispatch",
+          dateStr: formatTimelineDate(orderDate, 1, "08:30 AM"),
+          desc: "Package dispatched from Varanasi Workshop in custom luxury packing and handed to Shiprocket courier partner.",
+          icon: "local_shipping",
+          state: "pending"
+      };
+
+      const stepSorting = {
+          title: "Arrived at Sorting Facility",
+          dateStr: formatTimelineDate(orderDate, 2, "04:15 PM"),
+          desc: "Processed through Shiprocket automated routing at Bengaluru West Hub. Handover confirmed.",
+          icon: "hub",
+          state: "pending"
+      };
+
+      const stepOutForDelivery = {
+          title: "Out for Delivery",
+          dateStr: formatTimelineDate(orderDate, 3, "09:00 AM"),
+          desc: "Shiprocket delivery agent Sunil K. (+91 90876 XXXXX) is out for delivery to your address.",
+          icon: "hail",
+          state: "pending"
+      };
+
+      const stepDelivered = {
+          title: "Package Handed Over",
+          dateStr: formatTimelineDate(orderDate, 3, "02:30 PM"),
+          desc: "Delivered. Secure handover verified by signature receipt.",
+          icon: "check_circle",
+          state: "pending"
+      };
+
+      // Return-related steps
+      const returnReqDate = order.returnRequestDate || formatTimelineDate(new Date(), 0, "11:00 AM");
+      const stepReturnRequested = {
+          title: "Return Request Registered",
+          dateStr: returnReqDate,
+          desc: `Reason: "${order.returnReason || 'Item size issues'}". Proof image: ${order.returnImage || 'None'}. Awaiting authorization.`,
+          icon: "assignment_return",
+          state: "return"
+      };
+
+      const stepReturnTransit = {
+          title: "Return Shipment Dispatched",
+          dateStr: formatTimelineDate(new Date(), 0, "03:45 PM"),
+          desc: "Reverse logistics partner agent has collected the package. Transit sorting to Varanasi Workshop in progress.",
+          icon: "local_shipping",
+          state: "return"
+      };
+
+      const stepReturnRefunded = {
+          title: "Return Processed & Refunded",
+          dateStr: order.returnDate || formatTimelineDate(new Date(), 0, "05:00 PM"),
+          desc: `Refund credited back to ${order.refundOption === 'wallet' ? 'Store Wallet' : 'Original Payment Method'}. Restocked in workshop inventory.`,
+          icon: "account_balance_wallet",
+          state: "return"
+      };
+
+      const stepReturnRejected = {
+          title: "Return Request Declined",
+          dateStr: formatTimelineDate(new Date(), 0, "02:00 PM"),
+          desc: `Declined reason: "${order.returnRejectReason || 'Quality check failed'}". Package will be returned to customer destination.`,
+          icon: "cancel",
+          state: "rejected"
+      };
+
+      if (status === 'Paid' || status === 'Paid via Wallet' || status === 'Placed') {
+          stepPlaced.state = "active";
+          milestones = [stepPlaced];
+      } else if (status === 'In Transit') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          milestones = [stepSorting, stepDispatched, stepPlaced];
+      } else if (status === 'Delivered') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          stepOutForDelivery.state = "active";
+          stepDelivered.state = "active";
+          milestones = [stepDelivered, stepOutForDelivery, stepSorting, stepDispatched, stepPlaced];
+      } else if (status === 'Return Requested') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          stepOutForDelivery.state = "active";
+          stepDelivered.state = "active";
+          milestones = [stepReturnRequested, stepDelivered, stepOutForDelivery, stepSorting, stepDispatched, stepPlaced];
+      } else if (status === 'Return in Transit') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          stepOutForDelivery.state = "active";
+          stepDelivered.state = "active";
+          milestones = [stepReturnTransit, stepReturnRequested, stepDelivered, stepOutForDelivery, stepSorting, stepDispatched, stepPlaced];
+      } else if (status === 'Returned') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          stepOutForDelivery.state = "active";
+          stepDelivered.state = "active";
+          milestones = [stepReturnRefunded, stepReturnTransit, stepReturnRequested, stepDelivered, stepOutForDelivery, stepSorting, stepDispatched, stepPlaced];
+      } else if (status === 'Return Rejected') {
+          stepPlaced.state = "active";
+          stepDispatched.state = "active";
+          stepSorting.state = "active";
+          stepOutForDelivery.state = "active";
+          stepDelivered.state = "active";
+          milestones = [stepReturnRejected, stepReturnRequested, stepDelivered, stepOutForDelivery, stepSorting, stepDispatched, stepPlaced];
+      } else {
+          stepPlaced.state = "active";
+          milestones = [stepPlaced];
+      }
+
+      html += milestones.map((m, idx) => {
+          let dotHtml = '';
+          let opacityClass = '';
+          
+          const isLatest = idx === 0;
+          const pulseClass = isLatest ? 'active-status-pulse' : '';
+          
+          if (m.state === 'active') {
+              dotHtml = `
+                <div class="absolute left-[8px] top-5 size-8 bg-on-surface flex items-center justify-center z-10 border-4 border-surface shadow-md rounded-full ${pulseClass}">
+                    <span class="material-symbols-outlined text-surface text-base">${m.icon}</span>
+                </div>
+              `;
+          } else if (m.state === 'return') {
+              dotHtml = `
+                <div class="absolute left-[8px] top-5 size-8 bg-secondary flex items-center justify-center z-10 border-4 border-surface shadow-md rounded-full ${pulseClass}">
+                    <span class="material-symbols-outlined text-surface text-base">${m.icon}</span>
+                </div>
+              `;
+          } else if (m.state === 'rejected') {
+              dotHtml = `
+                <div class="absolute left-[8px] top-5 size-8 bg-red-600 flex items-center justify-center z-10 border-4 border-surface shadow-md rounded-full ${pulseClass}">
+                    <span class="material-symbols-outlined text-surface text-base">${m.icon}</span>
+                </div>
+              `;
+          } else {
+              opacityClass = 'opacity-40';
+              dotHtml = `
+                <div class="absolute left-[8px] top-5 size-8 bg-surface border border-outline-variant flex items-center justify-center z-10 rounded-full">
+                    <span class="material-symbols-outlined text-outline text-base">${m.icon}</span>
+                </div>
+              `;
+          }
+
+          return `
+            <div class="relative pl-16 pb-8 ${opacityClass}">
+                ${dotHtml}
+                <div class="bg-white border border-outline-variant/25 p-6 hover:shadow-md hover:border-secondary/20 transition-all duration-300 relative group rounded-none">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+                        <h4 class="font-headline font-black text-[13px] uppercase tracking-wider text-on-surface">${m.title}</h4>
+                        <span class="text-[9px] font-bold uppercase tracking-widest text-outline bg-surface-container-low px-2.5 py-1 whitespace-nowrap">${m.dateStr}</span>
+                    </div>
+                    ${m.desc ? `<p class="text-xs text-on-surface-variant leading-relaxed opacity-80 font-medium">${m.desc}</p>` : ''}
+                </div>
+            </div>
+          `;
+      }).join('\n');
+
+      container.innerHTML = html;
+  }
+
+  function handleSearchSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('orderIdInput');
+      if (input) {
+          const id = input.value.trim();
+          if (id) {
+              initiateTracking(id);
+          }
+      }
+  }
+
+  function initiateTracking(orderId) {
+      const url = new URL(window.location);
+      url.searchParams.set('orderId', orderId);
+      window.history.pushState({}, '', url);
+      fetchShiprocketTracking(orderId);
+  }
+
+  function clearTracking() {
+      const url = new URL(window.location);
+      url.searchParams.delete('orderId');
+      window.history.pushState({}, '', url);
+      const input = document.getElementById('orderIdInput');
+      if (input) input.value = '';
+      fetchShiprocketTracking(null);
+  }
+
+  function requestConciergeSupport() {
+      if (typeof showToast !== 'undefined') {
+          showToast("Assistance request sent. Concierge team will SMS shortly.");
+      } else {
+          alert("Assistance request sent. Concierge team will SMS shortly.");
+      }
+  }
+
+  function renderRecentOrders() {
+      const list = document.getElementById('recentOrdersList');
+      if (!list) return;
+
+      const orders = RegistryManager.getOrders();
+      if (orders.length === 0) {
+          list.innerHTML = `
+            <div class="col-span-full py-8 text-center border border-dashed border-outline-variant/30 text-outline uppercase font-bold text-[10px] tracking-widest">
+                No orders found in local storage.
+            </div>
+          `;
+          return;
+      }
+
+      list.innerHTML = orders.map(order => {
+          let badgeColor = 'bg-stone-500/10 text-stone-700 border-stone-500/20';
+          if (order.status === 'Delivered') badgeColor = 'bg-green-500/10 text-green-700 border-green-500/20';
+          else if (order.status === 'Returned' || order.status === 'Return Rejected') badgeColor = 'bg-red-500/10 text-red-600 border-red-500/20';
+          else if (order.status === 'Return Requested' || order.status === 'Return in Transit') badgeColor = 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+          else if (order.status === 'Paid' || order.status === 'Paid via Wallet') badgeColor = 'bg-blue-500/10 text-blue-700 border-blue-500/20';
+
+          const matchingProduct = RegistryManager.getProducts().find(p => p.title.toLowerCase() === order.items[0].toLowerCase());
+          const pImage = matchingProduct ? (matchingProduct.image || (matchingProduct.images && matchingProduct.images[0])) : 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200';
+
+          let progressPercent = 15;
+          if (order.status === 'In Transit') progressPercent = 50;
+          else if (order.status === 'Delivered') progressPercent = 100;
+          else if (order.status === 'Return Requested') progressPercent = 70;
+          else if (order.status === 'Return in Transit') progressPercent = 85;
+          else if (order.status === 'Returned') progressPercent = 100;
+
+          return `
+            <div onclick="initiateTracking('${order.id}')" class="bg-white border border-outline-variant/30 p-8 hover-scale cursor-pointer hover:border-secondary/40 transition-all flex flex-col justify-between shadow-sm relative group">
+              <div>
+                <div class="flex justify-between items-start mb-6">
+                  <span class="font-headline font-black text-xl tracking-tight text-on-surface">#${order.id}</span>
+                  <span class="inline-flex items-center px-3 py-1 text-[8px] font-bold uppercase tracking-widest ${badgeColor} border rounded-none">
+                    ${order.status}
+                  </span>
+                </div>
+                
+                <!-- Product Preview Row -->
+                <div class="flex gap-4 items-center mb-6">
+                  <div class="size-16 bg-surface-container overflow-hidden border border-outline-variant/15 flex-shrink-0">
+                    <img src="${pImage}" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500">
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] font-bold uppercase tracking-widest text-outline mb-0.5">Item</p>
+                    <p class="text-xs text-on-surface font-black uppercase truncate">${order.items[0]}</p>
+                    ${order.items.length > 1 ? `<p class="text-[9px] text-outline font-medium uppercase mt-0.5">+ ${order.items.length - 1} more items</p>` : ''}
+                  </div>
+                </div>
+
+                <!-- Progress Meter -->
+                <div class="space-y-2 mb-6">
+                  <div class="flex justify-between text-[8px] font-black uppercase tracking-widest text-outline">
+                    <span>Placed</span>
+                    <span>Transit</span>
+                    <span>${order.status.includes('Return') ? 'Returned' : 'Delivered'}</span>
+                  </div>
+                  <div class="w-full h-1 bg-outline-variant/20 relative">
+                    <div class="absolute left-0 top-0 bottom-0 bg-secondary transition-all duration-700" style="width: ${progressPercent}%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-outline-variant/10 pt-4 flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-secondary group-hover:text-primary transition-colors">
+                <span>Concierge Tracking</span>
+                <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </div>
+            </div>
+          `;
+      }).join('\n');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialId = urlParams.get('orderId');
+      fetchShiprocketTracking(initialId);
+  });
+
+  // Cross-tab storage synchronization listener
+  window.addEventListener('storage', (e) => {
+      if (e.key === 'registry_orders') {
+          location.reload();
+      }
+  });
+</script>
+
+</body></html>

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-container": "#a7a5a4",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#c8c6c5",
+                    "primary-fixed": "#e5e2e1",
+                    "error-container": "#ffdad6",
+                    "secondary": "#775a19",
+                    "primary": "#5f5e5e",
+                    "surface": "#faf9f8",
+                    "on-tertiary": "#ffffff",
+                    "on-background": "#1a1c1c",
+                    "inverse-surface": "#2f3130",
+                    "on-surface": "#1a1c1c",
+                    "on-secondary-fixed-variant": "#5d4201",
+                    "surface-container": "#eeeeed",
+                    "surface-bright": "#faf9f8",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e9e8e7",
+                    "secondary-container": "#fed488",
+                    "tertiary-fixed-dim": "#ffb5a0",
+                    "tertiary-container": "#f08a6c",
+                    "outline-variant": "#d1c5b4",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#e3e2e1",
+                    "outline": "#7f7667",
+                    "error": "#ba1a1a",
+                    "on-tertiary-container": "#6a240e",
+                    "surface-tint": "#5f5e5e",
+                    "on-primary-fixed": "#1c1b1b",
+                    "surface-container-low": "#f4f3f2",
+                    "primary-fixed-dim": "#c8c6c5",
+                    "tertiary": "#98462d",
+                    "on-primary-container": "#3b3b3b",
+                    "surface-dim": "#dadad9",
+                    "secondary-fixed-dim": "#e9c176",
+                    "inverse-on-surface": "#f1f0f0",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#ffdea5",
+                    "background": "#faf9f8",
+                    "surface-variant": "#e3e2e1",
+                    "on-tertiary-fixed": "#3b0a00",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#474646",
+                    "on-secondary-container": "#785a1a",
+                    "on-surface-variant": "#4e4639",
+                    "on-secondary-fixed": "#261900",
+                    "on-tertiary-fixed-variant": "#7a2f18",
+                    "tertiary-fixed": "#ffdbd1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1c5b4; }
+
+        /* Glassmorphism Utilities */
+        .glass-nav {
+            background: rgba(250, 249, 248, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(127, 118, 103, 0.1);
+        }
+
+        /* Mobile Menu Drawer Animation */
+        .mobile-menu-drawer {
+            clip-path: circle(0% at top right);
+            transition: clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .mobile-menu-drawer.open {
+            clip-path: circle(150% at top right);
+        }
+
+        /* Hover Scale Interactions */
+        .hover-scale {
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .hover-scale:hover {
+            transform: scale(1.02) translateY(-2px);
+        }
+        .hover-scale:active {
+            transform: scale(0.98);
+        }
+    </style>
+    <link rel="stylesheet" href="../prototype-styles.css">
+    <script src="../prototype-core.js" defer></script>
+</head>
+
+<body class="bg-surface text-on-surface font-body selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+<!-- Shared Header (Glassmorphic & Mobile First) -->
+<header class="sticky top-0 z-[100] glass-nav transition-all duration-300">
+  <div class="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-4">
+    <div class="flex items-center gap-12">
+      <!-- Logo -->
+      <a href="../index.html" class="flex items-center gap-2 group hover-scale">
+        <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+          <svg fill="none" viewBox="0 0 48 48">
+            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2 class="text-on-surface font-headline text-2xl font-extrabold tracking-tighter">6K</h2>
+      </a>
+
+      <!-- Desktop Menu -->
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../index.html">Home</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../shopallshirts/code.html">Shop All</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../orderhistory/code.html">Order History</a>
+        <a class="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300" href="../ordertracking/code.html">Track Order</a>
+      </nav>
+    </div>
+
+    <!-- Right Icons -->
+    <div class="flex items-center gap-5">
+      <a href="../shoppingbag/code.html" class="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300">shopping_bag</a>
+      <a href="../myprofile/code.html" class="hidden md:block material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300">person</a>
+      <!-- Hamburger Menu Button (Mobile) -->
+      <button id="menuBtn" class="md:hidden relative z-[110] size-10 flex flex-col justify-center items-center gap-1.5 focus:outline-none group">
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:rotate-45 group-[.open]:translate-y-2"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:opacity-0"></span>
+        <span class="w-6 h-0.5 bg-on-surface transition-all duration-300 group-[.open]:-rotate-45 group-[.open]:-translate-y-2"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div id="mobileMenu" class="mobile-menu-drawer fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 md:hidden">
+    <nav class="flex flex-col items-center gap-10 text-center">
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../index.html">Home</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../shopallshirts/code.html">Shop All</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../orderhistory/code.html">Order History</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../ordertracking/code.html">Track Order</a>
+      <a class="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors" href="../myprofile/code.html">Profile</a>
+    </nav>
+    <div class="absolute bottom-12 flex gap-6 border-t border-outline/10 pt-8 w-full justify-center px-10">
+        <a class="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface" href="../admindashboard/code.html">Admin</a>
+    </div>
+  </div>
+</header>
+
+<main class="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
+<header class="mb-16">
+    <div class="flex items-center gap-4 mb-4">
+        <span class="w-12 h-px bg-secondary"></span>
+        <span class="text-[10px] font-black uppercase tracking-[0.4em] text-secondary">Order Book</span>
+    </div>
+    <h1 class="font-headline text-5xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none">Order<br/><span class="opacity-20">History</span></h1>
+    <p class="font-body text-outline text-sm max-w-2xl leading-relaxed uppercase tracking-wider font-semibold opacity-70">A complete record of your orders. Each entry represents a unique shirt from 6K Shirts.</p>
+</header>
+
+<section class="bg-transparent md:bg-surface border-0 md:border md:border-outline-variant/10 md:shadow-2xl overflow-hidden">
+<div class="overflow-x-auto md:overflow-visible">
+<table class="w-full text-left border-collapse block md:table">
+
+<thead class="hidden md:table-header-group">
+<tr class="bg-surface-container-low border-b border-outline-variant/20">
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order ID</th>
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order Date</th>
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Product Details</th>
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Valuation</th>
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Logistics State</th>
+<th class="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline text-right">Order Actions</th>
+</tr>
+</thead>
+
+<tbody id="historyBody" class="block md:table-row-group divide-y divide-outline-variant/10 font-label">
+    <!-- Dynamically Injected -->
+</tbody>
+</table>
+</div>
+</section>
+</main>
+
+<!-- Custom Return Modal -->
+<div id="returnModal" class="fixed inset-0 bg-on-surface/40 backdrop-blur-md z-[100] hidden items-center justify-center p-4 transition-opacity duration-300">
+  <div class="bg-surface p-8 max-w-lg w-full border-t-2 border-t-secondary border-x border-b border-outline-variant/20 rounded-none shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <h3 class="font-headline text-2xl font-black uppercase tracking-tight mb-1 text-on-surface">Request Return</h3>
+    <p class="text-[9px] text-outline mb-8 uppercase tracking-[0.2em] font-semibold">Order <span id="modalOrderId" class="font-bold text-on-surface"></span></p>
+    
+    <div class="space-y-6 mb-8">
+      <div>
+        <label class="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Product Image *</label>
+        <div class="relative border border-dashed border-outline-variant/40 p-6 text-center cursor-pointer hover:border-secondary/60 transition-colors">
+          <input type="file" id="returnImage" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+          <div class="flex flex-col items-center justify-center">
+            <span class="material-symbols-outlined text-outline/60 text-3xl mb-2">upload_file</span>
+            <span class="text-[9px] font-black uppercase tracking-widest text-outline">Upload Product Image *</span>
+            <span id="fileNameDisplay" class="text-[8px] font-bold text-secondary uppercase tracking-widest mt-2 hidden"></span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Reason for Return *</label>
+        <select id="returnReasonSelect" class="w-full border-b border-x-0 border-t-0 border-outline-variant/30 focus:border-secondary focus:ring-0 text-xs font-bold uppercase tracking-widest py-3 rounded-none bg-surface text-on-surface">
+          <option value="Size does not fit">Size does not fit</option>
+          <option value="Quality not as expected">Quality not as expected</option>
+          <option value="Received incorrect item">Received incorrect item</option>
+          <option value="Changed my mind">Changed my mind</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Additional Details</label>
+        <textarea id="returnDetails" rows="3" class="w-full border-b border-x-0 border-t-0 border-outline-variant/30 focus:border-secondary focus:ring-0 text-xs py-3 rounded-none bg-surface text-on-surface" placeholder="Please provide any other reasons or context..."></textarea>
+      </div>
+      <div>
+        <label class="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-3">Refund Destination *</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-3 cursor-pointer flex-1 border border-outline-variant/20 hover:border-secondary/40 p-4 transition-all group">
+            <input type="radio" name="refundOption" value="bank" checked class="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent">
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black uppercase tracking-widest text-on-surface">Bank Account</span>
+              <span class="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">3-5 Business Days</span>
+            </div>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer flex-1 border border-outline-variant/20 hover:border-secondary/40 p-4 transition-all group">
+            <input type="radio" name="refundOption" value="wallet" class="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent">
+            <div class="flex flex-col">
+              <span class="text-[10px] font-black uppercase tracking-widest text-on-surface">Store Wallet</span>
+              <span class="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">Instant Refund</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex gap-4">
+      <button onclick="closeReturnModal()" class="flex-1 border border-outline-variant/60 text-outline hover:text-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-surface-container-low transition-all duration-300 btn-active-scale rounded-none bg-transparent">Cancel</button>
+      <button onclick="submitReturnRequest()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-300 btn-active-scale hover-scale rounded-none">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="../admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="../return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="../terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="../contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="../privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn.addEventListener("click", () => {
+    menuBtn.classList.toggle("open");
+    mobileMenu.classList.toggle("open");
+    document.body.style.overflow = mobileMenu.classList.contains("open") ? "hidden" : "";
+  });
+
+  // Robust date parsing helper
+  function getOrderDate(dateStr) {
+      if (!dateStr) return new Date();
+      // Try native parsing
+      let d = new Date(dateStr);
+      if (!isNaN(d.getTime())) return d;
+      
+      // Check if it's local format: DD/MM/YYYY or MM/DD/YYYY or DD-MM-YYYY
+      const parts = dateStr.split(/[\/\-]/);
+      if (parts.length === 3) {
+          const p0 = parseInt(parts[0]);
+          const p1 = parseInt(parts[1]);
+          const p2 = parseInt(parts[2]);
+          if (p1 > 12) {
+              // If the middle part is > 12, it must be the day, so format is MM/DD/YYYY
+              return new Date(p2, p0 - 1, p1);
+          }
+          // Otherwise assume DD/MM/YYYY
+          return new Date(p2, p1 - 1, p0);
+      }
+      
+      // Check if formatted like '22 May 2026' or 'May 22, 2026'
+      const spaceParts = dateStr.replace(',', '').split(' ');
+      if (spaceParts.length === 3) {
+          let day = parseInt(spaceParts[0]);
+          let monthStr = spaceParts[1].toLowerCase();
+          let year = parseInt(spaceParts[2]);
+          // If first token is not a number, maybe month is first (e.g. 'May 22 2026')
+          if (isNaN(day)) {
+              monthStr = spaceParts[0].toLowerCase();
+              day = parseInt(spaceParts[1]);
+          }
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.findIndex(m => monthStr.startsWith(m));
+          if (monthIndex !== -1 && !isNaN(day) && !isNaN(year)) {
+              return new Date(year, monthIndex, day);
+          }
+      }
+      
+      return new Date(); // Fallback to current date
+  }
+
+  function isEligibleForReturn(orderDateStr) {
+      const orderDate = getOrderDate(orderDateStr);
+      const today = new Date();
+      // Reset hours to calculate calendar days difference
+      orderDate.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      const diffTime = today.getTime() - orderDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 7;
+  }
+
+  let selectedOrderId = null;
+
+  function openReturnModal(orderId) {
+      selectedOrderId = orderId;
+      document.getElementById('modalOrderId').innerText = '#' + orderId;
+      const modal = document.getElementById('returnModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+  }
+
+  function closeReturnModal() {
+      const modal = document.getElementById('returnModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+      selectedOrderId = null;
+  }
+
+  function submitReturnRequest() {
+      if (!selectedOrderId) return;
+      
+      const reason = document.getElementById('returnReasonSelect').value;
+      const details = document.getElementById('returnDetails').value;
+      const imageInput = document.getElementById('returnImage');
+      let image = 'No image provided';
+      if (imageInput.files && imageInput.files[0]) {
+          image = imageInput.files[0].name;
+      }
+      
+      let refundOption = 'bank';
+      const refunds = document.getElementsByName('refundOption');
+      for(let r of refunds) {
+          if(r.checked) {
+              refundOption = r.value;
+              break;
+          }
+      }
+
+      if (typeof RegistryManager !== 'undefined') {
+          const payload = { reason, details, image, refundOption };
+          const success = RegistryManager.requestManualReturn(selectedOrderId, payload);
+          if (success) {
+              showToast(`Return Request Submitted for #${selectedOrderId}`);
+              closeReturnModal();
+              renderOrdersTable();
+          } else {
+              showToast(`Failed to submit return. Order may not be eligible.`);
+          }
+      }
+  }
+
+  function renderOrdersTable() {
+    const historyBody = document.getElementById('historyBody');
+    if (!historyBody) return;
+    const orders = RegistryManager.getOrders();
+
+    if (orders.length === 0) {
+      historyBody.innerHTML = `
+        <tr class="flex flex-col md:table-row">
+          <td colspan="6" class="px-6 py-24 text-center">
+            <div class="flex flex-col items-center justify-center max-w-sm mx-auto">
+              <!-- Outlined Luxury Package Box -->
+              <div class="size-20 rounded-full bg-surface-container-low flex items-center justify-center border border-outline-variant/20 mb-6 text-secondary/60">
+                <span class="material-symbols-outlined text-4xl">inventory_2</span>
+              </div>
+              <h3 class="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">Order Archive Empty</h3>
+              <p class="text-xs text-outline leading-relaxed uppercase tracking-wider font-semibold opacity-70 mb-8">
+                You haven't placed any orders yet. Discover our premium collections hand-loomed in South India.
+              </p>
+              <a href="../shopallshirts/code.html" class="w-full inline-flex items-center justify-center bg-on-surface hover:bg-secondary text-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 btn-active-scale hover-scale border border-on-surface/10">
+                Start Exploring
+              </a>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    historyBody.innerHTML = orders.map(order => {
+      let statusClass = 'bg-green-500/10 text-green-700 border border-green-500/20';
+      let statusDotClass = 'bg-green-500';
+      if (order.status === 'Delivered') {
+          statusClass = 'bg-green-500/10 text-green-700 border border-green-500/20';
+          statusDotClass = 'bg-green-500';
+      } else if (order.status === 'Returned' || order.status === 'Return Rejected') {
+          statusClass = 'bg-red-500/10 text-red-600 border border-red-500/20';
+          statusDotClass = 'bg-red-500';
+      } else if (order.status === 'Return Requested' || order.status === 'Return in Transit') {
+          statusClass = 'bg-amber-500/10 text-amber-700 border border-amber-500/20';
+          statusDotClass = 'bg-amber-500';
+      } else if (order.status === 'Paid via Wallet' || order.status === 'Paid') {
+          statusClass = 'bg-blue-500/10 text-blue-700 border border-blue-500/20';
+          statusDotClass = 'bg-blue-500';
+      } else {
+          statusClass = 'bg-stone-500/10 text-stone-700 border border-stone-500/20';
+          statusDotClass = 'bg-stone-500';
+      }
+
+      const returnEligible = order.status === 'Delivered' && isEligibleForReturn(order.date);
+      const actionsHtml = `
+        <div class="flex md:flex-col flex-wrap gap-2 md:items-end justify-start md:justify-end w-full">
+          <a href="../invoice/index.html?orderId=${order.id}" class="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale hover-scale border border-on-surface/10 flex-1 md:flex-initial">View Invoice</a>
+          <a href="../ordertracking/code.html?orderId=${order.id}" class="inline-flex items-center justify-center bg-transparent text-outline hover:text-on-surface px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale border border-outline-variant/40 hover:border-on-surface/50 flex-1 md:flex-initial">Track Shipment</a>
+          ${returnEligible ? `<button onclick="openReturnModal('${order.id}')" class="inline-flex items-center justify-center bg-red-600/90 text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all duration-300 btn-active-scale hover-scale flex-1 md:flex-initial">Request Return</button>` : ''}
+        </div>
+      `;
+
+      return `
+        <tr class="flex flex-col md:table-row border border-outline-variant/10 md:border-0 mb-6 md:mb-0 bg-surface md:bg-transparent shadow-sm md:shadow-none hover:bg-surface-container-lowest/50 transition-colors duration-300">
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
+            <div class="flex items-center justify-between md:block">
+              <span class="text-[9px] font-black uppercase tracking-[0.2em] text-outline md:hidden">Order ID</span>
+              <span class="font-headline font-black text-lg md:text-xl tracking-tight text-on-surface">#${order.id}</span>
+            </div>
+          </td>
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
+            <div class="flex items-center justify-between md:block">
+              <span class="text-[9px] font-black uppercase tracking-[0.2em] text-outline md:hidden">Order Date</span>
+              <span class="text-xs font-semibold text-on-surface/80">${order.date.toUpperCase()}</span>
+            </div>
+          </td>
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
+            <div class="flex items-start gap-4">
+              <div class="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0">
+                <img class="w-full h-full object-cover transition-transform duration-700 hover:scale-105" src="${order.image || 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200'}" alt="${order.items[0]}">
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                <p class="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">${order.items[0]}</p>
+                <p class="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
+                ${order.status === 'Return Rejected' && order.returnRejectReason ? `<div class="mt-2 text-[9px] text-red-600 font-bold uppercase tracking-widest bg-red-500/5 p-2 border border-red-500/10">Rejected: ${order.returnRejectReason}</div>` : ''}
+                ${(order.status === 'Returned' || order.status === 'Return Requested' || order.status === 'Return in Transit') && order.returnReason ? `<div class="mt-2 text-[9px] text-secondary font-bold uppercase tracking-widest bg-secondary-container/5 p-2 border border-secondary-container/10">Return: ${order.returnReason}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
+            <div class="flex items-center justify-between md:block">
+              <span class="text-[9px] font-black uppercase tracking-[0.2em] text-outline md:hidden">Valuation</span>
+              <span class="font-headline font-extrabold text-base md:text-lg text-on-surface">₹${order.total.toLocaleString('en-IN')}</span>
+            </div>
+          </td>
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
+            <div class="flex items-center justify-between md:block">
+              <span class="text-[9px] font-black uppercase tracking-[0.2em] text-outline md:hidden">Logistics State</span>
+              <span class="inline-flex items-center px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] ${statusClass} rounded-full backdrop-blur-sm">
+                <span class="w-1.5 h-1.5 rounded-full ${statusDotClass} mr-1.5"></span>
+                ${order.status}
+              </span>
+            </div>
+          </td>
+          <td class="block md:table-cell py-4 md:py-10 px-6 md:px-8 text-left md:text-right">
+            ${actionsHtml}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderOrdersTable();
+
+    // Real-time synchronization for changes from other tabs (like Admin portal)
+    window.addEventListener('storage', (e) => {
+      if (e.key === RegistryManager.ORDERS_KEY) {
+        renderOrdersTable();
+      }
+    });
+
+    // File name display listener for return image
+    const returnImageInput = document.getElementById('returnImage');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    if (returnImageInput && fileNameDisplay) {
+      returnImageInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          fileNameDisplay.innerText = e.target.files[0].name;
+          fileNameDisplay.classList.remove('hidden');
+        } else {
+          fileNameDisplay.innerText = '';
+          fileNameDisplay.classList.add('hidden');
+        }
+      });
+    }
+  });
+</script>
+</body></html>

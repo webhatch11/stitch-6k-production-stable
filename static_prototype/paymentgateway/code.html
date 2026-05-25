@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Secure Checkout | 6K Shirts</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#ffdea5",
+                    "outline-variant": "#d1c5b4",
+                    "on-primary-fixed-variant": "#474646",
+                    "primary-container": "#a7a5a4",
+                    "secondary-container": "#fed488",
+                    "tertiary-container": "#f08a6c",
+                    "primary": "#5f5e5e",
+                    "on-surface": "#1a1c1c",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#2f3130",
+                    "surface-dim": "#dadad9",
+                    "tertiary-fixed-dim": "#ffb5a0",
+                    "outline": "#7f7667",
+                    "tertiary": "#98462d",
+                    "surface-variant": "#e3e2e1",
+                    "on-surface-variant": "#4e4639",
+                    "on-tertiary-fixed-variant": "#7a2f18",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#e3e2e1",
+                    "on-secondary-fixed-variant": "#5d4201",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed": "#ffdbd1",
+                    "secondary-fixed-dim": "#e9c176",
+                    "on-primary-fixed": "#1c1b1b",
+                    "surface-container": "#eeeeed",
+                    "secondary": "#775a19",
+                    "primary-fixed-dim": "#c8c6c5",
+                    "surface-container-lowest": "#ffffff",
+                    "on-background": "#1a1c1c",
+                    "on-error-container": "#93000a",
+                    "surface-bright": "#faf9f8",
+                    "surface-container-high": "#e9e8e7",
+                    "on-error": "#ffffff",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#3b3b3b",
+                    "background": "#faf9f8",
+                    "on-secondary-container": "#785a1a",
+                    "primary-fixed": "#e5e2e1",
+                    "on-tertiary-fixed": "#3b0a00",
+                    "on-tertiary-container": "#6a240e",
+                    "surface": "#faf9f8",
+                    "on-secondary-fixed": "#261900",
+                    "surface-tint": "#5f5e5e",
+                    "inverse-on-surface": "#f1f0f0",
+                    "surface-container-low": "#f4f3f2",
+                    "on-tertiary": "#ffffff",
+                    "inverse-primary": "#c8c6c5"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .razorpay-blue {
+            background-color: #3395FF;
+        }
+        .razorpay-dark {
+            background-color: #1d2745;
+        }
+        /* Razorpay Signature Button */
+        .rzp-button {
+            background-color: #3395FF;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        .rzp-button:hover {
+            background-color: #2484e6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(51, 149, 255, 0.3);
+        }
+        /* Simulated Razorpay Modal */
+        #rzp-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .rzp-modal-content {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 0px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: rzp-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes rzp-slide-up {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+    <link rel="stylesheet" href="../prototype-styles.css">
+    <script src="../prototype-core.js" defer></script>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<!-- Top Announcement Scrolling Marquee -->
+<div class="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+  <div class="flex animate-marquee whitespace-nowrap">
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+    <div class="flex shrink-0 items-center gap-12 px-6">
+      <span>FREE DELIVERY ACROSS INDIA</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>USE CODE <span class="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>100% PREMIUM COTTON & LINEN</span>
+      <span class="text-secondary-fixed-dim">•</span>
+      <span>EASY 7-DAY RETURNS</span>
+      <span class="text-secondary-fixed-dim">•</span>
+    </div>
+  </div>
+</div>
+<!-- Top Navigation Bar (Simplified for Checkout) -->
+<header class="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-4">
+  <div class="flex items-center justify-between max-w-7xl mx-auto">
+    <div class="flex items-center gap-12">
+      <a href="../index.html" class="flex items-center gap-2 group">
+        <div class="size-6 text-on-surface group-hover:text-secondary transition-colors">
+          <svg fill="none" viewBox="0 0 48 48">
+            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h2 class="text-on-surface font-headline text-xl font-extrabold tracking-tighter">6K</h2>
+      </a>
+      <nav class="hidden md:flex items-center gap-8">
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../index.html">Home</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../shopallshirts/code.html">Shop All</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../orderhistory/code.html">Order History</a>
+        <a class="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="../ordertracking/code.html">Track Order</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-6">
+      <a href="../shoppingbag/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">shopping_bag</a>
+      <a href="../myprofile/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">person</a>
+      <a href="../admindashboard/code.html" class="material-symbols-outlined text-outline hover:text-primary transition-colors">admin_panel_settings</a>
+      <button id="menuBtn" class="material-symbols-outlined md:hidden">menu</button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="hidden flex-col mt-4 space-y-4 md:hidden">
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../index.html">Home</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../shopallshirts/code.html">Shop All</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../orderhistory/code.html">Order History</a>
+    <a class="block text-[10px] font-black uppercase tracking-widest" href="../ordertracking/code.html">Track Order</a>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-16">
+<!-- Left Column: Payment Selection -->
+<section class="lg:col-span-7 space-y-12">
+<div>
+<div class="flex items-center gap-3 mb-4">
+    <img src="https://razorpay.com/favicon.png" class="size-6 object-contain" alt="Razorpay">
+    <h1 class="text-4xl font-headline font-extrabold tracking-tighter">Payment Selection</h1>
+</div>
+<p class="text-outline font-body">Powered by **Razorpay Standard Checkout**. Select your payment method below.</p>
+</div>
+
+<!-- Razorpay Unified List -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 overflow-hidden">
+    <!-- Card Header (simulated rzp) -->
+    <div class="razorpay-dark p-4 flex justify-between items-center text-white">
+        <div>
+            <p class="text-[10px] uppercase font-bold tracking-widest opacity-70">Total Amount</p>
+            <p id="gatewayHeaderTotal" class="text-xl font-bold tracking-tight">₹14,500.00</p>
+        </div>
+        <img src="https://cdn.razorpay.com/static/assets/logo/pay_out_white.png" class="h-4" alt="Razorpay">
+    </div>
+
+    <div class="p-4 space-y-2">
+        <button onclick="simulateRazorpay()" class="w-full text-left p-4 hover:bg-surface-container-low transition-colors flex items-center justify-between border border-transparent hover:border-outline-variant/30 btn-active-scale">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-[#3395FF]">qr_code_2</span>
+                <span class="font-bold text-sm">UPI / QR</span>
+            </div>
+            <span class="material-symbols-outlined text-outline">chevron_right</span>
+        </button>
+        <button onclick="simulateRazorpay()" class="w-full text-left p-4 hover:bg-surface-container-low transition-colors flex items-center justify-between border border-transparent hover:border-outline-variant/30 btn-active-scale">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-[#3395FF]">credit_card</span>
+                <span class="font-bold text-sm">Card (Visa, Master, Amex, RuPay)</span>
+            </div>
+            <span class="material-symbols-outlined text-outline">chevron_right</span>
+        </button>
+        <button onclick="simulateRazorpay()" class="w-full text-left p-4 hover:bg-surface-container-low transition-colors flex items-center justify-between border border-transparent hover:border-outline-variant/30 btn-active-scale">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-[#3395FF]">account_balance</span>
+                <span class="font-bold text-sm">Netbanking</span>
+            </div>
+            <span class="material-symbols-outlined text-outline">chevron_right</span>
+        </button>
+        <button onclick="simulateRazorpay()" class="w-full text-left p-4 hover:bg-surface-container-low transition-colors flex items-center justify-between border border-transparent hover:border-outline-variant/30 btn-active-scale">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-[#3395FF]">wallet</span>
+                <span class="font-bold text-sm">Wallet</span>
+            </div>
+            <span class="material-symbols-outlined text-outline">chevron_right</span>
+        </button>
+    </div>
+</div>
+
+<!-- Trust Badges -->
+<div class="pt-12 grid grid-cols-2 md:grid-cols-4 gap-8 grayscale opacity-40">
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-3xl" data-icon="verified_user">verified_user</span>
+<span class="text-[9px] font-bold tracking-widest uppercase">PCI-DSS Compliant</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-3xl" data-icon="security">security</span>
+<span class="text-[9px] font-bold tracking-widest uppercase">SSL Secure</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-3xl" data-icon="shield_with_heart">shield_with_heart</span>
+<span class="text-[9px] font-bold tracking-widest uppercase">Razorpay Partner</span>
+</div>
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-3xl" data-icon="workspace_premium">workspace_premium</span>
+<span class="text-[9px] font-bold tracking-widest uppercase">100% Authentic</span>
+</div>
+</div>
+</section>
+<!-- Right Column: Order Summary (Sticky) -->
+<aside class="lg:col-span-5">
+<div class="sticky top-32 space-y-8">
+<div class="bg-surface-container-low p-8 border border-outline-variant/10">
+<h2 class="text-xl font-headline font-extrabold tracking-tighter mb-8 pb-4 border-b border-outline-variant/30 uppercase">Order Summary</h2>
+<div id="gatewayItemsList" class="space-y-6 mb-8">
+  <!-- Dynamically Populated -->
+</div>
+<div class="space-y-4 border-t border-outline-variant/30 pt-6">
+<div class="flex justify-between text-sm">
+<span class="text-outline font-label uppercase tracking-widest">Subtotal</span>
+<span id="gatewaySubtotal" class="font-medium">₹12,499.00</span>
+</div>
+<div id="gatewayDiscountRow" class="flex justify-between text-sm text-red-600 font-bold hidden">
+<span class="font-label uppercase tracking-widest">Loyalty Discount</span>
+<span id="gatewayDiscount" class="font-medium">- ₹0.00</span>
+</div>
+<div id="gatewayWalletRow" class="flex justify-between text-sm text-green-700 font-bold hidden">
+<span class="font-label uppercase tracking-widest">Wallet Paid</span>
+<span id="gatewayWallet" class="font-medium">- ₹0.00</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-outline font-label uppercase tracking-widest">GST (12%)</span>
+<span id="gatewayGST" class="font-medium">₹1,499.88</span>
+</div>
+<div class="flex justify-between text-sm">
+<span class="text-outline font-label uppercase tracking-widest">Shipping</span>
+<span class="text-tertiary font-bold">FREE</span>
+</div>
+<div class="flex justify-between text-xl font-headline font-black pt-4 border-t border-on-surface/5">
+<span class="tracking-tighter">TOTAL</span>
+<span id="gatewayTotal" class="text-secondary font-headline">₹13,998.88</span>
+</div>
+</div>
+<!-- Razorpay Simulation Button -->
+<button onclick="simulateRazorpay()" class="w-full mt-10 rzp-button py-6 rounded-none font-headline font-extrabold text-lg uppercase tracking-wider flex items-center justify-center gap-4 group btn-active-scale">
+    Proceed to Pay
+    <span class="material-symbols-outlined group-hover:translate-x-2 transition-transform">arrow_forward</span>
+</button>
+
+<p class="text-center text-[10px] text-outline mt-6 uppercase tracking-widest font-bold">
+    Encrypted &amp; Powered by <span class="text-on-surface">Razorpay</span>
+</p>
+</div>
+<!-- Help & Guarantee -->
+<div class="p-8 border border-outline-variant/10 space-y-4">
+<div class="flex gap-4 items-start">
+<span class="material-symbols-outlined text-secondary" data-icon="support_agent">support_agent</span>
+<div>
+<p class="text-xs font-bold uppercase tracking-wider">Need Assistance?</p>
+<p class="text-[11px] text-outline font-body mt-1">Our concierge is available 24/7 for bespoke support. Reach us at +91 6000 6000.</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Simple Footer -->
+<!-- Global Footer -->
+<!-- Global Footer -->
+<footer class="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+    <div class="max-w-7xl mx-auto">
+        <!-- Top Section: Newsletter & Brand -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="size-8 text-secondary">
+                        <svg fill="currentColor" viewBox="0 0 48 48">
+                            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"/>
+                        </svg>
+                    </div>
+                    <span class="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K Shirts</span>
+                </div>
+                <p class="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
+                    Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
+                </p>
+                <a href="../admindashboard/code.html" class="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                    <span class="material-symbols-outlined text-sm">admin_panel_settings</span>
+                    Admin Portal
+                </a>
+            </div>
+            
+            <div class="lg:text-right flex flex-col lg:items-end justify-center">
+                <h4 class="text-lg font-headline font-black uppercase tracking-tight mb-2 text-white">Join the Atelier</h4>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/50 mb-4">Early access to limited runs and private sales.</p>
+                <div class="flex w-full lg:max-w-md border-b border-white/20 pb-2 focus-within:border-secondary transition-colors">
+                    <input type="email" placeholder="ENTER YOUR EMAIL" class="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"/>
+                    <button class="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2">Subscribe</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 pt-10 border-t border-white/10">
+            <div class="col-span-1 md:col-span-2">
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Our Atelier</h4>
+                <p class="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
+                    <span class="material-symbols-outlined text-secondary mt-1">location_on</span>
+                    <span>
+                        The Stitch 6K Workshop<br/>
+                        Tiruppur Textile District<br/>
+                        Tamil Nadu, India 641604<br/>
+                        <span class="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                    </span>
+                </p>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../shipping-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Global Shipping</a></li>
+                    <li><a href="../return-policy/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Returns & Exchanges</a></li>
+                    <li><a href="../terms/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Size Guide</a></li>
+                    <li><a href="../contact/code.html" class="hover:text-secondary hover:translate-x-1 inline-block transition-all">Contact Concierge</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+                <ul class="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70">
+                    <li><a href="../terms/code.html" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    <li><a href="../privacy/code.html" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                </ul>
+                
+                <div class="mt-6 flex gap-3">
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">language</span>
+                    </div>
+                    <div class="size-6 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:text-white hover:border-secondary transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[10px]">flight</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Copyright -->
+        <div class="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">© 2026 6K Shirts. Crafted in Tamil Nadu.</p>
+            <div class="flex items-center gap-4 text-white/60">
+                <span class="text-[9px] uppercase tracking-widest font-bold">Shipping Worldwide</span>
+                <div class="w-1 h-1 rounded-full bg-secondary"></div>
+                <span class="text-[9px] uppercase tracking-widest font-bold">INR / USD / EUR / GBP</span>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<script>
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+
+  menuBtn.addEventListener("click", () => {
+    mobileMenu.classList.toggle("hidden");
+  });
+</script>
+<!-- Razorpay Simulation Modal -->
+<div id="rzp-modal">
+    <div class="rzp-modal-content">
+        <div class="razorpay-blue p-6 text-white text-center">
+            <img src="https://cdn.razorpay.com/static/assets/logo/pay_out_white.png" class="h-6 mx-auto mb-4" alt="Razorpay">
+            <h3 class="text-lg font-bold">Secure Verification</h3>
+            <p class="text-xs opacity-70">Processing via Razorpay Gateway</p>
+        </div>
+        <div class="p-10 flex flex-col items-center gap-6">
+            <div class="animate-spin size-12 border-4 border-[#3395FF] border-t-transparent rounded-full"></div>
+            <p id="rzp-status" class="text-sm font-bold text-on-surface uppercase tracking-widest">Verifying with Bank...</p>
+        </div>
+        <div class="bg-surface-container-low p-4 flex items-center justify-center gap-4 grayscale opacity-40">
+            <span class="text-[9px] font-bold">PCI-DSS</span>
+            <span class="text-[9px] font-bold">SSL SECURE</span>
+            <span class="text-[9px] font-bold">256-BIT</span>
+        </div>
+    </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      // Read state
+      const stateStr = sessionStorage.getItem('checkoutState');
+      if (!stateStr) {
+          // If no state, fall back to default behavior
+          return;
+      }
+      const state = JSON.parse(stateStr);
+      
+      // Update UI elements
+      const headerTotal = document.getElementById('gatewayHeaderTotal');
+      const subtotalEl = document.getElementById('gatewaySubtotal');
+      const gstEl = document.getElementById('gatewayGST');
+      const totalEl = document.getElementById('gatewayTotal');
+      const discountRow = document.getElementById('gatewayDiscountRow');
+      const discountEl = document.getElementById('gatewayDiscount');
+      const walletRow = document.getElementById('gatewayWalletRow');
+      const walletEl = document.getElementById('gatewayWallet');
+
+      const finalPayable = state.finalPayable;
+      const subtotal = state.netTotal / 1.12;
+      const gst = state.netTotal - subtotal;
+
+      if (headerTotal) headerTotal.innerText = `₹${finalPayable.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (subtotalEl) subtotalEl.innerText = `₹${subtotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (gstEl) gstEl.innerText = `₹${gst.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (totalEl) totalEl.innerText = `₹${finalPayable.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      if (state.pointsDiscount > 0) {
+          discountRow.classList.remove('hidden');
+          discountEl.innerText = `- ₹${state.pointsDiscount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
+      if (state.walletDeduction > 0) {
+          walletRow.classList.remove('hidden');
+          walletEl.innerText = `- ₹${state.walletDeduction.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
+
+      // Populate items list dynamically
+      let cart = [];
+      try {
+          cart = JSON.parse(localStorage.getItem('cart_items') || '[]');
+      } catch(e) {}
+      if (cart.length === 0 && state && state.items) {
+          cart = state.items.map(itemName => ({
+              productName: itemName,
+              price: state.netTotal / state.items.length,
+              size: "XL",
+              image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf"
+          }));
+      }
+      const itemsListContainer = document.getElementById('gatewayItemsList');
+      if (itemsListContainer && cart.length > 0) {
+          itemsListContainer.innerHTML = cart.map(item => `
+              <div class="flex gap-6">
+                  <div class="w-24 h-32 bg-white overflow-hidden flex-shrink-0">
+                      <img class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" src="${item.image}" alt="${item.productName}"/>
+                  </div>
+                  <div class="flex-grow flex flex-col justify-between py-1">
+                      <div>
+                          <h4 class="font-headline font-bold uppercase text-sm tracking-wide">${item.productName}</h4>
+                          <p class="text-[10px] uppercase tracking-widest text-outline/60 mt-1">Size: ${item.size} | Color: Atelier Choice</p>
+                      </div>
+                      <span class="font-headline font-bold text-sm text-secondary">₹ ${(parseFloat(item.price) || 0).toLocaleString('en-IN')}</span>
+                  </div>
+              </div>
+          `).join('');
+      }
+  });
+
+  function simulateRazorpay() {
+        const modal = document.getElementById('rzp-modal');
+        const statusText = document.getElementById('rzp-status');
+        modal.style.display = 'flex';
+        
+        setTimeout(() => {
+            statusText.innerText = "Securing Transaction...";
+            setTimeout(() => {
+                statusText.innerText = "Payment Successful";
+                statusText.classList.add('text-green-600');
+
+                // Retrieve state
+                const stateStr = sessionStorage.getItem('checkoutState');
+                let state = {
+                    customer: 'Aditya Singhania',
+                    originalTotal: 14500,
+                    couponDiscount: 0,
+                    couponCode: '',
+                    netTotal: 14500,
+                    walletDeduction: 0,
+                    pointsRedeemed: 0,
+                    pointsDiscount: 0,
+                    finalPayable: 14500,
+                    items: ['Signature Linen Shirt']
+                };
+                if (stateStr) {
+                    state = JSON.parse(stateStr);
+                }
+
+                // PERSISTENCE: Save formal order to registry & apply transaction updates
+                if (typeof RegistryManager !== 'undefined') {
+                    const orderId = 'ORD-' + Math.floor(Math.random() * 9000 + 1000);
+                    
+                    if (state.walletDeduction > 0) {
+                        RegistryManager.applyWalletDebit(state.walletDeduction, orderId);
+                    }
+                    if (state.pointsRedeemed > 0) {
+                        RegistryManager.applyLoyaltyDebit(state.pointsRedeemed, orderId);
+                    }
+                    
+                    // Earn points on netTotal
+                    RegistryManager.awardLoyaltyPoints(state.netTotal, orderId);
+
+                    RegistryManager.saveOrder({
+                        id: orderId,
+                        customer: state.customer,
+                        date: new Date().toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}),
+                        total: state.netTotal,
+                        originalTotal: state.originalTotal !== undefined ? state.originalTotal : state.netTotal,
+                        couponDiscount: state.couponDiscount || 0,
+                        couponCode: state.couponCode || '',
+                        walletPaid: state.walletDeduction,
+                        gatewayPaid: state.finalPayable,
+                        pointsRedeemed: state.pointsRedeemed,
+                        pointsDiscount: state.pointsDiscount,
+                        pointsEarned: Math.floor(state.netTotal / 10),
+                        status: 'Paid',
+                        items: state.items
+                    });
+                }
+
+                setTimeout(() => {
+                    window.location.href = '../orderconfirmed/code.html';
+                }, 1000);
+            }, 1500);
+        }, 1500);
+    }
+</script>
+</body></html>

@@ -602,7 +602,7 @@ export const db = {
     await supabase.from("wallet_transactions").delete().neq("id", "");
     await supabase.from("loyalty_transactions").delete().neq("id", "");
     await supabase.from("account_balances").upsert({ key: "wallet_balance", value: 2500 });
-    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: 500 });
+    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: 2000 });
     console.log("[Supabase DB Reset Completed]");
   },
 };

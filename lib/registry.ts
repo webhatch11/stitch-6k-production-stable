@@ -92,7 +92,7 @@ const WALLET_BALANCE_KEY = "registry_wallet_balance";
 const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
-const CURRENT_VERSION = "2.0_refund_split";
+const CURRENT_VERSION = "3.0_ten_shirts";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -124,6 +124,7 @@ export const RegistryManager = {
           isNew: true,
           stock: 45,
           description: "Immaculate tailoring in a standard weave.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
           id: "seed-2",
@@ -135,6 +136,7 @@ export const RegistryManager = {
           isNew: true,
           stock: 30,
           description: "Comfortable organic poplin shirts in navy colorings.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
           id: "seed-3",
@@ -146,6 +148,7 @@ export const RegistryManager = {
           isNew: true,
           stock: 15,
           description: "Traditional dyed green linen weave shirts.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
           id: "seed-4",
@@ -157,6 +160,7 @@ export const RegistryManager = {
           isNew: false,
           stock: 22,
           description: "Deep ash grey textured linen shirts.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
           id: "seed-5",
@@ -168,6 +172,7 @@ export const RegistryManager = {
           isNew: false,
           stock: 50,
           description: "Vibrant cotton twill with a warm sunset coloring.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
           id: "seed-6",
@@ -179,7 +184,63 @@ export const RegistryManager = {
           isNew: true,
           stock: 25,
           description: "Rugged blue denim tailored for casual comfort.",
+          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
+        {
+          id: "seed-7",
+          title: "Signature Noir Silk",
+          price: 8999,
+          category: "Silk",
+          image: "/assets/noir_hero_bg.png",
+          images: ["/assets/noir_hero_bg.png"],
+          isNew: true,
+          stock: 12,
+          description: "Handcrafted in small batches from high-quality black silk-linen fabric.",
+          isAtelierExclusive: true,
+          sizeStock: { S: 2, M: 4, L: 4, XL: 2, XXL: 0 },
+          specFabric: "Silk-Linen Blend",
+          specFit: "Atelier Bespoke Fit",
+          specCollar: "Italian Wide Spread",
+          specSleeve: "Mitred Dual Cuffs",
+          specCare: "Professional Dry Clean Only"
+        },
+        {
+          id: "seed-8",
+          title: "Crimson Chambray",
+          price: 1750,
+          category: "Cotton",
+          image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&q=80&w=800",
+          images: ["https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&q=80&w=800"],
+          isNew: true,
+          stock: 20,
+          description: "Vibrant crimson washed cotton chambray with premium stitching details.",
+          sizeStock: { S: 5, M: 5, L: 5, XL: 3, XXL: 2 }
+        },
+        {
+          id: "seed-9",
+          title: "Belgian Flax Sand",
+          price: 2100,
+          category: "Linen",
+          image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=800",
+          images: ["https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=800"],
+          isNew: false,
+          stock: 18,
+          description: "Breathable sand beige natural flax linen tailored for standard luxury comfort.",
+          sizeStock: { S: 4, M: 4, L: 4, XL: 4, XXL: 2 }
+        },
+        {
+          id: "seed-10",
+          title: "Royal Silk Weave",
+          price: 7500,
+          category: "Silk",
+          image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800",
+          images: ["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800"],
+          isNew: true,
+          stock: 10,
+          description: "Exclusive double-twisted silk blend shirt with a natural gold sheen and hand-finished seams.",
+          isAtelierExclusive: true,
+          sizeStock: { S: 2, M: 3, L: 3, XL: 2, XXL: 0 }
+        }
       ];
       localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProducts));
     }
@@ -229,12 +290,12 @@ export const RegistryManager = {
     }
 
     if (localStorage.getItem(LOYALTY_POINTS_KEY) === null) {
-      localStorage.setItem(LOYALTY_POINTS_KEY, "500");
+      localStorage.setItem(LOYALTY_POINTS_KEY, "2000");
       const welcomeLoyaltyTx: LoyaltyTransaction[] = [
         {
           id: "LTX-101",
           date: new Date().toLocaleDateString("en-IN"),
-          points: 500,
+          points: 2000,
           type: "credit",
           description: "Account Registration Points",
         },

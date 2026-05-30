@@ -1348,6 +1348,7 @@ export default function Home() {
                         key={item.id}
                         onClick={() => setActiveCategoryIndex(idx)}
                         onMouseEnter={() => setActiveCategoryIndex(idx)}
+                        suppressHydrationWarning={true}
                         className={`group/card relative flex-shrink-0 w-[78px] h-[105px] md:w-[130px] md:h-[175px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                           isActive
                             ? "ring-2 ring-secondary ring-offset-2 ring-offset-black/50 scale-[1.08] shadow-[0_12px_24px_rgba(0,0,0,0.5)]"
@@ -1690,6 +1691,7 @@ export default function Home() {
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
+                suppressHydrationWarning={true}
                 className="bg-transparent border border-secondary/50 text-[#775a19] px-8 py-3.5 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 rounded-none relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -1868,10 +1870,12 @@ export default function Home() {
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
                   placeholder="ENTER YOUR EMAIL"
+                  suppressHydrationWarning={true}
                   className="bg-transparent border-none outline-none w-full text-[10px] uppercase tracking-widest text-white placeholder-white/30 px-2"
                 />
                 <button
                   type="submit"
+                  suppressHydrationWarning={true}
                   className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-white transition-colors px-2"
                 >
                   Subscribe

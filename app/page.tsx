@@ -1520,53 +1520,39 @@ export default function Home() {
                   {firstRowReviews.map((rev, idx) => (
                     <div
                       key={rev.id}
-                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(1, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(1, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
                     >
                       <div>
                         {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-4">
                           <div className="flex gap-0.5 text-secondary">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <span
                                 key={i}
-                                className="material-symbols-outlined text-sm select-none"
+                                className="material-symbols-outlined text-xs select-none"
                                 style={{ fontVariationSettings: "'FILL' 1" }}
                               >
                                 star
                               </span>
                             ))}
                           </div>
-                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
                             ”
                           </span>
                         </div>
-                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
                           &ldquo;{rev.comment}&rdquo;
                         </p>
                       </div>
                       
-                      {/* User Info with Initials */}
-                      <div className="flex items-center gap-4 mt-auto">
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
-                          {rev.avatar.startsWith("http") ? (
-                            <img
-                              src={rev.avatar}
-                              alt={rev.name}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span>{rev.avatar}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col text-left">
-                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                            {rev.name}
-                          </p>
-                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                            {rev.location}
-                          </p>
-                        </div>
+                      {/* User Info (No Avatar) */}
+                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
+                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                          {rev.name}
+                        </p>
+                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                          {rev.location}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1574,53 +1560,39 @@ export default function Home() {
                   {firstRowReviews.map((rev, idx) => (
                     <div
                       key={`${rev.id}-dup1`}
-                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(1, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(1, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
                     >
                       <div>
                         {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-4">
                           <div className="flex gap-0.5 text-secondary">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <span
                                 key={i}
-                                className="material-symbols-outlined text-sm select-none"
+                                className="material-symbols-outlined text-xs select-none"
                                 style={{ fontVariationSettings: "'FILL' 1" }}
                               >
                                 star
                               </span>
                             ))}
                           </div>
-                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
                             ”
                           </span>
                         </div>
-                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
                           &ldquo;{rev.comment}&rdquo;
                         </p>
                       </div>
                       
-                      {/* User Info with Initials */}
-                      <div className="flex items-center gap-4 mt-auto">
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
-                          {rev.avatar.startsWith("http") ? (
-                            <img
-                              src={rev.avatar}
-                              alt={rev.name}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span>{rev.avatar}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col text-left">
-                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                            {rev.name}
-                          </p>
-                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                            {rev.location}
-                          </p>
-                        </div>
+                      {/* User Info (No Avatar) */}
+                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
+                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                          {rev.name}
+                        </p>
+                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                          {rev.location}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1633,53 +1605,39 @@ export default function Home() {
                   {secondRowReviews.map((rev, idx) => (
                     <div
                       key={rev.id}
-                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(2, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(2, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
                     >
                       <div>
                         {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-4">
                           <div className="flex gap-0.5 text-secondary">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <span
                                 key={i}
-                                className="material-symbols-outlined text-sm select-none"
+                                className="material-symbols-outlined text-xs select-none"
                                 style={{ fontVariationSettings: "'FILL' 1" }}
                               >
                                 star
                               </span>
                             ))}
                           </div>
-                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
                             ”
                           </span>
                         </div>
-                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
                           &ldquo;{rev.comment}&rdquo;
                         </p>
                       </div>
                       
-                      {/* User Info with Initials */}
-                      <div className="flex items-center gap-4 mt-auto">
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
-                          {rev.avatar.startsWith("http") ? (
-                            <img
-                              src={rev.avatar}
-                              alt={rev.name}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span>{rev.avatar}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col text-left">
-                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                            {rev.name}
-                          </p>
-                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                            {rev.location}
-                          </p>
-                        </div>
+                      {/* User Info (No Avatar) */}
+                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
+                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                          {rev.name}
+                        </p>
+                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                          {rev.location}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1687,53 +1645,39 @@ export default function Home() {
                   {secondRowReviews.map((rev, idx) => (
                     <div
                       key={`${rev.id}-dup2`}
-                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(2, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(2, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
                     >
                       <div>
                         {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-4">
                           <div className="flex gap-0.5 text-secondary">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <span
                                 key={i}
-                                className="material-symbols-outlined text-sm select-none"
+                                className="material-symbols-outlined text-xs select-none"
                                 style={{ fontVariationSettings: "'FILL' 1" }}
                               >
                                 star
                               </span>
                             ))}
                           </div>
-                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
                             ”
                           </span>
                         </div>
-                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
                           &ldquo;{rev.comment}&rdquo;
                         </p>
                       </div>
                       
-                      {/* User Info with Initials */}
-                      <div className="flex items-center gap-4 mt-auto">
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
-                          {rev.avatar.startsWith("http") ? (
-                            <img
-                              src={rev.avatar}
-                              alt={rev.name}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <span>{rev.avatar}</span>
-                          )}
-                        </div>
-                        <div className="flex flex-col text-left">
-                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                            {rev.name}
-                          </p>
-                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                            {rev.location}
-                          </p>
-                        </div>
+                      {/* User Info (No Avatar) */}
+                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
+                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                          {rev.name}
+                        </p>
+                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                          {rev.location}
+                        </p>
                       </div>
                     </div>
                   ))}

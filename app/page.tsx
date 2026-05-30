@@ -1253,34 +1253,20 @@ export default function Home() {
 
               {/* Top / Center Decorative Monogram and Typography Overlays */}
               <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto px-4 pointer-events-none select-none">
-                {/* Gold Crest Monogram */}
+                {/* Brand Logo Monogram */}
                 <motion.div
                   key={`crest-${activeCategoryIndex}`}
                   initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 0.85, y: 0 }}
+                  animate={{ opacity: 0.95, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="mb-4"
+                  className="mb-6 w-16 h-16 md:w-20 md:h-20 rounded-full bg-white p-3.5 flex items-center justify-center shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-300"
                 >
-                  <svg
-                    viewBox="0 0 100 100"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-12 h-12 md:w-16 md:h-16 text-secondary drop-shadow-[0_2px_12px_rgba(254,212,136,0.35)]"
-                  >
-                    <path
-                      d="M50 15L53.5 35L75 35L58 47L64.5 68L50 56L35.5 68L42 47L25 35L46.5 35Z"
-                      fill="currentColor"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="42"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                      strokeDasharray="4 4"
-                      opacity="0.3"
-                    />
-                  </svg>
+                  <img
+                    src="/assets/logo.png"
+                    alt="6K Shirts Brand Logo"
+                    className="max-w-full max-h-full object-contain"
+                    draggable={false}
+                  />
                 </motion.div>
 
                 {/* Split title layout mimicking PSYCHO / — THREE — */}

@@ -1383,14 +1383,34 @@ export default function Home() {
         </section>
 
         {/* Section 5: Trust Section */}
-        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5">
+        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 text-center">
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.15
+                  }
+                }
+              }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 text-center"
+            >
               {/* Point 1: Made In India */}
-              <div className="flex flex-col items-center group cursor-default">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 30 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                }}
+                className="flex flex-col items-center group cursor-default"
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-handshake-shake"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
                     handshake
@@ -1404,13 +1424,19 @@ export default function Home() {
                     Ethically crafted by master tailors using age-old Indian garment-making techniques.
                   </p>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Point 2: Premium Fabric */}
-              <div className="flex flex-col items-center group cursor-default">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 30 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                }}
+                className="flex flex-col items-center group cursor-default"
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-package-bounce"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
                     package_2
@@ -1424,13 +1450,19 @@ export default function Home() {
                     Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
                   </p>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Point 3: Fast Delivery */}
-              <div className="flex flex-col items-center group cursor-default">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 30 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                }}
+                className="flex flex-col items-center group cursor-default"
+              >
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-shipping-slide"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
                     local_shipping
@@ -1444,8 +1476,8 @@ export default function Home() {
                     Express shipping across India. Your heritage piece arrives at your doorstep in 48 hours.
                   </p>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
         </section>
 

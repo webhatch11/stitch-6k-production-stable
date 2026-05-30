@@ -12,16 +12,13 @@ export default function ReturnPolicyPage() {
       <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-4">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-12">
-            <Link href="/" className="flex items-center gap-2 group">
-              <div className="size-6 text-on-surface group-hover:text-secondary transition-colors">
-                <svg fill="none" viewBox="0 0 48 48">
-                  <path
-                    d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-on-surface font-headline text-xl font-extrabold tracking-tighter">6K</h2>
+            <Link href="/" className="flex items-center group">
+              <img 
+                src="/assets/logo.png" 
+                alt="6K Logo" 
+                className="h-10 w-auto object-contain" 
+                draggable={false}
+              />
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">Home</Link>

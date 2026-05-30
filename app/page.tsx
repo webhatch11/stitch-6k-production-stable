@@ -1408,7 +1408,7 @@ export default function Home() {
                 }}
                 className="flex flex-col items-center group cursor-default"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
                     className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-handshake-shake"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
@@ -1434,7 +1434,7 @@ export default function Home() {
                 }}
                 className="flex flex-col items-center group cursor-default"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
                     className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-package-bounce"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
@@ -1460,7 +1460,7 @@ export default function Home() {
                 }}
                 className="flex flex-col items-center group cursor-default"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
                   <span
                     className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-shipping-slide"
                     style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}

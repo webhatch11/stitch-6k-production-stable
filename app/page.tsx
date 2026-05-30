@@ -170,9 +170,168 @@ const favoriteProducts: FavoriteProduct[] = [
   }
 ];
 
+interface FavoriteStyleItem {
+  id: string;
+  name: string;
+  price: string;
+  image: string;
+  badge: string;
+  colors: string[];
+}
+
+const favoriteStyles: FavoriteStyleItem[] = [
+  {
+    id: "fav-style-1",
+    name: "Tamil Nadu Floral Resort",
+    price: "₹6,499",
+    image: "/assets/floral_resort_shirt.png",
+    badge: "New",
+    colors: ["#ffd1d1", "#ffffff", "#775a19"]
+  },
+  {
+    id: "fav-style-2",
+    name: "Monochrome Geometric",
+    price: "₹6,499",
+    image: "/assets/geometric_resort_shirt.png",
+    badge: "Limited",
+    colors: ["#1a1c1c", "#ffffff", "#dadad9"]
+  },
+  {
+    id: "fav-style-3",
+    name: "Teal Crane Handloom",
+    price: "₹6,999",
+    image: "/assets/teal_crane_shirt.png",
+    badge: "Bestseller",
+    colors: ["#005f73", "#e5e2e1", "#ffffff"]
+  },
+  {
+    id: "fav-style-4",
+    name: "Nautical Striped Resort",
+    price: "₹6,499",
+    image: "/assets/striped_resort_shirt.png",
+    badge: "Sale",
+    colors: ["#bfdbfe", "#ffffff", "#e5e2e1"]
+  },
+  {
+    id: "fav-style-5",
+    name: "Classic Ivory Cotton",
+    price: "₹5,999",
+    image: "/assets/folded_white_shirt.png",
+    badge: "New",
+    colors: ["#ffffff", "#e5e2e1", "#e9c176"]
+  },
+  {
+    id: "fav-style-6",
+    name: "Varanasi Crimson Linen",
+    price: "₹5,999",
+    image: "/assets/folded_crimson_shirt.png",
+    badge: "Bestseller",
+    colors: ["#ba1a1a", "#e5e2e1", "#ffffff"]
+  },
+  {
+    id: "fav-style-7",
+    name: "Olive Handwoven Loom",
+    price: "₹5,999",
+    image: "/assets/folded_olive_shirt.png",
+    badge: "Limited",
+    colors: ["#3d4a3e", "#ffffff", "#e5e2e1"]
+  },
+  {
+    id: "fav-style-8",
+    name: "Midnight Navy Oxford",
+    price: "₹5,999",
+    image: "/assets/hanging_navy_shirt.png",
+    badge: "Sale",
+    colors: ["#0d1b2a", "#ffffff", "#775a19"]
+  }
+];
+
+interface ShirtCategoryItem {
+  id: string;
+  name: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  image: string;
+  thumbnail: string;
+  cardBg: string;
+  activeBg: string;
+  glowColor: string;
+  textColor: string;
+}
+
+const shirtCategories: ShirtCategoryItem[] = [
+  {
+    id: "cat-linen",
+    name: "Classic Navy",
+    title: "BELGIAN LINEN",
+    subtitle: "Pure flax linen shirts for breathable, lightweight luxury",
+    badge: "LINEN SERIES",
+    image: "/assets/hanging_navy_shirt.png",
+    thumbnail: "/assets/hanging_navy_shirt.png",
+    cardBg: "from-[#1d3557] to-[#0f1d30]",
+    activeBg: "linear-gradient(to bottom, #0f1d30, #1d3557, #0b1421)",
+    glowColor: "rgba(29, 53, 87, 0.6)",
+    textColor: "text-blue-100/70"
+  },
+  {
+    id: "cat-crimson",
+    name: "Crimson Cotton",
+    title: "CRIMSON LUXURY",
+    subtitle: "High-density combed cotton with embossed premium branding",
+    badge: "T-SHIRT",
+    image: "/assets/folded_crimson_shirt.png",
+    thumbnail: "/assets/folded_crimson_shirt.png",
+    cardBg: "from-[#5e1914] to-[#2d0b09]",
+    activeBg: "linear-gradient(to bottom, #2d0b09, #5e1914, #1f0706)",
+    glowColor: "rgba(94, 25, 20, 0.6)",
+    textColor: "text-red-100/70"
+  },
+  {
+    id: "cat-olive",
+    name: "Olive Woven",
+    title: "OLIVE UTILITY",
+    subtitle: "Relaxed-fit camp collar shirt tailored for warm weather elegance",
+    badge: "UTILITY",
+    image: "/assets/folded_olive_shirt.png",
+    thumbnail: "/assets/folded_olive_shirt.png",
+    cardBg: "from-[#133c30] to-[#091e18]",
+    activeBg: "linear-gradient(to bottom, #091e18, #133c30, #05110d)",
+    glowColor: "rgba(19, 60, 48, 0.6)",
+    textColor: "text-emerald-100/70"
+  },
+  {
+    id: "cat-signature",
+    name: "Signature 6K",
+    title: "PURE MOTION",
+    subtitle: "Luxurious knit-blend signature designer series with gold detailing",
+    badge: "SIGNATURE",
+    image: "/assets/pure_motion_6k.png",
+    thumbnail: "/assets/pure_motion_6k.png",
+    cardBg: "from-[#2c1d3f] to-[#160e20]",
+    activeBg: "linear-gradient(to bottom, #160e20, #2c1d3f, #0e0914)",
+    glowColor: "rgba(44, 29, 63, 0.6)",
+    textColor: "text-purple-100/70"
+  },
+  {
+    id: "cat-white",
+    name: "Atelier Classic",
+    title: "WHITE LUXURY",
+    subtitle: "Double-ply long-staple cotton shirts with pristine sharp collars",
+    badge: "ATELIER",
+    image: "/assets/folded_white_shirt.png",
+    thumbnail: "/assets/folded_white_shirt.png",
+    cardBg: "from-[#374151] to-[#111827]",
+    activeBg: "linear-gradient(to bottom, #111827, #374151, #0b0f19)",
+    glowColor: "rgba(55, 65, 81, 0.6)",
+    textColor: "text-gray-200/70"
+  }
+];
+
 export default function Home() {
   // Favorite products active index state for 3D Coverflow slider
   const [activeFavIndex, setActiveFavIndex] = useState(2);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
   const [loaderExitClass, setLoaderExitClass] = useState(false);
@@ -961,109 +1120,264 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section 4: Category Showcase */}
-        <section className="py-24 px-6 lg:px-20 bg-on-surface">
+        {/* Section 3.5: Our Favorite Style */}
+        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-12">
-              <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">Explore Categories</p>
-              <h2 className="text-surface font-headline text-3xl lg:text-4xl font-black tracking-tighter">
-                OUR SHIRT STYLES
-              </h2>
+            {/* Header Block */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16">
+              <div>
+                <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">
+                  Curated Collection
+                </p>
+                <h2 className="font-headline text-3xl lg:text-4xl font-black text-neutral-900 uppercase tracking-tight">
+                  Our Favorite Style
+                </h2>
+              </div>
+              <p className="text-neutral-500 text-xs md:text-sm max-w-sm text-left lg:text-right leading-relaxed font-medium">
+                Handpicked designs crafted from premium, high-density cotton and linen weaves, tailored for effortless style and unmatched comfort.
+              </p>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-2 min-h-[100svh] lg:min-h-[600px] h-auto w-full">
-              {/* Casual Shirts */}
-              <Link
-                href="/shopallshirts"
-                className="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest"
-              >
-                <img
-                  alt="Man wearing a relaxed linen shirt"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVQQvaUkwRXjjqhKuMU_pyS28T6zwu2ybrqELpyl3ghzcvbtgaVVSTQaL1l0yCvk-g-wHSqIXfOm-3S2LE57yZIBT1sqv8x60YhPv8XOfU3TKLo7Tto7YV0pwQn22CmZc5PeuWD8g84DYC_XRfjsj-X6CyBiQ7jx718ICGdaW_vYq_pqmKEjJ6R7AJ7dcC-gmOyy_Gm9WyniwEb7NnYVQVB91xeNRkKf3b79hCMt1dpwJoS2S5BYwXvlp8E32k1rvXCbNhUza8vLA"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">
-                      01 / Styles
-                    </span>
-                    <div className="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
-                  </div>
-                  <h3 className="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
-                    CASUAL SHIRTS
-                  </h3>
-                  <div className="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
-                    <div className="overflow-hidden">
-                      <p className="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">
-                        Comfortable and stylish shirts designed for your relaxed weekends and off-duty elegance.
-                      </p>
+            {/* Products Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16">
+              {favoriteStyles.map((item) => (
+                <div key={item.id} className="group flex flex-col cursor-pointer">
+                  {/* Image container */}
+                  <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-[1.2s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+                      draggable={false}
+                    />
+                    
+                    {/* Badge */}
+                    <div className="absolute top-4 left-4 bg-neutral-950/80 backdrop-blur-sm text-[8px] md:text-[9px] font-black uppercase text-white px-3 py-1 tracking-widest rounded-full">
+                      {item.badge}
                     </div>
-                  </div>
-                </div>
-              </Link>
 
-              {/* Formal Shirts */}
-              <Link
-                href="/shopallshirts"
-                className="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest"
-              >
-                <img
-                  alt="Crisp white luxury formal shirt details"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOKWKyR0ZDQd-3JB62byc_gJu1nFHoSuWGZ8WJq5ZgrX_otOWTAzmaY0ZS3STh4AoN4-_uIdZ4UHh0jRNTQdPMv7c8zMc8G-5pj4fT1XLHKTVnLFjrGtr8uRTc0bCaQazTIBUriEvSNZVG_FmcrpcQivX-yYGZCnjk862z65HR3oao4YaCCndnQTWsmzaQq4q_PlbTVifN4NcRGlwoTixiAfXe7yR2uWOVUg8PmCz0BEw2gHllfHVMnXfoVGRSd7jKAkJL9RNO6gc"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">
-                      02 / Styles
-                    </span>
-                    <div className="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
-                  </div>
-                  <h3 className="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
-                    FORMAL SHIRTS
-                  </h3>
-                  <div className="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
-                    <div className="overflow-hidden">
-                      <p className="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">
-                        Sharp, immaculate tailoring built for the boardroom and your most important formal events.
-                      </p>
+                    {/* Color Dots Indicator */}
+                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-black/5 shadow-sm">
+                      {item.colors.map((color, cIdx) => (
+                        <span
+                          key={cIdx}
+                          className="w-2 md:w-2.5 h-2 md:h-2.5 rounded-full border border-black/10"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
                     </div>
                   </div>
-                </div>
-              </Link>
 
-              {/* Linen Shirts */}
+                  {/* Text details below the image */}
+                  <div className="flex justify-between items-start gap-4 mb-1">
+                    <h3 className="font-sans font-bold text-neutral-900 text-xs md:text-sm text-left leading-tight group-hover:text-secondary transition-colors duration-300">
+                      {item.name}
+                    </h3>
+                    <span className="font-sans font-black text-neutral-900 text-xs md:text-sm whitespace-nowrap">
+                      {item.price}
+                    </span>
+                  </div>
+                  <p className="font-sans text-[9px] md:text-[10px] text-neutral-400 font-bold uppercase tracking-wider text-left">
+                    MRP inclusive of all taxes
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Button */}
+            <div className="flex justify-center mt-16">
               <Link
                 href="/shopallshirts"
-                className="group relative overflow-hidden flex-1 lg:hover:flex-[2.5] transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] flex flex-col justify-end p-8 lg:p-12 cursor-pointer bg-surface-container-lowest"
+                className="bg-neutral-950 text-white hover:bg-secondary hover:text-white px-10 py-4 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-md flex items-center gap-2 hover:scale-[1.03] active:scale-[0.98]"
               >
-                <img
-                  alt="Soft textured linen shirts"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBozZZR8AKDktOII20_q4LdZj5SAYtPw8IwtypMH2NFWvqGOmY7257NPPPuJfdhg4SJH9y6AROY_SrR4UCz-wAynEeQaqKxxNmPo3n_vm2LAVnSI8b5KcsAneKzKfUckb-AmmGdRbwjTx3oE51xUdijhO5JGY9C1QsYO4zmDkmKtUN5qvoVVz7W4_mGn5QMx4GB4pcN-SZNfyRty4SyJeoqnyx5Jp2x2hzt0BLB-dO5RKcPZi4rDKFxQ1B_tbkrse6NHIqbI6ZN_A"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700"></div>
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-secondary font-label text-[10px] tracking-[0.3em] font-black uppercase">
-                      03 / Styles
-                    </span>
-                    <div className="h-[1px] bg-secondary flex-1 max-w-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200"></div>
-                  </div>
-                  <h3 className="text-white font-headline text-3xl lg:text-4xl font-black mb-0 whitespace-nowrap transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
-                    LINEN SHIRTS
-                  </h3>
-                  <div className="grid grid-rows-[0fr] lg:group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)]">
-                    <div className="overflow-hidden">
-                      <p className="text-white/80 text-sm pt-4 whitespace-normal min-w-[250px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300">
-                        Incredibly light and breathable woven linen garments tailored for warm weather comfort.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <span>All Products</span>
+                <span className="material-symbols-outlined text-sm font-black">arrow_forward</span>
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: Category Showcase */}
+        <section className="py-24 px-6 lg:px-20 bg-on-surface relative overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            {/* Header Block */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+              <div>
+                <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">
+                  Explore Categories
+                </p>
+                <h2 className="text-surface font-headline text-3xl lg:text-4xl font-black tracking-tighter uppercase">
+                  OUR SHIRT STYLES
+                </h2>
+              </div>
+              <p className="text-neutral-400 text-xs md:text-sm max-w-md font-medium leading-relaxed">
+                Seamlessly blending high-density looms, rich colors, and bespoke fits, handpicked to redefine modern luxury wear.
+              </p>
+            </div>
+
+            {/* Immersive Dashboard Container */}
+            <div 
+              className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[500px] md:min-h-[580px] lg:min-h-[660px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
+              style={{
+                background: shirtCategories[activeCategoryIndex].activeBg
+              }}
+            >
+              {/* Dynamic Animated Background Images */}
+              <div className="absolute inset-0 z-0">
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={activeCategoryIndex}
+                    initial={{ opacity: 0, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    <img
+                      src={shirtCategories[activeCategoryIndex].image}
+                      alt={shirtCategories[activeCategoryIndex].name}
+                      className="w-full h-full object-cover object-center"
+                      draggable={false}
+                    />
+                    {/* Immersive Vignette / Shadow Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/10 to-black/90" />
+                    
+                    {/* Ambient Theme Color Overlay */}
+                    <div 
+                      className="absolute inset-0 mix-blend-color opacity-35 pointer-events-none"
+                      style={{ backgroundColor: shirtCategories[activeCategoryIndex].glowColor }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Top / Center Decorative Monogram and Typography Overlays */}
+              <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto px-4 pointer-events-none select-none">
+                {/* Gold Crest Monogram */}
+                <motion.div
+                  key={`crest-${activeCategoryIndex}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 0.85, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mb-4"
+                >
+                  <svg
+                    viewBox="0 0 100 100"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-12 h-12 md:w-16 md:h-16 text-secondary drop-shadow-[0_2px_12px_rgba(254,212,136,0.35)]"
+                  >
+                    <path
+                      d="M50 15L53.5 35L75 35L58 47L64.5 68L50 56L35.5 68L42 47L25 35L46.5 35Z"
+                      fill="currentColor"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                      strokeDasharray="4 4"
+                      opacity="0.3"
+                    />
+                  </svg>
+                </motion.div>
+
+                {/* Split title layout mimicking PSYCHO / — THREE — */}
+                <div className="overflow-hidden flex flex-col items-center">
+                  <motion.h3
+                    key={`title-main-${activeCategoryIndex}`}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
+                    className="font-headline text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-[0.25em] uppercase leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
+                  >
+                    {shirtCategories[activeCategoryIndex].title.split(" ")[0]}
+                  </motion.h3>
+
+                  <motion.div
+                    key={`title-sub-${activeCategoryIndex}`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 0.9, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    className="flex items-center justify-center gap-4 w-full mt-3"
+                  >
+                    <span className="h-[1px] w-8 md:w-16 bg-white/30"></span>
+                    <span className="font-label text-[10px] md:text-xs text-white uppercase tracking-[0.5em] font-bold">
+                      {shirtCategories[activeCategoryIndex].title.split(" ")[1] || "SERIES"}
+                    </span>
+                    <span className="h-[1px] w-8 md:w-16 bg-white/30"></span>
+                  </motion.div>
+                </div>
+
+                {/* Subtitle / Description Text */}
+                <motion.p
+                  key={`subtitle-${activeCategoryIndex}`}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 0.8, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className={`text-[10px] md:text-xs max-w-sm mt-5 leading-relaxed font-semibold uppercase tracking-[0.15em] ${shirtCategories[activeCategoryIndex].textColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]`}
+                >
+                  {shirtCategories[activeCategoryIndex].subtitle}
+                </motion.p>
+
+                {/* Floating Capsule Badge representing active category */}
+                <motion.div
+                  key={`badge-${activeCategoryIndex}`}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.45 }}
+                  className="mt-8 pointer-events-auto animate-pulse-slow"
+                >
+                  <Link
+                    href="/shopallshirts"
+                    className="inline-block bg-black/40 hover:bg-neutral-950/80 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black tracking-[0.3em] uppercase text-white px-7 py-2.5 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+                  >
+                    {shirtCategories[activeCategoryIndex].badge}
+                  </Link>
+                </motion.div>
+              </div>
+
+              {/* Bottom Interactive Thumbnail Cards */}
+              <div className="relative z-10 w-full mt-auto pt-6 border-t border-white/5">
+                <div className="flex justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 scrollbar-none">
+                  {shirtCategories.map((item, idx) => {
+                    const isActive = idx === activeCategoryIndex;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveCategoryIndex(idx)}
+                        onMouseEnter={() => setActiveCategoryIndex(idx)}
+                        className={`group/card relative flex-shrink-0 w-[78px] h-[105px] md:w-[130px] md:h-[175px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                          isActive
+                            ? "ring-2 ring-secondary ring-offset-2 ring-offset-black/50 scale-[1.08] shadow-[0_12px_24px_rgba(0,0,0,0.5)]"
+                            : "opacity-60 hover:opacity-95 hover:scale-[1.03] shadow-md"
+                        } bg-gradient-to-b ${item.cardBg} border border-white/10`}
+                      >
+                        {/* Thumbnail contents */}
+                        <div className="w-full h-full p-2 md:p-3.5 flex flex-col justify-between items-center relative">
+                          {/* Floating shirt still */}
+                          <div className="w-full h-[70%] flex items-center justify-center overflow-hidden">
+                            <img
+                              src={item.thumbnail}
+                              alt={item.name}
+                              className="max-w-full max-h-full object-contain transform group-hover/card:scale-[1.12] transition-transform duration-500"
+                              draggable={false}
+                            />
+                          </div>
+
+                          {/* Category Name inside card */}
+                          <div className="w-full text-center">
+                            <span className="text-[7.5px] md:text-[9.5px] font-black tracking-widest text-white/90 uppercase block truncate">
+                              {item.name}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </section>

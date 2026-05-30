@@ -12,6 +12,11 @@ export default function InventoryLedgerPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Custom Modal States
+  const [modalType, setModalType] = useState<"delete" | "restock" | null>(null);
+  const [targetProduct, setTargetProduct] = useState<Product | null>(null);
+  const [restockQty, setRestockQty] = useState("10");
+
   // Toast Alerts
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -44,12 +49,18 @@ export default function InventoryLedgerPage() {
     setProducts(list);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("Are you sure you want to remove this product from the inventory?")) {
-      await db.deleteProduct(id);
-      triggerToast("Product removed successfully");
-      await loadProducts();
-    }
+  const handleDeleteProduct = (p: Product) => {
+    setTargetProduct(p);
+    setModalType("delete");
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!targetProduct) return;
+    await db.deleteProduct(targetProduct.id);
+    triggerToast("Product removed successfully");
+    setModalType(null);
+    setTargetProduct(null);
+    await loadProducts();
   };
 
   const handleInlineAdjust = async (productId: string, size: "S" | "M" | "L" | "XL" | "XXL", diff: number) => {
@@ -80,11 +91,76 @@ export default function InventoryLedgerPage() {
         stock: newTotal
       };
       
-      await db.saveProduct(updatedProduct);
-      window.dispatchEvent(new Event("storage"));
-      await loadProducts();
-      triggerToast(`Adjusted size ${size} stock for ${p.title}`);
+      try {
+        await db.saveProduct(updatedProduct);
+        window.dispatchEvent(new Event("storage"));
+        await loadProducts();
+        triggerToast(`Adjusted size ${size} stock for ${p.title}`);
+      } catch (err: any) {
+        console.error(err);
+        if (err?.name === "QuotaExceededError" || err?.message?.includes("quota")) {
+          triggerToast("Storage limit reached! Cannot save stock adjustment.");
+        } else {
+          triggerToast("Failed to save stock changes");
+        }
+      }
     }
+  };
+
+  const handleRestockClick = (p: Product) => {
+    setTargetProduct(p);
+    setRestockQty("10");
+    setModalType("restock");
+  };
+
+  const confirmRestockProduct = async () => {
+    if (!targetProduct) return;
+    const qty = parseInt(restockQty);
+    if (isNaN(qty) || qty <= 0) {
+      triggerToast("Please enter a valid positive number.");
+      return;
+    }
+
+    const allProducts = await db.getProducts();
+    const idx = allProducts.findIndex((item) => item.id === targetProduct.id);
+    if (idx !== -1) {
+      const item = allProducts[idx];
+      const currentSizeStock = item.sizeStock || {};
+      const newSizeStock = {
+        S: (currentSizeStock.S || 0) + qty,
+        M: (currentSizeStock.M || 0) + qty,
+        L: (currentSizeStock.L || 0) + qty,
+        XL: (currentSizeStock.XL || 0) + qty,
+        XXL: (currentSizeStock.XXL || 0) + qty,
+      };
+      const newTotal =
+        (newSizeStock.S || 0) +
+        (newSizeStock.M || 0) +
+        (newSizeStock.L || 0) +
+        (newSizeStock.XL || 0) +
+        (newSizeStock.XXL || 0);
+
+      const updatedProduct = {
+        ...item,
+        sizeStock: newSizeStock,
+        stock: newTotal
+      };
+      try {
+        await db.saveProduct(updatedProduct);
+        window.dispatchEvent(new Event("storage"));
+        await loadProducts();
+        triggerToast(`Restocked +${qty} units to all sizes of ${targetProduct.title}`);
+      } catch (err: any) {
+        console.error(err);
+        if (err?.name === "QuotaExceededError" || err?.message?.includes("quota")) {
+          triggerToast("Storage limit reached! Cannot save restock adjustments.");
+        } else {
+          triggerToast("Failed to save restock details");
+        }
+      }
+    }
+    setModalType(null);
+    setTargetProduct(null);
   };
 
   // Filter products based on search keyword and active status tab
@@ -231,7 +307,9 @@ export default function InventoryLedgerPage() {
                   return (
                     <tr key={p.id} className="group border-b border-gray-100 hover:bg-[#fafafa] transition-colors animate-fade-in">
                       <td className="p-6">
-                        <div className="size-16 bg-white border border-gray-200 p-1 grayscale group-hover:grayscale-0 transition-all rounded-none overflow-hidden">
+                        <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden transition-all ${
+                          stockCount > 0 ? "" : "grayscale opacity-60 border-red-200"
+                        }`}>
                           <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                         </div>
                       </td>
@@ -253,29 +331,38 @@ export default function InventoryLedgerPage() {
                             <span className="text-xs font-black">Total: <strong className="font-mono">{stockCount}</strong></span>
                           </div>
                           
-                          {/* Sizing Stock Modification Sub-grid */}
-                          <div className="flex gap-2 flex-wrap max-w-xs mt-1 text-[10px]">
-                            {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
-                              const currentVal = p.sizeStock?.[size] || 0;
-                              return (
-                                <div key={size} className="flex items-center border border-gray-200 bg-white shadow-sm p-1 rounded-none select-none">
-                                  <span className="font-black px-1.5 border-r border-gray-100">{size}</span>
-                                  <button
-                                    onClick={() => handleInlineAdjust(p.id, size, -1)}
-                                    className="px-1 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
-                                  <button
-                                    onClick={() => handleInlineAdjust(p.id, size, 1)}
-                                    className="px-1 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              );
-                            })}
+                          {/* Sizing Stock Modification Sub-grid and Restock Button in Single Line */}
+                          <div className="flex items-center gap-4 flex-wrap max-w-lg mt-1 text-[10px]">
+                            <div className="flex gap-2 flex-wrap">
+                              {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
+                                const currentVal = p.sizeStock?.[size] || 0;
+                                return (
+                                  <div key={size} className="flex items-center border border-gray-200 bg-white shadow-sm p-1 rounded-none select-none">
+                                    <span className="font-black px-1.5 border-r border-gray-100">{size}</span>
+                                    <button
+                                      onClick={() => handleInlineAdjust(p.id, size, -1)}
+                                      className="px-1 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
+                                    <button
+                                      onClick={() => handleInlineAdjust(p.id, size, 1)}
+                                      className="px-1 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              onClick={() => handleRestockClick(p)}
+                              className="bg-secondary hover:bg-[#0a0a0a] text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-md select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
+                            >
+                              Restock
+                            </button>
                           </div>
                         </div>
                       </td>
@@ -289,7 +376,7 @@ export default function InventoryLedgerPage() {
                             <span className="material-symbols-outlined text-lg flex items-center justify-center">edit</span>
                           </Link>
                           <button
-                            onClick={() => handleDeleteProduct(p.id)}
+                            onClick={() => handleDeleteProduct(p)}
                             className="p-2 text-red-500 hover:bg-red-50 transition-colors inline-block rounded-none border border-transparent bg-transparent cursor-pointer"
                             title="Delete"
                           >
@@ -319,7 +406,9 @@ export default function InventoryLedgerPage() {
               return (
                 <div key={p.id} className="p-6 hover:bg-[#fafafa] transition-colors flex flex-col gap-4 animate-fade-in">
                   <div className="flex gap-4">
-                    <div className="size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden shrink-0">
+                    <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden shrink-0 transition-all ${
+                      stockCount > 0 ? "" : "grayscale opacity-60 border-red-200"
+                    }`}>
                       <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -369,16 +458,23 @@ export default function InventoryLedgerPage() {
 
                   {/* Actions */}
                   <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => handleRestockClick(p)}
+                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-secondary text-white border border-transparent px-4 py-2 cursor-pointer shadow-sm font-bold rounded-none active:scale-95 whitespace-nowrap"
+                    >
+                      <span className="material-symbols-outlined text-sm">inventory</span>
+                      Restock
+                    </button>
                     <Link
                       href={`/admindashboard/add-product?edit=${p.id}`}
-                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary border border-gray-200 px-3 py-1.5"
+                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary border border-gray-200 px-3 py-1.5 font-bold"
                     >
                       <span className="material-symbols-outlined text-sm">edit</span>
                       Edit
                     </Link>
                     <button
-                      onClick={() => handleDeleteProduct(p.id)}
-                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 border border-red-200 px-3 py-1.5 bg-transparent cursor-pointer"
+                      onClick={() => handleDeleteProduct(p)}
+                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 border border-red-200 px-3 py-1.5 bg-transparent cursor-pointer font-bold"
                     >
                       <span className="material-symbols-outlined text-sm">delete</span>
                       Delete
@@ -433,6 +529,82 @@ export default function InventoryLedgerPage() {
           </div>
         </div>
       </div>
+
+      {/* Custom UI Modals */}
+      {modalType && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            {modalType === "delete" && (
+              <>
+                <div className="mx-auto w-12 h-12 rounded-full border border-red-200 bg-red-50 flex items-center justify-center text-red-600">
+                  <span className="material-symbols-outlined text-xl">delete</span>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Remove Product</h3>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                    Are you sure you want to remove <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span> from the inventory?
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalType(null)}
+                    className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDeleteProduct}
+                    className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </>
+            )}
+
+            {modalType === "restock" && (
+              <>
+                <div className="mx-auto w-12 h-12 rounded-full border border-[#775a19]/20 bg-[#775a19]/5 flex items-center justify-center text-secondary">
+                  <span className="material-symbols-outlined text-xl">inventory</span>
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Restock Item</h3>
+                  <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                    Enter restock quantity to add to all sizes for: <br />
+                    <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span>
+                  </p>
+                  <input
+                    type="number"
+                    min="1"
+                    value={restockQty}
+                    onChange={(e) => setRestockQty(e.target.value)}
+                    className="w-full text-center bg-white border border-gray-200 p-3 text-sm font-black outline-none focus:border-secondary rounded-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalType(null)}
+                    className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmRestockProduct}
+                    className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold"
+                  >
+                    Add Stock
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

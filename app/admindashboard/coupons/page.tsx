@@ -13,6 +13,10 @@ export default function CouponsLedgerPage() {
   const [cpnValue, setCpnValue] = useState(0);
   const [cpnType, setCpnType] = useState<"percent" | "flat">("percent");
 
+  // Delete Confirmation State
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteTargetCode, setDeleteTargetCode] = useState<string | null>(null);
+
   // Toast notifications
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -81,12 +85,18 @@ export default function CouponsLedgerPage() {
     await loadCoupons();
   };
 
-  const handleDeleteCoupon = async (id: string) => {
-    if (confirm("Are you sure you want to delete this coupon?")) {
-      await db.deleteCoupon(id);
-      triggerToast("Coupon deleted successfully");
-      await loadCoupons();
-    }
+  const handleDeleteCoupon = (c: Coupon) => {
+    setDeleteTargetId(c.id);
+    setDeleteTargetCode(c.code);
+  };
+
+  const confirmDeleteCoupon = async () => {
+    if (!deleteTargetId) return;
+    await db.deleteCoupon(deleteTargetId);
+    triggerToast("Coupon deleted successfully");
+    setDeleteTargetId(null);
+    setDeleteTargetCode(null);
+    await loadCoupons();
   };
 
   return (
@@ -162,7 +172,7 @@ export default function CouponsLedgerPage() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <button
-                        onClick={() => handleDeleteCoupon(c.id)}
+                        onClick={() => handleDeleteCoupon(c)}
                         className="material-symbols-outlined text-gray-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-1 transition-colors flex items-center justify-center inline-block ml-auto"
                       >
                         delete
@@ -242,6 +252,41 @@ export default function CouponsLedgerPage() {
                 Create Coupon
               </button>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-red-200 bg-red-50 flex items-center justify-center text-red-600">
+              <span className="material-symbols-outlined text-xl">delete</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Delete Coupon</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                Are you sure you want to delete coupon <span className="text-[#0a0a0a] font-black">"{deleteTargetCode}"</span>?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteTargetId(null);
+                  setDeleteTargetCode(null);
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCoupon}
+                className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

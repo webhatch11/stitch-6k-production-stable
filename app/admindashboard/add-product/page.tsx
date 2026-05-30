@@ -5,6 +5,46 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { db } from "@/lib/db";
 
+// Helper function to compress images using HTML5 canvas to prevent LocalStorage quota overflow
+const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedBase64);
+      } else {
+        resolve(base64Str);
+      }
+    };
+    img.onerror = () => {
+      resolve(base64Str);
+    };
+  });
+};
+
 function AddProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -15,6 +55,9 @@ function AddProductContent() {
   const [sku, setSku] = useState("");
   const [category, setCategory] = useState("Cotton");
   const [description, setDescription] = useState("");
+  const [categories, setCategories] = useState<string[]>(["Cotton", "Linen", "Denim", "Silk Blend", "Silk"]);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
 
   // Stock Size Allocation
   const [stockS, setStockS] = useState(0);
@@ -33,6 +76,8 @@ function AddProductContent() {
   // Badges
   const [badgeNew, setBadgeNew] = useState(true);
   const [badgeExclusive, setBadgeExclusive] = useState(false);
+  const [enableCustomBadge, setEnableCustomBadge] = useState(false);
+  const [customBadgeText, setCustomBadgeText] = useState("");
 
   // Pricing & Commercial
   const [basePrice, setBasePrice] = useState(0);
@@ -46,6 +91,10 @@ function AddProductContent() {
   const [imgUrl2, setImgUrl2] = useState("");
   const [imgUrl3, setImgUrl3] = useState("");
   const [imgUrl4, setImgUrl4] = useState("");
+  const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
+
+  // Success Modal State
+  const [successModalText, setSuccessModalText] = useState("");
 
   // Toast notifications
   const [toastText, setToastText] = useState("");
@@ -62,14 +111,30 @@ function AddProductContent() {
   // Detect Edit Mode & Pre-populate
   useEffect(() => {
     const loadProductData = async () => {
+      // 1. Fetch unique categories from current inventory
+      const items = await db.getProducts();
+      const uniqueCats = Array.from(new Set(items.map((p) => p.category).filter(Boolean)));
+      const seedCats = ["Cotton", "Linen", "Denim", "Silk Blend", "Silk"];
+      const combinedCats = Array.from(new Set([...seedCats, ...uniqueCats]));
+      setCategories(combinedCats);
+
       if (editProductId) {
-        const items = await db.getProducts();
         const p = items.find((prod) => prod.id === editProductId);
 
         if (p) {
           setTitle(p.title || "");
           setSku(p.id || "");
-          setCategory(p.category || "Cotton");
+          
+          // Pre-populate category
+          if (combinedCats.includes(p.category || "Cotton")) {
+            setCategory(p.category || "Cotton");
+            setIsCustomCategory(false);
+          } else {
+            setCategory("Cotton");
+            setIsCustomCategory(true);
+            setCustomCategory(p.category || "");
+          }
+          
           setDescription(p.description || "");
 
           // Stock Matrix
@@ -87,9 +152,16 @@ function AddProductContent() {
           setSpecSleeve(p.specSleeve || "");
           setSpecCare(p.specCare || "");
 
-          // Highlights
+          // Highlights & Badging
           setBadgeNew(p.isNew !== undefined ? !!p.isNew : true);
           setBadgeExclusive(!!p.isAtelierExclusive);
+          if (p.customBadge) {
+            setEnableCustomBadge(true);
+            setCustomBadgeText(p.customBadge);
+          } else {
+            setEnableCustomBadge(false);
+            setCustomBadgeText("");
+          }
 
           // Pricing
           setBasePrice(p.basePrice || p.price || 0);
@@ -108,9 +180,17 @@ function AddProductContent() {
             if (imgList[1]) setImgUrl2(imgList[1]);
             if (imgList[2]) setImgUrl3(imgList[2]);
             if (imgList[3]) setImgUrl4(imgList[3]);
+            
+            const coverImage = p.image || imgList[0];
+            const foundIndex = imgList.indexOf(coverImage);
+            setPrimaryImageIndex(foundIndex !== -1 ? foundIndex : 0);
           } else {
             setImageMode("upload");
             setSelectedImages(imgList);
+            
+            const coverImage = p.image || imgList[0];
+            const foundIndex = imgList.indexOf(coverImage);
+            setPrimaryImageIndex(foundIndex !== -1 ? foundIndex : 0);
           }
         }
       }
@@ -131,31 +211,38 @@ function AddProductContent() {
 
   const finalPrice = calculateFinalPrice();
 
-  // Handle local image file load
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle local image file load with inline compression
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    let loaded = 0;
-    const targetLimit = Math.min(files.length, 4 - selectedImages.length);
-    if (targetLimit <= 0) return;
+    const slotsAvailable = 4 - selectedImages.length;
+    if (slotsAvailable <= 0) return;
 
-    const tempImages = [...selectedImages];
+    const filesToUpload = Array.from(files).slice(0, slotsAvailable);
+    const newCompressedImages: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      if (tempImages.length >= 4) break;
+    for (const file of filesToUpload) {
+      try {
+        const rawBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) resolve(event.target.result as string);
+            else reject(new Error("Failed to read file"));
+          };
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          tempImages.push(event.target.result as string);
-          loaded++;
-          if (loaded === targetLimit) {
-            setSelectedImages(tempImages);
-          }
-        }
-      };
-      reader.readAsDataURL(files[i]);
+        const compressed = await compressImage(rawBase64);
+        newCompressedImages.push(compressed);
+      } catch (err) {
+        console.error("Error reading/compressing image:", err);
+      }
+    }
+
+    if (newCompressedImages.length > 0) {
+      setSelectedImages((prev) => [...prev, ...newCompressedImages]);
     }
   };
 
@@ -172,6 +259,11 @@ function AddProductContent() {
       return;
     }
     const finalSKU = sku.trim() || "SKU-" + Math.floor(Math.random() * 9000 + 1000);
+    const finalCategory = isCustomCategory ? customCategory.trim() : category;
+    if (!finalCategory.trim()) {
+      triggerToast("Please select or enter a category name");
+      return;
+    }
 
     // Collect images
     let productImages: string[] = [];
@@ -190,20 +282,30 @@ function AddProductContent() {
       ];
     }
 
+    // Set primary image first in the list
+    let primaryImage = productImages[0];
+    if (primaryImageIndex > 0 && primaryImageIndex < productImages.length) {
+      const primary = productImages[primaryImageIndex];
+      const others = productImages.filter((_, i) => i !== primaryImageIndex);
+      productImages = [primary, ...others];
+      primaryImage = primary;
+    }
+
     const payload: Product = {
       id: finalSKU,
       title: title.trim(),
-      category: category,
+      category: finalCategory,
       price: finalPrice,
       basePrice: basePrice,
       gstRate: gstRate,
       discountRate: discountRate,
       stock: totalStock,
-      description: description.trim() || `${title} in premium ${category} weave.`,
-      image: productImages[0],
+      description: description.trim() || `${title} in premium ${finalCategory} weave.`,
+      image: primaryImage,
       images: productImages,
       isNew: badgeNew,
       isAtelierExclusive: badgeExclusive,
+      customBadge: enableCustomBadge ? customBadgeText.trim() : "",
       sizeStock: {
         S: stockS,
         M: stockM,
@@ -211,7 +313,7 @@ function AddProductContent() {
         XL: stockXL,
         XXL: stockXXL,
       },
-      specFabric: specFabric.trim() || `Premium ${category}`,
+      specFabric: specFabric.trim() || `Premium ${finalCategory}`,
       specFit: specFit.trim() || "Relaxed Fit",
       specCollar: specCollar.trim() || "Spread Collar",
       specSleeve: specSleeve.trim() || "Full Sleeves",
@@ -222,8 +324,7 @@ function AddProductContent() {
       if (editProductId) {
         // Edit Mode
         await db.saveProduct(payload);
-        alert("Product updated successfully!");
-        router.push("/admindashboard/inventory");
+        setSuccessModalText("Product updated successfully!");
       } else {
         // Add Mode
         const list = await db.getProducts();
@@ -233,12 +334,15 @@ function AddProductContent() {
           return;
         }
         await db.saveProduct(payload);
-        alert("Product created successfully!");
-        router.push("/admindashboard/inventory");
+        setSuccessModalText("Product created successfully!");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      triggerToast("Failed to save product details");
+      if (e?.name === "QuotaExceededError" || e?.message?.includes("exceeded the quota") || e?.message?.includes("QuotaExceededError")) {
+        triggerToast("Storage full! Please use direct Image URLs or compress your local photos under 500KB.");
+      } else {
+        triggerToast("Failed to save product details");
+      }
     }
   };
 
@@ -325,16 +429,54 @@ function AddProductContent() {
                   <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
                     Product Category
                   </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
-                  >
-                    <option>Cotton</option>
-                    <option>Linen</option>
-                    <option>Denim</option>
-                    <option>Silk Blend</option>
-                  </select>
+                  {!isCustomCategory ? (
+                    <select
+                      value={category}
+                      onChange={(e) => {
+                        if (e.target.value === "NEW_CUSTOM") {
+                          setIsCustomCategory(true);
+                          setCustomCategory("");
+                        } else {
+                          setCategory(e.target.value);
+                        }
+                      }}
+                      className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                      <option value="NEW_CUSTOM">+ Add Custom Category...</option>
+                    </select>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          placeholder="Enter new category name"
+                          className="flex-1 bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomCategory(false);
+                            if (categories.length > 0) {
+                              setCategory(categories[0]);
+                            }
+                          }}
+                          className="px-4 py-2 border border-gray-200 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-colors rounded-none cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic">
+                        Creating a custom category. Click cancel to select an existing one.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -533,6 +675,32 @@ function AddProductContent() {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-start gap-4 pt-6 border-t border-dashed border-gray-200">
+                  <input
+                    type="checkbox"
+                    id="enableCustomBadge"
+                    checked={enableCustomBadge}
+                    onChange={(e) => setEnableCustomBadge(e.target.checked)}
+                    className="w-5 h-5 text-primary border-gray-300 focus:ring-0 rounded-none cursor-pointer mt-1"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="enableCustomBadge" className="font-headline font-black text-xs uppercase tracking-widest cursor-pointer block mb-1">
+                      Custom Badge Text
+                    </label>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mb-3">
+                      Add a personalized overlay badge to showcase unique features or events on the storefront.
+                    </p>
+                    {enableCustomBadge && (
+                      <input
+                        type="text"
+                        value={customBadgeText}
+                        onChange={(e) => setCustomBadgeText(e.target.value)}
+                        placeholder="e.g. FESTIVE SALE, OVERSIZED FIT"
+                        className="w-full bg-white border border-gray-200 p-3 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none"
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -679,23 +847,49 @@ function AddProductContent() {
                     {selectedImages.map((imgSrc, idx) => (
                       <div
                         key={idx}
-                        className="aspect-[3/4] border border-gray-200 relative group overflow-hidden bg-white"
+                        className={`aspect-[3/4] border-2 relative group overflow-hidden bg-white transition-all ${
+                          primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02]" : "border-gray-200"
+                        }`}
                       >
                         <img src={imgSrc} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeLocalImage(idx);
+                            if (primaryImageIndex === idx) {
+                              setPrimaryImageIndex(0);
+                            } else if (primaryImageIndex > idx) {
+                              setPrimaryImageIndex(primaryImageIndex - 1);
+                            }
+                          }}
+                          className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors border-none cursor-pointer opacity-0 group-hover:opacity-100"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
+
+                        {/* Cover Image Action/Status */}
+                        {primaryImageIndex === idx ? (
+                          <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
+                            <span className="material-symbols-outlined text-[10px]">star</span>
+                            Primary Cover
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => removeLocalImage(idx)}
-                            className="text-white material-symbols-outlined bg-transparent border-none cursor-pointer hover:text-[#fed488] text-xl"
+                            onClick={() => setPrimaryImageIndex(idx)}
+                            className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
                           >
-                            delete
+                            Set as Cover
                           </button>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 italic opacity-60">
-                    Quota limit: Up to 4 product photos in base64.
+                    Quota limit: Up to 4 product photos in base64. Select one as Primary Cover.
                   </p>
                 </div>
               )}
@@ -752,7 +946,7 @@ function AddProductContent() {
                   {/* URL previews */}
                   <div className="pt-6 border-t border-dashed border-gray-200">
                     <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-3 block">
-                      Live URL Previews
+                      Live URL Previews & Primary Selector
                     </label>
                     <div className="grid grid-cols-4 gap-4">
                       {[imgUrl1, imgUrl2, imgUrl3, imgUrl4].map((urlStr, idx) => {
@@ -760,18 +954,38 @@ function AddProductContent() {
                         return (
                           <div
                             key={idx}
-                            className="aspect-[3/4] border border-gray-200 relative group overflow-hidden bg-gray-50 flex items-center justify-center text-center"
+                            className={`aspect-[3/4] border-2 relative group overflow-hidden bg-gray-50 flex items-center justify-center text-center transition-all ${
+                              isVal && primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02] bg-white" : "border-gray-200"
+                            }`}
                           >
                             {isVal ? (
-                              <img
-                                src={urlStr.trim()}
-                                className="w-full h-full object-cover"
-                                alt={`URL Preview ${idx + 1}`}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    "https://via.placeholder.com/150?text=Invalid+URL";
-                                }}
-                              />
+                              <>
+                                <img
+                                  src={urlStr.trim()}
+                                  className="w-full h-full object-cover"
+                                  alt={`URL Preview ${idx + 1}`}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "https://via.placeholder.com/150?text=Invalid+URL";
+                                  }}
+                                />
+                                
+                                {/* Cover Image Action/Status */}
+                                {primaryImageIndex === idx ? (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
+                                    <span className="material-symbols-outlined text-[10px]">star</span>
+                                    Primary Cover
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPrimaryImageIndex(idx)}
+                                    className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                                  >
+                                    Set as Cover
+                                  </button>
+                                )}
+                              </>
                             ) : (
                               <span className="text-gray-400 text-[8px] font-black uppercase tracking-widest">
                                 Slot {idx + 1} Empty
@@ -788,6 +1002,35 @@ function AddProductContent() {
           </div>
         </form>
       </div>
+
+      {/* Success Confirmation Modal */}
+      {successModalText && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-green-200 bg-green-50 flex items-center justify-center text-green-600">
+              <span className="material-symbols-outlined text-xl">check_circle</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Success</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                {successModalText}
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSuccessModalText("");
+                  router.push("/admindashboard/inventory");
+                }}
+                className="w-full bg-[#1a1c1c] text-white hover:bg-secondary py-3 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+              >
+                Continue to Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

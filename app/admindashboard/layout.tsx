@@ -74,7 +74,7 @@ export default function AdminLayout({
             </div>
             <div>
               <h1 className="font-headline font-bold text-sm uppercase tracking-widest text-white">Admin Portal</h1>
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em]">6K Shirts Management</p>
+              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em]">6K Designer Shirts Management</p>
             </div>
           </div>
           {/* Close Sidebar (Mobile only) */}

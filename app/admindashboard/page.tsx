@@ -10,7 +10,10 @@ export default function AdminDashboardPage() {
   const [metrics, setMetrics] = useState({
     totalOrders: 0,
     totalRevenue: 0,
+    cashRevenue: 0,
+    creditRevenue: 0,
     inventoryCount: 0,
+    totalStock: 0,
     walletLiability: 0,
     conversion: "4.2%",
   });
@@ -22,6 +25,19 @@ export default function AdminDashboardPage() {
   // Toast Alerts
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
+
+  // Delete Confirmation States
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [deleteProductTitle, setDeleteProductTitle] = useState<string | null>(null);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+
+  const handleResetPrototype = async () => {
+    setResetConfirmOpen(false);
+    triggerToast("Resetting prototype data...");
+    setTimeout(async () => {
+      await db.resetPrototype();
+    }, 1000);
+  };
 
   const triggerToast = (msg: string) => {
     setToastText(msg);
@@ -59,12 +75,18 @@ export default function AdminDashboardPage() {
     setProducts(productsList);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("Are you sure you want to remove this shirt from the official inventory?")) {
-      await db.deleteProduct(id);
-      triggerToast("Item removed");
-      await loadAdminData();
-    }
+  const handleDeleteProductClick = (p: Product) => {
+    setDeleteProductId(p.id);
+    setDeleteProductTitle(p.title);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!deleteProductId) return;
+    await db.deleteProduct(deleteProductId);
+    triggerToast("Item removed");
+    setDeleteProductId(null);
+    setDeleteProductTitle(null);
+    await loadAdminData();
   };
 
   // Simulate updating status from the admin board for testing returns
@@ -88,6 +110,8 @@ export default function AdminDashboardPage() {
       await loadAdminData();
     }
   };
+
+  const lowStockProducts = products.filter((p) => (p.stock || 0) <= 15);
 
   return (
     <div className="p-8 lg:p-16">
@@ -115,6 +139,12 @@ export default function AdminDashboardPage() {
             </div>
             <span className="material-symbols-outlined text-gray-500">calendar_today</span>
           </div>
+          <button
+            onClick={() => setResetConfirmOpen(true)}
+            className="border border-[#775a19]/35 hover:border-[#775a19] text-[#775a19] px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-[#775a19]/5 transition-all shadow-sm whitespace-nowrap bg-transparent cursor-pointer"
+          >
+            Reset Demo Data
+          </button>
           <button className="bg-[#0a0a0a] text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all shadow-lg whitespace-nowrap">
             Export Sales Report
           </button>
@@ -126,18 +156,37 @@ export default function AdminDashboardPage() {
         {/* Revenue */}
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#fed488]/5 -translate-y-12 translate-x-12 rounded-full transition-transform group-hover:scale-150"></div>
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Net Sales Revenue</p>
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Net Sales Revenue</p>
           <div>
-            <h3 className="text-3xl font-headline font-black tracking-tighter">
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-[#0a0a0a]">
               ₹{metrics.totalRevenue.toLocaleString("en-IN")}
             </h3>
-            <p className="text-[10px] font-bold text-green-600 mt-1 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">trending_up</span> Realized Revenue
-            </p>
-            <div className="text-[10px] font-bold text-gray-500 mt-3 flex items-center gap-1 border-t border-gray-100 pt-3">
-              <span className="material-symbols-outlined text-xs text-orange-500">account_balance_wallet</span>
-              Outstanding Store Credit:{" "}
-              <span className="text-orange-600 font-black">₹{metrics.walletLiability.toLocaleString("en-IN")}</span>
+            
+            {/* Split of Revenue from Cash and Credit */}
+            <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-wider text-gray-400">Cash Revenue</p>
+                <p className="text-sm font-bold text-green-700 font-headline mt-0.5">
+                  ₹{(metrics.cashRevenue || 0).toLocaleString("en-IN")}
+                </p>
+                <span className="text-[8px] text-gray-400 font-bold uppercase">(Gateway)</span>
+              </div>
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-wider text-gray-400">Credit Revenue</p>
+                <p className="text-sm font-bold text-blue-700 font-headline mt-0.5">
+                  ₹{(metrics.creditRevenue || 0).toLocaleString("en-IN")}
+                </p>
+                <span className="text-[8px] text-gray-400 font-bold uppercase">(Wallet)</span>
+              </div>
+            </div>
+
+            {/* Credit Hold in User Accounts */}
+            <div className="text-[10px] font-bold text-gray-500 mt-4 flex items-center gap-1.5 border-t border-gray-100 pt-3">
+              <span className="material-symbols-outlined text-xs text-orange-500">lock</span>
+              <span>Credit Hold:</span>
+              <span className="text-orange-600 font-black ml-auto">
+                ₹{metrics.walletLiability.toLocaleString("en-IN")}
+              </span>
             </div>
           </div>
         </div>
@@ -148,18 +197,20 @@ export default function AdminDashboardPage() {
           <div>
             <h3 className="text-3xl font-headline font-black tracking-tighter">{metrics.totalOrders}</h3>
             <p className="text-[10px] font-bold text-[#0a0a0a] mt-1 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">shopping_cart</span> Order History
+              <span className="material-symbols-outlined text-xs">shopping_cart</span> Active Orders
             </p>
           </div>
         </div>
 
         {/* Inventory count */}
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Inventory Count</p>
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Total Inventory</p>
           <div>
-            <h3 className="text-3xl font-headline font-black tracking-tighter">{metrics.inventoryCount}</h3>
+            <h3 className="text-3xl font-headline font-black tracking-tighter">
+              {metrics.totalStock || 0} <span className="text-xs text-gray-400 font-normal">units</span>
+            </h3>
             <p className="text-[10px] font-bold text-[#775a19] mt-1 flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">inventory</span> Stock List
+              <span className="material-symbols-outlined text-xs">inventory</span> {metrics.inventoryCount} Unique Designs
             </p>
           </div>
         </div>
@@ -257,9 +308,9 @@ export default function AdminDashboardPage() {
         <div className="bg-white border border-gray-200 shadow-sm overflow-hidden mb-16">
           <div className="p-8 border-b border-gray-200 flex justify-between items-center bg-[#fafafa]">
             <div>
-              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-[#0a0a0a]">Product Inventory</h3>
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-[#0a0a0a]">Low Stock Warnings</h3>
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 italic">
-                Manage and edit your active products.
+                Active products requiring immediate restock (15 or fewer units remaining).
               </p>
             </div>
             <Link
@@ -281,14 +332,17 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 text-xs font-label">
-                {products.length === 0 ? (
+                {lowStockProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-8 py-12 text-center text-gray-400 italic">
-                      Inventory Empty
+                    <td colSpan={5} className="px-8 py-12 text-center text-green-700 font-bold bg-green-50/20 italic">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-sm text-green-600">check_circle</span>
+                        <span>All active products are well stocked (greater than 15 units).</span>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  products.slice(0, 5).map((p) => (
+                  lowStockProducts.slice(0, 8).map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
@@ -302,11 +356,16 @@ export default function AdminDashboardPage() {
                       <td className="px-8 py-6 font-bold">₹{p.price.toLocaleString("en-IN")}</td>
                       <td className="px-8 py-6">
                         <span
-                          className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest ${
-                            (p.stock || 0) <= 5 ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600"
+                          className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 w-fit ${
+                            (p.stock || 0) <= 5 
+                              ? "bg-red-50 text-red-700 border border-red-200" 
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
                           }`}
                         >
-                          {p.stock || 0} in stock
+                          <span className="material-symbols-outlined text-xs">
+                            {(p.stock || 0) <= 5 ? "error" : "warning"}
+                          </span>
+                          <span>{p.stock || 0} in stock</span>
                         </span>
                       </td>
                       <td className="px-8 py-6 text-right">
@@ -319,7 +378,7 @@ export default function AdminDashboardPage() {
                             edit
                           </Link>
                           <button
-                            onClick={() => handleDeleteProduct(p.id)}
+                            onClick={() => handleDeleteProductClick(p)}
                             className="material-symbols-outlined text-gray-400 hover:text-red-600 bg-transparent border-none p-1 cursor-pointer transition-colors flex items-center justify-center"
                             title="Delete"
                           >
@@ -335,6 +394,73 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {deleteProductId && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-red-200 bg-red-50 flex items-center justify-center text-red-600">
+              <span className="material-symbols-outlined text-xl">delete</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Remove Product</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                Are you sure you want to remove <span className="text-[#0a0a0a] font-black">"{deleteProductTitle}"</span> from the inventory?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteProductId(null);
+                  setDeleteProductTitle(null);
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteProduct}
+                className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Reset Database Confirmation Modal */}
+      {resetConfirmOpen && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600">
+              <span className="material-symbols-outlined text-xl">restart_alt</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Reset Demo Data</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                Are you sure you want to reset all orders, wallet transactions, and points to the factory seed state?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setResetConfirmOpen(false)}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetPrototype}
+                className="flex-1 px-4 py-3 bg-amber-600 text-white hover:bg-amber-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+              >
+                Reset Database
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

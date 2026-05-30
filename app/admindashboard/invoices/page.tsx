@@ -7,8 +7,27 @@ import { db } from "@/lib/db";
 
 export default function InvoicesLedgerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [currentTab, setCurrentTab] = useState<"billed" | "returned" | "cancelled">("billed");
+
+  // Analytics Metrics
   const [billedRevenue, setBilledRevenue] = useState(0);
-  const [activeInvoicesCount, setActiveInvoicesCount] = useState(0);
+  const [billedCount, setBilledCount] = useState(0);
+  const [refundedValue, setRefundedValue] = useState(0);
+  const [refundedCount, setRefundedCount] = useState(0);
+  const [cancelledValue, setCancelledValue] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
+
+  // Toast notifications
+  const [toastText, setToastText] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = (msg: string) => {
+    setToastText(msg);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     loadInvoices();
@@ -29,17 +48,33 @@ export default function InvoicesLedgerPage() {
     const ordersList = await db.getOrders();
     setOrders(ordersList);
 
-    // Sum billed revenues and count active invoices (exclude Returned or Cancelled)
-    let revSum = 0;
-    let actCount = 0;
+    let billedSum = 0;
+    let billedCt = 0;
+    let refundedSum = 0;
+    let refundedCt = 0;
+    let cancelledSum = 0;
+    let cancelledCt = 0;
+
     ordersList.forEach((o) => {
-      if (o.status !== "Returned" && o.status !== "Cancelled") {
-        revSum += o.total;
-        actCount++;
+      const s = o.status.toLowerCase();
+      if (s === "returned") {
+        refundedSum += o.total;
+        refundedCt++;
+      } else if (s === "cancelled") {
+        cancelledSum += o.total;
+        cancelledCt++;
+      } else {
+        billedSum += o.total;
+        billedCt++;
       }
     });
-    setBilledRevenue(revSum);
-    setActiveInvoicesCount(actCount);
+
+    setBilledRevenue(billedSum);
+    setBilledCount(billedCt);
+    setRefundedValue(refundedSum);
+    setRefundedCount(refundedCt);
+    setCancelledValue(cancelledSum);
+    setCancelledCount(cancelledCt);
   };
 
   return (
@@ -58,7 +93,7 @@ export default function InvoicesLedgerPage() {
         </div>
         <div className="flex gap-4">
           <button
-            onClick={() => alert("Invoice CSV compilation initiated.")}
+            onClick={() => triggerToast("Invoice CSV compilation initiated.")}
             className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none"
           >
             Export Invoices
@@ -67,27 +102,68 @@ export default function InvoicesLedgerPage() {
       </header>
 
       {/* Statistics board panels */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Billed Revenue</p>
           <h3 className="text-3xl font-headline font-black tracking-tighter">
             ₹{billedRevenue.toLocaleString("en-IN")}.00
           </h3>
           <p className="text-[9px] font-bold text-green-600 mt-1 uppercase tracking-widest">
-            Excluding Returned/Cancelled Orders
+            {billedCount} Active Transactions
           </p>
         </div>
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
-          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Active Invoices</p>
-          <h3 className="text-3xl font-headline font-black tracking-tighter">{activeInvoicesCount}</h3>
-          <p className="text-[9px] font-bold text-[#775a19] mt-1 uppercase tracking-widest">
-            Authorized Transactions
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Refunded Value</p>
+          <h3 className="text-3xl font-headline font-black tracking-tighter">
+            ₹{refundedValue.toLocaleString("en-IN")}.00
+          </h3>
+          <p className="text-[9px] font-bold text-red-600 mt-1 uppercase tracking-widest">
+            {refundedCount} Returned Transactions
+          </p>
+        </div>
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Voided Value</p>
+          <h3 className="text-3xl font-headline font-black tracking-tighter">
+            ₹{cancelledValue.toLocaleString("en-IN")}.00
+          </h3>
+          <p className="text-[9px] font-bold text-gray-500 mt-1 uppercase tracking-widest">
+            {cancelledCount} Cancelled Transactions
           </p>
         </div>
       </section>
 
       {/* Invoice Ledger Table */}
       <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+        <div className="p-8 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-[#fafafa]">
+          <div className="flex gap-6 overflow-x-auto pb-2 sm:pb-0">
+            {(["billed", "returned", "cancelled"] as const).map((tabKey) => (
+              <button
+                key={tabKey}
+                onClick={() => setCurrentTab(tabKey)}
+                className={`text-[10px] font-black uppercase tracking-[0.3em] pb-2 whitespace-nowrap bg-transparent border-t-0 border-x-0 cursor-pointer transition-colors ${
+                  currentTab === tabKey
+                    ? "text-[#0a0a0a] border-b-2 border-[#fed488]"
+                    : "text-gray-400 hover:text-[#0a0a0a] border-b-2 border-transparent"
+                }`}
+              >
+                {tabKey === "billed"
+                  ? "Billed Invoices"
+                  : tabKey === "returned"
+                  ? "Returned Invoices"
+                  : "Cancelled Invoices"}
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 italic opacity-85">
+            Showing {orders.filter((o) => {
+              const s = o.status.toLowerCase();
+              if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
+              if (currentTab === "returned") return s === "returned";
+              return s === "cancelled";
+            }).length} invoices
+          </p>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -100,52 +176,70 @@ export default function InvoicesLedgerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs">
-              {orders.length === 0 ? (
+              {orders.filter((o) => {
+                const s = o.status.toLowerCase();
+                if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
+                if (currentTab === "returned") return s === "returned";
+                return s === "cancelled";
+              }).length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
-                    No invoices generated in database registry.
+                    No {currentTab} invoices generated in database registry.
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-[#f9fafb] transition-colors border-b border-gray-100">
-                    <td className="px-8 py-8 text-sm font-black font-headline text-primary">
-                      #INV-{order.id}
-                    </td>
-                    <td className="px-8 py-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                      {order.date}
-                    </td>
-                    <td className="px-8 py-8">
-                      <span className="text-[11px] font-black uppercase tracking-tight">{order.customer}</span>
-                    </td>
-                    <td className="px-8 py-8 text-sm font-black font-headline text-primary">
-                      ₹{order.total.toLocaleString("en-IN")}.00
-                      {order.status === "Returned" && (
-                        <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-red-50 text-red-600 px-2.5 py-0.5 border border-red-200/50">
-                          Refunded
-                        </span>
-                      )}
-                      {order.status === "Cancelled" && (
-                        <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 px-2.5 py-0.5 border border-gray-200/50">
-                          Cancelled
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-8 py-8 text-right">
-                      <Link
-                        href={`/invoice?orderId=${order.id}`}
-                        className="inline-block bg-primary text-white px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] hover:bg-secondary transition-colors rounded-none"
-                      >
-                        View Invoice
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                orders
+                  .filter((o) => {
+                    const s = o.status.toLowerCase();
+                    if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
+                    if (currentTab === "returned") return s === "returned";
+                    return s === "cancelled";
+                  })
+                  .map((order) => (
+                    <tr key={order.id} className="hover:bg-[#f9fafb] transition-colors border-b border-gray-100">
+                      <td className="px-8 py-8 text-sm font-black font-headline text-primary">
+                        #INV-{order.id}
+                      </td>
+                      <td className="px-8 py-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        {order.date}
+                      </td>
+                      <td className="px-8 py-8">
+                        <span className="text-[11px] font-black uppercase tracking-tight">{order.customer}</span>
+                      </td>
+                      <td className="px-8 py-8 text-sm font-black font-headline text-primary">
+                        ₹{order.total.toLocaleString("en-IN")}.00
+                        {order.status === "Returned" && (
+                          <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-red-50 text-red-600 px-2.5 py-0.5 border border-red-200/50">
+                            Refunded
+                          </span>
+                        )}
+                        {order.status === "Cancelled" && (
+                          <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 px-2.5 py-0.5 border border-gray-200/50">
+                            Cancelled
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-8 py-8 text-right">
+                        <Link
+                          href={`/invoice?orderId=${order.id}`}
+                          className="inline-block bg-primary text-white px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] hover:bg-secondary transition-colors rounded-none"
+                        >
+                          View Invoice
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
               )}
             </tbody>
           </table>
         </div>
       </div>
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">
+          {toastText}
+        </div>
+      )}
     </div>
   );
 }

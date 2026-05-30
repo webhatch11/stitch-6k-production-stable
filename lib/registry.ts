@@ -33,6 +33,7 @@ export interface Product {
   specCollar?: string;
   specSleeve?: string;
   specCare?: string;
+  customBadge?: string;
 }
 
 export interface Order {
@@ -58,6 +59,7 @@ export interface Order {
   returnDate?: string;
   returnRejectReason?: string;
   qualityCheckPassed?: boolean;
+  shiprocketId?: string;
 }
 
 export interface Coupon {
@@ -92,7 +94,7 @@ const WALLET_BALANCE_KEY = "registry_wallet_balance";
 const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
-const CURRENT_VERSION = "3.0_ten_shirts";
+const CURRENT_VERSION = "5.0_dynamic_4_images";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -115,134 +117,250 @@ export const RegistryManager = {
     if (!localStorage.getItem(PRODUCTS_KEY)) {
       const seedProducts: Product[] = [
         {
-          id: "seed-1",
-          title: "Classic White Oxford",
-          price: 1299,
+          id: "seed-feat-1",
+          title: "Signature Black",
+          price: 2499,
+          basePrice: 2499,
           category: "Cotton",
-          image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800"],
+          image: "/assets/model_black_shirt.png",
+          images: ["/assets/model_black_shirt.png"],
           isNew: true,
           stock: 45,
-          description: "Immaculate tailoring in a standard weave.",
+          description: "Crafted from premium long-staple cotton in our formal atelier silhouette.",
           sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
-          id: "seed-2",
-          title: "Midnight Blue Poplin",
-          price: 1450,
-          category: "Cotton",
-          image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-2",
+          title: "Desert Linen",
+          price: 1899,
+          basePrice: 1899,
+          category: "Linen",
+          image: "/assets/model_beige_shirt.png",
+          images: ["/assets/model_beige_shirt.png"],
           isNew: true,
           stock: 30,
-          description: "Comfortable organic poplin shirts in navy colorings.",
+          description: "Breathable organic sand beige linen tailored for standard luxury comfort.",
           sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
-          id: "seed-3",
-          title: "Sage Green Heritage",
-          price: 1699,
-          category: "Linen",
-          image: "https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-3",
+          title: "The Altitude Shirt",
+          price: 2999,
+          basePrice: 2999,
+          category: "Cotton",
+          image: "/assets/model_white_shirt.png",
+          images: ["/assets/model_white_shirt.png"],
           isNew: true,
-          stock: 15,
-          description: "Traditional dyed green linen weave shirts.",
-          sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
+          stock: 35,
+          description: "An exquisite high-altitude white weave cotton for the ultimate drape.",
+          sizeStock: { S: 10, M: 10, L: 10, XL: 3, XXL: 2 }
         },
         {
-          id: "seed-4",
-          title: "Charcoal Linen Series",
-          price: 1850,
-          category: "Linen",
-          image: "https://images.unsplash.com/photo-1610652396593-60526715f3ac?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1610652396593-60526715f3ac?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-4",
+          title: "Olive Heritage",
+          price: 2299,
+          basePrice: 2299,
+          category: "Cotton",
+          image: "/assets/model_olive_shirt.png",
+          images: ["/assets/model_olive_shirt.png"],
           isNew: false,
           stock: 22,
-          description: "Deep ash grey textured linen shirts.",
+          description: "Rugged yet refined olive cotton twill with hand-finished seams.",
           sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
-          id: "seed-5",
-          title: "Burnt Ochre Twill",
-          price: 1550,
+          id: "seed-feat-5",
+          title: "Navy Atelier",
+          price: 2799,
+          basePrice: 2799,
           category: "Cotton",
-          image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=800"],
+          image: "/assets/model_navy_shirt.png",
+          images: ["/assets/model_navy_shirt.png"],
           isNew: false,
           stock: 50,
-          description: "Vibrant cotton twill with a warm sunset coloring.",
+          description: "Bespoke tailored navy poplin showcasing a rich double-needle profile.",
           sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
-          id: "seed-6",
-          title: "Indigo Denim Shirt",
-          price: 1999,
-          category: "Denim",
-          image: "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-6",
+          title: "Classic White",
+          price: 2199,
+          basePrice: 2199,
+          category: "Cotton",
+          image: "/assets/model_white_shirt.png",
+          images: ["/assets/model_white_shirt.png"],
           isNew: true,
           stock: 25,
-          description: "Rugged blue denim tailored for casual comfort.",
+          description: "Everyday essential classic white cotton shirt with mitred cuffs.",
           sizeStock: { S: 10, M: 12, L: 15, XL: 8, XXL: 5 }
         },
         {
-          id: "seed-7",
-          title: "Signature Noir Silk",
-          price: 8999,
-          category: "Silk",
-          image: "/assets/noir_hero_bg.png",
-          images: ["/assets/noir_hero_bg.png"],
+          id: "seed-feat-7",
+          title: "Safari Tan",
+          price: 1799,
+          basePrice: 1799,
+          category: "Linen",
+          image: "/assets/model_beige_shirt.png",
+          images: ["/assets/model_beige_shirt.png"],
           isNew: true,
           stock: 12,
-          description: "Handcrafted in small batches from high-quality black silk-linen fabric.",
-          isAtelierExclusive: true,
-          sizeStock: { S: 2, M: 4, L: 4, XL: 2, XXL: 0 },
-          specFabric: "Silk-Linen Blend",
-          specFit: "Atelier Bespoke Fit",
-          specCollar: "Italian Wide Spread",
-          specSleeve: "Mitred Dual Cuffs",
-          specCare: "Professional Dry Clean Only"
+          description: "Travel series linen shirt in a warm desert tan shade.",
+          sizeStock: { S: 2, M: 4, L: 4, XL: 2, XXL: 0 }
         },
         {
-          id: "seed-8",
-          title: "Crimson Chambray",
-          price: 1750,
+          id: "seed-feat-8",
+          title: "Midnight Noir",
+          price: 2699,
+          basePrice: 2699,
           category: "Cotton",
-          image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&q=80&w=800"],
+          image: "/assets/model_black_shirt.png",
+          images: ["/assets/model_black_shirt.png"],
           isNew: true,
           stock: 20,
-          description: "Vibrant crimson washed cotton chambray with premium stitching details.",
+          description: "Perfect evening shirt crafted from rich black organic poplin.",
           sizeStock: { S: 5, M: 5, L: 5, XL: 3, XXL: 2 }
         },
         {
-          id: "seed-9",
-          title: "Belgian Flax Sand",
-          price: 2100,
-          category: "Linen",
-          image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-9",
+          title: "Forest Chambray",
+          price: 2099,
+          basePrice: 2099,
+          category: "Cotton",
+          image: "/assets/model_olive_shirt.png",
+          images: ["/assets/model_olive_shirt.png"],
           isNew: false,
           stock: 18,
-          description: "Breathable sand beige natural flax linen tailored for standard luxury comfort.",
+          description: "Premium casual chambray weave with a natural forest green drape.",
           sizeStock: { S: 4, M: 4, L: 4, XL: 4, XXL: 2 }
         },
         {
-          id: "seed-10",
-          title: "Royal Silk Weave",
-          price: 7500,
-          category: "Silk",
-          image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800",
-          images: ["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=800"],
+          id: "seed-feat-10",
+          title: "Royal Indigo",
+          price: 2899,
+          basePrice: 2899,
+          category: "Silk Blend",
+          image: "/assets/model_navy_shirt.png",
+          images: ["/assets/model_navy_shirt.png"],
           isNew: true,
           stock: 10,
-          description: "Exclusive double-twisted silk blend shirt with a natural gold sheen and hand-finished seams.",
-          isAtelierExclusive: true,
+          description: "Luxurious indigo silk blend with hand-finished collar details.",
           sizeStock: { S: 2, M: 3, L: 3, XL: 2, XXL: 0 }
+        },
+        {
+          id: "seed-fav-1",
+          title: "Crafted Comfort",
+          price: 1999,
+          basePrice: 1999,
+          category: "Linen",
+          image: "/assets/striped_resort_shirt.png",
+          images: ["/assets/striped_resort_shirt.png"],
+          isNew: true,
+          stock: 32,
+          description: "Orange striped resort-style linen shirt for breezy summer ease.",
+          sizeStock: { S: 5, M: 8, L: 10, XL: 6, XXL: 3 }
+        },
+        {
+          id: "seed-fav-2",
+          title: "Everyday Luxury",
+          price: 2399,
+          basePrice: 2399,
+          category: "Cotton",
+          image: "/assets/teal_crane_shirt.png",
+          images: ["/assets/teal_crane_shirt.png"],
+          isNew: true,
+          stock: 15,
+          description: "Atelier teal crane printed cotton showcasing heritage artisan patterns.",
+          sizeStock: { S: 3, M: 4, L: 5, XL: 2, XXL: 1 }
+        },
+        {
+          id: "seed-fav-3",
+          title: "Atelier Oxford",
+          price: 1699,
+          basePrice: 1699,
+          category: "Linen",
+          image: "/assets/floral_resort_shirt.png",
+          images: ["/assets/floral_resort_shirt.png"],
+          isNew: false,
+          stock: 24,
+          description: "Beautiful handwoven rose patterned linen comfort resort shirt.",
+          sizeStock: { S: 6, M: 6, L: 6, XL: 4, XXL: 2 }
+        },
+        {
+          id: "seed-fav-4",
+          title: "Sustainable Art",
+          price: 1499,
+          basePrice: 1499,
+          category: "Cotton",
+          image: "/assets/geometric_resort_shirt.png",
+          images: ["/assets/geometric_resort_shirt.png"],
+          isNew: false,
+          stock: 40,
+          description: "Abstract block print organic cotton poplin from sustainable yarns.",
+          sizeStock: { S: 8, M: 12, L: 12, XL: 6, XXL: 2 }
+        },
+        {
+          id: "seed-fav-5",
+          title: "Atelier White",
+          price: 1799,
+          basePrice: 1799,
+          category: "Cotton",
+          image: "/assets/folded_white_shirt.png",
+          images: ["/assets/folded_white_shirt.png"],
+          isNew: true,
+          stock: 35,
+          description: "Premium heavy cotton oxford weave in classic ivory white.",
+          sizeStock: { S: 8, M: 10, L: 10, XL: 5, XXL: 2 }
+        },
+        {
+          id: "seed-fav-6",
+          title: "Classic Navy",
+          price: 1999,
+          basePrice: 1999,
+          category: "Cotton",
+          image: "/assets/hanging_navy_shirt.png",
+          images: ["/assets/hanging_navy_shirt.png"],
+          isNew: false,
+          stock: 28,
+          description: "Royal herringbone weave cotton shirt in deep ocean navy.",
+          sizeStock: { S: 5, M: 8, L: 8, XL: 4, XXL: 3 }
+        },
+        {
+          id: "seed-fav-7",
+          title: "Atelier Olive",
+          price: 1899,
+          basePrice: 1899,
+          category: "Cotton",
+          image: "/assets/folded_olive_shirt.png",
+          images: ["/assets/folded_olive_shirt.png"],
+          isNew: true,
+          stock: 19,
+          description: "Organic olive cotton twill with an ultra-soft brushed finish.",
+          sizeStock: { S: 4, M: 5, L: 6, XL: 3, XXL: 1 }
+        },
+        {
+          id: "seed-fav-8",
+          title: "Royal Crimson",
+          price: 2999,
+          basePrice: 2999,
+          category: "Silk",
+          image: "/assets/folded_crimson_shirt.png",
+          images: ["/assets/folded_crimson_shirt.png"],
+          isNew: true,
+          stock: 15,
+          description: "Artisan crimson silk twill blend with natural luxury sheen.",
+          sizeStock: { S: 3, M: 4, L: 4, XL: 2, XXL: 2 }
         }
       ];
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProducts));
+      const seedProductsWithGallery = seedProducts.map((p) => ({
+        ...p,
+        images: [
+          p.image,
+          "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&q=80&w=1200",
+          "https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&q=80&w=1200",
+          "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=1200"
+        ]
+      }));
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProductsWithGallery));
     }
 
     if (!localStorage.getItem(ORDERS_KEY)) {
@@ -313,13 +431,17 @@ export const RegistryManager = {
   saveProduct(product: Partial<Product>) {
     if (!isBrowser()) return;
     const products = this.getProducts();
-    const images = product.images || [product.image || ""];
+    let images = product.images && product.images.length > 0 ? product.images.filter(Boolean) : [];
+    if (images.length === 0) {
+      images = [product.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=600"];
+    }
+    const primaryImage = images[0] || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=600";
     const newProduct: Product = {
       id: product.id || "ART-" + Date.now(),
       title: product.title || "Untitled Product",
       price: product.price || 0,
       category: product.category || "Cotton",
-      image: images[0],
+      image: primaryImage,
       images: images,
       isNew: product.isNew !== undefined ? product.isNew : true,
       stock: product.stock || 0,
@@ -335,6 +457,7 @@ export const RegistryManager = {
       specCollar: product.specCollar,
       specSleeve: product.specSleeve,
       specCare: product.specCare,
+      customBadge: product.customBadge,
     };
     const existingIndex = products.findIndex(p => p.id === newProduct.id);
     if (existingIndex !== -1) {
@@ -358,45 +481,69 @@ export const RegistryManager = {
   },
 
   getDashboardMetrics() {
-    if (!isBrowser()) return { totalOrders: 0, totalRevenue: 0, inventoryCount: 0, walletLiability: 0, conversion: "4.2%" };
+    if (!isBrowser()) return { totalOrders: 0, totalRevenue: 0, cashRevenue: 0, creditRevenue: 0, inventoryCount: 0, totalStock: 0, walletLiability: 0, conversion: "4.2%" };
     const orders = this.getOrders();
     const activeOrders = orders.filter((o) => o.status !== "Returned");
     const products = this.getProducts();
     const revenue = activeOrders.reduce((sum, o) => sum + o.total, 0);
+    const cashRevenue = activeOrders.reduce((sum, o) => sum + (o.gatewayPaid || 0), 0);
+    const creditRevenue = activeOrders.reduce((sum, o) => sum + (o.walletPaid || 0), 0);
     const walletLiability = this.getWalletBalance();
+    const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
     return {
       totalOrders: activeOrders.length,
       totalRevenue: revenue,
+      cashRevenue: cashRevenue,
+      creditRevenue: creditRevenue,
       inventoryCount: products.length,
+      totalStock: totalStock,
       walletLiability: walletLiability,
       conversion: "4.2%",
     };
   },
 
+
   saveOrder(order: Partial<Order>): Order {
     if (!isBrowser()) throw new Error("Browser only");
     const orders = this.getOrders();
+    const existingIndex = orders.findIndex(o => o.id === order.id);
+    const oldOrder = existingIndex !== -1 ? orders[existingIndex] : null;
+
     const newOrder: Order = {
       id: order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000),
-      customer: order.customer || "Guest Customer",
-      date: order.date || new Date().toLocaleDateString("en-IN"),
-      total: order.total || 0,
-      status: order.status || "Pending",
-      items: order.items || [],
-      originalTotal: order.originalTotal || 0,
-      couponDiscount: order.couponDiscount || 0,
-      couponCode: order.couponCode || "",
-      walletPaid: order.walletPaid || 0,
-      gatewayPaid: order.gatewayPaid || 0,
-      pointsRedeemed: order.pointsRedeemed || 0,
-      pointsDiscount: order.pointsDiscount || 0,
-      pointsEarned: order.pointsEarned || 0,
+      customer: order.customer || (oldOrder ? oldOrder.customer : "Guest Customer"),
+      date: order.date || (oldOrder ? oldOrder.date : new Date().toLocaleDateString("en-IN")),
+      total: order.total !== undefined ? order.total : (oldOrder ? oldOrder.total : 0),
+      status: order.status || (oldOrder ? oldOrder.status : "Pending"),
+      items: order.items || (oldOrder ? oldOrder.items : []),
+      originalTotal: order.originalTotal !== undefined ? order.originalTotal : (oldOrder ? oldOrder.originalTotal : 0),
+      couponDiscount: order.couponDiscount !== undefined ? order.couponDiscount : (oldOrder ? oldOrder.couponDiscount : 0),
+      couponCode: order.couponCode !== undefined ? order.couponCode : (oldOrder ? oldOrder.couponCode : ""),
+      walletPaid: order.walletPaid !== undefined ? order.walletPaid : (oldOrder ? oldOrder.walletPaid : 0),
+      gatewayPaid: order.gatewayPaid !== undefined ? order.gatewayPaid : (oldOrder ? oldOrder.gatewayPaid : 0),
+      pointsRedeemed: order.pointsRedeemed !== undefined ? order.pointsRedeemed : (oldOrder ? oldOrder.pointsRedeemed : 0),
+      pointsDiscount: order.pointsDiscount !== undefined ? order.pointsDiscount : (oldOrder ? oldOrder.pointsDiscount : 0),
+      pointsEarned: order.pointsEarned !== undefined ? order.pointsEarned : (oldOrder ? oldOrder.pointsEarned : 0),
+      returnReason: order.returnReason !== undefined ? order.returnReason : (oldOrder ? oldOrder.returnReason : undefined),
+      returnDetails: order.returnDetails !== undefined ? order.returnDetails : (oldOrder ? oldOrder.returnDetails : undefined),
+      returnImage: order.returnImage !== undefined ? order.returnImage : (oldOrder ? oldOrder.returnImage : undefined),
+      refundOption: order.refundOption !== undefined ? order.refundOption : (oldOrder ? oldOrder.refundOption : undefined),
+      returnRequestDate: order.returnRequestDate !== undefined ? order.returnRequestDate : (oldOrder ? oldOrder.returnRequestDate : undefined),
+      returnDate: order.returnDate !== undefined ? order.returnDate : (oldOrder ? oldOrder.returnDate : undefined),
+      returnRejectReason: order.returnRejectReason !== undefined ? order.returnRejectReason : (oldOrder ? oldOrder.returnRejectReason : undefined),
+      qualityCheckPassed: order.qualityCheckPassed !== undefined ? order.qualityCheckPassed : (oldOrder ? oldOrder.qualityCheckPassed : undefined),
+      shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (oldOrder ? oldOrder.shiprocketId : undefined),
     };
-    orders.unshift(newOrder);
+
+    if (existingIndex !== -1) {
+      orders[existingIndex] = newOrder;
+    } else {
+      orders.unshift(newOrder);
+      localStorage.setItem("cartCount", "0");
+      localStorage.removeItem("cart_items");
+    }
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
-    localStorage.setItem("cartCount", "0");
-    localStorage.removeItem("cart_items");
     return newOrder;
   },
 
@@ -653,6 +800,96 @@ export const RegistryManager = {
     const order = orders[orderIndex];
     order.status = "Return Rejected";
     order.returnRejectReason = rejectReason;
+    orders[orderIndex] = order;
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    return true;
+  },
+
+  cancelOrderAndRefund(orderId: string) {
+    if (!isBrowser()) return false;
+    const orders = this.getOrders();
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
+    if (orderIndex === -1) return false;
+
+    const order = orders[orderIndex];
+    if (order.status === "Cancelled") return false;
+
+    order.status = "Cancelled";
+
+    // 1. Restock items back into inventory
+    const products = this.getProducts();
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach((itemName) => {
+        const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
+        if (product) {
+          product.stock = (product.stock || 0) + 1;
+        }
+      });
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+    }
+
+    // 2. Process refund: Wallet Paid goes back to wallet. Gateway Paid goes back to bank (simulated)
+    const walletPaid = Number(order.walletPaid || 0);
+    const gatewayPaid = Number(order.gatewayPaid || 0);
+
+    if (walletPaid > 0) {
+      this.applyWalletCredit(walletPaid, `Refund of Wallet Portion for Cancelled Order #${orderId}`, orderId);
+    }
+    if (gatewayPaid > 0) {
+      console.log(`[Refund simulation] Refunded ₹${gatewayPaid} to bank account for Cancelled Order #${orderId}`);
+    }
+
+    // 3. Revoke earned loyalty points
+    const pointsEarned = Number(order.pointsEarned || 0);
+    if (pointsEarned > 0) {
+      let balance = this.getLoyaltyPoints();
+      balance = Math.max(0, balance - pointsEarned);
+      localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
+
+      const txs = this.getLoyaltyTransactions();
+      txs.unshift({
+        id: "LTX-" + Date.now(),
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        points: pointsEarned,
+        type: "debit",
+        description: `Revoked for Cancelled Order #${orderId}`,
+      });
+      localStorage.setItem(LOYALTY_TX_KEY, JSON.stringify(txs));
+    }
+
+    // 4. Restore redeemed loyalty points
+    const pointsRedeemed = Number(order.pointsRedeemed || 0);
+    if (pointsRedeemed > 0) {
+      let balance = this.getLoyaltyPoints();
+      balance += pointsRedeemed;
+      localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
+
+      const txs = this.getLoyaltyTransactions();
+      txs.unshift({
+        id: "LTX-" + (Date.now() + 1),
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        points: pointsRedeemed,
+        type: "credit",
+        description: `Restored for Cancelled Order #${orderId}`,
+      });
+      localStorage.setItem(LOYALTY_TX_KEY, JSON.stringify(txs));
+    }
+
+    orders[orderIndex] = order;
+    localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+    return true;
+  },
+
+  approvePendingOrder(orderId: string) {
+    if (!isBrowser()) return false;
+    const orders = this.getOrders();
+    const orderIndex = orders.findIndex((o) => o.id === orderId);
+    if (orderIndex === -1) return false;
+
+    const order = orders[orderIndex];
+    if (order.status !== "Payment Pending") return false;
+
+    order.status = "Paid";
     orders[orderIndex] = order;
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     return true;

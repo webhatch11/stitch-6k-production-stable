@@ -13,6 +13,22 @@ export default function OrdersLedgerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
 
+  // Toast notifications
+  const [toastText, setToastText] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = (msg: string) => {
+    setToastText(msg);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  // Custom Modal States
+  const [modalOpen, setModalOpen] = useState(false);
+  const [bulkStatusToApply, setBulkStatusToApply] = useState("");
+
   useEffect(() => {
     loadOrders();
 
@@ -54,23 +70,28 @@ export default function OrdersLedgerPage() {
     }
   };
 
-  const handleBulkStatusChange = async (newStatus: string) => {
-    if (selectedOrderIds.length === 0) return;
-    if (confirm(`Are you sure you want to change status to "${newStatus}" for the ${selectedOrderIds.length} selected order(s)?`)) {
-      const allOrders = await db.getOrders();
-      let count = 0;
-      for (const o of allOrders) {
-        if (selectedOrderIds.includes(o.id)) {
-          count++;
-          o.status = newStatus;
-          await db.saveOrder(o);
-        }
+  const handleBulkStatusChangeClick = (status: string) => {
+    setBulkStatusToApply(status);
+    setModalOpen(true);
+  };
+
+  const confirmBulkStatusChange = async () => {
+    if (selectedOrderIds.length === 0 || !bulkStatusToApply) return;
+    const allOrders = await db.getOrders();
+    let count = 0;
+    for (const o of allOrders) {
+      if (selectedOrderIds.includes(o.id)) {
+        count++;
+        o.status = bulkStatusToApply;
+        await db.saveOrder(o);
       }
-      window.dispatchEvent(new Event("storage"));
-      await loadOrders();
-      setSelectedOrderIds([]);
-      alert(`Successfully updated status for ${count} order(s) to "${newStatus}".`);
     }
+    window.dispatchEvent(new Event("storage"));
+    await loadOrders();
+    setSelectedOrderIds([]);
+    triggerToast(`Successfully updated status for ${count} order(s) to "${bulkStatusToApply}".`);
+    setModalOpen(false);
+    setBulkStatusToApply("");
   };
 
   const getStatusStyle = (status: string) => {
@@ -149,13 +170,13 @@ export default function OrdersLedgerPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => handleBulkStatusChange("Shipped")}
+              onClick={() => handleBulkStatusChangeClick("Shipped")}
               className="bg-secondary text-white hover:bg-white hover:text-primary border border-secondary hover:border-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer"
             >
               Ship Selected
             </button>
             <button
-              onClick={() => handleBulkStatusChange("Delivered")}
+              onClick={() => handleBulkStatusChangeClick("Delivered")}
               className="bg-green-700 text-white hover:bg-white hover:text-primary border border-green-700 hover:border-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer"
             >
               Deliver Selected
@@ -359,6 +380,48 @@ export default function OrdersLedgerPage() {
           )}
         </div>
       </div>
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">
+          {toastText}
+        </div>
+      )}
+
+      {/* Bulk Status Confirmation Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-[#775a19]/20 bg-[#775a19]/5 flex items-center justify-center text-secondary">
+              <span className="material-symbols-outlined text-xl">local_shipping</span>
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Bulk Update Status</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                Are you sure you want to change status to <span className="text-[#0a0a0a] font-black">"{bulkStatusToApply}"</span> for the {selectedOrderIds.length} selected order(s)?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalOpen(false);
+                  setBulkStatusToApply("");
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmBulkStatusChange}
+                className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

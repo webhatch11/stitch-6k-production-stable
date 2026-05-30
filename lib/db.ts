@@ -14,7 +14,7 @@ const mapDbProductToProduct = (p: any): Product => {
     isNew: p.is_new,
     stock: p.stock,
     description: p.description,
-    isAtelierExclusive: p.is_atelier_exclusive,
+    isAtelierExclusive: p.is_agent_exclusive || p.is_atelier_exclusive,
     sizeStock: {
       S: p.size_stock_s || 0,
       M: p.size_stock_m || 0,
@@ -30,6 +30,7 @@ const mapDbProductToProduct = (p: any): Product => {
     specCollar: p.spec_collar,
     specSleeve: p.spec_sleeve,
     specCare: p.spec_care,
+    customBadge: p.custom_badge || p.customBadge || "",
   };
 };
 
@@ -58,6 +59,7 @@ const mapDbOrderToOrder = (o: any): Order => {
     returnDate: o.return_date,
     returnRejectReason: o.return_reject_reason,
     qualityCheckPassed: o.quality_check_passed,
+    shiprocketId: o.shiprocket_id || o.shiprocketId || "",
   };
 };
 
@@ -107,6 +109,7 @@ export const db = {
       spec_collar: product.specCollar || "",
       spec_sleeve: product.specSleeve || "",
       spec_care: product.specCare || "",
+      custom_badge: product.customBadge || "",
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);
@@ -171,6 +174,7 @@ export const db = {
       returnDate: order.returnDate,
       returnRejectReason: order.returnRejectReason,
       qualityCheckPassed: order.qualityCheckPassed,
+      shiprocketId: order.shiprocketId,
     };
 
     const dbPayload = {
@@ -196,6 +200,7 @@ export const db = {
       return_date: newOrder.returnDate,
       return_reject_reason: newOrder.returnRejectReason,
       quality_check_passed: newOrder.qualityCheckPassed,
+      shiprocket_id: newOrder.shiprocketId,
     };
 
     const { error } = await supabase.from("orders").upsert(dbPayload);
@@ -214,16 +219,23 @@ export const db = {
     const activeOrders = orders.filter((o) => o.status !== "Returned");
     const products = await this.getProducts();
     const revenue = activeOrders.reduce((sum, o) => sum + o.total, 0);
+    const cashRevenue = activeOrders.reduce((sum, o) => sum + (o.gatewayPaid || 0), 0);
+    const creditRevenue = activeOrders.reduce((sum, o) => sum + (o.walletPaid || 0), 0);
     const walletLiability = await this.getWalletBalance();
+    const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
     return {
       totalOrders: activeOrders.length,
       totalRevenue: revenue,
+      cashRevenue: cashRevenue,
+      creditRevenue: creditRevenue,
       inventoryCount: products.length,
+      totalStock: totalStock,
       walletLiability: walletLiability,
       conversion: "4.2%",
     };
   },
+
 
   // --- Coupons ---
   async getCoupons(): Promise<Coupon[]> {
@@ -588,6 +600,100 @@ export const db = {
         status: "Return Rejected",
         return_reject_reason: rejectReason,
       })
+      .eq("id", orderId);
+
+    return !error;
+  },
+
+  async cancelOrderAndRefund(orderId: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.cancelOrderAndRefund(orderId);
+    }
+    
+    // Fetch order
+    const { data: orderData, error: orderErr } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (orderErr || !orderData) return false;
+    if (orderData.status === "Cancelled") return false;
+
+    // 1. Update status
+    const { error: updateErr } = await supabase
+      .from("orders")
+      .update({ status: "Cancelled" })
+      .eq("id", orderId);
+
+    if (updateErr) return false;
+
+    // 2. Restock items back into inventory
+    if (orderData.items && Array.isArray(orderData.items)) {
+      const products = await this.getProducts();
+      for (const itemName of orderData.items) {
+        const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
+        if (product) {
+          const newStock = (product.stock || 0) + 1;
+          await supabase
+            .from("products")
+            .update({ stock: newStock })
+            .eq("id", product.id);
+        }
+      }
+    }
+
+    // 3. Process refund: wallet balance & bank refund
+    const walletPaid = Number(orderData.wallet_paid || 0);
+    const gatewayPaid = Number(orderData.gateway_paid || 0);
+
+    if (walletPaid > 0) {
+      await this.applyWalletCredit(walletPaid, `Refund of Wallet Portion for Cancelled Order #${orderId}`, orderId);
+    }
+    if (gatewayPaid > 0) {
+      console.log(`[Refund simulation] Refunded ₹${gatewayPaid} to bank account for Cancelled Order #${orderId}`);
+    }
+
+    // 4. Revoke earned loyalty points
+    const pointsEarned = Number(orderData.points_earned || 0);
+    if (pointsEarned > 0) {
+      const balance = await this.getLoyaltyPoints();
+      const newBalance = Math.max(0, balance - pointsEarned);
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("loyalty_transactions").insert({
+        id: "LTX-" + Date.now(),
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        points: pointsEarned,
+        type: "debit",
+        description: `Revoked for Cancelled Order #${orderId}`,
+      });
+    }
+
+    // 5. Restore redeemed loyalty points
+    const pointsRedeemed = Number(orderData.points_redeemed || 0);
+    if (pointsRedeemed > 0) {
+      const balance = await this.getLoyaltyPoints();
+      const newBalance = balance + pointsRedeemed;
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("loyalty_transactions").insert({
+        id: "LTX-" + (Date.now() + 1),
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        points: pointsRedeemed,
+        type: "credit",
+        description: `Restored for Cancelled Order #${orderId}`,
+      });
+    }
+
+    return true;
+  },
+
+  async approvePendingOrder(orderId: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.approvePendingOrder(orderId);
+    }
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "Paid" })
       .eq("id", orderId);
 
     return !error;

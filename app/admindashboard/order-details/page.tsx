@@ -17,6 +17,19 @@ function OrderDetailsContent() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  // Custom Confirmation Dialog States
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmModalTitle, setConfirmModalTitle] = useState("");
+  const [confirmModalDesc, setConfirmModalDesc] = useState("");
+  const [confirmCallback, setConfirmCallback] = useState<(() => Promise<void>) | null>(null);
+
+  const openConfirmDialog = (title: string, desc: string, callback: () => Promise<void>) => {
+    setConfirmModalTitle(title);
+    setConfirmModalDesc(desc);
+    setConfirmCallback(() => callback);
+    setConfirmModalOpen(true);
+  };
+
   // Toast Alerts
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -68,33 +81,112 @@ function OrderDetailsContent() {
   }
 
   // Update order status directly
-  const handleUpdateStatus = async (newStatus: string) => {
-    if (!confirm(`Are you sure you want to update the status of Order #${order.id} to "${newStatus}"?`)) {
-      return;
+  const handleUpdateStatus = (newStatus: string) => {
+    openConfirmDialog(
+      "Update Order Status",
+      `Are you sure you want to update the status of Order #${order.id} to "${newStatus}"?`,
+      async () => {
+        const orders = await db.getOrders();
+        const idx = orders.findIndex((o) => o.id === order.id);
+        if (idx !== -1) {
+          orders[idx].status = newStatus;
+          await db.saveOrder(orders[idx]);
+          triggerToast(`Order status updated to: ${newStatus}`);
+          window.dispatchEvent(new Event("storage"));
+          await loadOrderDetails();
+        }
+      }
+    );
+  };
+
+  const handleApprovePendingOrder = () => {
+    openConfirmDialog(
+      "Approve Pending Order",
+      `Clear Bank Payment & Mark Paid for Order #${order.id}?`,
+      async () => {
+        const success = await db.approvePendingOrder(order.id);
+        if (success) {
+          triggerToast("Payment marked as cleared. Status updated to Paid.");
+          window.dispatchEvent(new Event("storage"));
+          await loadOrderDetails();
+        }
+      }
+    );
+  };
+
+  const handleShiprocketShip = () => {
+    openConfirmDialog(
+      "Ship via Shiprocket",
+      `Automatically dispatch Order #${order.id} via Shiprocket Courier routing?`,
+      async () => {
+        const randomAwb = "SR" + Math.floor(1000000 + Math.random() * 9000000);
+        const orders = await db.getOrders();
+        const idx = orders.findIndex((o) => o.id === order.id);
+        if (idx !== -1) {
+          orders[idx].status = "Shipped";
+          orders[idx].shiprocketId = randomAwb;
+          await db.saveOrder(orders[idx]);
+          triggerToast(`Shiprocket Routing Success! AWB Assigned: ${randomAwb}`);
+          window.dispatchEvent(new Event("storage"));
+          await loadOrderDetails();
+        }
+      }
+    );
+  };
+
+  const handleCancelOrderAndRefund = () => {
+    const wPaid = order.walletPaid || 0;
+    const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+    const pRedeemed = order.pointsRedeemed || 0;
+    
+    let refundDetails = "";
+    if (wPaid > 0 || gPaid > 0) {
+      const parts = [];
+      if (gPaid > 0) parts.push(`₹${gPaid.toLocaleString("en-IN")} bank refund`);
+      if (wPaid > 0) parts.push(`₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
+      refundDetails = parts.join(" and ");
+    } else {
+      refundDetails = "No monetary amounts to refund";
     }
-    const orders = await db.getOrders();
-    const idx = orders.findIndex((o) => o.id === order.id);
-    if (idx !== -1) {
-      orders[idx].status = newStatus;
-      await db.saveOrder(orders[idx]);
-      triggerToast(`Order status updated to: ${newStatus}`);
-      await loadOrderDetails();
-    }
+
+    const confirmMsg = 
+      `You are cancelling Order #${order.id} due to workshop stock issues.\n\n` +
+      `Automated Actions Checklist:\n` +
+      `- Inventory Restocking: Order items will be restocked in inventory counts\n` +
+      `- Refund Actions: ${refundDetails}\n` +
+      `${pRedeemed > 0 ? `- Loyalty Points: ${pRedeemed.toLocaleString()} points restored to customer account\n` : ""}\n` +
+      `This operation is irreversible. Proceed?`;
+
+    openConfirmDialog(
+      "Cancel Order & Refund",
+      confirmMsg,
+      async () => {
+        const success = await db.cancelOrderAndRefund(order.id);
+        if (success) {
+          triggerToast("Order Cancelled. Refunds & Restocking completed.");
+          window.dispatchEvent(new Event("storage"));
+          await loadOrderDetails();
+        }
+      }
+    );
   };
 
   // Return flows
-  const handleApprovePickup = async () => {
-    if (!confirm(`Confirm scheduled pickup for Order #${order.id}? This will set the order status to "Return in Transit".`)) {
-      return;
-    }
-    const success = await db.approveReturnPickup(order.id);
-    if (success) {
-      triggerToast('Pickup scheduled. Status: "Return in Transit"');
-      await loadOrderDetails();
-    }
+  const handleApprovePickup = () => {
+    openConfirmDialog(
+      "Confirm Return Pickup",
+      `Confirm scheduled pickup for Order #${order.id}? This will set the order status to "Return in Transit".`,
+      async () => {
+        const success = await db.approveReturnPickup(order.id);
+        if (success) {
+          triggerToast('Pickup scheduled. Status: "Return in Transit"');
+          await loadOrderDetails();
+        }
+      }
+    );
   };
 
-  const handleConfirmReceipt = async () => {
+  const handleConfirmReceipt = () => {
     const wPaid = order.walletPaid || 0;
     const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
     const pRedeemed = order.pointsRedeemed || 0;
@@ -111,7 +203,7 @@ function OrderDetailsContent() {
     }
 
     const confirmMsg = 
-      `CRITICAL CONFIRMATION: You are processing a final return refund for Order #${order.id}.\n\n` +
+      `You are processing a final return refund for Order #${order.id}.\n\n` +
       `Financial Details:\n` +
       `- Refund Destination: ${refundDetails}\n` +
       `${pRedeemed > 0 ? `- Loyalty Points: ${pRedeemed.toLocaleString()} points will be RESTORED to customer\n` : ""}` +
@@ -119,34 +211,41 @@ function OrderDetailsContent() {
       `- Quality Audit Result: ${qualityCheck.toUpperCase()} (${qualityCheck === "passed" ? "Restocks catalog stock count" : "Item failed check; inventory unmodified"})\n\n` +
       `This action cannot be undone. Are you sure you want to authorize the refund?`;
 
-    if (!confirm(confirmMsg)) return;
-
-    const success = await db.processReturnRefund(order.id, qualityCheck === "passed");
-    if (success) {
-      triggerToast(
-        qualityCheck === "passed"
-          ? "Quality Check Passed: Refunded & Stock Restocked"
-          : "Quality Check Failed: Refunded & Stock Unrestocked"
-      );
-      await loadOrderDetails();
-    }
+    openConfirmDialog(
+      "Confirm Receipt & Refund",
+      confirmMsg,
+      async () => {
+        const success = await db.processReturnRefund(order.id, qualityCheck === "passed");
+        if (success) {
+          triggerToast(
+            qualityCheck === "passed"
+              ? "Quality Check Passed: Refunded & Stock Restocked"
+              : "Quality Check Failed: Refunded & Stock Unrestocked"
+          );
+          await loadOrderDetails();
+        }
+      }
+    );
   };
 
-  const handleRejectReturn = async () => {
+  const handleRejectReturn = () => {
     if (!rejectReason.trim()) {
-      alert("Please enter a rejection reason.");
+      triggerToast("Please enter a rejection reason.");
       return;
     }
-    if (!confirm(`Are you sure you want to REJECT the return request for Order #${order.id}?\n\nReason: "${rejectReason}"\n\nNo refund will be processed and the return request will be closed.`)) {
-      return;
-    }
-    const success = await db.rejectReturn(order.id, rejectReason);
-    if (success) {
-      setRejectModalOpen(false);
-      setRejectReason("");
-      triggerToast("Return Request Rejected");
-      await loadOrderDetails();
-    }
+    openConfirmDialog(
+      "Reject Return Request",
+      `Are you sure you want to REJECT the return request for Order #${order.id}?\n\nReason: "${rejectReason}"\n\nNo refund will be processed and the return request will be closed.`,
+      async () => {
+        const success = await db.rejectReturn(order.id, rejectReason);
+        if (success) {
+          setRejectModalOpen(false);
+          setRejectReason("");
+          triggerToast("Return Request Rejected");
+          await loadOrderDetails();
+        }
+      }
+    );
   };
 
   const s = order.status.toLowerCase();
@@ -477,29 +576,86 @@ function OrderDetailsContent() {
 
             {/* CASE 1: Standard Order Flows */}
             {!s.includes("return") && s !== "returned" && s !== "cancelled" && (
-              <div className="space-y-4">
-                <button
-                  onClick={() => handleUpdateStatus("Delivered")}
-                  className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                >
-                  <span className="material-symbols-outlined text-sm">local_shipping</span> Ship Order
-                </button>
-                <button
-                  onClick={() => alert("Shipping label generated and sent to printer queue.")}
-                  className="w-full bg-white/10 text-white border border-white/20 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white/20 transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-sm">print</span> Print Label
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("Are you sure you want to void and cancel this order?")) {
-                      handleUpdateStatus("Cancelled");
-                    }
-                  }}
-                  className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
-                >
-                  Void/Cancel Order
-                </button>
+              <div className="space-y-6">
+                {s === "payment pending" && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
+                      Warning: Payment stuck in bank portal or verification is pending.
+                    </div>
+                    <button
+                      onClick={handleApprovePendingOrder}
+                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    >
+                      <span className="material-symbols-outlined text-sm">payments</span> Clear Bank Clearance
+                    </button>
+                    <button
+                      onClick={handleCancelOrderAndRefund}
+                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
+                    >
+                      Cancel Order
+                    </button>
+                  </div>
+                )}
+
+                {s === "paid" && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
+                      Awaiting invoice generation to begin processing.
+                    </div>
+                    <Link
+                      href={`/invoice?orderId=${order.id}`}
+                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none text-center"
+                    >
+                      <span className="material-symbols-outlined text-sm">print</span> Print Invoice &amp; Process
+                    </Link>
+                    <button
+                      onClick={handleCancelOrderAndRefund}
+                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
+                    >
+                      Cancel Order (Refund)
+                    </button>
+                  </div>
+                )}
+
+                {s === "processing" && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
+                      Order is processing. Ready to dispatch.
+                    </div>
+                    <button
+                      onClick={handleShiprocketShip}
+                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    >
+                      <span className="material-symbols-outlined text-sm">local_shipping</span> Ship via Shiprocket
+                    </button>
+                    <button
+                      onClick={handleCancelOrderAndRefund}
+                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
+                    >
+                      Cancel Order (Stock Issue)
+                    </button>
+                  </div>
+                )}
+
+                {s === "shipped" && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
+                      Dispatched AWB: <span className="font-mono text-white">{order.shiprocketId}</span>
+                    </div>
+                    <button
+                      onClick={() => handleUpdateStatus("Delivered")}
+                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    >
+                      <span className="material-symbols-outlined text-sm">check_circle</span> Mark as Delivered
+                    </button>
+                  </div>
+                )}
+
+                {s === "delivered" && (
+                  <div className="p-4 bg-white/5 border border-white/10 text-xs text-green-400 font-bold uppercase tracking-wider text-center">
+                    Delivered successfully.
+                  </div>
+                )}
               </div>
             )}
 
@@ -599,6 +755,48 @@ function OrderDetailsContent() {
                 className="flex-1 bg-red-600 text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-red-700 transition-colors rounded-none font-bold cursor-pointer border-none"
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generic Confirmation Modal */}
+      {confirmModalOpen && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#775a19]/25 shadow-2xl p-8 max-w-md w-full space-y-6 text-center rounded-none animate-zoom-in">
+            <div className="mx-auto w-12 h-12 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600">
+              <span className="material-symbols-outlined text-xl">warning</span>
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">{confirmModalTitle}</h3>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed whitespace-pre-line text-left border border-gray-100 p-4 bg-gray-50 max-h-[220px] overflow-y-auto">
+                {confirmModalDesc}
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmModalOpen(false);
+                  setConfirmCallback(null);
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirmCallback) {
+                    await confirmCallback();
+                  }
+                  setConfirmModalOpen(false);
+                  setConfirmCallback(null);
+                }}
+                className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold"
+              >
+                Confirm
               </button>
             </div>
           </div>

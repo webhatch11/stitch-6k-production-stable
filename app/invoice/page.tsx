@@ -30,6 +30,20 @@ function InvoiceContent() {
     loadInvoiceData();
   }, [orderIdParam]);
 
+  const handlePrint = async () => {
+    if (matchedOrder && matchedOrder.status === "Paid") {
+      try {
+        const updated = { ...matchedOrder, status: "Processing" };
+        await db.saveOrder(updated);
+        setMatchedOrder(updated);
+        window.dispatchEvent(new Event("storage"));
+      } catch (err) {
+        console.error("Failed to update status to Processing on print:", err);
+      }
+    }
+    window.print();
+  };
+
   if (!matchedOrder) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-12 text-center">
@@ -53,7 +67,7 @@ function InvoiceContent() {
       {/* Control Actions */}
       <div className="fixed top-6 right-6 flex gap-4 print:hidden z-50">
         <button
-          onClick={() => window.print()}
+          onClick={handlePrint}
           className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all shadow-xl rounded-none"
         >
           Print / Download PDF
@@ -69,9 +83,14 @@ function InvoiceContent() {
       <div className="bg-white max-w-[800px] mx-auto p-10 sm:p-16 border border-gray-200 shadow-sm relative overflow-hidden print:border-none print:shadow-none print:p-8">
         {/* Watermark SVG */}
         <div className="absolute top-0 right-0 opacity-[0.03] -translate-y-1/2 translate-x-1/2 pointer-events-none">
-          <svg width="400" height="400" viewBox="0 0 48 48" fill="currentColor">
-            <path d="M13.8261 30.5736C16.7203 29.8826 20.2244 29.4783 24 29.4783C27.7756 29.4783 31.2797 29.8826 34.1739 30.5736C36.9144 31.2278 39.9967 32.7669 41.3563 33.8352L24.8486 7.36089C24.4571 6.73303 23.5429 6.73303 23.1514 7.36089L6.64374 33.8352C8.00331 32.7669 11.0856 31.2278 13.8261 30.5736Z" />
-          </svg>
+          <div className="w-8 h-8 rounded-full bg-[#faf9f8] p-1 flex items-center justify-center shadow-sm border border-[#775a19]/15">
+                  <img 
+                    src="/assets/logo.png" 
+                    alt="6K Logo" 
+                    className="max-w-full max-h-full object-contain"
+                    draggable={false}
+                  />
+                </div>
         </div>
 
         {/* Brand identity header */}
@@ -79,7 +98,7 @@ function InvoiceContent() {
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="size-8 bg-black text-white flex items-center justify-center font-headline font-black text-xs">6K</div>
-              <span className="font-headline text-xl font-black tracking-tighter uppercase">6K Shirts</span>
+              <span className="font-headline text-xl font-black tracking-tighter uppercase">6K Designer Shirts</span>
             </div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
               Flat 102, Sector 4<br />

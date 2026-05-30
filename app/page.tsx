@@ -1382,73 +1382,66 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section 5: Connected Trust Section */}
-        <section className="py-24 px-6 lg:px-20 bg-[#F5F5F5] overflow-hidden">
-          <div className="max-w-7xl mx-auto relative">
-            {/* Connecting Background Line */}
-            <div className="hidden md:block absolute top-[40px] left-[16.66%] right-[16.66%] h-[1px] bg-outline/20 z-0"></div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-0 text-center relative z-10">
-              {/* Point 1 */}
-              <div className="flex flex-col items-center gap-6 group/item relative cursor-default">
-                {/* Glowing Connecting Line */}
-                <div className="hidden md:block absolute top-[39px] left-1/2 w-0 h-[2px] bg-secondary shadow-[0_0_12px_rgba(212,175,55,0.8)] z-0 transition-all duration-700 ease-in-out group-hover/item:w-full"></div>
-                <div className="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+        {/* Section 5: Trust Section */}
+        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 text-center">
+              {/* Point 1: Made In India */}
+              <div className="flex flex-col items-center group cursor-default">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
-                    precision_manufacturing
+                    handshake
                   </span>
                 </div>
-                <div className="relative z-10 px-4">
-                  <h4 className="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3">
-                    Direct from Atelier
+                <div className="px-4">
+                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                    MADE IN INDIA
                   </h4>
-                  <p className="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">
-                    Master tailors overseeing every stitch, from proprietary weave to final hand-finished seam.
+                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                    Ethically crafted by master tailors using age-old Indian garment-making techniques.
                   </p>
                 </div>
               </div>
 
-              {/* Point 2 */}
-              <div className="flex flex-col items-center gap-6 group/item relative cursor-default">
-                {/* Glowing Connecting Line */}
-                <div className="hidden md:block absolute top-[39px] left-1/2 w-0 h-[2px] bg-secondary shadow-[0_0_12px_rgba(212,175,55,0.8)] z-0 transition-all duration-700 ease-in-out group-hover/item:w-full"></div>
-                <div className="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+              {/* Point 2: Premium Fabric */}
+              <div className="flex flex-col items-center group cursor-default">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
-                    diamond
+                    package_2
                   </span>
                 </div>
-                <div className="relative z-10 px-4">
-                  <h4 className="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3">
-                    Premium Fabric
+                <div className="px-4">
+                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                    PREMIUM FABRIC
                   </h4>
-                  <p className="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">
-                    We source only the finest long-staple cotton and Belgian flax for unmatched comfort.
+                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                    Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
                   </p>
                 </div>
               </div>
 
-              {/* Point 3 */}
-              <div className="flex flex-col items-center gap-6 group/item relative cursor-default">
-                <div className="w-20 h-20 bg-[#F5F5F5] flex items-center justify-center relative z-10 transition-transform duration-500 group-hover/item:-translate-y-2">
+              {/* Point 3: Fast Delivery */}
+              <div className="flex flex-col items-center group cursor-default">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F2F2F2] flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03] rounded-sm mb-6 border border-black/5">
                   <span
-                    className="material-symbols-outlined text-[40px] text-secondary drop-shadow-sm transition-all duration-500 group-hover/item:drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]"
-                    style={{ fontVariationSettings: "'FILL' 1" }}
+                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
                   >
                     local_shipping
                   </span>
                 </div>
-                <div className="relative z-10 px-4">
-                  <h4 className="font-headline font-bold uppercase tracking-widest text-sm text-on-surface mb-3">
-                    Fast Delivery
+                <div className="px-4">
+                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                    FAST DELIVERY
                   </h4>
-                  <p className="text-surface-variant text-xs leading-relaxed max-w-xs mx-auto">
-                    Concierge delivery service across 200+ Indian cities in 2-4 business days.
+                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                    Express shipping across India. Your heritage piece arrives at your doorstep in 48 hours.
                   </p>
                 </div>
               </div>

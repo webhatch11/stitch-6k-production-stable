@@ -3,7 +3,7 @@ from PIL import Image
 
 LOGO_PATH = r"c:\7s inter folder\stitch_6k_production_ready_v2\public\assets\logo.png"
 
-def make_transparent(image_path, threshold=20):
+def make_transparent(image_path, threshold=60):
     if not os.path.exists(image_path):
         print(f"Error: {image_path} does not exist.")
         return

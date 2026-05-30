@@ -21,18 +21,32 @@ interface HeroSlide {
 
 const heroSlides: HeroSlide[] = [
   {
+    badge: "Limited Edition",
+    title: "PURE MOTION\nPREMIUM SERIES.",
+    productId: "Product Code: MOTION-6K",
+    price: "₹12,499",
+    desc: "Experience fluid comfort with the Pure Motion 6K series. Tailored to move with you, using our finest stretch-blend knit.",
+    weave: "Stretch-Knit",
+    time: "40 Hours",
+    rarity: "80 Items",
+    registryId: "MOTION-6K",
+    ctaLink: "/shopallshirts",
+    bgImage: "/assets/pure_motion_6k.png",
+    frontImage: "/assets/pure_motion_6k.png",
+  },
+  {
     badge: "Premium Series 01",
     title: "OUR FINEST\nHANDMADE SHIRTS.",
-    productId: "Product Code: NOIR-001",
+    productId: "Product Code: MARBLE-001",
     price: "₹8,999",
     desc: "Handcrafted in small batches from high-quality black silk-linen fabric. Designed for comfort, style, and long-lasting quality.",
     weave: "Silk-Linen",
     time: "32 Hours",
     rarity: "150 Items",
-    registryId: "NOIR-001",
+    registryId: "MARBLE-001",
     ctaLink: "/signatureshirtblack",
-    bgImage: "/assets/noir_hero_bg.png",
-    frontImage: "/assets/noir_hero_bg.png",
+    bgImage: "/assets/hero_showroom_marble.jpeg",
+    frontImage: "/assets/hero_showroom_marble.jpeg",
   },
   {
     badge: "Premium Series 02",
@@ -45,8 +59,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "500 Items",
     registryId: "WHITE-002",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/white_hero_bg.png",
-    frontImage: "/assets/white_hero_bg.png",
+    bgImage: "/assets/hero_showroom_white.jpeg",
+    frontImage: "/assets/hero_showroom_white.jpeg",
   },
   {
     badge: "Premium Series 03",
@@ -59,12 +73,106 @@ const heroSlides: HeroSlide[] = [
     rarity: "300 Items",
     registryId: "NAVY-003",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/navy_hero_bg.png",
-    frontImage: "/assets/navy_hero_bg.png",
+    bgImage: "/assets/hero_navy_street.jpeg",
+    frontImage: "/assets/hero_navy_street.jpeg",
+  },
+  {
+    badge: "Spring Series 04",
+    title: "THE ATELIER\nSPRING LOOK.",
+    productId: "Product Code: SPRING-004",
+    price: "₹5,499",
+    desc: "An elegant olive-green utility shirt designed for modern versatility. Built with reinforced stitching and lightweight breathable cotton.",
+    weave: "Spring Cotton",
+    time: "20 Hours",
+    rarity: "200 Items",
+    registryId: "SPRING-004",
+    ctaLink: "/shopallshirts",
+    bgImage: "/assets/hero_spring_street.jpeg",
+    frontImage: "/assets/hero_spring_street.jpeg",
+  },
+  {
+    badge: "Resort Series 05",
+    title: "VACATION & RESORT\nSIGNATURE SHIRTS.",
+    productId: "Product Code: BEACH-005",
+    price: "₹6,999",
+    desc: "A relaxed-fit camp collar resort shirt. Light, breezy, and perfect for sunset strolls or beachside dining.",
+    weave: "Breezy Linen",
+    time: "28 Hours",
+    rarity: "100 Items",
+    registryId: "BEACH-005",
+    ctaLink: "/shopallshirts",
+    bgImage: "/assets/hero_beach_custom.jpeg",
+    frontImage: "/assets/hero_beach_custom.jpeg",
   },
 ];
 
+interface FavoriteProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: string;
+  tag: string;
+  link: string;
+  image: string;
+  verticalText: string;
+}
+
+const favoriteProducts: FavoriteProduct[] = [
+  {
+    id: "fav-1",
+    name: "Charcoal Oxford",
+    category: "Premium Cotton",
+    price: "₹3,999",
+    tag: "Atelier",
+    link: "/shoppingbag",
+    image: "/assets/model_black_shirt.png",
+    verticalText: "CHARCOAL OXFORD"
+  },
+  {
+    id: "fav-2",
+    name: "Desert Sand",
+    category: "Linen Blend",
+    price: "₹4,999",
+    tag: "Popular",
+    link: "/shoppingbag",
+    image: "/assets/model_beige_shirt.png",
+    verticalText: "DESERT SAND"
+  },
+  {
+    id: "fav-3",
+    name: "White Atelier",
+    category: "Signature Series",
+    price: "₹8,999",
+    tag: "NEW",
+    link: "/signatureshirtblack",
+    image: "/assets/model_white_shirt.png",
+    verticalText: "THE ATELIER"
+  },
+  {
+    id: "fav-4",
+    name: "Olive Linen",
+    category: "Breathable Linen",
+    price: "₹3,499",
+    tag: "Trending",
+    link: "/shoppingbag",
+    image: "/assets/model_olive_shirt.png",
+    verticalText: "OLIVE LINEN"
+  },
+  {
+    id: "fav-5",
+    name: "Navy Street",
+    category: "Smart Casual",
+    price: "₹5,999",
+    tag: "Exclusive",
+    link: "/shoppingbag",
+    image: "/assets/model_navy_shirt.png",
+    verticalText: "NAVY STREET"
+  }
+];
+
 export default function Home() {
+  // Favorite products active index state for 3D Coverflow slider
+  const [activeFavIndex, setActiveFavIndex] = useState(2);
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
   const [loaderExitClass, setLoaderExitClass] = useState(false);
@@ -101,24 +209,80 @@ export default function Home() {
       name: "Aditya Verma",
       location: "Bengaluru, India",
       rating: 5,
-      comment: "The craftsmanship is unparalleled. You can literally feel the quality of the South Indian textile heritage in the weave. Delivered to Bangalore in just 2 days.",
-      avatar: "AV"
+      comment: "I've tried countless luxury shirt brands, but nothing compares to the breathability and structure of 6K's linen-cotton looms. The summer fit is tailored to perfection—every wear feels like bespoke luxury.",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80"
     },
     {
       id: "rev-2",
-      name: "Faisal Al-Rashid",
-      location: "Dubai, UAE",
+      name: "Priya Deshmukh",
+      location: "Mumbai, India",
       rating: 5,
-      comment: "I ordered 3 formal shirts to Dubai. They arrived beautifully packaged. The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price.",
-      avatar: "FA"
+      comment: "Mumbai's humidity is brutal, but 6K's ultra-breathable shirts are an absolute lifesaver. The craftsmanship from their South Indian workshops is immaculate, and the tailored fit keeps me looking sharp all day.",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80"
     },
     {
       id: "rev-3",
-      name: "Michael Turner",
-      location: "Miami, USA",
+      name: "Sophia Mitchell",
+      location: "London, UK",
       rating: 5,
-      comment: "Found this brand on Instagram. The pure linen shirts are a lifesaver for the Florida heat. Shipping to the US was surprisingly fast and hassle-free.",
-      avatar: "MT"
+      comment: "As a menswear enthusiast, I appreciate the premium long-staple cotton and the clean hand-rolled collars. The signature gold embroidery on 6K shirts is a beautiful, subtle touch. They've quickly become my go-to.",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-4",
+      name: "Karan Malhotra",
+      location: "New Delhi, India",
+      rating: 5,
+      comment: "From the mother-of-pearl buttons to the signature gold branding, the attention to detail is mind-blowing. These aren't just shirts; they are pieces of textile art. Outstanding product!",
+      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-5",
+      name: "Aisha Khan",
+      location: "New York, USA",
+      rating: 5,
+      comment: "I never knew cotton-linen could feel this soft yet look so formal! The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price. The gold embroidery adds a very premium vibe.",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-6",
+      name: "Mia Lawrence",
+      location: "Toronto, Canada",
+      rating: 5,
+      comment: "I ordered the signature black shirt. The deep rich dye is stunning and hasn't faded after multiple washes. The fabric feels substantial, luxury-grade, and gets softer with every wash.",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-7",
+      name: "Emily Sanders",
+      location: "Sydney, Australia",
+      rating: 5,
+      comment: "The linen weave is exceptionally fine, perfect for the Australian summer. The stitching quality matches international standards, and the packaging was incredibly premium. Highly recommend!",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-8",
+      name: "Vikram Nair",
+      location: "Kochi, India",
+      rating: 5,
+      comment: "The absolute gold standard for shirts in India. The collar has the perfect structure and doesn't warp after a wash. I've replaced my entire wardrobe with 6K shirts now.",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-9",
+      name: "Olivia Richardson",
+      location: "Los Angeles, USA",
+      rating: 5,
+      comment: "The fabric feels like a warm breeze! Extremely lightweight yet durable, and the tailored silhouette sits beautifully. The unboxing experience was absolutely premium.",
+      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      id: "rev-10",
+      name: "Rahul Sen",
+      location: "Kolkata, India",
+      rating: 5,
+      comment: "The South Indian loom heritage shines through. Every thread feels like a tribute to master weaving, and the fit is incredibly modern. Hands down the best shirts in my collection.",
+      avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=150&h=150&q=80"
     }
   ]);
 
@@ -164,6 +328,16 @@ export default function Home() {
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3500);
     }, 1000);
+  };
+
+  const firstRowReviews = reviews.filter((_, i) => i % 2 === 0);
+  const secondRowReviews = reviews.filter((_, i) => i % 2 !== 0);
+
+  const getCardBg = (row: number, index: number) => {
+    const row1Colors = ["bg-[#fecaca]", "bg-[#fed7aa]", "bg-[#fef08a]", "bg-[#ccfbf1]", "bg-[#fbcfe8]"];
+    const row2Colors = ["bg-[#bbf7d0]", "bg-[#bfdbfe]", "bg-[#e9d5ff]", "bg-[#fbcfe8]", "bg-[#fed7aa]"];
+    const colors = row === 1 ? row1Colors : row2Colors;
+    return colors[index % colors.length];
   };
 
   // Preloader transition
@@ -302,13 +476,15 @@ export default function Home() {
                 <div className="absolute w-52 h-52 border border-[#fed488]/5 rounded-full animate-pulse-slow"></div>
               </div>
 
-              {/* Premium Logo Image */}
-              <img 
-                src="/assets/logo.png" 
-                alt="6K Logo" 
-                className="w-28 h-28 object-contain drop-shadow-[0_0_20px_rgba(254,212,136,0.4)] relative z-10 animate-pulse" 
-                draggable={false}
-              />
+              {/* Premium Logo Image in Circle */}
+              <div className="w-32 h-32 rounded-full bg-white p-5 flex items-center justify-center shadow-2xl relative z-10 animate-pulse border border-[#fed488]/30">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="6K Logo" 
+                  className="max-w-full max-h-full object-contain" 
+                  draggable={false}
+                />
+              </div>
 
               {/* Golden Shimmer Ring */}
               <div className="absolute inset-0 border border-[#fed488]/10 rounded-full scale-110 animate-shimmer-ring"></div>
@@ -317,7 +493,7 @@ export default function Home() {
             {/* Brand Name Text */}
             <div className="text-center space-y-3 relative z-10">
               <h1 className="font-headline text-3xl font-black tracking-[0.2em] uppercase opacity-0 animate-premium-text">
-                <span className="shimmer-text">6K Shirts</span>
+                <span className="shimmer-text">6K Designer Shirts</span>
               </h1>
               <div className="h-[1.5px] bg-gradient-to-r from-transparent via-[#fed488]/80 to-transparent mx-auto opacity-0 animate-gold-line"></div>
               <p className="text-[9px] font-black tracking-[0.5em] text-[#fed488]/60 uppercase opacity-0 animate-premium-subtext">
@@ -333,44 +509,21 @@ export default function Home() {
         </div>
       )}
 
-      {/* Top Announcement Scrolling Marquee */}
-      <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
-        <div className="flex animate-marquee whitespace-nowrap">
-          <div className="flex shrink-0 items-center gap-12 px-6">
-            <span>FREE DELIVERY ACROSS INDIA</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>100% PREMIUM COTTON & LINEN</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>EASY 7-DAY RETURNS</span>
-            <span className="text-secondary-fixed-dim">•</span>
-          </div>
-          <div className="flex shrink-0 items-center gap-12 px-6">
-            <span>FREE DELIVERY ACROSS INDIA</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>100% PREMIUM COTTON & LINEN</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>EASY 7-DAY RETURNS</span>
-            <span className="text-secondary-fixed-dim">•</span>
-          </div>
-        </div>
-      </div>
 
       {/* Shared Header (Glassmorphic & Mobile First) */}
       <header className="sticky top-0 z-[100] glass-nav transition-all duration-300">
-        <div className="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-4">
+        <div className="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-2.5">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
-              <img 
-                src="/assets/logo.png" 
-                alt="6K Logo" 
-                className="h-10 w-auto object-contain" 
-                draggable={false}
-              />
+              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="6K Logo" 
+                  className="max-w-full max-h-full object-contain" 
+                  draggable={false}
+                />
+              </div>
             </Link>
 
             {/* Desktop Menu */}
@@ -501,7 +654,7 @@ export default function Home() {
 
       <main>
         {/* Section 1: Hero */}
-        <section className="relative min-h-[100svh] lg:min-h-screen flex flex-col justify-center overflow-hidden bg-on-surface py-32 lg:py-0">
+        <section className="relative min-h-[75svh] lg:min-h-[82vh] flex flex-col justify-center overflow-hidden bg-on-surface py-24 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}
           <div className="absolute inset-0 z-0 select-none pointer-events-none">
             {heroSlides.map((slide, i) => (
@@ -512,7 +665,7 @@ export default function Home() {
                 }`}
                 style={{
                   backgroundImage: `url('${slide.bgImage}')`,
-                  filter: i === 0 ? "brightness(0.4)" : "brightness(0.35)",
+                  filter: "none",
                 }}
               ></div>
             ))}
@@ -524,194 +677,6 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-on-surface via-transparent to-on-surface/50"></div>
           </div>
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-20">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-              {/* Left Panel: Editorial Typography */}
-              <div className="lg:col-span-7 flex flex-col items-start gap-6 lg:gap-8 mt-12 lg:mt-0">
-                {/* Collection Tag */}
-                <span
-                  style={{
-                    opacity: heroTransitioning ? 0 : 1,
-                    transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                    transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                  }}
-                  className="text-surface font-label text-xs uppercase tracking-[0.4em] bg-tertiary px-4 py-1.5 transition-all duration-500"
-                >
-                  {tempSlideData.badge}
-                </span>
-
-                {/* Main Text Details */}
-                <div className="space-y-4 w-full">
-                  <h1
-                    style={{
-                      opacity: heroTransitioning ? 0 : 1,
-                      transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      fontSize: "clamp(3rem, 7vw, 6rem)",
-                    }}
-                    className="text-surface font-headline font-black leading-[1.05] tracking-tight select-none text-balance"
-                  >
-                    {tempSlideData.title.split("\n")[0]}
-                    <br />
-                    <span className="text-gold-gradient">{tempSlideData.title.split("\n")[1]}</span>
-                  </h1>
-
-                  <div
-                    style={{
-                      opacity: heroTransitioning ? 0 : 1,
-                      transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                    className="flex flex-wrap items-baseline gap-4 mt-2"
-                  >
-                    <span className="text-xs font-black tracking-widest text-secondary uppercase">
-                      {tempSlideData.productId}
-                    </span>
-                    <span className="text-sm font-bold text-surface/50">{tempSlideData.price}</span>
-                  </div>
-
-                  <p
-                    style={{
-                      opacity: heroTransitioning ? 0 : 1,
-                      transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                    className="text-surface-variant text-base lg:text-lg font-body max-w-lg leading-relaxed select-none"
-                  >
-                    {tempSlideData.desc}
-                  </p>
-                </div>
-
-                {/* Specifications */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-md bg-white/5 backdrop-blur-md p-6 select-none border border-white/5 rounded-sm">
-                  <div>
-                    <div className="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Fabric</div>
-                    <div
-                      style={{
-                        opacity: heroTransitioning ? 0 : 1,
-                        transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      }}
-                      className="text-xs font-bold text-surface tracking-wider uppercase"
-                    >
-                      {tempSlideData.weave}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Time to Make</div>
-                    <div
-                      style={{
-                        opacity: heroTransitioning ? 0 : 1,
-                        transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      }}
-                      className="text-xs font-bold text-surface tracking-wider uppercase"
-                    >
-                      {tempSlideData.time}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[9px] uppercase tracking-widest text-surface/40 font-black mb-1.5">Stock Status</div>
-                    <div
-                      style={{
-                        opacity: heroTransitioning ? 0 : 1,
-                        transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                      }}
-                      className="text-xs font-bold text-secondary tracking-wider uppercase"
-                    >
-                      {tempSlideData.rarity}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action & Exploration */}
-                <div className="flex flex-wrap gap-4 items-center">
-                  <Link href={tempSlideData.ctaLink} className="inline-block transition-transform duration-300 hover:scale-[1.03]">
-                    <button className="bg-gradient-to-r from-secondary to-secondary-container text-on-secondary px-10 py-5 text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-secondary/15 transition-all btn-active-scale">
-                      Buy Now
-                    </button>
-                  </Link>
-                  <Link href="/shopallshirts" className="inline-block transition-transform duration-300 hover:scale-[1.03]">
-                    <button className="bg-surface/5 text-surface border border-surface/10 px-10 py-5 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-surface hover:text-on-surface transition-all btn-active-scale">
-                      View All Shirts
-                    </button>
-                  </Link>
-                </div>
-
-                {/* Bottom Controls / Slide Navigation Thumbnails */}
-                <div className="grid grid-cols-3 gap-3 w-full max-w-lg mt-4 lg:mt-8">
-                  {heroSlides.map((slide, idx) => (
-                    <button
-                      key={`thumb-${idx}`}
-                      onClick={() => handleSlideChange(idx, true)}
-                      className={`hero-thumb text-left p-3 transition-all group relative ${
-                        idx === currentHeroSlide ? "active bg-surface/10" : "bg-surface/5 hover:bg-surface/10"
-                      }`}
-                    >
-                      <div
-                        className={`absolute bottom-0 left-0 w-full h-[2px] bg-secondary transition-transform origin-left duration-500 ${
-                          idx === currentHeroSlide ? "scale-x-100" : "scale-x-0"
-                        }`}
-                      ></div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 overflow-hidden bg-surface-container shrink-0">
-                          <img src={slide.bgImage} alt={`${slide.weave} Preview`} className="w-full h-full object-cover scale-110" />
-                        </div>
-                        <div className="overflow-hidden">
-                          <div className="text-[8px] uppercase tracking-widest text-surface/40 font-bold mb-0.5">
-                            0{idx + 1} / {slide.weave.split(" ")[0].toUpperCase()}
-                          </div>
-                          <div className="text-[9px] font-black text-surface tracking-wider uppercase truncate">
-                            {idx === 0 ? "Black Shirt" : idx === 1 ? "White Shirt" : "Navy Shirt"}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Panel: Asymmetric Editorial Canvas */}
-              <div className="lg:col-span-5 relative flex justify-center">
-                {/* Floating details tag */}
-                <div className="absolute top-6 right-6 z-20 bg-surface/10 backdrop-blur-md px-4 py-3 select-none">
-                  <div className="text-[8px] uppercase tracking-widest text-surface/60 font-bold">Product Code</div>
-                  <div
-                    style={{
-                      opacity: heroTransitioning ? 0 : 1,
-                      transform: heroTransitioning ? "translateY(10px)" : "translateY(0)",
-                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                    }}
-                    className="text-[10px] font-black text-surface tracking-wider uppercase mt-0.5"
-                  >
-                    {tempSlideData.registryId}
-                  </div>
-                </div>
-
-                {/* Layered Main Images */}
-                <div className="relative overflow-hidden aspect-[3/4] w-full max-w-[400px] shadow-2xl shadow-on-surface/50 border border-surface/5">
-                  {heroSlides.map((slide, i) => (
-                    <img
-                      key={`img-${i}`}
-                      src={slide.frontImage}
-                      alt={`${slide.weave} detail`}
-                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out hover:scale-105 ${
-                        i === currentHeroSlide ? "opacity-100 scale-100" : "opacity-0 scale-100"
-                      }`}
-                    />
-                  ))}
-
-                  {/* Elegant overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/40 to-transparent pointer-events-none"></div>
-                </div>
-
-                {/* Frame border shadow */}
-                <div className="absolute -bottom-4 -left-4 w-full h-full bg-gradient-to-br from-secondary/5 to-tertiary/5 -z-10 aspect-[3/4] max-w-[400px]"></div>
-              </div>
-            </div>
-          </div>
-
           {/* Animated Scroll Down Indicator */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
             <span className="text-[8px] uppercase tracking-[0.3em] text-surface font-bold">Scroll Details</span>
@@ -721,9 +686,33 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Large Infinite Announcement Marquee */}
+        <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-4.5 text-[11px] font-black uppercase tracking-[0.25em] relative z-20 border-y border-white/5">
+          <div className="flex animate-marquee whitespace-nowrap">
+            <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
+              <span>FREE DELIVERY ACROSS INDIA</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>100% PREMIUM COTTON & LINEN</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>EASY 7-DAY RETURNS</span>
+            </div>
+            <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
+              <span>FREE DELIVERY ACROSS INDIA</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>100% PREMIUM COTTON & LINEN</span>
+              <span className="text-secondary-fixed-dim font-extrabold">•</span>
+              <span>EASY 7-DAY RETURNS</span>
+            </div>
+          </div>
+        </div>
+
         {/* Section 2: Promotional Spotlight */}
-        <section className="bg-surface-container-low py-20 px-6 lg:px-20 relative overflow-hidden group">
-          <div className="max-w-7xl mx-auto w-full relative min-h-[420px] lg:min-h-[480px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl">
+        <section className="bg-surface-container-low py-12 px-4 lg:px-20 relative overflow-hidden group">
+          <div className="max-w-5xl mx-auto w-full relative min-h-[320px] lg:min-h-[380px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl">
             {/* Background Image with slow zoom-scale */}
             <img
               alt="Elegant dark silk fabric texture"
@@ -732,31 +721,31 @@ export default function Home() {
             />
             
             {/* Double-Gold Framed Card */}
-            <div className="relative z-10 w-full max-w-2xl mx-6 p-8 lg:p-14 border-4 border-double border-secondary/30 bg-black/60 backdrop-blur-md text-center flex flex-col items-center gap-6 shadow-2xl transition-all duration-500 hover:border-secondary/50">
+            <div className="relative z-10 w-full max-w-lg mx-6 p-6 lg:p-10 border-4 border-double border-secondary/30 bg-black/60 backdrop-blur-md text-center flex flex-col items-center gap-4 shadow-2xl transition-all duration-500 hover:border-secondary/50">
               {/* Limited offer header */}
-              <span className="text-secondary text-[10px] font-black uppercase tracking-[0.4em]">
+              <span className="text-secondary text-[9px] font-black uppercase tracking-[0.4em]">
                 Limited Time Offer
               </span>
 
               {/* Mixed Typography Header */}
               <div className="flex flex-col items-center">
-                <span className="font-serif italic text-secondary text-2xl lg:text-4xl tracking-wide lowercase leading-none">
+                <span className="font-serif italic text-secondary text-xl lg:text-3xl tracking-wide lowercase leading-none">
                   our new
                 </span>
-                <h2 className="text-white font-headline text-3xl lg:text-5xl font-extrabold tracking-[0.25em] uppercase mt-2 leading-none">
+                <h2 className="text-white font-headline text-2xl lg:text-4xl font-extrabold tracking-[0.25em] uppercase mt-2 leading-none">
                   S E A S O N
                 </h2>
               </div>
 
               {/* Subtitle */}
-              <p className="text-gray-400 font-label text-[10px] uppercase tracking-[0.2em] max-w-md leading-relaxed mt-2">
+              <p className="text-gray-400 font-label text-[9px] uppercase tracking-[0.2em] max-w-sm leading-relaxed mt-1">
                 Elevate your wardrobe with the atelier linen collection. Get 10% off with promo code.
               </p>
               
               {/* Stitched Atelier Tag (Interactive Coupon) */}
-              <div className="relative group/tag mt-2">
+              <div className="relative group/tag mt-1">
                 {/* Circular thread hole on the left side of the tag */}
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-black border border-secondary/30 shadow-inner z-10"></div>
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-black border border-secondary/30 shadow-inner z-10"></div>
                 
                 <button
                   onClick={() => {
@@ -768,19 +757,19 @@ export default function Home() {
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 2500);
                   }}
-                  className="pl-8 pr-6 py-3 bg-white/5 border border-dashed border-secondary/55 hover:bg-white/10 hover:border-secondary text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center gap-3 cursor-pointer select-all rounded-none"
+                  className="pl-7 pr-5 py-2.5 bg-white/5 border border-dashed border-secondary/55 hover:bg-white/10 hover:border-secondary text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer select-all rounded-none"
                   title="Click to copy coupon code tag"
                 >
                   <span className="text-[#fed488] font-black">FESTIVE24</span>
-                  <span className="material-symbols-outlined text-[13px] text-white/40">content_copy</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 group-hover/tag:text-[#fed488] transition-colors"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 </button>
               </div>
 
               {/* Minimalist Button */}
-              <div className="mt-4">
+              <div className="mt-2">
                 <Link
                   href="/shopallshirts"
-                  className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-10 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
+                  className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-8 py-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
                 >
                   Shop The Collection
                 </Link>
@@ -789,130 +778,184 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section 3: Best Sellers */}
-        <section className="py-24 px-6 lg:px-20 bg-surface">
+        {/* Section 3: Best Sellers / Featured Collection */}
+        <section className="pt-36 pb-24 px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-              <div>
-                <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">Best Sellers</p>
-                <h2 className="text-on-surface font-headline text-4xl lg:text-5xl font-black tracking-tighter">
-                  OUR FAVORITE SHIRTS
-                </h2>
-              </div>
-              <Link
-                className="text-xs font-bold uppercase tracking-widest border-b border-on-surface pb-1 hover:text-secondary hover:border-secondary transition-all"
-                href="/shopallshirts"
-              >
-                View All Shirts
-              </Link>
+            {/* Header */}
+            <div className="flex flex-col items-center mb-16">
+              <p className="text-secondary font-label text-[10px] sm:text-xs uppercase tracking-[0.45em] mb-3.5 text-center">
+                New Arrivals
+              </p>
+              <h2 className="text-white font-headline text-3xl sm:text-4xl lg:text-5xl font-black tracking-[0.15em] uppercase text-center select-none leading-none">
+                FEATURED COLLECTION
+              </h2>
             </div>
 
-            {/* Auto-scrolling favorite shirts sling */}
-            <div
-              ref={slingRef}
-              onMouseEnter={() => setIsSlingHovered(true)}
-              onMouseLeave={() => setIsSlingHovered(false)}
-              onTouchStart={() => setIsSlingHovered(true)}
-              onTouchEnd={() => setIsSlingHovered(false)}
-              className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 lg:gap-6 pb-12 sling-container -mx-6 px-6 lg:-mx-0 lg:px-0"
-              style={{
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-              }}
-            >
-              {/* Product 1 */}
-              <div className="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover">
-                <Link href="/shoppingbag" className="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
-                  <img
-                    alt="Premium Egyptian cotton white formal shirt"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.2s] cubic-bezier(0.2, 0.8, 0.2, 1) group-hover:scale-108"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwdRWxiVyBxsKKcbtQFgAA_GBYnoadMo4hsVcyjNgMYJwjn7Am_m6a2GuaqHX3pQbBkcQp1JaEYpe8jKH6NO6r8j-hckF0bsW2ufyS77McMl_ozgeOwhB4qUMj43rHl7BP72Cr-mtRz7UmVMsBkmPa0Yt1s7L1X409Z0ohFfraRtXxM04RR34LiAsrEkMhtLqftk4U7w8vNwYSJlOyCRN9jpSqtTvfUNZLh2pA3OgHnTpeZo803s3b-VI6rKq7uiy4O59ijyT119Q"
-                  />
-                  <div className="absolute top-3 left-3 bg-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] shadow-sm">
-                    Bestseller
-                  </div>
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-all quick-add-btn opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
-                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                  </button>
-                </Link>
-                <div className="flex justify-between items-start gap-4 pr-2">
-                  <div>
-                    <h3 className="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">
-                      Premium White
-                    </h3>
-                    <p className="text-surface-variant font-label text-[10px] uppercase tracking-widest">Egyptian Cotton</p>
-                  </div>
-                  <p className="text-secondary font-headline text-sm font-bold">₹4,999</p>
-                </div>
+            {/* 3D Coverflow Slider */}
+            <div className="relative w-full overflow-visible py-8 flex flex-col items-center select-none">
+              {/* Coverflow Styles */}
+              <style dangerouslySetInnerHTML={{__html: `
+                .card-3d-item {
+                  transform: translateX(calc(var(--card-offset) * 85px)) scale(var(--card-scale));
+                }
+                @media (min-width: 480px) {
+                  .card-3d-item {
+                    transform: translateX(calc(var(--card-offset) * 115px)) scale(var(--card-scale));
+                  }
+                }
+                @media (min-width: 640px) {
+                  .card-3d-item {
+                    transform: translateX(calc(var(--card-offset) * 150px)) scale(var(--card-scale));
+                  }
+                }
+                @media (min-width: 768px) {
+                  .card-3d-item {
+                    transform: translateX(calc(var(--card-offset) * 180px)) scale(var(--card-scale));
+                  }
+                }
+                @media (min-width: 1024px) {
+                  .card-3d-item {
+                    transform: translateX(calc(var(--card-offset) * 230px)) scale(var(--card-scale));
+                  }
+                }
+              `}} />
+
+              {/* Flanking Chevrons */}
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 w-full flex justify-between px-2 md:px-10 z-40 pointer-events-none">
+                <button
+                  onClick={() => setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length)}
+                  className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  title="Previous item"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button
+                  onClick={() => setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length)}
+                  className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  title="Next item"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
               </div>
 
-              {/* Product 2 */}
-              <div className="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover">
-                <Link href="/shoppingbag" className="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
-                  <img
-                    alt="Luxury midnight navy linen shirt"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.2s] cubic-bezier(0.2, 0.8, 0.2, 1) group-hover:scale-108"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa0KgfQ4n3rvlg1Re0WvcfC0pKLNlGZct0zsjO9D5gttUwN6wFOelDolj9GX8D7-9ZkH4mCRcPsTfYiL_XAGcPaySk4sC4VmJRKkEeQYfrQZE5_LnEswAqUOMWnn3TklqX6vnBQGPRkCtf_44c84Ck4AyDG98jJNw9hL1ouUJlJxBIvVhL9a-9najaOWkf81cAAy4P0U13OqYy3ewFmtaSSAu3ytgfEr8ayHS17RhXwCKjBYHeGZ37jFtj5hRr3kNF-G9_KRzWraw"
-                  />
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-all quick-add-btn opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
-                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                  </button>
-                </Link>
-                <div className="flex justify-between items-start gap-4 pr-2">
-                  <div>
-                    <h3 className="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">
-                      Navy Linen
-                    </h3>
-                    <p className="text-surface-variant font-label text-[10px] uppercase tracking-widest">Breathable Weave</p>
-                  </div>
-                  <p className="text-secondary font-headline text-sm font-bold">₹3,499</p>
-                </div>
+              {/* Cards Container */}
+              <div className="relative w-full max-w-5xl h-[380px] md:h-[430px] flex justify-center items-center overflow-hidden">
+                {favoriteProducts.map((product, i) => {
+                  const offset = i - activeFavIndex;
+                  const absOffset = Math.abs(offset);
+                  const isActive = absOffset === 0;
+
+                  // Limit visible card set for clean layout
+                  if (absOffset > 2) return null;
+
+                  const scale = isActive ? 1.05 : 0.88 - absOffset * 0.04;
+                  const opacity = isActive ? 1.0 : 0.5 - absOffset * 0.15;
+                  const zIndex = 30 - absOffset * 5;
+                  const blurClass = isActive ? "blur-none" : "blur-[0.4px] md:blur-[0.6px]";
+                  const grayscaleClass = isActive ? "grayscale-0" : "grayscale-[60%]";
+
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => setActiveFavIndex(i)}
+                      style={{
+                        zIndex: zIndex,
+                        opacity: opacity,
+                        '--card-offset': offset,
+                        '--card-scale': scale,
+                      } as React.CSSProperties}
+                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[320px] md:h-[380px] shadow-2xl rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer ${
+                        isActive ? "border border-secondary/40" : "border border-white/5"
+                      } ${blurClass} ${grayscaleClass}`}
+                    >
+                      {/* Unified Card Frame */}
+                      <div className={`h-full relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
+                        isActive ? "w-[240px] md:w-[280px]" : "w-[130px] sm:w-[150px] md:w-[170px]"
+                      }`}>
+                        {/* Product Image */}
+                        <img
+                          alt={product.name}
+                          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2s] ease-out hover:scale-105"
+                          src={product.image}
+                        />
+                        
+                        {/* Overlay shadow for text contrast */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 pointer-events-none select-none"></div>
+
+                        {/* NEW Badge Tag on active card (Top-left, gold border black box) */}
+                        <div className={`absolute top-4 left-4 bg-secondary text-black px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] transition-opacity duration-500 z-10 rounded-sm shadow-md ${
+                          isActive ? "opacity-100" : "opacity-0"
+                        }`}>
+                          {product.tag}
+                        </div>
+
+                        {/* Overlaid Rotated Vertical Text on the Right Side */}
+                        <div
+                          style={{
+                            writingMode: 'vertical-rl',
+                          } as React.CSSProperties}
+                          className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10 transition-all duration-700 origin-center rotate-180 select-none pointer-events-none ${
+                            isActive ? "opacity-90" : "opacity-30"
+                          }`}
+                        >
+                          <span className={`text-[7.5px] uppercase tracking-[0.3em] font-black whitespace-nowrap transition-colors duration-700 ${
+                            isActive ? "text-[#fed488] font-extrabold" : "text-black/60"
+                          }`}>
+                            {product.verticalText}
+                          </span>
+                          <span className={`text-[9.5px] uppercase tracking-[0.25em] font-black whitespace-nowrap mt-1.5 transition-colors duration-700 ${
+                            isActive ? "text-secondary" : "text-black/60"
+                          }`}>
+                            Featured Collection
+                          </span>
+                        </div>
+
+                        {/* Bottom Details Overlay (Transparent dark gradient, visible only when active) */}
+                        <div className={`w-full absolute bottom-0 left-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent text-white flex justify-between items-center px-6 pb-5 pt-10 transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] z-20 ${
+                          isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+                        }`}>
+                          {/* Price details */}
+                          <div className="flex flex-col">
+                            <span className="text-[7.5px] text-white/50 font-black tracking-[0.25em] uppercase select-none">
+                              Start from
+                            </span>
+                            <span className="text-sm font-black mt-0.5 tracking-wider text-secondary font-headline">
+                              {product.price}
+                            </span>
+                          </div>
+
+                          {/* Solid Gold Circular Shop Button */}
+                          <Link
+                            href={product.link}
+                            className="w-10 h-10 rounded-full bg-secondary hover:bg-[#fed488] text-black flex items-center justify-center shadow-lg transition-all duration-500 select-none scale-100 hover:scale-105 border border-secondary/15"
+                            title={`Shop ${product.name}`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Product 3 */}
-              <div className="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover">
-                <Link href="/shoppingbag" className="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
-                  <img
-                    alt="Earthy saffron silk formal shirt"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.2s] cubic-bezier(0.2, 0.8, 0.2, 1) group-hover:scale-108"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjhduJXRCnpRLc1-oHdDtrtOND6smXt8mK5rxpxWDSr-1_O6De-PRIW4cOAZbqpeA2IX8nk6sDjOEEVBy7oggv8RlFLDqNjuGkXXDPaafz4e1NCqvJsrH5jVlJQR3Hs8gfy6bVgFW9zwAvQ7_xGmrwPKF8_rFCYXqwtuVIgezSqTvUQXF4HEpjlxD9r9LM-kcmZjJYpJ06enGoJhba8wvz9HLRs8tPqPRCOjdz2zN-ECKG99sfqVJQzp7oeEPELV5IFLGD5RSnfb0"
-                  />
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-all quick-add-btn opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
-                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                  </button>
-                </Link>
-                <div className="flex justify-between items-start gap-4 pr-2">
-                  <div>
-                    <h3 className="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">
-                      Saffron Silk
-                    </h3>
-                    <p className="text-surface-variant font-label text-[10px] uppercase tracking-widest">Festive Blend</p>
-                  </div>
-                  <p className="text-secondary font-headline text-sm font-bold">₹5,999</p>
-                </div>
-              </div>
-
-              {/* Product 4 */}
-              <div className="snap-start shrink-0 w-[60vw] sm:w-[40vw] md:w-[30vw] lg:w-[22%] relative group flex flex-col product-card-hover">
-                <Link href="/shoppingbag" className="block aspect-[4/5] relative overflow-hidden bg-surface-container-low mb-5">
-                  <img
-                    alt="Charcoal Oxford Cotton Shirt"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.2s] cubic-bezier(0.2, 0.8, 0.2, 1) group-hover:scale-108"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYR7Qf-bSfveC_J94IAFp_Ecz6A7SOFKAPKzjjiJVGh82SLmMPgrYTsl_c5W_Jjkn35ocGrTNDJLYuSRqm3AvOrDWUE5rPrUbMuAQ1MzPHveY3mOhSO8HmWgITP5gplbNje2Tn05eHLEpTU98Eu1nO581HVApaYfZmd27and9xaF44qb3eoo0NN6M_VTePsIZm7IkSLFeCDvoTdCCzAMsjwuTdXyb71Czon4BeC42zWlG407yLenkFI6mzVJPF3cEKm0ABsKqJQ8M"
-                  />
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center text-on-surface hover:bg-black hover:text-white transition-all quick-add-btn opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
-                    <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-                  </button>
-                </Link>
-                <div className="flex justify-between items-start gap-4 pr-2">
-                  <div>
-                    <h3 className="font-headline text-sm font-black uppercase tracking-tight text-on-surface mb-1">
-                      Charcoal Oxford
-                    </h3>
-                    <p className="text-surface-variant font-label text-[10px] uppercase tracking-widest">Smart casual</p>
-                  </div>
-                  <p className="text-secondary font-headline text-sm font-bold">₹3,999</p>
-                </div>
+              {/* Dot Indicators (. . — . .) */}
+              <div className="flex gap-2.5 mt-8 z-35 select-none items-center">
+                {favoriteProducts.map((_, i) => {
+                  const isActive = i === activeFavIndex;
+                  return (
+                    <button
+                      key={`dot-${i}`}
+                      onClick={() => setActiveFavIndex(i)}
+                      className={`transition-all duration-500 cursor-pointer ${
+                        isActive 
+                          ? "w-8 h-1.5 bg-secondary rounded-full" 
+                          : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40 rounded-full"
+                      }`}
+                      title={`Go to slide ${i + 1}`}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1100,156 +1143,267 @@ export default function Home() {
         </section>
 
         {/* Section 6: Social Proof (Global Reach) */}
-        <section className="py-24 px-6 lg:px-20 bg-surface relative overflow-hidden">
-          {/* Subtle Global Map Background */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex justify-center items-center overflow-hidden">
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ duration: 180, repeat: Infinity, ease: "linear" }}
-              className="material-symbols-outlined text-[800px] text-on-surface select-none"
-              style={{ fontVariationSettings: "'FILL' 0" }}
-            >
-              public
-            </motion.span>
-          </div>
-
-          <div className="max-w-7xl mx-auto relative z-10">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.15 }
-                }
-              }}
-              className="text-center mb-16"
-            >
-              <motion.p
-                variants={{
-                  hidden: { opacity: 0, y: 15 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-                }}
-                className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4"
-              >
+        <section className="py-24 bg-[#F9FAFB] relative overflow-hidden">
+          <div className="w-full relative z-10">
+            {/* Header Centered block with standard padding */}
+            <div className="max-w-7xl mx-auto px-6 lg:px-20 text-center mb-16">
+              <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
-              </motion.p>
-              <motion.h2
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
-                }}
-                className="font-headline text-3xl md:text-5xl font-black tracking-tight mb-4 text-on-surface uppercase"
-              >
+              </p>
+              <h2 className="font-headline text-3xl md:text-5xl font-black text-black mb-4 uppercase tracking-tight text-center">
                 FROM OUR LOOMS
                 <br />
                 TO THE WORLD.
-              </motion.h2>
-              <motion.p
-                variants={{
-                  hidden: { opacity: 0, y: 15 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-                }}
-                className="text-surface-variant max-w-xl mx-auto text-sm leading-relaxed mb-10"
-              >
-                We handcraft every premium shirt in our Tamil Nadu workshop, shipping absolute luxury to discerning
-                gentlemen across India and across the globe.
-              </motion.p>
-
+              </h2>
+              <p className="text-neutral-500 max-w-xl mx-auto text-xs md:text-sm leading-relaxed mb-8 text-center">
+                We handcraft every premium shirt in our Tamil Nadu workshop, shipping absolute luxury to discerning gentlemen across India and across the globe.
+              </p>
+              
               {/* Trust Badges */}
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, scale: 0.95 },
-                  visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } }
-                }}
-                className="flex justify-center items-center gap-6 flex-wrap"
-              >
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-outline">
+              <div className="flex justify-center items-center gap-6 flex-wrap mt-6">
+                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-outline">
                   <span className="material-symbols-outlined text-secondary text-xl">flight_takeoff</span>
                   <span>International Shipping</span>
                 </div>
-                <div className="hidden md:block w-1 h-1 bg-outline/30 rounded-full"></div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-outline">
+                <div className="hidden md:block w-1.5 h-1.5 bg-outline/30 rounded-full"></div>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-outline">
                   <span className="material-symbols-outlined text-secondary text-xl">verified</span>
                   <span>10k+ Happy Customers</span>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
-            {/* Review Cards Grid */}
-            <motion.div
-              layout
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              <AnimatePresence mode="popLayout">
-                {reviews.map((rev, index) => (
-                  <motion.div
-                    key={rev.id}
-                    layout
-                    initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -30 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 100,
-                      damping: 15,
-                      delay: index * 0.05
-                    }}
-                    whileHover={{
-                      y: -8,
-                      borderColor: "rgba(212, 175, 55, 0.4)",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.12)",
-                    }}
-                    className="bg-surface-container-lowest border border-outline/10 p-8 lg:p-10 transition-all duration-300 group flex flex-col justify-between h-full relative"
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="flex gap-1 text-secondary">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <motion.span
-                              key={i}
-                              className="material-symbols-outlined text-sm select-none"
-                              style={{ fontVariationSettings: `'FILL' ${i < rev.rating ? 1 : 0}` }}
-                              animate={i < rev.rating ? { scale: [1, 1.2, 1] } : {}}
-                              transition={{
-                                delay: i * 0.1,
-                                duration: 0.4,
-                                repeat: Infinity,
-                                repeatDelay: 6 + Math.random() * 4
-                              }}
-                            >
-                              star
-                            </motion.span>
-                          ))}
-                        </div>
-                        <span className="material-symbols-outlined text-outline/20 text-4xl group-hover:text-secondary/30 transition-colors transform group-hover:rotate-12 duration-500 select-none">
-                          format_quote
-                        </span>
-                      </div>
-                      <p className="font-body text-sm italic leading-relaxed mb-8 text-on-surface">
-                        &ldquo;{rev.comment}&rdquo;
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface font-bold text-xs group-hover:bg-[#fed488] group-hover:text-black transition-colors duration-300">
-                        {rev.avatar}
-                      </div>
+            {/* Marquee Rows Container */}
+            <div className="w-full flex flex-col gap-4 overflow-hidden mb-12">
+              {/* Row 1 (Left) */}
+              <div className="marquee-container w-full overflow-hidden relative py-2">
+                <div className="flex gap-6 w-max animate-marquee">
+                  {firstRowReviews.map((rev, idx) => (
+                    <div
+                      key={rev.id}
+                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(1, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                    >
                       <div>
-                        <p className="font-headline font-bold text-xs uppercase tracking-wider text-on-surface group-hover:text-secondary transition-colors duration-300">
-                          {rev.name}
+                        {/* Rating Stars and Quotes */}
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="flex gap-0.5 text-secondary">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className="material-symbols-outlined text-sm select-none"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                              >
+                                star
+                              </span>
+                            ))}
+                          </div>
+                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                            ”
+                          </span>
+                        </div>
+                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                          &ldquo;{rev.comment}&rdquo;
                         </p>
-                        <p className="text-outline text-[10px] uppercase tracking-widest">{rev.location}</p>
+                      </div>
+                      
+                      {/* User Info with Initials */}
+                      <div className="flex items-center gap-4 mt-auto">
+                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
+                          {rev.avatar.startsWith("http") ? (
+                            <img
+                              src={rev.avatar}
+                              alt={rev.name}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span>{rev.avatar}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                            {rev.name}
+                          </p>
+                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                            {rev.location}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                  ))}
+                  {/* Duplicated items for infinite marquee loop */}
+                  {firstRowReviews.map((rev, idx) => (
+                    <div
+                      key={`${rev.id}-dup1`}
+                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(1, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                    >
+                      <div>
+                        {/* Rating Stars and Quotes */}
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="flex gap-0.5 text-secondary">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className="material-symbols-outlined text-sm select-none"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                              >
+                                star
+                              </span>
+                            ))}
+                          </div>
+                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                            ”
+                          </span>
+                        </div>
+                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                          &ldquo;{rev.comment}&rdquo;
+                        </p>
+                      </div>
+                      
+                      {/* User Info with Initials */}
+                      <div className="flex items-center gap-4 mt-auto">
+                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
+                          {rev.avatar.startsWith("http") ? (
+                            <img
+                              src={rev.avatar}
+                              alt={rev.name}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span>{rev.avatar}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                            {rev.name}
+                          </p>
+                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                            {rev.location}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            {/* Leave a Review Button */}
+              {/* Row 2 (Right) */}
+              <div className="marquee-container w-full overflow-hidden relative py-2">
+                <div className="flex gap-6 w-max animate-marquee-reverse">
+                  {secondRowReviews.map((rev, idx) => (
+                    <div
+                      key={rev.id}
+                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(2, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                    >
+                      <div>
+                        {/* Rating Stars and Quotes */}
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="flex gap-0.5 text-secondary">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className="material-symbols-outlined text-sm select-none"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                              >
+                                star
+                              </span>
+                            ))}
+                          </div>
+                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                            ”
+                          </span>
+                        </div>
+                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                          &ldquo;{rev.comment}&rdquo;
+                        </p>
+                      </div>
+                      
+                      {/* User Info with Initials */}
+                      <div className="flex items-center gap-4 mt-auto">
+                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
+                          {rev.avatar.startsWith("http") ? (
+                            <img
+                              src={rev.avatar}
+                              alt={rev.name}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span>{rev.avatar}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                            {rev.name}
+                          </p>
+                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                            {rev.location}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Duplicated items for infinite marquee loop */}
+                  {secondRowReviews.map((rev, idx) => (
+                    <div
+                      key={`${rev.id}-dup2`}
+                      className={`w-[340px] md:w-[380px] shrink-0 ${getCardBg(2, idx)} rounded-[1.5rem] p-8 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
+                    >
+                      <div>
+                        {/* Rating Stars and Quotes */}
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="flex gap-0.5 text-secondary">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className="material-symbols-outlined text-sm select-none"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                              >
+                                star
+                              </span>
+                            ))}
+                          </div>
+                          <span className="font-headline text-3xl font-black text-[#775a19]/25 leading-none select-none">
+                            ”
+                          </span>
+                        </div>
+                        <p className="font-sans text-[13px] md:text-[14px] font-semibold leading-relaxed mb-8 text-neutral-800 text-left">
+                          &ldquo;{rev.comment}&rdquo;
+                        </p>
+                      </div>
+                      
+                      {/* User Info with Initials */}
+                      <div className="flex items-center gap-4 mt-auto">
+                        <div className="w-10 h-10 rounded-full flex-shrink-0 bg-neutral-900/10 border border-neutral-900/5 flex items-center justify-center font-bold text-xs text-neutral-800 uppercase">
+                          {rev.avatar.startsWith("http") ? (
+                            <img
+                              src={rev.avatar}
+                              alt={rev.name}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <span>{rev.avatar}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <p className="font-sans font-bold text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                            {rev.name}
+                          </p>
+                          <p className="font-sans text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                            {rev.location}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Form Button & Drawer inside centered container */}
+            <div className="max-w-7xl mx-auto px-6 lg:px-20">
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -1381,6 +1535,7 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
           </div>
         </section>
       </main>

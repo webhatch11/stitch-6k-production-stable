@@ -9,16 +9,18 @@ export default function ReturnPolicyPage() {
   return (
     <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-4">
+      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-12">
             <Link href="/" className="flex items-center group">
-              <img 
-                src="/assets/logo.png" 
-                alt="6K Logo" 
-                className="h-10 w-auto object-contain" 
-                draggable={false}
-              />
+              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="6K Logo" 
+                  className="max-w-full max-h-full object-contain" 
+                  draggable={false}
+                />
+              </div>
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">Home</Link>

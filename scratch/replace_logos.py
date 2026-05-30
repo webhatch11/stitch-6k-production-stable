@@ -34,7 +34,7 @@ def process_file(file_path):
               <img 
                 src="/assets/logo.png" 
                 alt="6K Logo" 
-                className="h-10 w-auto object-contain" 
+                className="h-16 w-auto object-contain" 
                 draggable={{false}}
               />
             </Link>'''

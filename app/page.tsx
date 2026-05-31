@@ -335,6 +335,7 @@ export default function Home() {
   const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
   const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
@@ -635,6 +636,20 @@ export default function Home() {
     return () => window.removeEventListener("storage", updateCart);
   }, []);
 
+  // Monitor scroll height to handle dynamic navbar transitions
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    handleScroll(); // Initial run
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleSlideChange = (index: number, manual = false) => {
     if (index === currentHeroSlide || heroTransitioning) return;
 
@@ -745,12 +760,20 @@ export default function Home() {
 
 
       {/* Desktop Top Header (Hidden on Mobile) */}
-      <header className="hidden md:block md:sticky md:top-0 z-[100] glass-nav transition-all duration-300 border-b border-[#775a19]/10">
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 py-2.5">
+      <header 
+        className={`hidden md:block md:sticky md:top-0 z-[100] transition-all duration-500 ${
+          isScrolled 
+            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
+            : "bg-transparent border-transparent py-4"
+        }`}
+      >
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 transition-all duration-500">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
-              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
+              <div className={`w-11 h-11 rounded-full p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
+                isScrolled ? "bg-white border border-[#775a19]/15" : "bg-white/10 backdrop-blur-md border border-white/20"
+              }`}>
                 <img 
                   src="/assets/logo.png" 
                   alt="6K Logo" 
@@ -763,25 +786,41 @@ export default function Home() {
             {/* Desktop Menu */}
             <nav className="flex items-center gap-8">
               <Link
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300"
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
+                  isScrolled 
+                    ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
+                    : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
+                }`}
                 href="/"
               >
                 Home
               </Link>
               <Link
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300"
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
+                  isScrolled 
+                    ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
+                    : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
+                }`}
                 href="/shopallshirts"
               >
                 Shop All
               </Link>
               <Link
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300"
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
+                  isScrolled 
+                    ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
+                    : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
+                }`}
                 href="/orderhistory"
               >
                 Order History
               </Link>
               <Link
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300"
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
+                  isScrolled 
+                    ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
+                    : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
+                }`}
                 href="/ordertracking"
               >
                 Track Order
@@ -793,18 +832,24 @@ export default function Home() {
           <div className="flex items-center gap-5">
             <Link
               href="/shoppingbag"
-              className="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative"
+              className={`material-symbols-outlined hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative ${
+                isScrolled ? "text-on-surface" : "text-white"
+              }`}
             >
               shopping_bag
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                <span className={`absolute -top-1.5 -right-1.5 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border ${
+                  isScrolled ? "bg-secondary text-white border-surface" : "bg-secondary text-white border-black"
+                }`}>
                   {cartCount}
                 </span>
               )}
             </Link>
             <Link
               href="/myprofile"
-              className="material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300"
+              className={`material-symbols-outlined hover:text-secondary hover-scale transition-all duration-300 ${
+                isScrolled ? "text-on-surface" : "text-white"
+              }`}
             >
               person
             </Link>
@@ -929,14 +974,14 @@ export default function Home() {
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative min-h-[75svh] lg:min-h-[82vh] flex flex-col justify-center overflow-hidden bg-on-surface py-24 lg:py-0">
+        <section className="relative min-h-[85svh] lg:min-h-[92vh] flex flex-col justify-center overflow-hidden bg-on-surface py-20 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}
           <div className="absolute inset-0 z-0 select-none pointer-events-none">
             {heroSlides.map((slide, i) => (
               <div
                 key={`bg-${i}`}
-                className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${
-                  i === currentHeroSlide ? "opacity-100 scale-100" : "opacity-0 scale-100"
+                className={`absolute inset-0 bg-cover bg-center transition-all duration-[8000ms] ease-out ${
+                  i === currentHeroSlide ? "opacity-100 scale-105" : "opacity-0 scale-100 pointer-events-none"
                 }`}
                 style={{
                   backgroundImage: `url('${slide.bgImage}')`,
@@ -949,11 +994,53 @@ export default function Home() {
             <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl"></div>
             {/* Vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-on-surface via-transparent to-on-surface/50"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-transparent to-[#0a0a0a]/45 z-10"></div>
+          </div>
+
+          {/* Hero Content Overlay (Cinematic & Readable) */}
+          <div className="relative z-20 max-w-6xl mx-auto px-6 lg:px-20 w-full text-left text-white mt-16 md:mt-24">
+            <div className="max-w-2xl space-y-6 md:space-y-8 animate-fade-in">
+              <span className="inline-block bg-secondary text-white text-[8.5px] font-black uppercase tracking-[0.35em] px-3.5 py-1 border border-secondary-container/20 rounded-none shadow-sm select-none">
+                {heroSlides[currentHeroSlide].badge}
+              </span>
+              <h1 className="text-4xl md:text-6xl font-headline font-black uppercase tracking-[0.16em] leading-tight text-white drop-shadow-md whitespace-pre-line select-none">
+                {heroSlides[currentHeroSlide].title}
+              </h1>
+              <p className="text-xs md:text-sm text-gray-300 font-light tracking-wider leading-relaxed max-w-md drop-shadow-sm select-none">
+                {heroSlides[currentHeroSlide].desc}
+              </p>
+              <div className="flex items-center gap-6 pt-2">
+                <Link
+                  href={heroSlides[currentHeroSlide].ctaLink}
+                  className="bg-secondary text-white border border-[#775a19] hover:bg-[#fed488] hover:text-[#261900] hover:border-[#fed488] transition-all duration-500 px-8 py-4 text-[9.5px] font-black uppercase tracking-[0.25em] shadow-xl btn-active-scale"
+                >
+                  Explore Piece
+                </Link>
+                <span className="font-headline font-black text-[#fed488] text-base md:text-lg border-l border-white/20 pl-6 select-none">
+                  {heroSlides[currentHeroSlide].price}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Slide Dots on the Right */}
+          <div className="absolute right-6 md:right-16 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3.5">
+            {heroSlides.map((_, i) => (
+              <button
+                key={`dot-${i}`}
+                onClick={() => handleSlideChange(i, true)}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+                  i === currentHeroSlide 
+                    ? "bg-[#fed488] scale-130 shadow-[0_0_12px_rgba(254,212,136,0.6)]" 
+                    : "bg-white/35 hover:bg-white/70"
+                }`}
+                title={`View Slide ${i + 1}`}
+              ></button>
+            ))}
           </div>
 
           {/* Animated Scroll Down Indicator */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
             <span className="text-[8px] uppercase tracking-[0.3em] text-surface font-bold">Scroll Details</span>
             <div className="w-[1px] h-8 bg-surface-variant relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1/2 bg-secondary animate-bounce"></div>
@@ -986,7 +1073,7 @@ export default function Home() {
         </div>
 
         {/* Section 2: Promotional Spotlight */}
-        <section className="bg-surface-container-low py-12 px-4 lg:px-20 relative overflow-hidden group">
+        <section className="bg-surface-container-low py-20 md:py-32 px-4 lg:px-20 relative overflow-hidden group">
           <div className="max-w-5xl mx-auto w-full relative min-h-[320px] lg:min-h-[380px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl">
             {/* Background Image with slow zoom-scale */}
             <img
@@ -1054,7 +1141,7 @@ export default function Home() {
         </section>
 
         {/* Section 3: Best Sellers / Featured Collection */}
-        <section className="pt-24 md:pt-36 pb-16 md:pb-24 px-4 md:px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
+        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex flex-col items-center mb-16">
@@ -1326,7 +1413,7 @@ export default function Home() {
         </section>
 
         {/* Section 3.5: Our Favorite Style */}
-        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
+        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16">
@@ -1403,7 +1490,7 @@ export default function Home() {
         </section>
 
         {/* Section 4: Category Showcase */}
-        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-on-surface relative overflow-hidden">
+        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-on-surface relative overflow-hidden">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">

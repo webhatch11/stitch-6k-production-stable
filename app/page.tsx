@@ -1016,9 +1016,6 @@ export default function Home() {
                 >
                   Explore Piece
                 </Link>
-                <span className="font-headline font-black text-[#fed488] text-base md:text-lg border-l border-white/20 pl-6 select-none">
-                  {heroSlides[currentHeroSlide].price}
-                </span>
               </div>
             </div>
           </div>

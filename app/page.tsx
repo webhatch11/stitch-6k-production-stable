@@ -1074,7 +1074,13 @@ export default function Home() {
 
         {/* Section 2: Promotional Spotlight */}
         <section className="bg-surface-container-low py-20 md:py-32 px-4 lg:px-20 relative overflow-hidden group">
-          <div className="max-w-5xl mx-auto w-full relative min-h-[320px] lg:min-h-[380px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+            className="max-w-5xl mx-auto w-full relative min-h-[320px] lg:min-h-[380px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
+          >
             {/* Background Image with slow zoom-scale */}
             <img
               alt="Elegant dark silk fabric texture"
@@ -1137,24 +1143,34 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-          </div>
+          </motion.div>
         </section>
 
         {/* Section 3: Best Sellers / Featured Collection */}
         <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
-            <div className="flex flex-col items-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+              className="flex flex-col items-center mb-16"
+            >
               <p className="text-secondary font-label text-[10px] sm:text-xs uppercase tracking-[0.45em] mb-3.5 text-center">
                 New Arrivals
               </p>
               <h2 className="text-white font-headline text-3xl sm:text-4xl lg:text-5xl font-black tracking-[0.15em] uppercase text-center select-none leading-none">
                 FEATURED COLLECTION
               </h2>
-            </div>
+            </motion.div>
 
             {/* 3D Coverflow Slider */}
-            <div
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
               onMouseEnter={() => setIsCoverflowHovered(true)}
               onMouseLeave={() => setIsCoverflowHovered(false)}
               className="relative w-full overflow-visible py-8 flex flex-col items-center select-none"
@@ -1290,7 +1306,7 @@ export default function Home() {
                         )}
 
                         {/* NEW Badge Tag on active card (Top-left, gold border black box) */}
-                        <div className={`absolute top-4 left-4 bg-secondary text-black px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] transition-opacity duration-500 z-10 rounded-sm shadow-md ${
+                        <div className={`absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-2.5 py-1.5 text-[7.5px] font-black uppercase tracking-[0.3em] transition-opacity duration-500 z-10 rounded-none shadow-lg ${
                           isActive ? "opacity-100" : "opacity-0"
                         }`}>
                           {product.tag}
@@ -1408,7 +1424,7 @@ export default function Home() {
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -1416,7 +1432,13 @@ export default function Home() {
         <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+              className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16"
+            >
               <div>
                 <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">
                   Curated Collection
@@ -1428,10 +1450,16 @@ export default function Home() {
               <p className="text-neutral-500 text-xs md:text-sm max-w-sm text-left lg:text-right leading-relaxed font-medium">
                 Handpicked designs crafted from premium, high-density cotton and linen weaves, tailored for effortless style and unmatched comfort.
               </p>
-            </div>
+            </motion.div>
 
             {/* Products Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16"
+            >
               {favoriteStyles.map((item) => (
                 <div key={item.id} className="group flex flex-col cursor-pointer">
                   {/* Image container */}
@@ -1444,7 +1472,7 @@ export default function Home() {
                     />
                     
                     {/* Badge */}
-                    <div className="absolute top-4 left-4 bg-neutral-950/80 backdrop-blur-sm text-[8px] md:text-[9px] font-black uppercase text-white px-3 py-1 tracking-widest rounded-full">
+                    <div className="absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
                       {item.badge}
                     </div>
 
@@ -1474,7 +1502,7 @@ export default function Home() {
                   </p>
                 </div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Bottom Button */}
             <div className="flex justify-center mt-16">
@@ -1493,7 +1521,13 @@ export default function Home() {
         <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-on-surface relative overflow-hidden">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+              className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6"
+            >
               <div>
                 <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">
                   Explore Categories
@@ -1505,10 +1539,14 @@ export default function Home() {
               <p className="text-neutral-400 text-xs md:text-sm max-w-md font-medium leading-relaxed">
                 Seamlessly blending high-density looms, rich colors, and bespoke fits, handpicked to redefine modern luxury wear.
               </p>
-            </div>
+            </motion.div>
 
             {/* Immersive Dashboard Container */}
-            <div 
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
               className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[500px] md:min-h-[580px] lg:min-h-[660px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
               style={{
                 background: shirtCategories[activeCategoryIndex].activeBg
@@ -1657,12 +1695,12 @@ export default function Home() {
                   })}
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Section 5: Trust Section */}
-        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
+        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
           <div className="max-w-6xl mx-auto">
             <motion.div 
               initial="hidden"
@@ -1761,10 +1799,16 @@ export default function Home() {
         </section>
 
         {/* Section 6: Social Proof (Global Reach) */}
-        <section className="py-16 md:py-24 bg-[#F9FAFB] relative overflow-hidden">
+        <section className="py-20 md:py-32 bg-[#F9FAFB] relative overflow-hidden">
           <div className="w-full relative z-10">
             {/* Header Centered block with standard padding */}
-            <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20 text-center mb-12 md:mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+              className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20 text-center mb-12 md:mb-16"
+            >
               <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
               </p>
@@ -1789,10 +1833,16 @@ export default function Home() {
                   <span>10k+ Happy Customers</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Marquee Rows Container */}
-            <div className="w-full flex flex-col gap-4 overflow-hidden mb-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="w-full flex flex-col gap-4 overflow-hidden mb-12"
+            >
               {/* Row 1 (Left) */}
               <div className="marquee-container w-full overflow-hidden relative py-2">
                 <div className="flex gap-6 w-max animate-marquee">
@@ -1962,7 +2012,7 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Form Button & Drawer inside centered container */}
             <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20">

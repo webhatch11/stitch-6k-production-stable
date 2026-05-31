@@ -26,18 +26,19 @@ export default function ShopAllShirts() {
     };
     fetchProducts();
 
-    // Initial cart count
-    const count = parseInt(localStorage.getItem("cartCount") || "0");
-    setCartCount(count);
-
-    // Storage listener for cross-tab cart updates
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "cartCount") {
-        setCartCount(parseInt(e.newValue || "0"));
+    const updateCartCount = () => {
+      try {
+        const currentCart = JSON.parse(localStorage.getItem("cart_items") || "[]");
+        setCartCount(currentCart.length);
+      } catch (e) {
+        console.error(e);
       }
     };
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+
+    updateCartCount();
+
+    window.addEventListener("storage", updateCartCount);
+    return () => window.removeEventListener("storage", updateCartCount);
   }, []);
 
   // Filter products logic
@@ -117,10 +118,11 @@ export default function ShopAllShirts() {
       image: product.image,
     });
     localStorage.setItem("cart_items", JSON.stringify(cart));
+    localStorage.setItem("cartCount", cart.length.toString());
+    setCartCount(cart.length);
 
-    const newCount = cartCount + 1;
-    localStorage.setItem("cartCount", newCount.toString());
-    setCartCount(newCount);
+    // Notify count updates
+    window.dispatchEvent(new Event("storage"));
 
     showToast(`Size ${size} added to bag`);
   };
@@ -153,8 +155,8 @@ export default function ShopAllShirts() {
         </div>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
+      {/* Desktop Top Header (Hidden on Mobile) */}
+      <header className="hidden md:block md:sticky md:top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-12">
             <Link href="/" className="flex items-center group hover-scale">
@@ -167,7 +169,7 @@ export default function ShopAllShirts() {
                 />
               </div>
             </Link>
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="flex items-center gap-8">
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">
                 Home
               </Link>
@@ -183,8 +185,13 @@ export default function ShopAllShirts() {
             </nav>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/shoppingbag" className="material-symbols-outlined text-outline hover:text-primary transition-colors">
+            <Link href="/shoppingbag" className="material-symbols-outlined text-outline hover:text-primary transition-colors relative">
               shopping_bag
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                  {cartCount}
+                </span>
+              )}
             </Link>
             <Link href="/myprofile" className="material-symbols-outlined text-outline hover:text-primary transition-colors">
               person
@@ -192,30 +199,124 @@ export default function ShopAllShirts() {
             <Link href="/admindashboard" className="material-symbols-outlined text-outline hover:text-primary transition-colors">
               admin_panel_settings
             </Link>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="material-symbols-outlined md:hidden">
-              {mobileMenuOpen ? "close" : "menu"}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {mobileMenuOpen && (
-          <div className="flex flex-col mt-4 space-y-4 md:hidden">
-            <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/">
-              Home
-            </Link>
-            <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest text-secondary font-bold" href="/shopallshirts">
-              Shop All
-            </Link>
-            <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/orderhistory">
-              Order History
-            </Link>
-            <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/ordertracking">
-              Track Order
-            </Link>
-          </div>
-        )}
       </header>
+
+      {/* Modern Mobile Bottom Navigation Capsule */}
+      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+        {/* Home Tab */}
+        <Link 
+          href="/" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">home</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Home</span>
+        </Link>
+
+        {/* Shop Tab */}
+        <Link 
+          href="/shopallshirts" 
+          className="flex flex-col items-center gap-0.5 text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">storefront</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-100 transition-transform">Shop</span>
+        </Link>
+
+        {/* Bag Tab (with real-time count badge) */}
+        <Link 
+          href="/shoppingbag" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group relative"
+        >
+          <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+          {cartCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
+              {cartCount}
+            </span>
+          )}
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Bag</span>
+        </Link>
+
+        {/* Profile Tab */}
+        <Link 
+          href="/myprofile" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">person</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Profile</span>
+        </Link>
+
+        {/* Menu drawer trigger */}
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group focus:outline-none"
+        >
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
+            {mobileMenuOpen ? "close" : "menu"}
+          </span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">
+            {mobileMenuOpen ? "Close" : "Menu"}
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Drawer Menu (z-[105] under Capsule navigation z-[115]) */}
+      <div
+        className={`fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 pb-20 md:hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+          mobileMenuOpen ? "clip-path-circle-open" : "clip-path-circle-closed"
+        }`}
+        style={{
+          clipPath: mobileMenuOpen ? "circle(150% at bottom right)" : "circle(0% at bottom right)",
+          transition: "clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+        }}
+      >
+        <nav className="flex flex-col items-center gap-10 text-center">
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/"
+          >
+            Home
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-secondary transition-colors"
+            href="/shopallshirts"
+          >
+            Shop All
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/orderhistory"
+          >
+            Order History
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/ordertracking"
+          >
+            Track Order
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/myprofile"
+          >
+            Profile
+          </Link>
+        </nav>
+        <div className="absolute bottom-28 flex gap-6 border-t border-outline/10 pt-6 w-full justify-center px-10">
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
+            href="/admindashboard"
+          >
+            Admin
+          </Link>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="pt-16 md:pt-24 pb-16 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 min-h-screen">

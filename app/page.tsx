@@ -620,6 +620,21 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [selectedQuickShopIndex, isCoverflowHovered]);
 
+  // Sync cart count in real time
+  useEffect(() => {
+    const updateCart = () => {
+      try {
+        const currentCart = JSON.parse(localStorage.getItem("cart_items") || "[]");
+        setCartCount(currentCart.length);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    updateCart();
+    window.addEventListener("storage", updateCart);
+    return () => window.removeEventListener("storage", updateCart);
+  }, []);
+
   const handleSlideChange = (index: number, manual = false) => {
     if (index === currentHeroSlide || heroTransitioning) return;
 
@@ -729,9 +744,9 @@ export default function Home() {
       )}
 
 
-      {/* Shared Header (Glassmorphic & Mobile First) */}
-      <header className="fixed bottom-0 top-auto left-0 right-0 md:sticky md:top-0 md:bottom-auto z-[100] glass-nav transition-all duration-300 border-t border-b-0 md:border-t-0 md:border-b border-[#775a19]/10">
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 md:px-6 lg:px-20 py-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] md:pb-2.5">
+      {/* Desktop Top Header (Hidden on Mobile) */}
+      <header className="hidden md:block md:sticky md:top-0 z-[100] glass-nav transition-all duration-300 border-b border-[#775a19]/10">
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 py-2.5">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
@@ -746,7 +761,7 @@ export default function Home() {
             </Link>
 
             {/* Desktop Menu */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="flex items-center gap-8">
               <Link
                 className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/60 hover:text-on-surface transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:bg-on-surface hover:after:w-full after:transition-all after:duration-300"
                 href="/"
@@ -778,98 +793,139 @@ export default function Home() {
           <div className="flex items-center gap-5">
             <Link
               href="/shoppingbag"
-              className="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300"
+              className="material-symbols-outlined text-on-surface hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative"
             >
               shopping_bag
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                  {cartCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/myprofile"
-              className="hidden md:block material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300"
+              className="material-symbols-outlined text-on-surface hover:text-secondary hover-scale transition-all duration-300"
             >
               person
-            </Link>
-            {/* Hamburger Menu Button (Mobile) */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden relative z-[110] w-10 h-10 flex flex-col justify-center items-center gap-1.5 focus:outline-none group"
-            >
-              <span
-                className={`w-6 h-0.5 bg-on-surface transition-all duration-300 ${
-                  mobileMenuOpen ? "rotate-45 translate-y-2" : ""
-                }`}
-              ></span>
-              <span
-                className={`w-6 h-0.5 bg-on-surface transition-all duration-300 ${
-                  mobileMenuOpen ? "opacity-0" : ""
-                }`}
-              ></span>
-              <span
-                className={`w-6 h-0.5 bg-on-surface transition-all duration-300 ${
-                  mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
-                }`}
-              ></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Drawer Menu */}
-        <div
-          className={`fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 md:hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-            mobileMenuOpen ? "clip-path-circle-open" : "clip-path-circle-closed"
-          }`}
-          style={{
-            clipPath: mobileMenuOpen ? "circle(150% at bottom right)" : "circle(0% at bottom right)",
-            transition: "clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
-          }}
-        >
-          <nav className="flex flex-col items-center gap-10 text-center">
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/"
-            >
-              Home
-            </Link>
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/shopallshirts"
-            >
-              Shop All
-            </Link>
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/orderhistory"
-            >
-              Order History
-            </Link>
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/ordertracking"
-            >
-              Track Order
-            </Link>
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/myprofile"
-            >
-              Profile
-            </Link>
-          </nav>
-          <div className="absolute bottom-12 flex gap-6 border-t border-outline/10 pt-8 w-full justify-center px-10">
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
-              href="/admindashboard"
-            >
-              Admin
             </Link>
           </div>
         </div>
       </header>
+
+      {/* Modern Mobile Bottom Navigation Capsule */}
+      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+        {/* Home Tab */}
+        <Link 
+          href="/" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">home</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Home</span>
+        </Link>
+
+        {/* Shop Tab */}
+        <Link 
+          href="/shopallshirts" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">storefront</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Shop</span>
+        </Link>
+
+        {/* Bag Tab (with real-time count badge) */}
+        <Link 
+          href="/shoppingbag" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group relative"
+        >
+          <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+          {cartCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
+              {cartCount}
+            </span>
+          )}
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Bag</span>
+        </Link>
+
+        {/* Profile Tab */}
+        <Link 
+          href="/myprofile" 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+        >
+          <span className="material-symbols-outlined text-[20px]">person</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Profile</span>
+        </Link>
+
+        {/* Menu drawer trigger */}
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group focus:outline-none"
+        >
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
+            {mobileMenuOpen ? "close" : "menu"}
+          </span>
+          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">
+            {mobileMenuOpen ? "Close" : "Menu"}
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Drawer Menu (z-[105] under Capsule navigation z-[115]) */}
+      <div
+        className={`fixed inset-0 z-[105] bg-surface flex flex-col items-center justify-center p-6 pb-20 md:hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+          mobileMenuOpen ? "clip-path-circle-open" : "clip-path-circle-closed"
+        }`}
+        style={{
+          clipPath: mobileMenuOpen ? "circle(150% at bottom right)" : "circle(0% at bottom right)",
+          transition: "clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+        }}
+      >
+        <nav className="flex flex-col items-center gap-10 text-center">
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/"
+          >
+            Home
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/shopallshirts"
+          >
+            Shop All
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/orderhistory"
+          >
+            Order History
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/ordertracking"
+          >
+            Track Order
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/myprofile"
+          >
+            Profile
+          </Link>
+        </nav>
+        <div className="absolute bottom-28 flex gap-6 border-t border-outline/10 pt-6 w-full justify-center px-10">
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
+            href="/admindashboard"
+          >
+            Admin
+          </Link>
+        </div>
+      </div>
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}

@@ -332,6 +332,8 @@ export default function Home() {
   // Favorite products active index state for 3D Coverflow slider
   const [activeFavIndex, setActiveFavIndex] = useState(2);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
+
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
   const [loaderExitClass, setLoaderExitClass] = useState(false);
@@ -342,6 +344,51 @@ export default function Home() {
   // Hero slideshow state
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [heroTransitioning, setHeroTransitioning] = useState(false);
+
+  // Helper to show premium toast notification
+  const showAtelierToast = (message: string) => {
+    let toast = document.getElementById("prototype-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "prototype-toast";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.className = "active";
+
+    setTimeout(() => {
+      toast?.classList.remove("active");
+      setTimeout(() => toast?.remove(), 600);
+    }, 3500);
+  };
+
+  // Helper to add product to localStorage cart
+  const handleAddToBag = (productName: string, priceStr: string, image: string, size: string) => {
+    try {
+      const priceVal = parseInt(priceStr.replace(/[^0-9]/g, ""));
+      const currentCart = JSON.parse(localStorage.getItem("cart_items") || "[]");
+      const newItem = {
+        productName: productName,
+        price: priceVal,
+        size: size,
+        image: image
+      };
+      const updatedCart = [...currentCart, newItem];
+      localStorage.setItem("cart_items", JSON.stringify(updatedCart));
+      localStorage.setItem("cartCount", updatedCart.length.toString());
+      
+      // Dispatch storage event to notify header/layout count
+      window.dispatchEvent(new Event("storage"));
+      
+      // Close size selector
+      setSelectedQuickShopIndex(null);
+      
+      // Show confirmation toast
+      showAtelierToast(`${productName} (Size ${size}) added to your Atelier Bag.`);
+    } catch (e) {
+      console.error("Failed to add to bag:", e);
+    }
+  };
   const [tempSlideData, setTempSlideData] = useState<HeroSlide>(heroSlides[0]);
   const [isAutoPlay, setIsAutoPlay] = useState(true);
 

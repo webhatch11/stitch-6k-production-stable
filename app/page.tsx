@@ -1002,26 +1002,26 @@ export default function Home() {
               {/* Coverflow Styles */}
               <style dangerouslySetInnerHTML={{__html: `
                 .card-3d-item {
-                  transform: translateX(calc(var(--card-offset) * 85px)) scale(var(--card-scale));
+                  transform: translateX(calc(var(--card-offset) * 75px)) scale(var(--card-scale));
                 }
                 @media (min-width: 480px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 115px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 100px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 640px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 150px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 130px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 768px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 180px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 160px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 1024px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 230px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 200px)) scale(var(--card-scale));
                   }
                 }
               `}} />
@@ -1051,7 +1051,7 @@ export default function Home() {
               </div>
 
               {/* Cards Container */}
-              <div className="relative w-full max-w-5xl h-[380px] md:h-[430px] flex justify-center items-center overflow-hidden">
+              <div className="relative w-full max-w-5xl h-[400px] md:h-[490px] flex justify-center items-center overflow-hidden">
                 {favoriteProducts.map((product, i) => {
                   const offset = i - activeFavIndex;
                   const absOffset = Math.abs(offset);
@@ -1082,7 +1082,7 @@ export default function Home() {
                         '--card-offset': offset,
                         '--card-scale': scale,
                       } as React.CSSProperties}
-                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[320px] md:h-[380px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
+                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[350px] md:h-[440px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
                         isActive ? "border border-secondary/40 shadow-[0_0_50px_rgba(254,212,136,0.22)]" : "border border-white/5 shadow-2xl"
                       } ${blurClass} ${grayscaleClass}`}
                     >
@@ -1093,7 +1093,7 @@ export default function Home() {
 
                       {/* Unified Card Frame */}
                       <div className={`h-full relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
-                        isActive ? "w-[240px] md:w-[280px]" : "w-[130px] sm:w-[150px] md:w-[170px]"
+                        isActive ? "w-[210px] md:w-[250px]" : "w-[110px] sm:w-[130px] md:w-[150px]"
                       }`}>
                         {/* Product Image with smooth group hover scale */}
                         <img
@@ -1190,7 +1190,7 @@ export default function Home() {
                         {isActive && (
                           <div
                             onClick={(e) => e.stopPropagation()}
-                            className={`absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/10 p-5 pt-6 pb-6 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-25 flex flex-col items-center justify-center gap-4 ${
+                            className={`absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/10 p-3 md:p-5 pt-4 md:pt-6 pb-4 md:pb-6 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-25 flex flex-col items-center justify-center gap-3 md:gap-4 ${
                               isQuickShopOpen ? "translate-y-0" : "translate-y-full"
                             }`}
                           >
@@ -1199,7 +1199,7 @@ export default function Home() {
                               <span className="text-[7.5px] text-white/40 uppercase tracking-widest">{product.name}</span>
                             </div>
 
-                            <div className="flex gap-2.5 w-full justify-center">
+                            <div className="flex gap-2 md:gap-2.5 w-full justify-center">
                               {["S", "M", "L", "XL"].map((size) => (
                                 <button
                                   key={size}
@@ -1207,7 +1207,7 @@ export default function Home() {
                                     e.stopPropagation();
                                     handleAddToBag(product.name, product.price, product.image, size);
                                   }}
-                                  className="w-10 h-10 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
+                                  className="w-8 h-8 md:w-10 md:h-10 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
                                 >
                                   {size}
                                 </button>

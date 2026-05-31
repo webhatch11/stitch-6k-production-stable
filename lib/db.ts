@@ -95,7 +95,7 @@ export const db = {
     }
     const dbPayload = {
       id: product.id || "ART-" + Date.now(),
-      slug: product.slug || "",
+      slug: product.slug || (product.title ? product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : "untitled-product"),
       title: product.title || "Untitled Product",
       price: product.price || 0,
       compare_price: product.comparePrice || 0,

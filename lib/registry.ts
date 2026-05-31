@@ -2,7 +2,7 @@
 
 export interface Product {
   id: string;
-  slug: string;
+  slug?: string;
   title: string;
   price: number;
   comparePrice?: number;
@@ -774,10 +774,13 @@ export const RegistryManager = {
       images = [product.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=600"];
     }
     const primaryImage = images[0] || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=600";
+    const generatedSlug = product.slug || (product.title ? product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : "untitled-product");
     const newProduct: Product = {
       id: product.id || "ART-" + Date.now(),
+      slug: generatedSlug,
       title: product.title || "Untitled Product",
       price: product.price || 0,
+      comparePrice: product.comparePrice,
       category: product.category || "Cotton",
       image: primaryImage,
       images: images,
@@ -796,6 +799,12 @@ export const RegistryManager = {
       specSleeve: product.specSleeve,
       specCare: product.specCare,
       customBadge: product.customBadge,
+      featured: product.featured || false,
+      bestseller: product.bestseller || false,
+      material: product.material || "",
+      colors: product.colors || [],
+      ratings: product.ratings || 5.0,
+      reviews: product.reviews || [],
     };
     const existingIndex = products.findIndex(p => p.id === newProduct.id);
     if (existingIndex !== -1) {

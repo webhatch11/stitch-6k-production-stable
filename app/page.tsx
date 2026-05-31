@@ -730,7 +730,7 @@ export default function Home() {
 
       {/* Shared Header (Glassmorphic & Mobile First) */}
       <header className="sticky top-0 z-[100] glass-nav transition-all duration-300">
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 py-2.5">
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 md:px-6 lg:px-20 py-2.5">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
@@ -997,7 +997,7 @@ export default function Home() {
         </section>
 
         {/* Section 3: Best Sellers / Featured Collection */}
-        <section className="pt-36 pb-24 px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
+        <section className="pt-24 md:pt-36 pb-16 md:pb-24 px-4 md:px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex flex-col items-center mb-16">
@@ -1049,20 +1049,20 @@ export default function Home() {
                     setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
                   title="Previous item"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
                 <button
                   onClick={() => {
                     setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
                   title="Next item"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
               </div>
 
@@ -1269,7 +1269,7 @@ export default function Home() {
         </section>
 
         {/* Section 3.5: Our Favorite Style */}
-        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
+        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16">
@@ -1346,7 +1346,7 @@ export default function Home() {
         </section>
 
         {/* Section 4: Category Showcase */}
-        <section className="py-24 px-6 lg:px-20 bg-on-surface relative overflow-hidden">
+        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-on-surface relative overflow-hidden">
           <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
@@ -1474,7 +1474,7 @@ export default function Home() {
 
               {/* Bottom Interactive Thumbnail Cards */}
               <div className="relative z-10 w-full mt-auto pt-6 border-t border-white/5">
-                <div className="flex justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex justify-start md:justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 px-4 md:px-0 scrollbar-none">
                   {shirtCategories.map((item, idx) => {
                     const isActive = idx === activeCategoryIndex;
                     return (
@@ -1518,7 +1518,7 @@ export default function Home() {
         </section>
 
         {/* Section 5: Trust Section */}
-        <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
+        <section className="py-16 md:py-24 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
           <div className="max-w-6xl mx-auto">
             <motion.div 
               initial="hidden"
@@ -1617,10 +1617,10 @@ export default function Home() {
         </section>
 
         {/* Section 6: Social Proof (Global Reach) */}
-        <section className="py-24 bg-[#F9FAFB] relative overflow-hidden">
+        <section className="py-16 md:py-24 bg-[#F9FAFB] relative overflow-hidden">
           <div className="w-full relative z-10">
             {/* Header Centered block with standard padding */}
-            <div className="max-w-6xl mx-auto px-6 lg:px-20 text-center mb-16">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20 text-center mb-12 md:mb-16">
               <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
               </p>
@@ -1821,7 +1821,7 @@ export default function Home() {
             </div>
 
             {/* Form Button & Drawer inside centered container */}
-            <div className="max-w-6xl mx-auto px-6 lg:px-20">
+            <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20">
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -1960,7 +1960,7 @@ export default function Home() {
       </main>
 
       {/* Global Footer */}
-      <footer className="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
+      <footer className="py-10 md:py-16 bg-[#0A0A0A] text-white px-4 md:px-6 lg:px-20 border-t-4 border-secondary">
         <div className="max-w-6xl mx-auto">
           {/* Top Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">

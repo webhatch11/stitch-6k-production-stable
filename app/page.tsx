@@ -761,10 +761,10 @@ export default function Home() {
 
       {/* Desktop Top Header (Hidden on Mobile) */}
       <header 
-        className={`hidden md:block md:sticky md:top-0 z-[100] transition-all duration-500 ${
+        className={`hidden md:block z-[100] transition-all duration-500 ${
           isScrolled 
-            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
-            : "bg-transparent border-transparent py-4"
+            ? "sticky top-0 bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
+            : "absolute top-0 left-0 right-0 bg-transparent border-transparent py-4"
         }`}
       >
         <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 transition-all duration-500">
@@ -997,28 +997,6 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-transparent to-[#0a0a0a]/45 z-10"></div>
           </div>
 
-          {/* Hero Content Overlay (Cinematic & Readable) */}
-          <div className="relative z-20 max-w-6xl mx-auto px-6 lg:px-20 w-full text-left text-white mt-16 md:mt-24">
-            <div className="max-w-2xl space-y-6 md:space-y-8 animate-fade-in">
-              <span className="inline-block text-[#fed488] text-[9.5px] font-medium uppercase tracking-[0.3em] select-none border-b border-[#fed488]/30 pb-1">
-                {heroSlides[currentHeroSlide].badge}
-              </span>
-              <h1 className="text-3xl md:text-5xl font-medium uppercase tracking-[0.15em] leading-tight text-white drop-shadow-lg whitespace-pre-line select-none">
-                {heroSlides[currentHeroSlide].title}
-              </h1>
-              <p className="text-xs md:text-sm text-neutral-300 font-normal tracking-[0.1em] leading-relaxed max-w-lg drop-shadow-sm select-none">
-                {heroSlides[currentHeroSlide].desc}
-              </p>
-              <div className="flex items-center gap-6 pt-2">
-                <Link
-                  href={heroSlides[currentHeroSlide].ctaLink}
-                  className="bg-secondary text-white border-2 border-secondary/40 hover:bg-[#fed488] hover:text-[#261900] hover:border-[#fed488] hover:shadow-[0_0_20px_rgba(254,212,136,0.3)] transition-all duration-500 px-8 py-3.5 text-[9.5px] font-medium uppercase tracking-[0.2em] shadow-xl btn-active-scale"
-                >
-                  Explore Piece
-                </Link>
-              </div>
-            </div>
-          </div>
 
           {/* Interactive Slide Dots on the Right */}
           <div className="absolute right-6 md:right-16 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3.5">

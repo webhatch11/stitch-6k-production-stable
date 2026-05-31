@@ -44,7 +44,7 @@ const heroSlides: HeroSlide[] = [
     time: "32 Hours",
     rarity: "150 Items",
     registryId: "MARBLE-001",
-    ctaLink: "/signatureshirtblack",
+    ctaLink: "/product/luxury-black-shirt",
     bgImage: "/assets/hero_showroom_marble.jpeg",
     frontImage: "/assets/hero_showroom_marble.jpeg",
   },
@@ -124,7 +124,7 @@ const favoriteProducts: FavoriteProduct[] = [
     category: "Premium Cotton",
     price: "₹3,999",
     tag: "Atelier",
-    link: "/shoppingbag",
+    link: "/product/luxury-black-shirt",
     image: "/assets/model_black_shirt.png",
     verticalText: "CHARCOAL OXFORD"
   },
@@ -134,7 +134,7 @@ const favoriteProducts: FavoriteProduct[] = [
     category: "Linen Blend",
     price: "₹4,999",
     tag: "Popular",
-    link: "/shoppingbag",
+    link: "/product/belgian-linen-overshirt",
     image: "/assets/model_beige_shirt.png",
     verticalText: "DESERT SAND"
   },
@@ -144,7 +144,7 @@ const favoriteProducts: FavoriteProduct[] = [
     category: "Signature Series",
     price: "₹8,999",
     tag: "NEW",
-    link: "/signatureshirtblack",
+    link: "/product/the-altitude-shirt",
     image: "/assets/model_white_shirt.png",
     verticalText: "THE ATELIER"
   },
@@ -154,7 +154,7 @@ const favoriteProducts: FavoriteProduct[] = [
     category: "Breathable Linen",
     price: "₹3,499",
     tag: "Trending",
-    link: "/shoppingbag",
+    link: "/product/olive-heritage",
     image: "/assets/model_olive_shirt.png",
     verticalText: "OLIVE LINEN"
   },
@@ -164,7 +164,7 @@ const favoriteProducts: FavoriteProduct[] = [
     category: "Smart Casual",
     price: "₹5,999",
     tag: "Exclusive",
-    link: "/shoppingbag",
+    link: "/product/navy-atelier",
     image: "/assets/model_navy_shirt.png",
     verticalText: "NAVY STREET"
   }
@@ -177,6 +177,7 @@ interface FavoriteStyleItem {
   image: string;
   badge: string;
   colors: string[];
+  slug: string;
 }
 
 const favoriteStyles: FavoriteStyleItem[] = [
@@ -186,7 +187,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹6,499",
     image: "/assets/floral_resort_shirt.png",
     badge: "New",
-    colors: ["#ffd1d1", "#ffffff", "#775a19"]
+    colors: ["#ffd1d1", "#ffffff", "#775a19"],
+    slug: "atelier-oxford"
   },
   {
     id: "fav-style-2",
@@ -194,7 +196,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹6,499",
     image: "/assets/geometric_resort_shirt.png",
     badge: "Limited",
-    colors: ["#1a1c1c", "#ffffff", "#dadad9"]
+    colors: ["#1a1c1c", "#ffffff", "#dadad9"],
+    slug: "sustainable-art"
   },
   {
     id: "fav-style-3",
@@ -202,7 +205,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹6,999",
     image: "/assets/teal_crane_shirt.png",
     badge: "Bestseller",
-    colors: ["#005f73", "#e5e2e1", "#ffffff"]
+    colors: ["#005f73", "#e5e2e1", "#ffffff"],
+    slug: "everyday-luxury"
   },
   {
     id: "fav-style-4",
@@ -210,7 +214,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹6,499",
     image: "/assets/striped_resort_shirt.png",
     badge: "Sale",
-    colors: ["#bfdbfe", "#ffffff", "#e5e2e1"]
+    colors: ["#bfdbfe", "#ffffff", "#e5e2e1"],
+    slug: "crafted-comfort"
   },
   {
     id: "fav-style-5",
@@ -218,7 +223,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹5,999",
     image: "/assets/folded_white_shirt.png",
     badge: "New",
-    colors: ["#ffffff", "#e5e2e1", "#e9c176"]
+    colors: ["#ffffff", "#e5e2e1", "#e9c176"],
+    slug: "atelier-white"
   },
   {
     id: "fav-style-6",
@@ -226,7 +232,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹5,999",
     image: "/assets/folded_crimson_shirt.png",
     badge: "Bestseller",
-    colors: ["#ba1a1a", "#e5e2e1", "#ffffff"]
+    colors: ["#ba1a1a", "#e5e2e1", "#ffffff"],
+    slug: "royal-crimson"
   },
   {
     id: "fav-style-7",
@@ -234,7 +241,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹5,999",
     image: "/assets/folded_olive_shirt.png",
     badge: "Limited",
-    colors: ["#3d4a3e", "#ffffff", "#e5e2e1"]
+    colors: ["#3d4a3e", "#ffffff", "#e5e2e1"],
+    slug: "atelier-olive"
   },
   {
     id: "fav-style-8",
@@ -242,7 +250,8 @@ const favoriteStyles: FavoriteStyleItem[] = [
     price: "₹5,999",
     image: "/assets/hanging_navy_shirt.png",
     badge: "Sale",
-    colors: ["#0d1b2a", "#ffffff", "#775a19"]
+    colors: ["#0d1b2a", "#ffffff", "#775a19"],
+    slug: "classic-navy"
   }
 ];
 
@@ -1436,7 +1445,7 @@ export default function Home() {
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16"
             >
               {favoriteStyles.map((item) => (
-                <div key={item.id} className="group flex flex-col cursor-pointer">
+                <Link href={`/product/${item.slug}`} key={item.id} className="group flex flex-col cursor-pointer">
                   {/* Image container */}
                   <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
                     <img
@@ -1475,7 +1484,7 @@ export default function Home() {
                   <p className="font-sans text-[9px] md:text-[10px] text-neutral-400 font-bold uppercase tracking-wider text-left">
                     MRP inclusive of all taxes
                   </p>
-                </div>
+                </Link>
               ))}
             </motion.div>
 

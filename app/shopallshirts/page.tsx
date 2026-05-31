@@ -471,7 +471,7 @@ export default function ShopAllShirts() {
 
                       <div className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
                         <Link
-                          href="/signatureshirtblack"
+                          href={`/product/${product.slug}`}
                           className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10"
                         >
                           {/* Primary Image */}
@@ -524,7 +524,7 @@ export default function ShopAllShirts() {
                         <div className="pt-4 px-2 pb-2">
                           <div className="flex justify-between items-start gap-3">
                             <div className="space-y-1">
-                              <Link href="/signatureshirtblack">
+                              <Link href={`/product/${product.slug}`}>
                                 <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight">
                                   {product.title}
                                 </h4>

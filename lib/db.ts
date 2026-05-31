@@ -6,8 +6,10 @@ const mapDbProductToProduct = (p: any): Product => {
   if (!p) return p;
   return {
     id: p.id,
+    slug: p.slug || "",
     title: p.title,
     price: Number(p.price),
+    comparePrice: p.compare_price ? Number(p.compare_price) : undefined,
     category: p.category,
     image: p.image,
     images: p.images || [],
@@ -31,6 +33,12 @@ const mapDbProductToProduct = (p: any): Product => {
     specSleeve: p.spec_sleeve,
     specCare: p.spec_care,
     customBadge: p.custom_badge || p.customBadge || "",
+    featured: p.featured || false,
+    bestseller: p.bestseller || false,
+    material: p.material || "",
+    colors: p.colors || [],
+    ratings: p.ratings ? Number(p.ratings) : undefined,
+    reviews: p.reviews || [],
   };
 };
 
@@ -87,8 +95,10 @@ export const db = {
     }
     const dbPayload = {
       id: product.id || "ART-" + Date.now(),
+      slug: product.slug || "",
       title: product.title || "Untitled Product",
       price: product.price || 0,
+      compare_price: product.comparePrice || 0,
       category: product.category || "Cotton",
       image: product.image || (product.images && product.images[0]) || "",
       images: product.images || [product.image || ""],
@@ -110,6 +120,12 @@ export const db = {
       spec_sleeve: product.specSleeve || "",
       spec_care: product.specCare || "",
       custom_badge: product.customBadge || "",
+      featured: product.featured || false,
+      bestseller: product.bestseller || false,
+      material: product.material || "",
+      colors: product.colors || [],
+      ratings: product.ratings || 5.0,
+      reviews: product.reviews || [],
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);
@@ -117,6 +133,47 @@ export const db = {
       console.error("Error saving product to Supabase:", error);
       throw error;
     }
+  },
+
+  async getProductBySlug(slug: string): Promise<Product | undefined> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.getProductBySlug(slug);
+    }
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching product by slug from Supabase:", error);
+      return undefined;
+    }
+    return data ? mapDbProductToProduct(data) : undefined;
+  },
+
+  async relatedProducts(slug: string): Promise<Product[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.relatedProducts(slug);
+    }
+    const current = await this.getProductBySlug(slug);
+    if (!current) return [];
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .neq("slug", slug)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching related products from Supabase:", error);
+      return [];
+    }
+
+    const mapped = (data || []).map(mapDbProductToProduct);
+    const sameCategory = mapped.filter((p) => p.category === current.category);
+    const diffCategory = mapped.filter((p) => p.category !== current.category);
+    return [...sameCategory, ...diffCategory].slice(0, 4);
   },
 
   async deleteProduct(id: string): Promise<void> {

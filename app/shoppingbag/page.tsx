@@ -9,6 +9,7 @@ interface CartItem {
   price: number;
   size: string;
   image: string;
+  color?: string;
 }
 
 interface GroupedCartItem {
@@ -17,6 +18,7 @@ interface GroupedCartItem {
   size: string;
   image: string;
   quantity: number;
+  color?: string;
 }
 
 export default function ShoppingBag() {
@@ -52,7 +54,7 @@ export default function ShoppingBag() {
   const groupItems = (items: CartItem[]) => {
     const groups: { [key: string]: GroupedCartItem } = {};
     items.forEach((item) => {
-      const key = `${item.productName}_${item.size || "M"}`;
+      const key = `${item.productName}_${item.size || "M"}_${item.color || "Atelier Choice"}`;
       if (!groups[key]) {
         groups[key] = {
           productName: item.productName,
@@ -60,6 +62,7 @@ export default function ShoppingBag() {
           size: item.size || "M",
           image: item.image,
           quantity: 0,
+          color: item.color || "Atelier Choice",
         };
       }
       groups[key].quantity += 1;
@@ -82,13 +85,16 @@ export default function ShoppingBag() {
       price: item.price,
       size: item.size,
       image: item.image,
+      color: item.color || "Atelier Choice",
     }];
     saveCart(newItems);
   };
 
   const handleDecrement = (item: GroupedCartItem) => {
     const idx = cartItems.findIndex(
-      (x) => x.productName === item.productName && (x.size || "M") === item.size
+      (x) => x.productName === item.productName && 
+             (x.size || "M") === item.size && 
+             (x.color || "Atelier Choice") === (item.color || "Atelier Choice")
     );
     if (idx !== -1) {
       const newItems = [...cartItems];
@@ -99,7 +105,9 @@ export default function ShoppingBag() {
 
   const handleRemove = (item: GroupedCartItem) => {
     const newItems = cartItems.filter(
-      (x) => !(x.productName === item.productName && (x.size || "M") === item.size)
+      (x) => !(x.productName === item.productName && 
+               (x.size || "M") === item.size && 
+               (x.color || "Atelier Choice") === (item.color || "Atelier Choice"))
     );
     saveCart(newItems);
   };
@@ -231,7 +239,7 @@ export default function ShoppingBag() {
 
                   return (
                     <div
-                      key={`${item.productName}_${item.size}`}
+                      key={`${item.productName}_${item.size}_${item.color || "Atelier Choice"}`}
                       className="flex flex-col md:flex-row gap-8 relative group border-b border-on-surface/5 pb-10"
                     >
                       <div className="w-full md:w-48 aspect-[3/4] bg-surface-container overflow-hidden border border-outline-variant/10">
@@ -245,7 +253,7 @@ export default function ShoppingBag() {
                           </div>
                           <div className="space-y-1 text-sm text-outline font-medium uppercase tracking-wider mb-4">
                             <p>Size: {item.size}</p>
-                            <p>Color: Atelier Choice</p>
+                            <p>Color: {item.color || "Atelier Choice"}</p>
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-6">

@@ -1000,19 +1000,19 @@ export default function Home() {
           {/* Hero Content Overlay (Cinematic & Readable) */}
           <div className="relative z-20 max-w-6xl mx-auto px-6 lg:px-20 w-full text-left text-white mt-16 md:mt-24">
             <div className="max-w-2xl space-y-6 md:space-y-8 animate-fade-in">
-              <span className="inline-block text-[#fed488] text-[9.5px] font-extrabold uppercase tracking-[0.4em] select-none border-b border-[#fed488]/30 pb-1">
+              <span className="inline-block text-[#fed488] text-[9.5px] font-medium uppercase tracking-[0.3em] select-none border-b border-[#fed488]/30 pb-1">
                 {heroSlides[currentHeroSlide].badge}
               </span>
-              <h1 className="text-3xl md:text-5xl font-headline font-black uppercase tracking-[0.18em] leading-tight text-white drop-shadow-lg whitespace-pre-line select-none">
+              <h1 className="text-3xl md:text-5xl font-medium uppercase tracking-[0.15em] leading-tight text-white drop-shadow-lg whitespace-pre-line select-none">
                 {heroSlides[currentHeroSlide].title}
               </h1>
-              <p className="text-xs md:text-sm text-neutral-300 font-normal tracking-[0.12em] leading-relaxed max-w-lg drop-shadow-sm select-none">
+              <p className="text-xs md:text-sm text-neutral-300 font-normal tracking-[0.1em] leading-relaxed max-w-lg drop-shadow-sm select-none">
                 {heroSlides[currentHeroSlide].desc}
               </p>
               <div className="flex items-center gap-6 pt-2">
                 <Link
                   href={heroSlides[currentHeroSlide].ctaLink}
-                  className="bg-secondary text-white border-2 border-secondary/40 hover:bg-[#fed488] hover:text-[#261900] hover:border-[#fed488] hover:shadow-[0_0_25px_rgba(254,212,136,0.45)] transition-all duration-500 px-9 py-4.5 text-[9.5px] font-black uppercase tracking-[0.25em] shadow-xl btn-active-scale"
+                  className="bg-secondary text-white border-2 border-secondary/40 hover:bg-[#fed488] hover:text-[#261900] hover:border-[#fed488] hover:shadow-[0_0_20px_rgba(254,212,136,0.3)] transition-all duration-500 px-8 py-3.5 text-[9.5px] font-medium uppercase tracking-[0.2em] shadow-xl btn-active-scale"
                 >
                   Explore Piece
                 </Link>

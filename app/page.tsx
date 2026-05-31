@@ -730,7 +730,7 @@ export default function Home() {
 
       {/* Shared Header (Glassmorphic & Mobile First) */}
       <header className="sticky top-0 z-[100] glass-nav transition-all duration-300">
-        <div className="flex items-center justify-between max-w-7xl mx-auto px-6 lg:px-20 py-2.5">
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 py-2.5">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
@@ -998,7 +998,7 @@ export default function Home() {
 
         {/* Section 3: Best Sellers / Featured Collection */}
         <section className="pt-36 pb-24 px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex flex-col items-center mb-16">
               <p className="text-secondary font-label text-[10px] sm:text-xs uppercase tracking-[0.45em] mb-3.5 text-center">
@@ -1270,7 +1270,7 @@ export default function Home() {
 
         {/* Section 3.5: Our Favorite Style */}
         <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16">
               <div>
@@ -1347,7 +1347,7 @@ export default function Home() {
 
         {/* Section 4: Category Showcase */}
         <section className="py-24 px-6 lg:px-20 bg-on-surface relative overflow-hidden">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {/* Header Block */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
               <div>
@@ -1519,7 +1519,7 @@ export default function Home() {
 
         {/* Section 5: Trust Section */}
         <section className="py-24 px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <motion.div 
               initial="hidden"
               whileInView="visible"
@@ -1620,7 +1620,7 @@ export default function Home() {
         <section className="py-24 bg-[#F9FAFB] relative overflow-hidden">
           <div className="w-full relative z-10">
             {/* Header Centered block with standard padding */}
-            <div className="max-w-7xl mx-auto px-6 lg:px-20 text-center mb-16">
+            <div className="max-w-6xl mx-auto px-6 lg:px-20 text-center mb-16">
               <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
               </p>
@@ -1821,7 +1821,7 @@ export default function Home() {
             </div>
 
             {/* Form Button & Drawer inside centered container */}
-            <div className="max-w-7xl mx-auto px-6 lg:px-20">
+            <div className="max-w-6xl mx-auto px-6 lg:px-20">
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -1961,7 +1961,7 @@ export default function Home() {
 
       {/* Global Footer */}
       <footer className="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Top Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <div>

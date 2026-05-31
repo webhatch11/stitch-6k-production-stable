@@ -1029,14 +1029,20 @@ export default function Home() {
               {/* Flanking Chevrons */}
               <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 w-full flex justify-between px-2 md:px-10 z-40 pointer-events-none">
                 <button
-                  onClick={() => setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length)}
+                  onClick={() => {
+                    setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
+                    setSelectedQuickShopIndex(null);
+                  }}
                   className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
                   title="Previous item"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
                 <button
-                  onClick={() => setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length)}
+                  onClick={() => {
+                    setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+                    setSelectedQuickShopIndex(null);
+                  }}
                   className="w-11 h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
                   title="Next item"
                 >
@@ -1050,6 +1056,7 @@ export default function Home() {
                   const offset = i - activeFavIndex;
                   const absOffset = Math.abs(offset);
                   const isActive = absOffset === 0;
+                  const isQuickShopOpen = selectedQuickShopIndex === i;
 
                   // Limit visible card set for clean layout
                   if (absOffset > 2) return null;
@@ -1063,30 +1070,58 @@ export default function Home() {
                   return (
                     <div
                       key={product.id}
-                      onClick={() => setActiveFavIndex(i)}
+                      onClick={() => {
+                        if (!isActive) {
+                          setActiveFavIndex(i);
+                          setSelectedQuickShopIndex(null);
+                        }
+                      }}
                       style={{
                         zIndex: zIndex,
                         opacity: opacity,
                         '--card-offset': offset,
                         '--card-scale': scale,
                       } as React.CSSProperties}
-                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[320px] md:h-[380px] shadow-2xl rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer ${
-                        isActive ? "border border-secondary/40" : "border border-white/5"
+                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[320px] md:h-[380px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
+                        isActive ? "border border-secondary/40 shadow-[0_0_50px_rgba(254,212,136,0.22)]" : "border border-white/5 shadow-2xl"
                       } ${blurClass} ${grayscaleClass}`}
                     >
+                      {/* Ambient spotlight radial gold glow behind active card */}
+                      {isActive && (
+                        <div className="absolute -inset-3.5 rounded-[2.2rem] bg-gradient-to-r from-secondary/15 via-[#fed488]/10 to-secondary/15 opacity-40 group-hover:opacity-60 blur-2xl transition-opacity duration-700 pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '3s' }} />
+                      )}
+
                       {/* Unified Card Frame */}
                       <div className={`h-full relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
                         isActive ? "w-[240px] md:w-[280px]" : "w-[130px] sm:w-[150px] md:w-[170px]"
                       }`}>
-                        {/* Product Image */}
+                        {/* Product Image with smooth group hover scale */}
                         <img
                           alt={product.name}
-                          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2s] ease-out hover:scale-105"
+                          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2s] ease-out group-hover:scale-[1.08]"
                           src={product.image}
                         />
                         
                         {/* Overlay shadow for text contrast */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 pointer-events-none select-none"></div>
+
+                        {/* Discover Piece Hover Overlay */}
+                        {isActive && (
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center z-10">
+                            <Link
+                              href={product.link}
+                              onClick={(e) => {
+                                if (isQuickShopOpen) {
+                                  e.preventDefault();
+                                  setSelectedQuickShopIndex(null);
+                                }
+                              }}
+                              className="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-secondary text-white hover:text-[#fed488] font-bold tracking-[0.25em] text-[9px] uppercase py-3 px-6 rounded-full backdrop-blur-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 shadow-lg"
+                            >
+                              Discover Piece
+                            </Link>
+                          </div>
+                        )}
 
                         {/* NEW Badge Tag on active card (Top-left, gold border black box) */}
                         <div className={`absolute top-4 left-4 bg-secondary text-black px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] transition-opacity duration-500 z-10 rounded-sm shadow-md ${
@@ -1110,7 +1145,7 @@ export default function Home() {
                             {product.verticalText}
                           </span>
                           <span className={`text-[9.5px] uppercase tracking-[0.25em] font-black whitespace-nowrap mt-1.5 transition-colors duration-700 ${
-                            isActive ? "text-secondary" : "text-black/60"
+                            isActive ? "shimmer-text font-black" : "text-black/60"
                           }`}>
                             Featured Collection
                           </span>
@@ -1131,14 +1166,55 @@ export default function Home() {
                           </div>
 
                           {/* Solid Gold Circular Shop Button */}
-                          <Link
-                            href={product.link}
-                            className="w-10 h-10 rounded-full bg-secondary hover:bg-[#fed488] text-black flex items-center justify-center shadow-lg transition-all duration-500 select-none scale-100 hover:scale-105 border border-secondary/15"
-                            title={`Shop ${product.name}`}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedQuickShopIndex(isQuickShopOpen ? null : i);
+                            }}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all duration-500 select-none scale-100 hover:scale-105 border ${
+                              isQuickShopOpen
+                                ? "bg-white text-black border-white z-30"
+                                : "bg-secondary text-black hover:bg-[#fed488] border-secondary/15"
+                            }`}
+                            title={`Add ${product.name} to bag`}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                          </Link>
+                            {isQuickShopOpen ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                            )}
+                          </button>
                         </div>
+
+                        {/* Slide-Up Size Selector Drawer */}
+                        {isActive && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className={`absolute bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/10 p-5 pt-6 pb-6 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-25 flex flex-col items-center justify-center gap-4 ${
+                              isQuickShopOpen ? "translate-y-0" : "translate-y-full"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center w-full">
+                              <span className="text-[8px] text-[#fed488] font-black uppercase tracking-[0.25em]">Select Size</span>
+                              <span className="text-[7.5px] text-white/40 uppercase tracking-widest">{product.name}</span>
+                            </div>
+
+                            <div className="flex gap-2.5 w-full justify-center">
+                              {["S", "M", "L", "XL"].map((size) => (
+                                <button
+                                  key={size}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddToBag(product.name, product.price, product.image, size);
+                                  }}
+                                  className="w-10 h-10 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
+                                >
+                                  {size}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1152,7 +1228,10 @@ export default function Home() {
                   return (
                     <button
                       key={`dot-${i}`}
-                      onClick={() => setActiveFavIndex(i)}
+                      onClick={() => {
+                        setActiveFavIndex(i);
+                        setSelectedQuickShopIndex(null);
+                      }}
                       className={`transition-all duration-500 cursor-pointer ${
                         isActive 
                           ? "w-8 h-1.5 bg-secondary rounded-full" 

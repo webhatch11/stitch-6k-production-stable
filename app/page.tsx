@@ -333,6 +333,7 @@ export default function Home() {
   const [activeFavIndex, setActiveFavIndex] = useState(2);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
+  const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
 
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
@@ -606,6 +607,17 @@ export default function Home() {
 
     return () => clearInterval(autoScrollInterval);
   }, [isSlingHovered]);
+
+  // Autoplay for 3D Coverflow slider
+  useEffect(() => {
+    if (selectedQuickShopIndex !== null || isCoverflowHovered) return;
+
+    const timer = setInterval(() => {
+      setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+    }, 5000); // Auto-scroll every 5 seconds
+
+    return () => clearInterval(timer);
+  }, [selectedQuickShopIndex, isCoverflowHovered]);
 
   const handleSlideChange = (index: number, manual = false) => {
     if (index === currentHeroSlide || heroTransitioning) return;
@@ -998,7 +1010,11 @@ export default function Home() {
             </div>
 
             {/* 3D Coverflow Slider */}
-            <div className="relative w-full overflow-visible py-8 flex flex-col items-center select-none">
+            <div
+              onMouseEnter={() => setIsCoverflowHovered(true)}
+              onMouseLeave={() => setIsCoverflowHovered(false)}
+              className="relative w-full overflow-visible py-8 flex flex-col items-center select-none"
+            >
               {/* Coverflow Styles */}
               <style dangerouslySetInnerHTML={{__html: `
                 .card-3d-item {

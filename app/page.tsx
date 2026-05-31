@@ -1053,7 +1053,13 @@ export default function Home() {
               {/* Cards Container */}
               <div className="relative w-full max-w-5xl h-[400px] md:h-[490px] flex justify-center items-center overflow-hidden">
                 {favoriteProducts.map((product, i) => {
-                  const offset = i - activeFavIndex;
+                  const n = favoriteProducts.length;
+                  let offset = i - activeFavIndex;
+                  if (offset > n / 2) {
+                    offset -= n;
+                  } else if (offset < -n / 2) {
+                    offset += n;
+                  }
                   const absOffset = Math.abs(offset);
                   const isActive = absOffset === 0;
                   const isQuickShopOpen = selectedQuickShopIndex === i;

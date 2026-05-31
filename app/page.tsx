@@ -334,6 +334,7 @@ export default function Home() {
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
   const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);

@@ -729,8 +729,8 @@ export default function Home() {
 
 
       {/* Shared Header (Glassmorphic & Mobile First) */}
-      <header className="sticky top-0 z-[100] glass-nav transition-all duration-300">
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 md:px-6 lg:px-20 py-2.5">
+      <header className="fixed bottom-0 top-auto left-0 right-0 md:sticky md:top-0 md:bottom-auto z-[100] glass-nav transition-all duration-300 border-t border-b-0 md:border-t-0 md:border-b border-[#775a19]/10">
+        <div className="flex items-center justify-between max-w-6xl mx-auto px-4 md:px-6 lg:px-20 py-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] md:pb-2.5">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
@@ -817,7 +817,7 @@ export default function Home() {
             mobileMenuOpen ? "clip-path-circle-open" : "clip-path-circle-closed"
           }`}
           style={{
-            clipPath: mobileMenuOpen ? "circle(150% at top right)" : "circle(0% at top right)",
+            clipPath: mobileMenuOpen ? "circle(150% at bottom right)" : "circle(0% at bottom right)",
             transition: "clip-path 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
           }}
         >
@@ -870,7 +870,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main>
+      <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
         <section className="relative min-h-[75svh] lg:min-h-[82vh] flex flex-col justify-center overflow-hidden bg-on-surface py-24 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}

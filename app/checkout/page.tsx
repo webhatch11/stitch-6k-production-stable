@@ -357,9 +357,9 @@ export default function CheckoutPage() {
             {/* Step 1: Delivery Details */}
             {currentStep === 1 && (
               <div className="space-y-12">
-                <div className="flex items-baseline gap-4 mb-12">
-                  <span className="text-xs font-bold tracking-[0.2em] text-secondary uppercase italic">Step 01 of 03</span>
-                  <h2 className="text-4xl font-bold tracking-tighter uppercase">Delivery Details</h2>
+                <div className="space-y-1.5 mb-8">
+                  <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 01 of 03</span>
+                  <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Delivery Details</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-16">
                   <div className="relative group">
@@ -481,9 +481,9 @@ export default function CheckoutPage() {
             {/* Step 2: Perks & Wallet */}
             {currentStep === 2 && (
               <div className="space-y-12 animate-fade-in">
-                <div className="flex items-baseline gap-4 mb-12">
-                  <span className="text-xs font-bold tracking-[0.2em] text-secondary uppercase italic">Step 02 of 03</span>
-                  <h2 className="text-4xl font-bold tracking-tighter uppercase">Perks & Store Credit</h2>
+                <div className="space-y-1.5 mb-8">
+                  <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 02 of 03</span>
+                  <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Perks & Store Credit</h2>
                 </div>
                 <div className="space-y-8">
                   {/* Coupon Validation */}
@@ -589,9 +589,9 @@ export default function CheckoutPage() {
             {/* Step 3: Final Verification */}
             {currentStep === 3 && (
               <div className="space-y-12 animate-fade-in">
-                <div className="flex items-baseline gap-4 mb-12">
-                  <span className="text-xs font-bold tracking-[0.2em] text-secondary uppercase italic">Step 03 of 03</span>
-                  <h2 className="text-4xl font-bold tracking-tighter uppercase">Final Verification</h2>
+                <div className="space-y-1.5 mb-8">
+                  <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 03 of 03</span>
+                  <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Final Verification</h2>
                 </div>
                 <div className="space-y-8">
                   {/* Destination Overview */}

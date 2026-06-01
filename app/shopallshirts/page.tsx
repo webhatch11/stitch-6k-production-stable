@@ -559,28 +559,6 @@ export default function ShopAllShirts() {
 
                   return (
                     <React.Fragment key={product.id}>
-                      {/* Dynamic Trust Signal Card every 5th item */}
-                      {index > 0 && index % 5 === 0 && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 15 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
-                          className="aspect-[3/4] bg-[#0c0c0e] flex flex-col items-center justify-center text-center p-6 text-white select-none border border-[#fed488]/15 rounded-[1.5rem] shadow-xl relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(254,212,136,0.05)] hover:-translate-y-1 transition-all duration-500 ease-out"
-                        >
-                          <div className="absolute -top-12 -left-12 w-28 h-28 bg-[#fed488]/5 rounded-full blur-2xl transition-all duration-1000 group-hover:scale-110"></div>
-                          <div className="absolute -bottom-12 -right-12 w-28 h-28 bg-[#775a19]/5 rounded-full blur-2xl transition-all duration-1000 group-hover:scale-110"></div>
-                          <span className="material-symbols-outlined text-[#fed488] text-3xl mb-4 animate-pulse">local_shipping</span>
-                          <h4 className="text-xs font-headline font-black uppercase tracking-[0.2em] mb-2 text-[#fed488] group-hover:text-white transition-colors">Global Shipping</h4>
-                          <p className="text-[9px] text-[#eae8e4]/70 uppercase tracking-[0.18em] leading-relaxed max-w-[200px]">
-                            Free 2-day delivery across India.
-                            <br />
-                            DHL Express worldwide.
-                          </p>
-                          <div className="mt-4 w-12 h-[1px] bg-gradient-to-r from-transparent via-[#fed488]/40 to-transparent group-hover:w-16 transition-all duration-500"></div>
-                        </motion.div>
-                      )}
-
                       <motion.div 
                         initial={{ opacity: 0, y: 15 }}
                         whileInView={{ opacity: 1, y: 0 }}

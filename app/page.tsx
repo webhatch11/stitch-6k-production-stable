@@ -802,20 +802,22 @@ export default function Home() {
       )}
 
 
-      {/* Desktop Top Header (Hidden on Mobile) */}
+      {/* Dynamic Responsive Top Header (Brand Identity Anchor) */}
       <header 
-        className={`hidden md:block z-[100] transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
           isScrolled 
-            ? "sticky top-0 bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
-            : "absolute top-0 left-0 right-0 bg-transparent border-transparent py-4"
+            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
+            : "bg-transparent border-transparent py-3 md:py-4"
         }`}
       >
-        <div className="flex items-center justify-between max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 transition-all duration-500">
-          <div className="flex items-center gap-12">
-            {/* Logo */}
-            <Link href="/" className="flex items-center group hover-scale">
-              <div className={`w-11 h-11 rounded-full p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
-                isScrolled ? "bg-white border border-[#775a19]/15" : "bg-white/10 backdrop-blur-md border border-white/20"
+        <div className="flex items-center justify-between max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 transition-all duration-500 relative min-h-[48px] md:min-h-0">
+          <div className="flex items-center gap-12 w-full md:w-auto">
+            {/* Logo - Centered on Mobile, Left-aligned on Desktop */}
+            <Link href="/" className="absolute left-1/2 -translate-x-1/2 md:static md:-translate-x-0 flex items-center group hover-scale z-10">
+              <div className={`w-12 h-12 md:w-11 md:h-11 rounded-full p-2 md:p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
+                isScrolled 
+                  ? "bg-white border border-[#775a19]/15 shadow-[0_0_15px_rgba(119,90,25,0.1)]" 
+                  : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
               }`}>
                 <img 
                   src="/assets/logo.png" 
@@ -826,8 +828,8 @@ export default function Home() {
               </div>
             </Link>
 
-            {/* Desktop Menu */}
-            <nav className="flex items-center gap-8">
+            {/* Desktop Menu (Hidden on Mobile) */}
+            <nav className="hidden md:flex items-center gap-8">
               <Link
                 className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
                   isScrolled 
@@ -871,8 +873,8 @@ export default function Home() {
             </nav>
           </div>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-5">
+          {/* Right Icons (Hidden on Mobile) */}
+          <div className="hidden md:flex items-center gap-5">
             <Link
               href="/shoppingbag"
               className={`material-symbols-outlined hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative ${

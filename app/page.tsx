@@ -1344,8 +1344,8 @@ export default function Home() {
                           </div>
                         )}
 
-                        {/* NEW Badge Tag on active card (Top-left, gold border black box) */}
-                        <div className={`absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-2.5 py-1.5 text-[7.5px] font-black uppercase tracking-[0.3em] transition-opacity duration-500 z-10 rounded-none shadow-lg ${
+                        {/* NEW Badge Tag on active card (Top-left, gold border semi-transparent capsule) */}
+                        <div className={`absolute top-3 left-3 md:top-4 md:left-4 bg-black/60 backdrop-blur-sm text-secondary border border-secondary/30 px-2 py-0.5 md:px-2.5 md:py-1 text-[7px] md:text-[7.5px] font-black uppercase tracking-[0.18em] md:tracking-[0.3em] transition-opacity duration-500 z-10 rounded-full shadow-lg ${
                           isActive ? "opacity-100" : "opacity-0"
                         }`}>
                           {product.tag}

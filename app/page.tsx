@@ -1649,27 +1649,40 @@ export default function Home() {
                         onClick={() => setActiveCategoryIndex(idx)}
                         onMouseEnter={() => setActiveCategoryIndex(idx)}
                         suppressHydrationWarning={true}
-                        className={`group/card relative flex-shrink-0 w-[64px] h-[85px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                        className={`group/card relative flex-shrink-0 w-[64px] h-[85px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border ${
                           isActive
-                            ? "ring-2 ring-secondary ring-offset-2 ring-offset-black/50 scale-[1.08] shadow-[0_12px_24px_rgba(0,0,0,0.5)]"
-                            : "opacity-60 hover:opacity-95 hover:scale-[1.03] shadow-md"
-                        } bg-gradient-to-b ${item.cardBg} border border-white/10`}
+                            ? "scale-[1.08] border-[#fed488]/60 shadow-[0_0_24px_rgba(254,212,136,0.22)] ring-1 ring-[#fed488]/20 z-10"
+                            : "opacity-75 hover:opacity-100 hover:scale-[1.03] hover:-translate-y-1 border-white/10 hover:border-white/25 shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
+                        } bg-black/40 backdrop-blur-md`}
                       >
+                        {/* Ambient Themed Glow Overlay inside the card */}
+                        <div 
+                          className={`absolute inset-0 transition-opacity duration-500 pointer-events-none -z-10 bg-gradient-to-b ${item.cardBg} ${
+                            isActive ? "opacity-35" : "opacity-15 group-hover/card:opacity-25"
+                          }`}
+                        />
+
                         {/* Thumbnail contents */}
-                        <div className="w-full h-full p-2 md:p-3.5 flex flex-col justify-between items-center relative">
-                          {/* Floating shirt still */}
-                          <div className="w-full h-[70%] flex items-center justify-center overflow-hidden">
+                        <div className="w-full h-full p-2.5 md:p-3.5 flex flex-col justify-between items-center relative z-10">
+                          {/* Floating shirt still with soft vignette/shadow container */}
+                          <div className="w-full h-[68%] flex items-center justify-center overflow-hidden relative">
+                            {/* Inner Vignette / Radial Glow behind image */}
+                            <div className={`absolute inset-0 rounded-full blur-xl transition-all duration-500 -z-10 ${
+                              isActive ? "bg-[#fed488]/10 scale-110" : "bg-white/5 scale-90 group-hover/card:scale-100"
+                            }`} />
                             <img
                               src={item.thumbnail}
                               alt={item.name}
-                              className="max-w-full max-h-full object-contain transform group-hover/card:scale-[1.12] transition-transform duration-500"
+                              className="max-w-full max-h-full object-contain transform group-hover/card:scale-110 transition-transform duration-500"
                               draggable={false}
                             />
                           </div>
 
                           {/* Category Name inside card */}
-                          <div className="w-full text-center">
-                            <span className="text-[7.5px] md:text-[9.5px] font-black tracking-widest text-white/90 uppercase block truncate">
+                          <div className="w-full text-center mt-1">
+                            <span className={`text-[7.5px] md:text-[9.5px] font-bold tracking-[0.18em] uppercase block truncate transition-colors duration-300 ${
+                              isActive ? "text-[#fed488]" : "text-white/80 group-hover/card:text-white"
+                            }`}>
                               {item.name}
                             </span>
                           </div>

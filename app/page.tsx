@@ -804,20 +804,20 @@ export default function Home() {
 
       {/* Dynamic Responsive Top Header (Brand Identity Anchor) */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-2.5 ${
           isScrolled 
-            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm py-2" 
-            : "bg-transparent border-transparent py-3 md:py-4"
+            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm" 
+            : "bg-transparent border-transparent"
         }`}
       >
         <div className="flex items-center justify-between max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 transition-all duration-500 relative min-h-[48px] md:min-h-0">
           <div className="flex items-center gap-12 w-full md:w-auto">
-            {/* Logo - Centered on Mobile, Left-aligned on Desktop */}
-            <Link href="/" className="absolute left-1/2 -translate-x-1/2 md:static md:-translate-x-0 flex items-center group hover-scale z-10">
-              <div className={`w-12 h-12 md:w-11 md:h-11 rounded-full p-2 md:p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
+            {/* Logo - Left-aligned on both Mobile & Desktop to clear notch and visual crowding */}
+            <Link href="/" className="flex items-center group hover-scale z-10">
+              <div className={`w-11 h-11 md:w-11 md:h-11 rounded-full p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
                 isScrolled 
-                  ? "bg-white border border-[#775a19]/15 shadow-[0_0_15px_rgba(119,90,25,0.1)]" 
-                  : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+                  ? "bg-white border border-[#775a19]/15 shadow-[0_0_12px_rgba(119,90,25,0.08)]" 
+                  : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_0_12px_rgba(255,255,255,0.05)]"
               }`}>
                 <img 
                   src="/assets/logo.png" 
@@ -873,8 +873,8 @@ export default function Home() {
             </nav>
           </div>
 
-          {/* Right Icons (Hidden on Mobile) */}
-          <div className="hidden md:flex items-center gap-5">
+          {/* Right Icons / Actions (Visible on Desktop, optimized key triggers on Mobile) */}
+          <div className="flex items-center gap-5 z-10">
             <Link
               href="/shoppingbag"
               className={`material-symbols-outlined hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative ${
@@ -892,12 +892,25 @@ export default function Home() {
             </Link>
             <Link
               href="/myprofile"
-              className={`material-symbols-outlined hover:text-secondary hover-scale transition-all duration-300 ${
+              className={`hidden md:block material-symbols-outlined hover:text-secondary hover-scale transition-all duration-300 ${
                 isScrolled ? "text-on-surface" : "text-white"
               }`}
             >
               person
             </Link>
+            
+            {/* Mobile Menu Toggle Button (Hidden on Desktop) */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`md:hidden flex items-center justify-center p-1 active:scale-95 transition-all duration-300 focus:outline-none ${
+                isScrolled ? "text-on-surface" : "text-white"
+              }`}
+              title="Toggle Menu Drawer"
+            >
+              <span className="material-symbols-outlined text-[24px]">
+                {mobileMenuOpen ? "close" : "menu"}
+              </span>
+            </button>
           </div>
         </div>
       </header>

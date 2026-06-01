@@ -873,7 +873,7 @@ export default function Home() {
             </nav>
           </div>
 
-          {/* Right Icons / Actions (Visible on Desktop, optimized key triggers on Mobile) */}
+          {/* Right Icons / Actions (Visible on Desktop, simplified on Mobile to prevent duplicate utility icons) */}
           <div className="flex items-center gap-5 z-10">
             <Link
               href="/shoppingbag"
@@ -898,19 +898,6 @@ export default function Home() {
             >
               person
             </Link>
-            
-            {/* Mobile Menu Toggle Button (Hidden on Desktop) */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`md:hidden flex items-center justify-center p-1 active:scale-95 transition-all duration-300 focus:outline-none ${
-                isScrolled ? "text-on-surface" : "text-white"
-              }`}
-              title="Toggle Menu Drawer"
-            >
-              <span className="material-symbols-outlined text-[24px]">
-                {mobileMenuOpen ? "close" : "menu"}
-              </span>
-            </button>
           </div>
         </div>
       </header>

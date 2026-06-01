@@ -502,7 +502,7 @@ export default function CheckoutPage() {
                               id="loyaltyToggle"
                               checked={loyaltyChecked}
                               onChange={(e) => setLoyaltyChecked(e.target.checked)}
-                              className="sr-only peer"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
                             />
                             <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
                               <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
@@ -533,7 +533,7 @@ export default function CheckoutPage() {
                               id="walletToggle"
                               checked={walletChecked}
                               onChange={(e) => setWalletChecked(e.target.checked)}
-                              className="sr-only peer"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
                             />
                             <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
                               <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">

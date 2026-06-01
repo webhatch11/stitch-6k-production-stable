@@ -107,7 +107,7 @@ const WALLET_BALANCE_KEY = "registry_wallet_balance";
 const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
-const CURRENT_VERSION = "5.2_dynamic_slugs";
+const CURRENT_VERSION = "5.3_festive_coupon";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -727,6 +727,7 @@ export const RegistryManager = {
       const seedCoupons: Coupon[] = [
         { id: "CPN-1", code: "HERITAGE10", discount: 10, type: "percent", active: true },
         { id: "CPN-2", code: "LAUNCH500", discount: 500, type: "flat", active: true },
+        { id: "CPN-3", code: "FESTIVE24", discount: 10, type: "percent", active: true },
       ];
       localStorage.setItem(COUPONS_KEY, JSON.stringify(seedCoupons));
     }

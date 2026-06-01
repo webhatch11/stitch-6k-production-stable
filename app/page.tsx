@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface HeroSlide {
@@ -338,6 +339,7 @@ const shirtCategories: ShirtCategoryItem[] = [
 ];
 
 export default function Home() {
+  const pathname = usePathname();
   // Favorite products active index state for 3D Coverflow slider
   const [activeFavIndex, setActiveFavIndex] = useState(2);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
@@ -345,6 +347,38 @@ export default function Home() {
   const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Swipe support for Coverflow
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const deltaX = touchStartX.current - touchEndX;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(deltaX) > minSwipeDistance) {
+      if (deltaX > 0) {
+        setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+        setSelectedQuickShopIndex(null);
+      } else {
+        setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
+        setSelectedQuickShopIndex(null);
+      }
+    }
+    touchStartX.current = null;
+  };
+
+  const isActiveTab = (path: string) => {
+    if (path === "/") {
+      return pathname === "/";
+    }
+    return pathname === path || pathname.startsWith(path);
+  };
 
   // Preloader state
   const [showLoader, setShowLoader] = useState(true);
@@ -867,59 +901,74 @@ export default function Home() {
       </header>
 
       {/* Modern Mobile Bottom Navigation Capsule */}
-      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-black/60 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
         {/* Home Tab */}
         <Link 
           href="/" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">home</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Home</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">home</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Home</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Shop Tab */}
         <Link 
           href="/shopallshirts" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/shopallshirts") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">storefront</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Shop</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">storefront</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Shop</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/shopallshirts") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Bag Tab (with real-time count badge) */}
         <Link 
           href="/shoppingbag" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group relative"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
+            isActiveTab("/shoppingbag") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">shopping_bag</span>
           {cartCount > 0 && (
             <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
               {cartCount}
             </span>
           )}
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Bag</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Bag</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/shoppingbag") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Profile Tab */}
         <Link 
           href="/myprofile" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/myprofile") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">person</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Profile</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">person</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Profile</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/myprofile") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Menu drawer trigger */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group focus:outline-none"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            mobileMenuOpen ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
           <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
             {mobileMenuOpen ? "close" : "menu"}
           </span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">
+          <span className="text-[8px] font-bold uppercase tracking-wider">
             {mobileMenuOpen ? "Close" : "Menu"}
           </span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${mobileMenuOpen ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </button>
       </div>
 
@@ -983,7 +1032,7 @@ export default function Home() {
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative min-h-[70svh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-on-surface py-20 lg:py-0">
+        <section className="relative min-h-[55svh] md:min-h-[70svh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-on-surface py-16 md:py-20 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}
           <div className="absolute inset-0 z-0 select-none pointer-events-none">
             {heroSlides.map((slide, i) => (
@@ -1212,7 +1261,11 @@ export default function Home() {
               </div>
 
               {/* Cards Container */}
-              <div className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden [perspective:1200px] [transform-style:preserve-3d]">
+              <div 
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden [perspective:1200px] [transform-style:preserve-3d]"
+              >
                 {favoriteProducts.map((product, i) => {
                   const n = favoriteProducts.length;
                   let offset = i - activeFavIndex;
@@ -1228,8 +1281,8 @@ export default function Home() {
                   // Limit visible card set for clean layout
                   if (absOffset > 2) return null;
 
-                  const scale = isActive ? 1.05 : 0.88 - absOffset * 0.04;
-                  const opacity = isActive ? 1.0 : 0.5 - absOffset * 0.15;
+                  const scale = isActive ? 1.05 : 0.82 - absOffset * 0.05;
+                  const opacity = isActive ? 1.0 : 0.40 - absOffset * 0.15;
                   const zIndex = 30 - absOffset * 5;
                   const blurClass = isActive ? "blur-none" : "blur-[0.4px] md:blur-[0.6px]";
                   const grayscaleClass = isActive ? "grayscale-0" : "grayscale-[60%]";
@@ -1447,9 +1500,13 @@ export default function Home() {
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 md:gap-x-6 lg:gap-x-8 gap-y-8 md:gap-y-12"
             >
               {favoriteStyles.map((item) => (
-                <Link href={`/product/${item.slug}`} key={item.id} className="group flex flex-col cursor-pointer">
+                <Link 
+                  href={`/product/${item.slug}`} 
+                  key={item.id} 
+                  className="group flex flex-col cursor-pointer transition-all duration-300 active:scale-[0.98] select-none"
+                >
                   {/* Image container */}
-                  <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+                  <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
                     <img
                       src={item.image}
                       alt={item.name}
@@ -1475,7 +1532,7 @@ export default function Home() {
                   </div>
 
                   {/* Text details below the image */}
-                  <div className="flex justify-between items-start gap-4 mb-1">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4 mb-1">
                     <h3 className="font-sans font-bold text-neutral-900 text-xs md:text-sm text-left leading-tight group-hover:text-secondary transition-colors duration-300">
                       {item.name}
                     </h3>
@@ -1618,7 +1675,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 0.8, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
-                  className={`text-[10px] md:text-xs max-w-sm mt-5 leading-relaxed font-semibold uppercase tracking-[0.15em] ${shirtCategories[activeCategoryIndex].textColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]`}
+                  className={`text-[10px] md:text-xs max-w-[280px] md:max-w-sm mt-3 md:mt-5 leading-relaxed font-semibold uppercase tracking-[0.15em] ${shirtCategories[activeCategoryIndex].textColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]`}
                 >
                   {shirtCategories[activeCategoryIndex].subtitle}
                 </motion.p>
@@ -1629,7 +1686,7 @@ export default function Home() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.45 }}
-                  className="mt-8 pointer-events-auto animate-pulse-slow"
+                  className="mt-5 md:mt-8 pointer-events-auto animate-pulse-slow"
                 >
                   <Link
                     href="/shopallshirts"
@@ -1642,7 +1699,7 @@ export default function Home() {
 
               {/* Bottom Interactive Thumbnail Cards */}
               <div className="relative z-10 w-full mt-auto pt-6 border-t border-white/5">
-                <div className="flex justify-start md:justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 px-4 md:px-0 scrollbar-none">
+                <div className="flex justify-start md:justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 px-4 md:px-0 scrollbar-none [-webkit-overflow-scrolling:touch]">
                   {shirtCategories.map((item, idx) => {
                     const isActive = idx === activeCategoryIndex;
                     return (
@@ -1651,11 +1708,11 @@ export default function Home() {
                         onClick={() => setActiveCategoryIndex(idx)}
                         onMouseEnter={() => setActiveCategoryIndex(idx)}
                         suppressHydrationWarning={true}
-                        className={`group/card relative flex-shrink-0 w-[64px] h-[85px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border ${
+                        className={`group/card relative flex-shrink-0 w-[68px] h-[92px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border ${
                           isActive
                             ? "scale-[1.08] border-[#fed488]/60 shadow-[0_0_24px_rgba(254,212,136,0.22)] ring-1 ring-[#fed488]/20 z-10"
                             : "opacity-75 hover:opacity-100 hover:scale-[1.03] hover:-translate-y-1 border-white/10 hover:border-white/25 shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
-                        } bg-black/40 backdrop-blur-md`}
+                        } bg-black/40 backdrop-blur-md active:scale-95`}
                       >
                         {/* Ambient Themed Glow Overlay inside the card */}
                         <div 

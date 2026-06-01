@@ -776,7 +776,7 @@ export default function Home() {
             : "absolute top-0 left-0 right-0 bg-transparent border-transparent py-4"
         }`}
       >
-        <div className="flex items-center justify-between max-w-6xl mx-auto px-6 lg:px-20 transition-all duration-500">
+        <div className="flex items-center justify-between max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 transition-all duration-500">
           <div className="flex items-center gap-12">
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale">
@@ -983,7 +983,7 @@ export default function Home() {
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative min-h-[85svh] lg:min-h-[92vh] flex flex-col justify-center overflow-hidden bg-on-surface py-20 lg:py-0">
+        <section className="relative min-h-[70svh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-on-surface py-20 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}
           <div className="absolute inset-0 z-0 select-none pointer-events-none">
             {heroSlides.map((slide, i) => (
@@ -1057,13 +1057,13 @@ export default function Home() {
         </div>
 
         {/* Section 2: Promotional Spotlight */}
-        <section className="bg-surface-container-low py-20 md:py-32 px-4 lg:px-20 relative overflow-hidden group">
+        <section className="bg-surface-container-low py-16 md:py-24 px-4 md:px-8 lg:px-12 relative overflow-hidden group">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-            className="max-w-5xl mx-auto w-full relative min-h-[320px] lg:min-h-[380px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
+            className="max-w-4xl mx-auto w-full relative min-h-[280px] lg:min-h-[320px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
           >
             {/* Background Image with slow zoom-scale */}
             <img
@@ -1131,8 +1131,8 @@ export default function Home() {
         </section>
 
         {/* Section 3: Best Sellers / Featured Collection */}
-        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-black border-y border-white/5 scroll-mt-24">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-black border-y border-white/5 scroll-mt-24">
+          <div className="max-w-[1400px] mx-auto">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -1144,7 +1144,7 @@ export default function Home() {
               <p className="text-secondary font-label text-[10px] sm:text-xs uppercase tracking-[0.45em] mb-3.5 text-center">
                 New Arrivals
               </p>
-              <h2 className="text-white font-headline text-3xl sm:text-4xl lg:text-5xl font-black tracking-[0.15em] uppercase text-center select-none leading-none">
+              <h2 className="text-white font-headline text-2xl sm:text-3.5xl lg:text-4xl font-black tracking-[0.15em] uppercase text-center select-none leading-none">
                 FEATURED COLLECTION
               </h2>
             </motion.div>
@@ -1162,26 +1162,26 @@ export default function Home() {
               {/* Coverflow Styles */}
               <style dangerouslySetInnerHTML={{__html: `
                 .card-3d-item {
-                  transform: translateX(calc(var(--card-offset) * 75px)) scale(var(--card-scale));
+                  transform: translateX(calc(var(--card-offset) * 55px)) scale(var(--card-scale));
                 }
                 @media (min-width: 480px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 100px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 75px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 640px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 130px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 95px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 768px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 160px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 120px)) scale(var(--card-scale));
                   }
                 }
                 @media (min-width: 1024px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 200px)) scale(var(--card-scale));
+                    transform: translateX(calc(var(--card-offset) * 150px)) scale(var(--card-scale));
                   }
                 }
               `}} />
@@ -1211,7 +1211,7 @@ export default function Home() {
               </div>
 
               {/* Cards Container */}
-              <div className="relative w-full max-w-5xl h-[400px] md:h-[490px] flex justify-center items-center overflow-hidden">
+              <div className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden">
                 {favoriteProducts.map((product, i) => {
                   const n = favoriteProducts.length;
                   let offset = i - activeFavIndex;
@@ -1248,7 +1248,7 @@ export default function Home() {
                         '--card-offset': offset,
                         '--card-scale': scale,
                       } as React.CSSProperties}
-                      className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[350px] md:h-[440px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
+                    className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[280px] md:h-[360px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
                         isActive ? "border border-secondary/40 shadow-[0_0_50px_rgba(254,212,136,0.22)]" : "border border-white/5 shadow-2xl"
                       } ${blurClass} ${grayscaleClass}`}
                     >
@@ -1259,7 +1259,7 @@ export default function Home() {
 
                       {/* Unified Card Frame */}
                       <div className={`h-full relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
-                        isActive ? "w-[210px] md:w-[250px]" : "w-[110px] sm:w-[130px] md:w-[150px]"
+                        isActive ? "w-[180px] md:w-[210px]" : "w-[90px] sm:w-[105px] md:w-[120px]"
                       }`}>
                         {/* Product Image with smooth group hover scale */}
                         <img
@@ -1413,8 +1413,8 @@ export default function Home() {
         </section>
 
         {/* Section 3.5: Our Favorite Style */}
-        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-[#FAF9F8] relative overflow-hidden border-t border-black/5">
+          <div className="max-w-[1400px] mx-auto">
             {/* Header Block */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -1442,7 +1442,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 md:gap-x-6 lg:gap-x-8 gap-y-8 md:gap-y-12"
             >
               {favoriteStyles.map((item) => (
                 <Link href={`/product/${item.slug}`} key={item.id} className="group flex flex-col cursor-pointer">
@@ -1502,8 +1502,8 @@ export default function Home() {
         </section>
 
         {/* Section 4: Category Showcase */}
-        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-on-surface relative overflow-hidden">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-on-surface relative overflow-hidden">
+          <div className="max-w-[1400px] mx-auto">
             {/* Header Block */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -1531,7 +1531,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
-              className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[500px] md:min-h-[580px] lg:min-h-[660px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
+              className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[380px] md:min-h-[460px] lg:min-h-[540px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
               style={{
                 background: shirtCategories[activeCategoryIndex].activeBg
               }}
@@ -1573,7 +1573,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 0.95, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="mb-6 w-16 h-16 md:w-20 md:h-20 rounded-full bg-white p-3.5 flex items-center justify-center shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-300"
+                  className="mb-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-white p-3.5 flex items-center justify-center shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-300"
                 >
                   <img
                     src="/assets/logo.png"
@@ -1590,7 +1590,7 @@ export default function Home() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
-                    className="font-headline text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-[0.25em] uppercase leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
+                    className="font-headline text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-[0.25em] uppercase leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
                   >
                     {shirtCategories[activeCategoryIndex].title.split(" ")[0]}
                   </motion.h3>
@@ -1649,7 +1649,7 @@ export default function Home() {
                         onClick={() => setActiveCategoryIndex(idx)}
                         onMouseEnter={() => setActiveCategoryIndex(idx)}
                         suppressHydrationWarning={true}
-                        className={`group/card relative flex-shrink-0 w-[78px] h-[105px] md:w-[130px] md:h-[175px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                        className={`group/card relative flex-shrink-0 w-[64px] h-[85px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                           isActive
                             ? "ring-2 ring-secondary ring-offset-2 ring-offset-black/50 scale-[1.08] shadow-[0_12px_24px_rgba(0,0,0,0.5)]"
                             : "opacity-60 hover:opacity-95 hover:scale-[1.03] shadow-md"
@@ -1684,8 +1684,8 @@ export default function Home() {
         </section>
 
         {/* Section 5: Trust Section */}
-        <section className="py-20 md:py-32 px-4 md:px-6 lg:px-20 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
+          <div className="max-w-[1400px] mx-auto">
             <motion.div 
               initial="hidden"
               whileInView="visible"
@@ -1699,7 +1699,7 @@ export default function Home() {
                   }
                 }
               }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 text-center"
+              className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center"
             >
               {/* Point 1: Made In India */}
               <motion.div
@@ -1783,7 +1783,7 @@ export default function Home() {
         </section>
 
         {/* Section 6: Social Proof (Global Reach) */}
-        <section className="py-20 md:py-32 bg-[#F9FAFB] relative overflow-hidden">
+        <section className="py-16 md:py-24 bg-[#F9FAFB] relative overflow-hidden px-4 md:px-8 lg:px-12">
           <div className="w-full relative z-10">
             {/* Header Centered block with standard padding */}
             <motion.div
@@ -1791,12 +1791,12 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-              className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20 text-center mb-12 md:mb-16"
+              className="max-w-[1400px] mx-auto text-center mb-12 md:mb-16"
             >
               <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
               </p>
-              <h2 className="font-headline text-3xl md:text-5xl font-black text-black mb-4 uppercase tracking-tight text-center">
+              <h2 className="font-headline text-2xl md:text-4xl font-black text-black mb-4 uppercase tracking-tight text-center">
                 FROM OUR LOOMS
                 <br />
                 TO THE WORLD.
@@ -1999,7 +1999,7 @@ export default function Home() {
             </motion.div>
 
             {/* Form Button & Drawer inside centered container */}
-            <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-20">
+            <div className="max-w-[1400px] mx-auto">
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -2138,8 +2138,8 @@ export default function Home() {
       </main>
 
       {/* Global Footer */}
-      <footer className="py-10 md:py-16 bg-[#0A0A0A] text-white px-4 md:px-6 lg:px-20 border-t-4 border-secondary">
-        <div className="max-w-6xl mx-auto">
+      <footer className="py-10 md:py-16 bg-[#0A0A0A] text-white px-4 md:px-8 lg:px-12 border-t-4 border-secondary">
+        <div className="max-w-[1400px] mx-auto">
           {/* Top Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <div>

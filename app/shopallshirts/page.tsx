@@ -2,12 +2,22 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Product } from "@/lib/registry";
 import { db } from "@/lib/db";
 
 export default function ShopAllShirts() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+
+  const isActiveTab = (path: string) => {
+    if (path === "/") {
+      return pathname === "/";
+    }
+    return pathname === path || pathname.startsWith(path);
+  };
 
   // Filter & Sort state
   const [products, setProducts] = useState<Product[]>([]);
@@ -155,12 +165,23 @@ export default function ShopAllShirts() {
         </div>
       </div>
 
-      {/* Desktop Top Header (Hidden on Mobile) */}
-      <header className="hidden md:block md:sticky md:top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-12">
-            <Link href="/" className="flex items-center group hover-scale">
-              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
+      {/* Dynamic Responsive Top Header (Brand Identity Anchor) */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-2.5 ${
+          isScrolled 
+            ? "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm" 
+            : "bg-transparent border-transparent"
+        }`}
+      >
+        <div className="flex items-center justify-between max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 transition-all duration-500 relative min-h-[48px] md:min-h-0">
+          <div className="flex items-center gap-12 w-full md:w-auto">
+            {/* Logo - Left-aligned on both Mobile & Desktop to clear notch and visual crowding */}
+            <Link href="/" className="flex items-center group hover-scale z-10">
+              <div className={`w-11 h-11 md:w-11 md:h-11 rounded-full p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ${
+                isScrolled 
+                  ? "bg-white border border-[#775a19]/15 shadow-[0_0_12px_rgba(119,90,25,0.08)]" 
+                  : "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_0_12px_rgba(255,255,255,0.05)]"
+              }`}>
                 <img 
                   src="/assets/logo.png" 
                   alt="6K Logo" 
@@ -169,7 +190,9 @@ export default function ShopAllShirts() {
                 />
               </div>
             </Link>
-            <nav className="flex items-center gap-8">
+
+            {/* Desktop Menu (Hidden on Mobile) */}
+            <nav className="hidden md:flex items-center gap-8">
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">
                 Home
               </Link>
@@ -184,79 +207,105 @@ export default function ShopAllShirts() {
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-6">
-            <Link href="/shoppingbag" className="material-symbols-outlined text-outline hover:text-primary transition-colors relative">
+
+          {/* Right Icons / Actions (Visible on Desktop, simplified on Mobile to prevent duplicate utility icons) */}
+          <div className="flex items-center gap-5 z-10">
+            <Link
+              href="/shoppingbag"
+              className={`material-symbols-outlined hover:text-secondary hover-scale hover:-rotate-6 transition-all duration-300 relative ${
+                isScrolled ? "text-on-surface" : "text-white"
+              }`}
+            >
               shopping_bag
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-secondary text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-surface">
+                <span className={`absolute -top-1.5 -right-1.5 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border ${
+                  isScrolled ? "bg-secondary text-white border-surface" : "bg-secondary text-white border-black"
+                }`}>
                   {cartCount}
                 </span>
               )}
             </Link>
-            <Link href="/myprofile" className="material-symbols-outlined text-outline hover:text-primary transition-colors">
+            <Link
+              href="/myprofile"
+              className={`hidden md:block material-symbols-outlined hover:text-secondary hover-scale transition-all duration-300 ${
+                isScrolled ? "text-on-surface" : "text-white"
+              }`}
+            >
               person
-            </Link>
-            <Link href="/admindashboard" className="material-symbols-outlined text-outline hover:text-primary transition-colors">
-              admin_panel_settings
             </Link>
           </div>
         </div>
       </header>
 
       {/* Modern Mobile Bottom Navigation Capsule */}
-      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/95 backdrop-blur-xl border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-black/60 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
         {/* Home Tab */}
         <Link 
           href="/" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">home</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Home</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">home</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Home</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Shop Tab */}
         <Link 
           href="/shopallshirts" 
-          className="flex flex-col items-center gap-0.5 text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/shopallshirts") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">storefront</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-100 transition-transform">Shop</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">storefront</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Shop</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/shopallshirts") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Bag Tab (with real-time count badge) */}
         <Link 
           href="/shoppingbag" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group relative"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
+            isActiveTab("/shoppingbag") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">shopping_bag</span>
           {cartCount > 0 && (
             <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
               {cartCount}
             </span>
           )}
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Bag</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Bag</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/shoppingbag") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Profile Tab */}
         <Link 
           href="/myprofile" 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            isActiveTab("/myprofile") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
-          <span className="material-symbols-outlined text-[20px]">person</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">Profile</span>
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">person</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">Profile</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/myprofile") ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Menu drawer trigger */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-          className="flex flex-col items-center gap-0.5 text-[#eae8e4]/70 hover:text-secondary-fixed-dim focus:text-secondary-fixed-dim transition-colors group focus:outline-none"
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+            mobileMenuOpen ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
         >
           <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
             {mobileMenuOpen ? "close" : "menu"}
           </span>
-          <span className="text-[8px] font-bold uppercase tracking-wider scale-95 group-hover:scale-100 transition-transform">
+          <span className="text-[8px] font-bold uppercase tracking-wider">
             {mobileMenuOpen ? "Close" : "Menu"}
           </span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${mobileMenuOpen ? "scale-100 opacity-100" : "scale-0 opacity-0"}`} />
         </button>
       </div>
 
@@ -319,34 +368,34 @@ export default function ShopAllShirts() {
       </div>
 
       {/* Main Content */}
-      <main className="pt-16 md:pt-24 pb-16 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 min-h-screen">
+      <main className="pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-28 pb-16 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 min-h-screen">
         {/* HEADER */}
-        <header className="mb-10 md:mb-16 flex flex-col lg:flex-row justify-between gap-6">
+        <header className="mb-6 md:mb-10 flex flex-col lg:flex-row justify-between gap-4 md:gap-6">
           <div className="max-w-xl">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold uppercase mb-3 md:mb-4">
+            <h1 className="text-xl sm:text-2xl md:text-4xl font-black uppercase tracking-tight text-neutral-900 mb-2 md:mb-3">
               The Heritage Shirt
             </h1>
-            <p className="text-sm sm:text-base text-gray-500 leading-relaxed">
+            <p className="text-xs md:text-sm text-neutral-500 leading-relaxed max-w-lg">
               Premium handcrafted shirts blending traditional Indian textiles with modern style.
             </p>
-            <div className="mt-4 max-w-sm">
+            <div className="mt-3 max-w-sm">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search SKU or name..."
-                className="w-full text-xs border border-outline-variant/60 bg-transparent px-4 py-2.5 outline-none focus:border-secondary font-bold"
+                className="w-full text-xs border border-outline-variant/40 bg-white/50 px-4 py-2.5 outline-none focus:border-secondary font-bold rounded-lg backdrop-blur-sm transition-all focus:bg-white"
               />
             </div>
           </div>
 
           {/* SORT */}
-          <div className="flex items-center gap-3 text-xs uppercase font-bold text-gray-500 self-end lg:self-auto">
+          <div className="flex items-center gap-2.5 text-[10px] font-black uppercase tracking-widest text-neutral-400 self-end lg:self-auto mt-2 lg:mt-0">
             <span>Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-black font-bold cursor-pointer border-none outline-none"
+              className="bg-transparent text-neutral-800 font-black cursor-pointer border-none outline-none uppercase tracking-widest text-[10px]"
             >
               <option value="popularity">Popularity</option>
               <option value="newest">Newest</option>
@@ -359,19 +408,19 @@ export default function ShopAllShirts() {
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* FILTER */}
-          <aside id="shop-filters" className="lg:col-span-1 space-y-8">
-            <div className="bg-surface-container-lowest border border-outline-variant/10 p-6 space-y-6 shadow-sm">
+          <aside id="shop-filters" className="lg:col-span-1">
+            <div className="bg-white/60 backdrop-blur-md border border-outline-variant/10 p-6 space-y-6 shadow-sm rounded-[1.5rem]">
               {/* MATERIAL */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-3">Material</h3>
-                <div className="space-y-2 text-xs">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-800 mb-3 border-b border-outline-variant/5 pb-2">Material</h3>
+                <div className="space-y-2.5 text-xs">
                   {["Linen", "Cotton", "Silk", "Denim"].map((material) => (
-                    <label key={material} className="flex gap-2 items-center cursor-pointer select-none">
+                    <label key={material} className="flex gap-2.5 items-center cursor-pointer select-none text-neutral-600 hover:text-secondary hover:translate-x-0.5 transition-all duration-300 font-medium uppercase tracking-wider text-[10px]">
                       <input
                         type="checkbox"
                         checked={selectedMaterials.includes(material.toLowerCase())}
                         onChange={() => handleMaterialChange(material)}
-                        className="accent-secondary"
+                        className="accent-secondary w-3.5 h-3.5 border-outline-variant/40 rounded cursor-pointer"
                       />{" "}
                       {material === "Silk" ? "Silk Blend" : material}
                     </label>
@@ -381,16 +430,16 @@ export default function ShopAllShirts() {
 
               {/* SIZE */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-3 text-on-surface/80 tracking-widest">Size</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-800 mb-3 border-b border-outline-variant/5 pb-2">Size</h3>
                 <div className="grid grid-cols-4 gap-2">
                   {["S", "M", "L", "XL"].map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`border py-2 text-[10px] font-black uppercase tracking-widest btn-active-scale transition-all duration-300 ${
+                      className={`py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-lg shadow-sm border ${
                         selectedSize === size
-                          ? "border-on-surface text-surface bg-on-surface"
-                          : "border-outline-variant/60 text-outline bg-transparent hover:border-on-surface hover:text-on-surface"
+                          ? "border-secondary text-secondary bg-secondary/5 font-black"
+                          : "border-outline-variant/30 text-neutral-500 bg-transparent hover:border-secondary hover:text-secondary"
                       }`}
                     >
                       {size}
@@ -401,8 +450,8 @@ export default function ShopAllShirts() {
 
               {/* PRICE */}
               <div>
-                <h3 className="text-xs font-bold uppercase mb-3 text-on-surface/80 tracking-widest">
-                  Max Price: <span className="font-bold text-secondary">₹{maxPrice.toLocaleString("en-IN")}</span>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-800 mb-3 border-b border-outline-variant/5 pb-2">
+                  Max Price: <span className="font-black text-secondary">₹{maxPrice.toLocaleString("en-IN")}</span>
                 </h3>
                 <input
                   type="range"
@@ -411,9 +460,9 @@ export default function ShopAllShirts() {
                   step="500"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                  className="w-full accent-secondary cursor-pointer"
+                  className="w-full accent-secondary cursor-pointer bg-neutral-200 rounded-lg appearance-none h-1.5"
                 />
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mt-2 text-outline">
+                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mt-2 text-neutral-400">
                   <span>₹1K</span>
                   <span>₹12K</span>
                 </div>
@@ -428,25 +477,25 @@ export default function ShopAllShirts() {
                 <p className="text-gray-400 text-sm uppercase tracking-widest">No products match your filters.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-10">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
                 {filteredProducts.map((product, index) => {
-                  // Dynamic Badges
+                  // Dynamic Badges - Sleek, capsule-style, semi-transparent
                   let badgeElement = null;
                   if (product.isNew) {
                     badgeElement = (
-                      <span className="absolute top-3 left-3 bg-surface-container-lowest/95 backdrop-blur-md text-secondary border border-secondary/20 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 shadow-sm">
+                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-sm text-secondary border border-secondary/35 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full">
                         New Arrival
                       </span>
                     );
                   } else if (product.stock && product.stock < 30) {
                     badgeElement = (
-                      <span className="absolute top-3 left-3 bg-surface-container-lowest/95 backdrop-blur-md text-red-700 border border-red-200 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 shadow-sm flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span> Only {product.stock} Left
+                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-sm text-red-400 border border-red-400/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span> Only {product.stock} Left
                       </span>
                     );
-                  } else if (product.price > 1800) {
+                  } else if (product.price > 8000) {
                     badgeElement = (
-                      <span className="absolute top-3 left-3 bg-on-surface text-secondary-fixed px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 border border-secondary/30 shadow-sm">
+                      <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-sm text-secondary border border-secondary/35 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full">
                         Atelier Exclusive
                       </span>
                     );
@@ -458,25 +507,38 @@ export default function ShopAllShirts() {
                     <React.Fragment key={product.id}>
                       {/* Dynamic Trust Signal Card every 5th item */}
                       {index > 0 && index % 5 === 0 && (
-                        <div className="aspect-[3/4] bg-[#0A0A0A] flex flex-col items-center justify-center text-center p-8 text-white select-none border border-white/5">
-                          <span className="material-symbols-outlined text-secondary text-4xl mb-6">local_shipping</span>
-                          <h4 className="text-sm font-headline font-black uppercase tracking-widest mb-3">Global Shipping</h4>
-                          <p className="text-[10px] text-white/50 uppercase tracking-widest leading-loose">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 15 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.5, delay: (index % 3) * 0.08 }}
+                          className="aspect-[3/4] bg-[#0A0A0A] flex flex-col items-center justify-center text-center p-6 text-white select-none border border-[#fed488]/10 rounded-[1.5rem] shadow-xl relative overflow-hidden"
+                        >
+                          <div className="absolute -top-12 -left-12 w-28 h-28 bg-[#fed488]/5 rounded-full blur-2xl"></div>
+                          <span className="material-symbols-outlined text-secondary text-3xl mb-4 animate-pulse">local_shipping</span>
+                          <h4 className="text-xs font-headline font-black uppercase tracking-[0.2em] mb-2 text-[#fed488]">Global Shipping</h4>
+                          <p className="text-[9px] text-white/60 uppercase tracking-[0.18em] leading-relaxed max-w-[220px]">
                             Free 2-day delivery across India.
                             <br />
                             DHL Express worldwide.
                           </p>
-                        </div>
+                        </motion.div>
                       )}
 
-                      <div className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: (index % 3) * 0.08 }}
+                        className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-[0_15px_30px_rgba(254,212,136,0.08)] hover:-translate-y-1 hover:border-[#fed488]/30 transition-all duration-500 ease-out rounded-[1.5rem] flex flex-col justify-between"
+                      >
                         <Link
                           href={`/product/${product.slug}`}
-                          className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10"
+                          className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem] select-none"
                         >
                           {/* Primary Image */}
                           <img
-                            className="absolute inset-0 w-full h-full object-cover transition-all duration-[1000ms] cubic-bezier(0.25, 1, 0.5, 1) group-hover:scale-105"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-108"
                             src={product.image}
                             alt={product.title}
                             onError={(e) => {
@@ -487,7 +549,7 @@ export default function ShopAllShirts() {
 
                           {/* Secondary Image */}
                           <img
-                            className="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] cubic-bezier(0.25, 1, 0.5, 1) scale-[1.05] opacity-0 group-hover:opacity-100 group-hover:scale-100"
+                            className="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] cubic-bezier(0.25, 1, 0.5, 1) scale-[1.08] opacity-0 group-hover:opacity-100 group-hover:scale-100"
                             src={secondaryImg}
                             alt={`${product.title} Lifestyle`}
                             onError={(e) => {
@@ -499,7 +561,7 @@ export default function ShopAllShirts() {
                           {badgeElement}
 
                           {/* Quick Add Menu */}
-                          <div className="absolute bottom-0 left-0 w-full bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant/10 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-20">
+                          <div className="absolute bottom-0 left-0 w-full bg-surface-container-lowest/80 backdrop-blur-md border-t border-outline-variant/10 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] z-25 rounded-b-[1.2rem]">
                             <p className="text-[9px] font-bold uppercase tracking-widest text-center mb-3 text-outline">
                               Quick Add - Select Size
                             </p>
@@ -512,7 +574,7 @@ export default function ShopAllShirts() {
                                     e.stopPropagation();
                                     handleAddToCart(product, size);
                                   }}
-                                  className="border border-outline-variant/50 text-on-surface hover:bg-secondary hover:text-white hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 btn-active-scale"
+                                  className="border border-outline-variant/50 text-on-surface hover:bg-[#fed488] hover:text-primary hover:border-secondary py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300 rounded-lg active:scale-95 cursor-pointer"
                                 >
                                   {size}
                                 </button>
@@ -522,23 +584,23 @@ export default function ShopAllShirts() {
                         </Link>
 
                         <div className="pt-4 px-2 pb-2">
-                          <div className="flex justify-between items-start gap-3">
-                            <div className="space-y-1">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                            <div className="space-y-1 text-left">
                               <Link href={`/product/${product.slug}`}>
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-[#fed488] transition-colors leading-tight">
                                   {product.title}
                                 </h4>
                               </Link>
-                              <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">
+                              <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-bold">
                                 {product.category} • Atelier Series
                               </p>
                             </div>
-                            <p className="font-headline font-black text-secondary text-xs shrink-0">
+                            <p className="font-headline font-black text-secondary text-xs shrink-0 self-start">
                               ₹{product.price.toLocaleString("en-IN")}
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     </React.Fragment>
                   );
                 })}

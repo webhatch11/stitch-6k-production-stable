@@ -321,158 +321,129 @@ export default function CheckoutPage() {
       </header>
 
       {/* Main Checkout Station */}
-      <main className="pt-32 pb-24 px-8 max-w-screen-xl mx-auto flex-grow w-full">
+      <main className="pt-[calc(4rem+env(safe-area-inset-top,0px))] md:pt-24 pb-16 md:pb-24 px-4 sm:px-6 md:px-8 max-w-screen-xl mx-auto flex-grow w-full">
         {/* Progress Timeline Indicator */}
-        <div className="max-w-4xl mx-auto mb-16">
-          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em] border-b border-outline/10 pb-4">
+        <div className="max-w-2xl mx-auto mb-10 select-none">
+          <div className="flex items-center justify-between bg-white/30 backdrop-blur-md border border-outline-variant/10 p-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-center shadow-sm">
             <div
-              className={`${
-                currentStep === 1 ? "text-secondary border-b-2 border-secondary" : "text-outline/40 border-b-2 border-transparent"
-              } pb-4 -mb-[18px] transition-all font-bold cursor-pointer`}
+              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+                currentStep === 1 
+                  ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
+                  : "text-outline/60 hover:text-on-surface"
+              }`}
               onClick={() => handleGoToStep(1)}
             >
-              01. Delivery Details
+              01. Details
             </div>
             <div
-              className={`${
-                currentStep === 2 ? "text-secondary border-b-2 border-secondary" : "text-outline/40 border-b-2 border-transparent"
-              } pb-4 -mb-[18px] transition-all font-bold cursor-pointer`}
+              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+                currentStep === 2 
+                  ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
+                  : "text-outline/60 hover:text-on-surface"
+              }`}
               onClick={() => handleGoToStep(2)}
             >
-              02. Perks & Credit
+              02. Perks
             </div>
             <div
-              className={`${
-                currentStep === 3 ? "text-secondary border-b-2 border-secondary" : "text-outline/40 border-b-2 border-transparent"
-              } pb-4 -mb-[18px] transition-all font-bold`}
+              className={`flex-grow py-2.5 rounded-full transition-all duration-500 ${
+                currentStep === 3 
+                  ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
+                  : "text-outline/40"
+              }`}
             >
-              03. Final Verification
+              03. Review
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Left Column: Form Wizards */}
           <div className="lg:col-span-7">
             {/* Step 1: Delivery Details */}
             {currentStep === 1 && (
-              <div className="space-y-12">
-                <div className="space-y-1.5 mb-8">
+              <div className="space-y-10">
+                <div className="space-y-1.5 mb-6">
                   <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 01 of 03</span>
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Delivery Details</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-16">
-                  <div className="relative group">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="fname">First Name</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="fname"
-                      placeholder=" "
+                      placeholder="ENTER FIRST NAME"
                       type="text"
                       value={form.fname}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="fname"
-                    >
-                      First Name
-                    </label>
                   </div>
-                  <div className="relative group">
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="lname">Last Name</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="lname"
-                      placeholder=" "
+                      placeholder="ENTER LAST NAME"
                       type="text"
                       value={form.lname}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="lname"
-                    >
-                      Last Name
-                    </label>
                   </div>
-                  <div className="md:col-span-2 relative group">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="email">Email Address</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="email"
-                      placeholder=" "
+                      placeholder="ENTER EMAIL ADDRESS"
                       type="email"
                       value={form.email}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="email"
-                    >
-                      Email Address
-                    </label>
                   </div>
-                  <div className="md:col-span-2 relative group">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="address">Full Address</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="address"
-                      placeholder=" "
+                      placeholder="ENTER FULL RESIDENTIAL ADDRESS"
                       type="text"
                       value={form.address}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="address"
-                    >
-                      Full Address
-                    </label>
                   </div>
-                  <div className="relative group">
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="city">City</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="city"
-                      placeholder=" "
+                      placeholder="ENTER CITY"
                       type="text"
                       value={form.city}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="city"
-                    >
-                      City
-                    </label>
                   </div>
-                  <div className="relative group">
+                  <div className="space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="pincode">Pin Code</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="pincode"
-                      placeholder=" "
+                      placeholder="ENTER PIN CODE"
                       type="text"
                       value={form.pincode}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="pincode"
-                    >
-                      Pin Code
-                    </label>
                   </div>
-                  <div className="md:col-span-2 relative group">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="phone">Phone Number</label>
                     <input
-                      className="block w-full px-0 py-4 bg-transparent border-0 border-b border-outline/30 focus:border-secondary focus:ring-0 peer transition-colors text-sm uppercase tracking-wider"
+                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
                       id="phone"
-                      placeholder=" "
+                      placeholder="ENTER 10-DIGIT MOBILE NUMBER"
                       type="tel"
                       value={form.phone}
                       onChange={handleInputChange}
                     />
-                    <label
-                      className="absolute text-xs tracking-[0.2em] uppercase text-outline/60 top-4 z-10 origin-[0] duration-300 transform -translate-y-8 scale-100 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-90 peer-focus:-translate-y-8 peer-focus:text-secondary cursor-text"
-                      htmlFor="phone"
-                    >
-                      Phone Number
-                    </label>
                   </div>
                 </div>
               </div>
@@ -481,18 +452,18 @@ export default function CheckoutPage() {
             {/* Step 2: Perks & Wallet */}
             {currentStep === 2 && (
               <div className="space-y-12 animate-fade-in">
-                <div className="space-y-1.5 mb-8">
+                <div className="space-y-1.5 mb-6">
                   <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 02 of 03</span>
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Perks & Store Credit</h2>
                 </div>
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {/* Coupon Validation */}
-                  <div className="bg-surface-container-low p-8">
-                    <h4 className="text-xs font-black tracking-widest uppercase mb-4 text-outline/80">Promotional Discount</h4>
+                  <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative overflow-hidden">
+                    <h4 className="text-[10px] font-black tracking-widest uppercase mb-4 text-outline/80">Promotional Discount</h4>
                     <div className="flex gap-2">
                       <input
                         id="couponInput"
-                        className="flex-1 bg-transparent border border-outline/20 px-4 py-3 text-[10px] tracking-widest uppercase focus:border-secondary focus:ring-0 placeholder:text-outline/40 text-on-surface"
+                        className="flex-grow px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 rounded-lg text-on-surface placeholder-on-surface/40 shadow-sm"
                         placeholder="DISCOUNT CODE"
                         type="text"
                         value={couponCode}
@@ -501,7 +472,7 @@ export default function CheckoutPage() {
                       <button
                         id="applyCouponBtn"
                         onClick={handleApplyCoupon}
-                        className="bg-on-surface text-surface px-6 py-3 text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-secondary transition-colors"
+                        className="bg-on-surface text-surface px-6 py-3 text-[10px] font-black tracking-[0.25em] uppercase hover:bg-secondary transition-all rounded-lg active:scale-95 shadow-sm cursor-pointer"
                       >
                         Apply
                       </button>
@@ -519,24 +490,31 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Wallet & Points Toggles */}
-                  <div className="bg-surface-container-low p-8 space-y-6">
-                    <h4 className="text-xs font-black tracking-widest uppercase text-outline/80">Redemption Portal</h4>
+                  <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-6">
+                    <h4 className="text-[10px] font-black tracking-widest uppercase text-outline/80">Redemption Portal</h4>
                     <div className="space-y-4 text-[10px] tracking-widest uppercase">
                       {/* Loyalty Toggle */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="loyaltyToggle"
-                            checked={loyaltyChecked}
-                            onChange={(e) => setLoyaltyChecked(e.target.checked)}
-                            className="bg-transparent border border-outline/25 text-secondary focus:ring-0 focus:ring-offset-0 rounded-none cursor-pointer size-4"
-                          />
-                          <label htmlFor="loyaltyToggle" className="font-bold cursor-pointer select-none">
+                        <div className="flex items-center gap-3">
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              id="loyaltyToggle"
+                              checked={loyaltyChecked}
+                              onChange={(e) => setLoyaltyChecked(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
+                                check
+                              </span>
+                            </div>
+                          </div>
+                          <label htmlFor="loyaltyToggle" className="font-black cursor-pointer select-none text-[10px] tracking-wider text-on-surface/80">
                             REDEEM LOYALTY POINTS
                           </label>
                         </div>
-                        <span id="loyaltyAvailableText" className="text-outline font-semibold">
+                        <span id="loyaltyAvailableText" className="text-outline font-bold text-[9px] tracking-wider uppercase">
                           {availablePoints} PTS AVAILABLE
                         </span>
                       </div>
@@ -547,20 +525,27 @@ export default function CheckoutPage() {
                       )}
 
                       {/* Wallet Toggle */}
-                      <div className="flex items-center justify-between border-t border-outline/5 pt-4">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="walletToggle"
-                            checked={walletChecked}
-                            onChange={(e) => setWalletChecked(e.target.checked)}
-                            className="bg-transparent border border-outline/25 text-secondary focus:ring-0 focus:ring-offset-0 rounded-none cursor-pointer size-4"
-                          />
-                          <label htmlFor="walletToggle" className="font-bold cursor-pointer select-none">
+                      <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              id="walletToggle"
+                              checked={walletChecked}
+                              onChange={(e) => setWalletChecked(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
+                              <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
+                                check
+                              </span>
+                            </div>
+                          </div>
+                          <label htmlFor="walletToggle" className="font-black cursor-pointer select-none text-[10px] tracking-wider text-on-surface/80">
                             PAY WITH STORE WALLET
                           </label>
                         </div>
-                        <span id="walletAvailableText" className="text-outline font-semibold">
+                        <span id="walletAvailableText" className="text-outline font-bold text-[9px] tracking-wider uppercase">
                           ₹{availableWallet.toLocaleString("en-IN", { minimumFractionDigits: 2 })} AVAILABLE
                         </span>
                       </div>
@@ -577,7 +562,7 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => handleGoToStep(1)}
-                      className="flex-1 border border-outline/40 text-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 bg-transparent"
+                      className="flex-grow border border-outline-variant/20 text-on-surface py-3.5 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-white/50 transition-all rounded-lg active:scale-95 shadow-sm flex items-center justify-center gap-2 bg-transparent cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">arrow_back</span> Back to Shipping
                     </button>
@@ -589,35 +574,35 @@ export default function CheckoutPage() {
             {/* Step 3: Final Verification */}
             {currentStep === 3 && (
               <div className="space-y-12 animate-fade-in">
-                <div className="space-y-1.5 mb-8">
+                <div className="space-y-1.5 mb-6">
                   <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 03 of 03</span>
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Final Verification</h2>
                 </div>
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {/* Destination Overview */}
-                  <div className="bg-surface-container-low p-8 space-y-4">
-                    <h4 className="text-xs font-black tracking-widest uppercase text-secondary">Delivery Destination</h4>
-                    <div className="text-xs font-medium space-y-2 uppercase tracking-wide">
+                  <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-4">
+                    <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Delivery Destination</h4>
+                    <div className="text-[10px] font-medium space-y-2 uppercase tracking-wide">
                       <p>
                         <span className="text-outline">Client Name:</span>{" "}
-                        <span className="font-bold">{form.fname} {form.lname}</span>
+                        <span className="font-bold text-on-surface">{form.fname} {form.lname}</span>
                       </p>
                       <p>
                         <span className="text-outline">Address:</span>{" "}
-                        <span className="font-bold">{form.address}, {form.city} - {form.pincode}</span>
+                        <span className="font-bold text-on-surface">{form.address}, {form.city} - {form.pincode}</span>
                       </p>
                       <p>
                         <span className="text-outline">Contact:</span>{" "}
-                        <span className="font-bold">{form.phone}</span> | <span>{form.email}</span>
+                        <span className="font-bold text-on-surface">{form.phone}</span> | <span className="text-on-surface">{form.email}</span>
                       </p>
                     </div>
                   </div>
 
                   {/* Applied Perks Summary */}
                   {(appliedDiscount > 0 || loyaltyChecked || walletChecked) && (
-                    <div className="bg-surface-container-low p-8 space-y-4">
-                      <h4 className="text-xs font-black tracking-widest uppercase text-secondary">Applied Perks</h4>
-                      <div className="text-xs font-medium space-y-2 uppercase tracking-wide text-green-700 font-bold">
+                    <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-4">
+                      <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Applied Perks</h4>
+                      <div className="text-[10px] font-bold space-y-2 uppercase tracking-wide text-green-700">
                         {appliedDiscount > 0 && <p>✓ Coupon Applied ({appliedCouponCode})</p>}
                         {loyaltyChecked && loyaltyDiscount > 0 && <p>✓ Loyalty Points Redeemed ({pointsRedeemed} pts)</p>}
                         {walletChecked && walletDeduction > 0 && <p>✓ Store Wallet Debit Applied</p>}
@@ -630,7 +615,7 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => handleGoToStep(2)}
-                      className="flex-1 border border-outline/40 text-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-surface-container-low transition-all flex items-center justify-center gap-2 bg-transparent"
+                      className="flex-grow border border-outline-variant/20 text-on-surface py-3.5 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-white/50 transition-all rounded-lg active:scale-95 shadow-sm flex items-center justify-center gap-2 bg-transparent cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">arrow_back</span> Back to Perks
                     </button>
@@ -643,94 +628,99 @@ export default function CheckoutPage() {
           {/* Right Column: Order Summary (Sticky) */}
           <div className="lg:col-span-5">
             <div className="sticky top-32 space-y-8">
-              <div className="bg-surface-container-low p-8">
-                <h3 className="text-xl font-bold tracking-tighter uppercase mb-8 pb-4 border-b border-outline/10">Order Summary</h3>
+              <div className="bg-white/40 border border-white/20 backdrop-blur-lg p-6 sm:p-8 rounded-[1.5rem] shadow-[0_8px_32px_rgba(119,90,25,0.03)] relative overflow-hidden">
+                <div className="absolute -top-16 -left-16 w-36 h-36 bg-[#fed488]/5 rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-[#775a19]/5 rounded-full blur-3xl"></div>
                 
-                {/* Product List */}
-                <div className="space-y-6 mb-8">
-                  {cart.map((item, index) => (
-                    <div key={index} className="flex gap-6">
-                      <div className="w-24 h-32 bg-white overflow-hidden flex-shrink-0">
-                        <img
-                          className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                          src={item.image}
-                          alt={item.productName}
-                        />
-                      </div>
-                      <div className="flex-grow flex flex-col justify-between py-1">
-                        <div>
-                          <h4 className="font-headline font-bold uppercase text-sm tracking-wide">{item.productName}</h4>
-                          <p className="text-[10px] uppercase tracking-widest text-outline/60 mt-1">
-                            Size: {item.size} | Color: Atelier Choice
-                          </p>
+                <div className="relative z-10">
+                  <h3 className="text-lg font-headline font-black tracking-tight uppercase mb-6 pb-3 border-b border-outline-variant/10 text-on-surface">Order Summary</h3>
+                  
+                  {/* Product List */}
+                  <div className="space-y-6 mb-8">
+                    {cart.map((item, index) => (
+                      <div key={index} className="flex gap-6">
+                        <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10">
+                          <img
+                            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                            src={item.image}
+                            alt={item.productName}
+                          />
                         </div>
-                        <span className="font-headline font-bold text-lg">
-                          ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
-                        </span>
+                        <div className="flex-grow flex flex-col justify-between py-1 text-left">
+                          <div>
+                            <h4 className="font-headline font-bold uppercase text-xs tracking-wide text-on-surface">{item.productName}</h4>
+                            <p className="text-[8px] uppercase tracking-[0.15em] text-outline mt-1 font-bold">
+                              Size: {item.size} | Color: Atelier Choice
+                            </p>
+                          </div>
+                          <span className="font-headline font-black text-sm text-[#fed488]">
+                            ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Price Matrix */}
-                <div className="space-y-4 border-t border-outline/10 pt-8 mb-8">
-                  <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
-                    <span>Subtotal</span>
-                    <span>₹ {subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  {appliedDiscount > 0 && (
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
-                      <span>Coupon Discount</span>
-                      <span>- ₹ {appliedDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  {/* Price Matrix */}
+                  <div className="space-y-4 border-t border-outline-variant/10 pt-6 mb-6">
+                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
+                      <span>Subtotal</span>
+                      <span>₹ {subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
-                  )}
-                  {loyaltyChecked && loyaltyDiscount > 0 && (
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
-                      <span>Loyalty Discount</span>
-                      <span>- ₹ {loyaltyDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {appliedDiscount > 0 && (
+                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
+                        <span>Coupon Discount</span>
+                        <span>- ₹ {appliedDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    {loyaltyChecked && loyaltyDiscount > 0 && (
+                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
+                        <span>Loyalty Discount</span>
+                        <span>- ₹ {loyaltyDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
+                      <span>GST (12%)</span>
+                      <span>₹ {gst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
-                    <span>GST (12%)</span>
-                    <span>₹ {gst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] tracking-widest uppercase text-secondary font-bold">
-                    <span>Shipping</span>
-                    <span>FREE</span>
-                  </div>
-                  {walletChecked && walletDeduction > 0 && (
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-green-700 font-bold animate-fade-in">
-                      <span>Wallet Paid</span>
-                      <span>- ₹ {walletDeduction.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-secondary font-bold">
+                      <span>Shipping</span>
+                      <span>FREE</span>
                     </div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold tracking-tighter pt-4 border-t border-outline/5">
-                    <span className="uppercase">Final Payable</span>
-                    <span>₹ {finalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    {walletChecked && walletDeduction > 0 && (
+                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-green-700 font-bold animate-fade-in">
+                        <span>Wallet Paid</span>
+                        <span>- ₹ {walletDeduction.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-md font-headline font-black tracking-tight pt-4 border-t border-outline-variant/10 text-on-surface">
+                      <span className="uppercase">Final Payable</span>
+                      <span className="text-[#fed488]">₹ {finalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Primary Action Button */}
-                <button
-                  onClick={handleSubmit}
-                  className="w-full bg-secondary text-on-secondary py-5 font-headline font-extrabold text-sm tracking-[0.2em] uppercase hover:opacity-90 transition-all flex items-center justify-center gap-3"
-                >
-                  {getButtonText()}
-                </button>
+                  {/* Primary Action Button */}
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary hover:shadow-[0_10px_25px_rgba(254,212,136,0.15)] hover:-translate-y-0.5 active:translate-y-0 py-4 font-headline font-black text-xs tracking-[0.25em] uppercase transition-all duration-500 ease-out rounded-xl shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-3 mt-4"
+                  >
+                    {getButtonText()}
+                  </button>
 
-                {/* Secure checkout assurances */}
-                <div className="mt-8 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-lg text-secondary">verified_user</span>
-                    <span className="text-[9px] uppercase tracking-widest text-outline/60 font-semibold">
-                      100% Secure Encrypted Payments
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-lg text-secondary">local_shipping</span>
-                    <span className="text-[9px] uppercase tracking-widest text-outline/60 font-semibold">
-                      Insured Fast Shipping
-                    </span>
+                  {/* Secure checkout assurances */}
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-md text-[#fed488]">verified_user</span>
+                      <span className="text-[8px] uppercase tracking-[0.2em] text-outline font-bold">
+                        100% Secure Encrypted Payments
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-md text-[#fed488]">local_shipping</span>
+                      <span className="text-[8px] uppercase tracking-[0.2em] text-outline font-bold">
+                        Insured Fast Shipping
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

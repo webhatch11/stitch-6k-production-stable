@@ -1131,8 +1131,8 @@ export default function Home() {
         </section>
 
         {/* Section 3: Best Sellers / Featured Collection */}
-        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-black border-y border-white/5 scroll-mt-24">
-          <div className="max-w-[1400px] mx-auto">
+        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-black border-y border-white/5 scroll-mt-24 relative overflow-hidden bg-[radial-gradient(circle_at_center,rgba(119,90,25,0.04)_0%,rgba(0,0,0,0)_70%)]">
+          <div className="max-w-[1400px] mx-auto relative z-10">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -1162,26 +1162,27 @@ export default function Home() {
               {/* Coverflow Styles */}
               <style dangerouslySetInnerHTML={{__html: `
                 .card-3d-item {
-                  transform: translateX(calc(var(--card-offset) * 55px)) scale(var(--card-scale));
+                  transform: translate3d(calc(var(--card-offset) * 55px), 0, calc(var(--card-depth) * -40px)) scale(var(--card-scale)) rotateY(calc(var(--card-offset) * -10deg));
+                  transform-style: preserve-3d;
                 }
                 @media (min-width: 480px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 75px)) scale(var(--card-scale));
+                    transform: translate3d(calc(var(--card-offset) * 75px), 0, calc(var(--card-depth) * -50px)) scale(var(--card-scale)) rotateY(calc(var(--card-offset) * -10deg));
                   }
                 }
                 @media (min-width: 640px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 95px)) scale(var(--card-scale));
+                    transform: translate3d(calc(var(--card-offset) * 95px), 0, calc(var(--card-depth) * -60px)) scale(var(--card-scale)) rotateY(calc(var(--card-offset) * -12deg));
                   }
                 }
                 @media (min-width: 768px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 120px)) scale(var(--card-scale));
+                    transform: translate3d(calc(var(--card-offset) * 120px), 0, calc(var(--card-depth) * -70px)) scale(var(--card-scale)) rotateY(calc(var(--card-offset) * -12deg));
                   }
                 }
                 @media (min-width: 1024px) {
                   .card-3d-item {
-                    transform: translateX(calc(var(--card-offset) * 150px)) scale(var(--card-scale));
+                    transform: translate3d(calc(var(--card-offset) * 150px), 0, calc(var(--card-depth) * -85px)) scale(var(--card-scale)) rotateY(calc(var(--card-offset) * -15deg));
                   }
                 }
               `}} />
@@ -1193,7 +1194,7 @@ export default function Home() {
                     setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Previous item"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -1203,7 +1204,7 @@ export default function Home() {
                     setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/5 hover:border-white/20 bg-black/40 hover:bg-black/80 text-white flex items-center justify-center transition-all cursor-pointer pointer-events-auto backdrop-blur-md shadow-sm"
+                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Next item"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -1211,7 +1212,7 @@ export default function Home() {
               </div>
 
               {/* Cards Container */}
-              <div className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden">
+              <div className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden [perspective:1200px] [transform-style:preserve-3d]">
                 {favoriteProducts.map((product, i) => {
                   const n = favoriteProducts.length;
                   let offset = i - activeFavIndex;
@@ -1247,24 +1248,25 @@ export default function Home() {
                         opacity: opacity,
                         '--card-offset': offset,
                         '--card-scale': scale,
+                        '--card-depth': absOffset,
                       } as React.CSSProperties}
-                    className={`card-3d-item absolute transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] flex h-[280px] md:h-[360px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group ${
+                      className={`card-3d-item absolute transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex h-[280px] md:h-[360px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group hover:-translate-y-2 hover:scale-[1.02] ${
                         isActive ? "border border-secondary/40 shadow-[0_0_50px_rgba(254,212,136,0.22)]" : "border border-white/5 shadow-2xl"
                       } ${blurClass} ${grayscaleClass}`}
                     >
                       {/* Ambient spotlight radial gold glow behind active card */}
                       {isActive && (
-                        <div className="absolute -inset-3.5 rounded-[2.2rem] bg-gradient-to-r from-secondary/15 via-[#fed488]/10 to-secondary/15 opacity-40 group-hover:opacity-60 blur-2xl transition-opacity duration-700 pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '3s' }} />
+                        <div className="absolute -inset-4 rounded-[2.2rem] bg-gradient-to-r from-secondary/20 via-[#fed488]/10 to-secondary/20 opacity-40 group-hover:opacity-60 blur-3xl transition-opacity duration-700 pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
                       )}
 
                       {/* Unified Card Frame */}
-                      <div className={`h-full relative overflow-hidden transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
+                      <div className={`h-full relative overflow-hidden transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
                         isActive ? "w-[180px] md:w-[210px]" : "w-[90px] sm:w-[105px] md:w-[120px]"
                       }`}>
                         {/* Product Image with smooth group hover scale */}
                         <img
                           alt={product.name}
-                          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2s] ease-out group-hover:scale-[1.08]"
+                          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.12]"
                           src={product.image}
                         />
                         
@@ -1301,17 +1303,17 @@ export default function Home() {
                           style={{
                             writingMode: 'vertical-rl',
                           } as React.CSSProperties}
-                          className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10 transition-all duration-700 origin-center rotate-180 select-none pointer-events-none ${
+                          className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10 transition-all duration-[800ms] origin-center rotate-180 select-none pointer-events-none ${
                             isActive ? "opacity-90" : "opacity-30"
                           }`}
                         >
-                          <span className={`text-[7.5px] uppercase tracking-[0.3em] font-black whitespace-nowrap transition-colors duration-700 ${
-                            isActive ? "text-[#fed488] font-extrabold" : "text-black/60"
+                          <span className={`text-[7.5px] uppercase tracking-[0.3em] font-black whitespace-nowrap transition-colors duration-[800ms] ${
+                            isActive ? "text-[#fed488] font-extrabold" : "text-white/40"
                           }`}>
                             {product.verticalText}
                           </span>
-                          <span className={`text-[9.5px] uppercase tracking-[0.25em] font-black whitespace-nowrap mt-1.5 transition-colors duration-700 ${
-                            isActive ? "shimmer-text font-black" : "text-black/60"
+                          <span className={`text-[9.5px] uppercase tracking-[0.25em] font-black whitespace-nowrap mt-1.5 transition-colors duration-[800ms] ${
+                            isActive ? "shimmer-text font-black" : "text-white/40"
                           }`}>
                             Featured Collection
                           </span>

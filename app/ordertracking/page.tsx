@@ -248,6 +248,7 @@ function OrderTrackingContent() {
             </Link>
             <nav className="hidden md:flex items-center gap-8">
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">Home</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">GEN-Z</Link>
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/shopallshirts">Shop All</Link>
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/orderhistory">Order History</Link>
               <Link className="text-[10px] font-black uppercase tracking-widest text-primary font-bold" href="/ordertracking">Track Order</Link>
@@ -263,6 +264,7 @@ function OrderTrackingContent() {
         {mobileMenuOpen && (
           <div className="flex flex-col mt-4 space-y-4 md:hidden">
             <Link className="block text-[10px] font-black uppercase tracking-widest" href="/">Home</Link>
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/genz">GEN-Z</Link>
             <Link className="block text-[10px] font-black uppercase tracking-widest" href="/shopallshirts">Shop All</Link>
             <Link className="block text-[10px] font-black uppercase tracking-widest" href="/orderhistory">Order History</Link>
             <Link className="block text-[10px] font-black uppercase tracking-widest text-secondary font-bold" href="/ordertracking">Track Order</Link>

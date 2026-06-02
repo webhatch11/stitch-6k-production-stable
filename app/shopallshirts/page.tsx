@@ -71,6 +71,9 @@ export default function ShopAllShirts() {
   useEffect(() => {
     let result = [...products];
 
+    // 0. Exclude Gen-Z products from the heritage catalog
+    result = result.filter((p) => !p.isGenz);
+
     // 1. Search Query Filter
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
@@ -215,6 +218,9 @@ export default function ShopAllShirts() {
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">
                 Home
               </Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">
+                GEN-Z
+              </Link>
               <Link className="text-[10px] font-black uppercase tracking-widest text-primary font-bold" href="/shopallshirts">
                 Shop All
               </Link>
@@ -293,16 +299,16 @@ export default function ShopAllShirts() {
           <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/shoppingbag") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
         </Link>
 
-        {/* Profile Tab */}
+        {/* GEN-Z Tab */}
         <Link 
-          href="/myprofile" 
+          href="/genz" 
           className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
-            isActiveTab("/myprofile") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            isActiveTab("/genz") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
           }`}
         >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">person</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider">Profile</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/myprofile") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">style</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider">GEN-Z</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isActiveTab("/genz") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Menu drawer trigger */}
@@ -339,6 +345,13 @@ export default function ShopAllShirts() {
             href="/"
           >
             Home
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/genz"
+          >
+            GEN-Z
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}

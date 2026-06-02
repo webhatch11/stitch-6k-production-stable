@@ -47,7 +47,9 @@ export interface Product {
     date: string;
     comment: string;
   }[];
+  isGenz?: boolean;
 }
+
 
 export interface Order {
   id: string;
@@ -107,7 +109,7 @@ const WALLET_BALANCE_KEY = "registry_wallet_balance";
 const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
-const CURRENT_VERSION = "5.3_festive_coupon";
+const CURRENT_VERSION = "5.4_genz_collection";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -695,6 +697,168 @@ export const RegistryManager = {
           colors: ["Crimson Red"],
           ratings: 4.9,
           reviews: []
+        },
+        {
+          id: "seed-genz-1",
+          slug: "oversized-atelier-black",
+          title: "Boxy Streetwear Oversized",
+          price: 2999,
+          comparePrice: 3999,
+          basePrice: 2999,
+          category: "Oversized Shirts",
+          image: "/assets/genz_oversized_black.png",
+          images: [
+            "/assets/genz_oversized_black.png"
+          ],
+          isNew: true,
+          stock: 50,
+          description: "Heavyweight drop-shoulder boxy fit with metal button detailing and distressed raw hem.",
+          sizeStock: { S: 12, M: 15, L: 15, XL: 8 },
+          specFabric: "100% Heavyweight Cotton (240 GSM)",
+          specFit: "Oversized Boxy Fit",
+          specCollar: "Spread Collar",
+          specSleeve: "Drop-Shoulder Half Sleeve",
+          specCare: "Cold wash inside out, do not tumble dry",
+          isGenz: true,
+          material: "Heavyweight Cotton",
+          colors: ["Charcoal Black"],
+          ratings: 4.9,
+          reviews: []
+        },
+        {
+          id: "seed-genz-2",
+          slug: "streetwear-linen-coord-slate",
+          title: "Street Linen Co-ord Set",
+          price: 4999,
+          comparePrice: 5999,
+          basePrice: 4999,
+          category: "Co-ord Sets",
+          image: "/assets/genz_coord_slate.png",
+          images: [
+            "/assets/genz_coord_slate.png"
+          ],
+          isNew: true,
+          stock: 35,
+          description: "Relaxed urban co-ord set featuring a loose-fit camp collar shirt and matching drawstring shorts.",
+          sizeStock: { S: 8, M: 12, L: 10, XL: 5 },
+          specFabric: "100% Belgian Linen Twill",
+          specFit: "Relaxed Street Fit",
+          specCollar: "Camp Collar",
+          specSleeve: "Short Sleeve",
+          specCare: "Gentle machine wash cold",
+          isGenz: true,
+          material: "Linen",
+          colors: ["Slate Gray"],
+          ratings: 4.8,
+          reviews: []
+        },
+        {
+          id: "seed-genz-3",
+          slug: "urban-utility-cargo-olive",
+          title: "Utility Tactical Cargo",
+          price: 3499,
+          comparePrice: 4499,
+          basePrice: 3499,
+          category: "Urban Utility",
+          image: "/assets/genz_utility_olive.png",
+          images: [
+            "/assets/genz_utility_olive.png"
+          ],
+          isNew: false,
+          stock: 40,
+          description: "Military-inspired utility shirt with dual cargo chest pockets, tactical straps, and metal hardware.",
+          sizeStock: { S: 10, M: 12, L: 12, XL: 6 },
+          specFabric: "100% Structured Cotton Ripstop",
+          specFit: "Semi-Oversized Fit",
+          specCollar: "Classic Point Collar",
+          specSleeve: "Full Sleeve with adjustable tabs",
+          specCare: "Machine wash cold, line dry in shade",
+          isGenz: true,
+          material: "Ripstop Cotton",
+          colors: ["Tactical Olive"],
+          ratings: 4.7,
+          reviews: []
+        },
+        {
+          id: "seed-genz-4",
+          slug: "printed-luxury-silk-resort",
+          title: "Gradient Twilight Silk",
+          price: 3899,
+          comparePrice: 4999,
+          basePrice: 3899,
+          category: "Printed Luxury",
+          image: "/assets/geometric_resort_shirt.png",
+          images: [
+            "/assets/geometric_resort_shirt.png"
+          ],
+          isNew: true,
+          stock: 25,
+          description: "Moody twilight gradient print crafted from premium mulberry silk twill blend. Soft, fluid drape.",
+          sizeStock: { S: 5, M: 8, L: 8, XL: 4 },
+          specFabric: "60% Mulberry Silk, 40% Organic Rayon",
+          specFit: "Relaxed Resort Fit",
+          specCollar: "Camp Collar",
+          specSleeve: "Short Sleeve",
+          specCare: "Dry Clean Only",
+          isGenz: true,
+          material: "Silk Blend",
+          colors: ["Twilight Purple"],
+          ratings: 4.9,
+          reviews: []
+        },
+        {
+          id: "seed-genz-5",
+          slug: "monochrome-washed-cotton-acid",
+          title: "Acid Wash Heavyweight",
+          price: 2799,
+          comparePrice: 3799,
+          basePrice: 2799,
+          category: "Monochrome Collections",
+          image: "/assets/teal_crane_shirt.png",
+          images: [
+            "/assets/teal_crane_shirt.png"
+          ],
+          isNew: false,
+          stock: 45,
+          description: "Acid washed luxury streetwear shirt with unique marble wash patterns. Custom high-density print on back.",
+          sizeStock: { S: 10, M: 15, L: 15, XL: 5 },
+          specFabric: "100% Ring-Spun Cotton (220 GSM)",
+          specFit: "Oversized Fit",
+          specCollar: "Standard Spread Collar",
+          specSleeve: "Half Sleeve",
+          specCare: "Cold wash inside out, iron on reverse",
+          isGenz: true,
+          material: "Cotton",
+          colors: ["Acid Grey"],
+          ratings: 4.8,
+          reviews: []
+        },
+        {
+          id: "seed-genz-6",
+          slug: "relaxed-fit-slate-resort",
+          title: "Slate Camp Collar Resort",
+          price: 2499,
+          comparePrice: 3499,
+          basePrice: 2499,
+          category: "Relaxed Fit Collections",
+          image: "/assets/striped_resort_shirt.png",
+          images: [
+            "/assets/striped_resort_shirt.png"
+          ],
+          isNew: true,
+          stock: 30,
+          description: "Clean, minimalist slate resort shirt with open camp collar and custom vertical stripe weave.",
+          sizeStock: { S: 8, M: 10, L: 10, XL: 2 },
+          specFabric: "80% Rayon, 20% Cotton Linen",
+          specFit: "Relaxed Resort Fit",
+          specCollar: "Camp Collar",
+          specSleeve: "Short Sleeve",
+          specCare: "Cold hand wash, lay flat to dry",
+          isGenz: true,
+          material: "Cotton Blend",
+          colors: ["Slate Stripe"],
+          ratings: 4.6,
+          reviews: []
         }
       ];
       localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProducts));
@@ -1252,7 +1416,7 @@ export const RegistryManager = {
     const products = this.getProducts();
     const current = products.find((p) => p.slug === slug);
     if (!current) return products.slice(0, 4);
-    const otherProducts = products.filter((p) => p.slug !== slug);
+    const otherProducts = products.filter((p) => p.slug !== slug && !!p.isGenz === !!current.isGenz);
     const sameCategory = otherProducts.filter((p) => p.category === current.category);
     const diffCategory = otherProducts.filter((p) => p.category !== current.category);
     return [...sameCategory, ...diffCategory].slice(0, 4);

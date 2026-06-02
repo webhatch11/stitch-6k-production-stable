@@ -846,6 +846,16 @@ export default function Home() {
                     ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
                     : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
                 }`}
+                href="/genz"
+              >
+                GEN-Z
+              </Link>
+              <Link
+                className={`text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ${
+                  isScrolled 
+                    ? "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full" 
+                    : "text-white/70 hover:text-white after:bg-white hover:after:w-full"
+                }`}
                 href="/shopallshirts"
               >
                 Shop All
@@ -991,6 +1001,13 @@ export default function Home() {
             href="/"
           >
             Home
+          </Link>
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/genz"
+          >
+            GEN-Z
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}

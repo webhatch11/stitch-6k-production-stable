@@ -158,9 +158,9 @@ export default function ShoppingBag() {
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">
                 Home
               </Link>
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/shopallshirts">
-                Shop All
-              </Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">GEN-Z</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">GEN-Z</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/shopallshirts">Shop All</Link>
               <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/orderhistory">
                 Order History
               </Link>
@@ -190,6 +190,9 @@ export default function ShoppingBag() {
           <div className="flex flex-col mt-4 space-y-4 md:hidden">
             <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/">
               Home
+            </Link>
+            <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/genz">
+              GEN-Z
             </Link>
             <Link onClick={() => setMobileMenuOpen(false)} className="block text-[10px] font-black uppercase tracking-widest" href="/shopallshirts">
               Shop All

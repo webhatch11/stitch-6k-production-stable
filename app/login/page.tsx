@@ -84,6 +84,7 @@ export default function LoginPage() {
           });
           if (error) throw error;
           
+          router.refresh();
           router.push("/myprofile");
         }
       } else {
@@ -107,6 +108,7 @@ export default function LoginPage() {
           document.cookie = `mock_user_name=${mockUser.name}; path=/; max-age=86400`;
           setInfoMsg("Mock Registration successful! Redirecting...");
           setTimeout(() => {
+            router.refresh();
             router.push("/myprofile");
           }, 1500);
         } else {
@@ -144,6 +146,7 @@ export default function LoginPage() {
           document.cookie = `mock_user_role=${profile.role}; path=/; max-age=86400`;
           document.cookie = `mock_user_email=${profile.email}; path=/; max-age=86400`;
           document.cookie = `mock_user_name=${profile.name}; path=/; max-age=86400`;
+          router.refresh();
           router.push("/myprofile");
         }
       }

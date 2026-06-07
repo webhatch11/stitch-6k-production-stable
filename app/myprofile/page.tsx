@@ -2,13 +2,23 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Order, WalletTransaction, LoyaltyTransaction } from "@/lib/registry";
 import { db } from "@/lib/db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function MyProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "loyalty">("profile");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Authenticated User States
+  const [userName, setUserName] = useState("Aditya R.");
+  const [userEmail, setUserEmail] = useState("aditya.singhania@heritage.com");
+  const [userPhone, setUserPhone] = useState("+91 98765 43210");
+  const [userRole, setUserRole] = useState("customer");
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Financial States
   const [walletBalance, setWalletBalance] = useState(0);
@@ -23,7 +33,51 @@ export default function MyProfilePage() {
       setActiveTab("loyalty");
     }
 
-    loadProfileData();
+    const checkAuthAndLoad = async () => {
+      setAuthLoading(true);
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          router.push("/login");
+          return;
+        }
+
+        const metadata = session.user.user_metadata || {};
+        setUserName(metadata.name || "Customer User");
+        setUserEmail(session.user.email || "");
+        setUserPhone(metadata.phone || session.user.phone || "Not Provided");
+
+        // Fetch database profile role if available
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setUserRole(profile.role || "customer");
+        }
+      } else {
+        const mockSession = localStorage.getItem("mock_user_session");
+        if (!mockSession) {
+          router.push("/login");
+          return;
+        }
+        const profileStr = localStorage.getItem("mock_user_profile");
+        if (profileStr) {
+          const profile = JSON.parse(profileStr);
+          setUserName(profile.name || "Mock Customer");
+          setUserEmail(profile.email || "");
+          setUserPhone(profile.phone || "Not Provided");
+          setUserRole(profile.role || "customer");
+        }
+      }
+
+      await loadProfileData();
+      setAuthLoading(false);
+    };
+
+    checkAuthAndLoad();
 
     // Cross-tab sync listener
     const handleStorage = (e: StorageEvent) => {
@@ -39,7 +93,7 @@ export default function MyProfilePage() {
     return () => {
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [router]);
 
   const loadProfileData = async () => {
     const balance = await db.getWalletBalance();
@@ -53,6 +107,15 @@ export default function MyProfilePage() {
     setLoyaltyPoints(points);
     setLoyaltyTxs(lTxs);
     setRecentOrders(orders.slice(0, 3));
+  };
+
+  const handleSignOut = async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    } else {
+      localStorage.removeItem("mock_user_session");
+    }
+    router.push("/login");
   };
 
   const handleTabSwitch = (tabName: "profile" | "loyalty") => {
@@ -137,15 +200,13 @@ export default function MyProfilePage() {
             {/* Profile Avatar */}
             <div className="flex gap-4 items-center mb-6">
               <div
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-cover bg-center border border-secondary"
-                style={{
-                  backgroundImage:
-                    "url('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200')",
-                }}
-              ></div>
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-cover bg-center border border-secondary flex items-center justify-center bg-black text-[#fed488] font-bold text-xl"
+              >
+                {userName.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <h3 className="font-bold uppercase text-sm sm:text-base">Aditya R.</h3>
-                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">Platinum Tier</p>
+                <h3 className="font-bold uppercase text-sm sm:text-base">{userName}</h3>
+                <p className="text-[10px] sm:text-xs text-gray-500 uppercase">{userRole === 'admin' ? 'Store Admin' : 'Platinum Member'}</p>
               </div>
             </div>
 
@@ -178,6 +239,14 @@ export default function MyProfilePage() {
                 <span className="material-symbols-outlined text-[20px]">history</span>
                 Order History
               </Link>
+
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-red-50 text-red-700 cursor-pointer text-left rounded-none bg-transparent"
+              >
+                <span className="material-symbols-outlined text-[20px]">logout</span>
+                Sign Out
+              </button>
             </nav>
           </aside>
 
@@ -211,12 +280,12 @@ export default function MyProfilePage() {
                   <div className="flex flex-col gap-4">
                     <div>
                       <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Full Name</p>
-                      <p className="text-on-surface font-headline font-bold text-lg uppercase">Aditya R. Singhania</p>
+                      <p className="text-on-surface font-headline font-bold text-lg uppercase">{userName}</p>
                     </div>
                     <div>
                       <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Contact Details</p>
-                      <p className="text-on-surface font-body text-sm">+91 98765 43210</p>
-                      <p className="text-on-surface font-body text-sm">aditya.singhania@heritage.com</p>
+                      <p className="text-on-surface font-body text-sm">{userPhone}</p>
+                      <p className="text-on-surface font-body text-sm">{userEmail}</p>
                     </div>
                   </div>
                 </section>

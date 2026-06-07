@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Product } from "@/lib/registry";
+import { db } from "@/lib/db";
 
 interface CartItem {
   productName: string;
@@ -26,6 +28,17 @@ export default function ShoppingBag() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [groupedItems, setGroupedItems] = useState<GroupedCartItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  // Toast Notification States
+  const [toastText, setToastText] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = (msg: string) => {
+    setToastText(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3500);
+  };
 
   // Calculate Subtotal, GST, and Total
   const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
@@ -35,6 +48,13 @@ export default function ShoppingBag() {
   // Load cart items on mount
   useEffect(() => {
     loadCart();
+    
+    // Fetch products catalog for variant stock checks
+    const fetchCatalog = async () => {
+      const list = await db.getProducts();
+      setProducts(list);
+    };
+    fetchCatalog();
   }, []);
 
   // Update grouped items whenever cart items change
@@ -80,6 +100,18 @@ export default function ShoppingBag() {
   };
 
   const handleIncrement = (item: GroupedCartItem) => {
+    // Look up the variant stock level in catalog
+    const dbProduct = products.find(
+      (p) => p.title.toLowerCase() === item.productName.toLowerCase()
+    );
+    if (dbProduct && dbProduct.sizeStock) {
+      const availableStock = dbProduct.sizeStock[item.size as keyof typeof dbProduct.sizeStock] || 0;
+      if (item.quantity >= availableStock) {
+        triggerToast(`Only ${availableStock} units of ${item.productName} in size ${item.size} are available.`);
+        return;
+      }
+    }
+
     const newItems = [...cartItems, {
       productName: item.productName,
       price: item.price,
@@ -114,6 +146,11 @@ export default function ShoppingBag() {
 
   return (
     <>
+      {showToast && (
+        <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10">
+          {toastText}
+        </div>
+      )}
       {/* Announcement Marquee */}
       <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
         <div className="flex animate-marquee whitespace-nowrap">

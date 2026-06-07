@@ -101,6 +101,10 @@ export default function LoginPage() {
           
           localStorage.setItem("mock_user_profile", JSON.stringify(mockUser));
           localStorage.setItem("mock_user_session", JSON.stringify({ email: mockUser.email, userId: mockUser.id }));
+          document.cookie = `mock_user_session=${mockUser.id}; path=/; max-age=86400`;
+          document.cookie = `mock_user_role=${mockUser.role}; path=/; max-age=86400`;
+          document.cookie = `mock_user_email=${mockUser.email}; path=/; max-age=86400`;
+          document.cookie = `mock_user_name=${mockUser.name}; path=/; max-age=86400`;
           setInfoMsg("Mock Registration successful! Redirecting...");
           setTimeout(() => {
             router.push("/myprofile");
@@ -136,6 +140,10 @@ export default function LoginPage() {
           }
 
           localStorage.setItem("mock_user_session", JSON.stringify({ email: profile.email, userId: profile.id }));
+          document.cookie = `mock_user_session=${profile.id}; path=/; max-age=86400`;
+          document.cookie = `mock_user_role=${profile.role}; path=/; max-age=86400`;
+          document.cookie = `mock_user_email=${profile.email}; path=/; max-age=86400`;
+          document.cookie = `mock_user_name=${profile.name}; path=/; max-age=86400`;
           router.push("/myprofile");
         }
       }

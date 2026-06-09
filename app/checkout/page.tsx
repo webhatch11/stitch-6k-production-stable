@@ -13,6 +13,7 @@ import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { AddressList } from "@/components/checkout/AddressList";
 import { UserAddress } from "@/lib/registry";
+import { useToastStore } from "@/stores/toastStore";
 
 interface CartItem {
   productName: string;
@@ -59,16 +60,7 @@ export default function CheckoutPage() {
   const [availableWallet, setAvailableWallet] = useState(0);
 
   // Toast Notifications
-  const [toastText, setToastText] = useState("");
-  const [showToast, setShowToast] = useState(false);
-
-  const triggerToast = (msg: string) => {
-    setToastText(msg);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
-  };
+  const triggerToast = useToastStore((state) => state.addToast);
 
   // Load Initial Data
   useEffect(() => {
@@ -311,12 +303,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col">
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-6 right-6 z-[100] bg-on-surface text-surface py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-outline/25">
-          {toastText}
-        </div>
-      )}
+      {/* Toast Notification handled globally now */}
 
       {/* Top Announcement Scrolling Marquee */}
       <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
@@ -390,7 +377,7 @@ export default function CheckoutPage() {
         <div className="max-w-2xl mx-auto mb-10 select-none">
           <div className="flex items-center justify-between bg-white/30 backdrop-blur-md border border-outline-variant/10 p-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-center shadow-sm">
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 cursor-pointer ${
                 currentStep === 1 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/60 hover:text-on-surface"
@@ -400,7 +387,7 @@ export default function CheckoutPage() {
               01. Details
             </div>
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 cursor-pointer ${
                 currentStep === 2 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/60 hover:text-on-surface"
@@ -410,7 +397,7 @@ export default function CheckoutPage() {
               02. Perks
             </div>
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 ${
                 currentStep === 3 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/40"
@@ -719,14 +706,14 @@ export default function CheckoutPage() {
       </main>
 
       {/* Sticky Bottom Drawer for Mobile Viewports */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/90 backdrop-blur-xl border-t border-outline-variant/15 p-4 flex flex-col gap-3 shadow-[0_-8px_32px_rgba(0,0,0,0.15)]">
-        <div className="flex justify-between items-center text-xs tracking-widest uppercase font-black">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-2xl border-t border-outline-variant/15 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex flex-col gap-3 shadow-[0_-8px_32px_rgba(0,0,0,0.15)]">
+        <div className="flex justify-between items-center text-xs tracking-widest uppercase font-black px-2">
           <span className="text-outline">Final Payable</span>
           <span className="text-[#fed488] text-sm">₹ {finalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
         <button
           onClick={handleSubmit}
-          className="w-full bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary py-3 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-lg active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-md"
+          className="w-full bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary py-4 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-xl active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-md"
         >
           <span>{getButtonText()}</span>
           <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -891,7 +878,7 @@ export default function CheckoutPage() {
         <div className="max-w-2xl mx-auto mb-10 select-none">
           <div className="flex items-center justify-between bg-white/30 backdrop-blur-md border border-outline-variant/10 p-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-center shadow-sm">
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 cursor-pointer ${
                 currentStep === 1 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/60 hover:text-on-surface"
@@ -901,7 +888,7 @@ export default function CheckoutPage() {
               01. Details
             </div>
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 cursor-pointer ${
                 currentStep === 2 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/60 hover:text-on-surface"
@@ -911,7 +898,7 @@ export default function CheckoutPage() {
               02. Perks
             </div>
             <div
-              className={`flex-grow py-2.5 rounded-full transition-all duration-500 ${
+              className={`flex-grow py-3.5 rounded-full transition-all duration-500 ${
                 currentStep === 3 
                   ? "bg-on-surface text-surface shadow-md scale-102 font-black" 
                   : "text-outline/40"

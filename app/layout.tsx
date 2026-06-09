@@ -1,9 +1,33 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 export const metadata: Metadata = {
-  title: "6K | Predefining Luxury",
-  description: "Handcrafted luxury shirts in limited batches.",
+  title: "Stitch 6K | Predefining Luxury",
+  description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India. Limited batches, precision tailored.",
+  keywords: ["luxury shirts", "GEN-Z streetwear", "linen shirts", "premium cotton", "Stitch 6K", "menswear", "South India"],
+  openGraph: {
+    title: "Stitch 6K | Predefining Luxury",
+    description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India.",
+    url: "https://stitch6k.com",
+    siteName: "Stitch 6K",
+    images: [
+      {
+        url: "/assets/logo.png",
+        width: 800,
+        height: 600,
+        alt: "Stitch 6K Logo",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Stitch 6K | Predefining Luxury",
+    description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India.",
+    images: ["/assets/logo.png"],
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +53,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface">
+        <ToastProvider />
         {children}
       </body>
     </html>

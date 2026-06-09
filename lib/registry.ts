@@ -101,6 +101,20 @@ export interface LoyaltyTransaction {
   description: string;
 }
 
+export interface UserAddress {
+  id: string;
+  user_id: string;
+  name: string;
+  phone: string;
+  address_line_1: string;
+  address_line_2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  is_default: boolean;
+}
+
 const PRODUCTS_KEY = "registry_products";
 const ORDERS_KEY = "registry_orders";
 const COUPONS_KEY = "registry_coupons";
@@ -109,6 +123,7 @@ const WALLET_BALANCE_KEY = "registry_wallet_balance";
 const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
+const ADDRESSES_KEY = "registry_addresses";
 const CURRENT_VERSION = "5.4_genz_collection";
 
 const isBrowser = () => typeof window !== "undefined";
@@ -126,6 +141,7 @@ export const RegistryManager = {
       localStorage.removeItem(WALLET_TX_KEY);
       localStorage.removeItem(LOYALTY_POINTS_KEY);
       localStorage.removeItem(LOYALTY_TX_KEY);
+      localStorage.removeItem(ADDRESSES_KEY);
       localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
     }
 
@@ -1422,6 +1438,117 @@ export const RegistryManager = {
     return [...sameCategory, ...diffCategory].slice(0, 4);
   },
 
+  verifyStock(items: any[]): { success: boolean; message?: string } {
+    const products = this.getProducts();
+    const demand: { [key: string]: { [size: string]: number } } = {};
+    
+    items.forEach((item) => {
+      const name = item.productName;
+      const size = item.size || "M";
+      if (!demand[name]) demand[name] = {};
+      demand[name][size] = (demand[name][size] || 0) + 1;
+    });
+
+    for (const name in demand) {
+      const product = products.find((p) => p.title.toLowerCase() === name.toLowerCase());
+      if (!product) {
+        return { success: false, message: `Product "${name}" not found in catalog.` };
+      }
+      for (const size in demand[name]) {
+        const available = product.sizeStock?.[size as keyof typeof product.sizeStock] || 0;
+        const requested = demand[name][size];
+        if (available < requested) {
+          return {
+            success: false,
+            message: `Insufficient stock for ${product.title} in size ${size}. Available: ${available}, Requested: ${requested}.`
+          };
+        }
+      }
+    }
+    return { success: true };
+  },
+
+  deductStock(items: any[]) {
+    const products = this.getProducts();
+    items.forEach((item) => {
+      const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+      if (product && product.sizeStock) {
+        const size = item.size || "M";
+        const currentSizeStock = product.sizeStock[size as keyof typeof product.sizeStock] || 0;
+        product.sizeStock[size as keyof typeof product.sizeStock] = Math.max(0, currentSizeStock - 1);
+        product.stock = Math.max(0, (product.stock || 0) - 1);
+      }
+    });
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+  },
+
+  getAddresses(userId?: string): UserAddress[] {
+    if (!isBrowser()) return [];
+    this.init();
+    const addresses = JSON.parse(localStorage.getItem(ADDRESSES_KEY) || "[]") as UserAddress[];
+    if (userId) {
+      return addresses.filter(a => a.user_id === userId);
+    }
+    return addresses;
+  },
+
+  saveAddress(address: Partial<UserAddress>): UserAddress {
+    if (!isBrowser()) throw new Error("Browser only");
+    const addresses = this.getAddresses();
+    const newAddress: UserAddress = {
+      id: address.id || "ADDR-" + Date.now(),
+      user_id: address.user_id || "guest",
+      name: address.name || "",
+      phone: address.phone || "",
+      address_line_1: address.address_line_1 || "",
+      address_line_2: address.address_line_2 || "",
+      city: address.city || "",
+      state: address.state || "",
+      postal_code: address.postal_code || "",
+      country: address.country || "India",
+      is_default: address.is_default || false,
+    };
+
+    if (newAddress.is_default) {
+      addresses.forEach(a => {
+        if (a.user_id === newAddress.user_id) a.is_default = false;
+      });
+    } else if (addresses.filter(a => a.user_id === newAddress.user_id).length === 0) {
+      newAddress.is_default = true;
+    }
+
+    const existingIndex = addresses.findIndex(a => a.id === newAddress.id);
+    if (existingIndex !== -1) {
+      addresses[existingIndex] = newAddress;
+    } else {
+      addresses.unshift(newAddress);
+    }
+    localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
+    return newAddress;
+  },
+
+  deleteAddress(id: string) {
+    if (!isBrowser()) return;
+    const addresses = this.getAddresses().filter((a) => a.id !== id);
+    // if deleted was default, make another one default
+    const defaults = addresses.filter(a => a.is_default);
+    if (defaults.length === 0 && addresses.length > 0) {
+      addresses[0].is_default = true;
+    }
+    localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
+  },
+
+  setDefaultAddress(id: string, userId: string) {
+    if (!isBrowser()) return;
+    const addresses = this.getAddresses();
+    addresses.forEach(a => {
+      if (a.user_id === userId) {
+        a.is_default = (a.id === id);
+      }
+    });
+    localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
+  },
+
   resetPrototype() {
     if (!isBrowser()) return;
     localStorage.removeItem(PRODUCTS_KEY);
@@ -1433,6 +1560,7 @@ export const RegistryManager = {
     localStorage.removeItem(WALLET_TX_KEY);
     localStorage.removeItem(LOYALTY_POINTS_KEY);
     localStorage.removeItem(LOYALTY_TX_KEY);
+    localStorage.removeItem(ADDRESSES_KEY);
     window.location.reload();
   },
 };

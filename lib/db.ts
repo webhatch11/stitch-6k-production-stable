@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction } from "./registry";
+import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress } from "./registry";
+import { InventoryService } from "./services/inventory";
 
 // Helper mappings for Database compatibility
 const mapDbProductToProduct = (p: any): Product => {
@@ -754,6 +755,135 @@ export const db = {
       .eq("id", orderId);
 
     return !error;
+  },
+
+  // --- Addresses ---
+  async getUserAddresses(userId: string = "guest"): Promise<UserAddress[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.getAddresses(userId);
+    }
+    const { data, error } = await supabase
+      .from("user_addresses")
+      .select("*")
+      .eq("user_id", userId)
+      .order("is_default", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching addresses from Supabase:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.saveAddress(address);
+    }
+    const newAddress: UserAddress = {
+      id: address.id || "ADDR-" + Date.now(),
+      user_id: address.user_id || "guest",
+      name: address.name || "",
+      phone: address.phone || "",
+      address_line_1: address.address_line_1 || "",
+      address_line_2: address.address_line_2 || "",
+      city: address.city || "",
+      state: address.state || "",
+      postal_code: address.postal_code || "",
+      country: address.country || "India",
+      is_default: address.is_default || false,
+    };
+
+    if (newAddress.is_default) {
+      // Unset other defaults for this user
+      await supabase
+        .from("user_addresses")
+        .update({ is_default: false })
+        .eq("user_id", newAddress.user_id)
+        .eq("is_default", true);
+    } else {
+      // Check if any exists, if not make it default
+      const { data } = await supabase
+        .from("user_addresses")
+        .select("id")
+        .eq("user_id", newAddress.user_id)
+        .limit(1);
+      if (!data || data.length === 0) {
+        newAddress.is_default = true;
+      }
+    }
+
+    const { error } = await supabase.from("user_addresses").upsert(newAddress);
+    if (error) {
+      console.error("Error saving address to Supabase:", error);
+      throw error;
+    }
+    return newAddress;
+  },
+
+  async deleteUserAddress(id: string, userId: string = "guest"): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.deleteAddress(id);
+    }
+    
+    // fetch before delete to check if default
+    const { data: toDelete } = await supabase.from("user_addresses").select("is_default").eq("id", id).maybeSingle();
+
+    const { error } = await supabase.from("user_addresses").delete().eq("id", id);
+    if (error) {
+      console.error("Error deleting address from Supabase:", error);
+      throw error;
+    }
+
+    if (toDelete?.is_default) {
+      const { data: nextAddress } = await supabase.from("user_addresses").select("id").eq("user_id", userId).limit(1).maybeSingle();
+      if (nextAddress) {
+        await supabase.from("user_addresses").update({ is_default: true }).eq("id", nextAddress.id);
+      }
+    }
+  },
+
+  async setDefaultUserAddress(id: string, userId: string = "guest"): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.setDefaultAddress(id, userId);
+    }
+    await supabase
+      .from("user_addresses")
+      .update({ is_default: false })
+      .eq("user_id", userId)
+      .eq("is_default", true);
+    
+    await supabase
+      .from("user_addresses")
+      .update({ is_default: true })
+      .eq("id", id);
+  },
+
+  async verifyStock(items: any[]): Promise<{ success: boolean; message?: string }> {
+    // Format cart items for validation
+    const formatted = items.map((item) => ({
+      productName: item.productName,
+      size: item.size || "M",
+      color: item.color,
+      quantity: item.quantity || 1,
+    }));
+    const result = await InventoryService.validateStock(formatted);
+    if (!result.success) {
+      return { success: false, message: result.errors.join(" | ") };
+    }
+    return { success: true };
+  },
+
+  async deductStock(items: any[]): Promise<void> {
+    const products = await this.getProducts();
+    for (const item of items) {
+      const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+      if (product) {
+        const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
+        const color = item.color || "Atelier Choice";
+        const qty = item.quantity || 1;
+        await InventoryService.deductStockAtomic(product.id, size, color, qty);
+      }
+    }
   },
 
   async resetPrototype(): Promise<void> {

@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/db";
+import { completeGatewayCheckoutAction } from "@/app/actions/checkout";
+import { useCartStore } from "@/stores/cartStore";
 
 interface CheckoutState {
   customer: string;
@@ -16,6 +18,7 @@ interface CheckoutState {
   pointsDiscount: number;
   finalPayable: number;
   items: string[];
+  cartItems?: { productName: string; price: number; size: string; image: string }[];
 }
 
 export default function PaymentGatewayPage() {
@@ -27,6 +30,9 @@ export default function PaymentGatewayPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [rzpStatus, setRzpStatus] = useState("Verifying with Bank...");
   const [successState, setSuccessState] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [simulationStep, setSimulationStep] = useState<"choosing" | "processing">("choosing");
 
   useEffect(() => {
     // Read state from sessionStorage
@@ -55,62 +61,89 @@ export default function PaymentGatewayPage() {
   }, []);
 
   const simulatePayment = () => {
-    if (!state) return;
-
     setModalOpen(true);
-    setRzpStatus("Verifying with Bank...");
+    setSimulationStep("choosing");
     setSuccessState(false);
+    setPaymentFailed(false);
+    setErrorMsg("");
+  };
 
-    // Timeline simulations
-    setTimeout(() => {
-      setRzpStatus("Securing Transaction...");
-      setTimeout(async () => {
+  const handlePaymentDecision = async (shouldSucceed: boolean) => {
+    if (!state) return;
+    setSimulationStep("processing");
+    setRzpStatus("Processing transaction...");
+
+    setTimeout(async () => {
+      if (shouldSucceed) {
         setRzpStatus("Payment Successful");
         setSuccessState(true);
 
-        // SAVE ORDER to db
-        const orderId = "ORD-" + Math.floor(Math.random() * 9000 + 1000);
+        const res = await completeGatewayCheckoutAction({
+          checkoutState: state,
+          gatewayTransactionId: "TXN-" + Math.floor(Math.random() * 900000 + 100000),
+          status: "Paid",
+        });
 
+        if (!res.success) {
+          setRzpStatus("Verification Failed");
+          setSuccessState(false);
+          setPaymentFailed(true);
+          setErrorMsg(res.error || "Order verification failed.");
+          return;
+        }
+
+        // Sync local storage to match server's computed balances
+        if (res.walletBalance !== undefined) {
+          localStorage.setItem("wallet_balance", res.walletBalance.toString());
+        }
+        if (res.loyaltyPoints !== undefined) {
+          localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
+        }
+
+        // Sync order history locally if offline
         try {
-          if (state.walletDeduction > 0) {
-            await db.applyWalletDebit(state.walletDeduction, orderId);
-          }
-          if (state.pointsRedeemed > 0) {
-            await db.applyLoyaltyDebit(state.pointsRedeemed, orderId);
-          }
+          const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
+          localOrders.unshift(res.order);
+          localStorage.setItem("orders_history", JSON.stringify(localOrders));
+        } catch (e) {
+          console.error(e);
+        }
 
-          // Earn loyalty points on net total spendings
-          await db.awardLoyaltyPoints(state.netTotal, orderId);
+        // Clear cart
+        useCartStore.getState().clearCart();
 
-          // Save formal order
-          await db.saveOrder({
-            id: orderId,
-            customer: state.customer,
-            date: new Date().toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-            total: state.netTotal,
-            originalTotal: state.originalTotal,
-            couponDiscount: state.couponDiscount,
-            couponCode: state.couponCode,
-            walletPaid: state.walletDeduction,
-            gatewayPaid: state.finalPayable,
-            pointsRedeemed: state.pointsRedeemed,
-            pointsDiscount: state.pointsDiscount,
-            pointsEarned: Math.floor(state.netTotal / 10),
-            status: "Paid",
-            items: state.items,
-          });
-        } catch (err) {
-          console.error("Failed to complete database transaction for payment:", err);
+        setTimeout(() => {
+          setModalOpen(false);
+          router.push("/orderconfirmed");
+        }, 1200);
+      } else {
+        setRzpStatus("Payment Declined");
+        setSuccessState(false);
+        setPaymentFailed(true);
+
+        const res = await completeGatewayCheckoutAction({
+          checkoutState: state,
+          gatewayTransactionId: "TXN-FAIL-" + Math.floor(Math.random() * 900000 + 100000),
+          status: "Failed",
+        });
+
+        setErrorMsg(res.error || "Transaction was declined by the issuer bank.");
+
+        // Sync failed order history locally if offline
+        try {
+          if (res.order) {
+            const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
+            localOrders.unshift(res.order);
+            localStorage.setItem("orders_history", JSON.stringify(localOrders));
+          }
+        } catch (e) {
+          console.error(e);
         }
 
         setTimeout(() => {
-          router.push("/orderconfirmed");
-        }, 1000);
-      }, 1500);
+          setModalOpen(false);
+        }, 1500);
+      }
     }, 1500);
   };
 
@@ -198,6 +231,32 @@ export default function PaymentGatewayPage() {
             </div>
             <p className="text-outline font-body">Powered by <span className="font-bold">Razorpay Standard Checkout</span>. Select your payment method below.</p>
           </div>
+
+          {paymentFailed && (
+            <div className="p-6 bg-red-50 border border-red-200 text-red-800 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-red-600">error</span>
+                <div>
+                  <h3 className="font-bold text-sm uppercase tracking-wider">Payment Transaction Failed</h3>
+                  <p className="text-xs text-red-700 mt-1 uppercase tracking-wide">{errorMsg || "Your card was declined by the issuing bank. Please choose another payment option or try again."}</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setPaymentFailed(false)}
+                  className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                >
+                  Try Again
+                </button>
+                <Link
+                  href="/checkout"
+                  className="bg-transparent border border-red-800 hover:bg-red-800 hover:text-white text-red-800 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all text-center flex items-center justify-center"
+                >
+                  Go Back to Checkout
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white border border-outline-variant/30 overflow-hidden rounded-none shadow-sm">
             <div className="bg-[#1d2745] p-6 flex justify-between items-center text-white">
@@ -365,18 +424,50 @@ export default function PaymentGatewayPage() {
             <div className="bg-[#3395FF] p-6 text-white text-center">
               <img src="https://cdn.razorpay.com/static/assets/logo/pay_out_white.png" className="h-6 mx-auto mb-4" alt="Razorpay" />
               <h3 className="text-lg font-bold">Secure Verification</h3>
-              <p className="text-xs opacity-70">Processing via Razorpay Gateway</p>
+              <p className="text-xs opacity-70">Simulated Payment Gateway</p>
             </div>
-            <div className="p-10 flex flex-col items-center gap-6">
-              {!successState ? (
-                <div className="animate-spin size-12 border-4 border-[#3395FF] border-t-transparent rounded-full"></div>
-              ) : (
-                <span className="material-symbols-outlined text-green-600 text-5xl">check_circle</span>
-              )}
-              <p className={`text-sm font-bold uppercase tracking-widest ${successState ? "text-green-600 animate-pulse" : "text-on-surface"}`}>
-                {rzpStatus}
-              </p>
-            </div>
+
+            {simulationStep === "choosing" ? (
+              <div className="p-8 flex flex-col gap-5 text-center bg-white text-[#0a0a0a]">
+                <p className="text-xs text-neutral-500 font-bold uppercase tracking-wider leading-relaxed">
+                  To audit the transaction security, select a simulated payment action:
+                </p>
+                <button
+                  onClick={() => handlePaymentDecision(true)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                >
+                  Simulate Payment Success (Authorize)
+                </button>
+                <button
+                  onClick={() => handlePaymentDecision(false)}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-4 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                >
+                  Simulate Payment Decline (Decline)
+                </button>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="w-full bg-transparent hover:bg-surface-container-low text-neutral-500 py-3 text-[9px] font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                >
+                  Cancel & Go Back
+                </button>
+              </div>
+            ) : (
+              <div className="p-10 flex flex-col items-center gap-6 bg-white text-[#0a0a0a]">
+                {!successState && !paymentFailed ? (
+                  <div className="animate-spin size-12 border-4 border-[#3395FF] border-t-transparent rounded-full"></div>
+                ) : successState ? (
+                  <span className="material-symbols-outlined text-green-600 text-5xl">check_circle</span>
+                ) : (
+                  <span className="material-symbols-outlined text-red-600 text-5xl">cancel</span>
+                )}
+                <p className={`text-sm font-bold uppercase tracking-widest ${
+                  successState ? "text-green-600 animate-pulse" : paymentFailed ? "text-red-600" : "text-on-surface"
+                }`}>
+                  {rzpStatus}
+                </p>
+              </div>
+            )}
+
             <div className="bg-surface-container-low p-4 flex items-center justify-center gap-4 grayscale opacity-40">
               <span className="text-[9px] font-bold">PCI-DSS</span>
               <span className="text-[9px] font-bold">SSL SECURE</span>

@@ -4,6 +4,15 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/db";
+import {
+  processWalletPointsCheckoutAction,
+  verifyAndPrepareGatewayCheckoutAction,
+} from "@/app/actions/checkout";
+import { useCartStore } from "@/stores/cartStore";
+import { useCheckoutStore } from "@/stores/checkoutStore";
+import { useAuthStore } from "@/stores/authStore";
+import { AddressList } from "@/components/checkout/AddressList";
+import { UserAddress } from "@/lib/registry";
 
 interface CartItem {
   productName: string;
@@ -16,19 +25,14 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [idempotencyKey] = useState(() => "ORD-" + Math.floor(Math.random() * 900000 + 100000));
 
-  // Form Fields
-  const [form, setForm] = useState({
-    fname: "",
-    lname: "",
-    email: "",
-    address: "",
-    city: "",
-    pincode: "",
-    phone: "",
-  });
+  const [selectedAddress, setSelectedAddress] = useState<UserAddress | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.email || "guest";
 
   // Cart & Calculation States
+  const cartItems = useCartStore((state) => state.cartItems);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [couponMessage, setCouponMessage] = useState({ text: "", isError: false });
@@ -55,13 +59,8 @@ export default function CheckoutPage() {
 
   // Load Initial Data
   useEffect(() => {
-    // Fetch Cart
-    let savedCart: CartItem[] = [];
-    try {
-      savedCart = JSON.parse(localStorage.getItem("cart_items") || "[]");
-    } catch (e) {
-      console.error("Failed to parse cart items", e);
-    }
+    // Fetch Cart from Zustand
+    let savedCart: CartItem[] = [...cartItems];
 
     if (savedCart.length === 0) {
       // Default to mock item if cart is empty
@@ -84,7 +83,7 @@ export default function CheckoutPage() {
       setAvailableWallet(wallet);
     };
     fetchPerks();
-  }, []);
+  }, [cartItems]);
 
   // Recalculate Totals
   const baseTotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
@@ -112,13 +111,7 @@ export default function CheckoutPage() {
   const subtotal = netTotal / 1.12;
   const gst = netTotal - subtotal;
 
-  // Handle Form Change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.id]: e.target.value,
-    });
-  };
+
 
   // Coupon Code Validation
   const handleApplyCoupon = async () => {
@@ -160,9 +153,8 @@ export default function CheckoutPage() {
   const handleGoToStep = (step: number) => {
     if (step === 2) {
       // Validate Shipping Details (Step 1)
-      const emptyFields = Object.entries(form).filter(([_, val]) => !val.trim());
-      if (emptyFields.length > 0) {
-        triggerToast("Please fill in all shipping details");
+      if (!selectedAddress) {
+        triggerToast("Please select a delivery address");
         return;
       }
     }
@@ -178,63 +170,82 @@ export default function CheckoutPage() {
     } else if (currentStep === 2) {
       handleGoToStep(3);
     } else if (currentStep === 3) {
-      const customerName = `${form.fname} ${form.lname}`;
+      const customerName = selectedAddress?.name || "Guest";
+
+      // Verify stock before any checkout actions
+      const stockCheck = await db.verifyStock(cart);
+      if (!stockCheck.success) {
+        triggerToast(stockCheck.message || "Insufficient inventory stock.");
+        return;
+      }
 
       if (finalPayable === 0) {
         // Paid fully via Wallet and/or Loyalty Points
-        const orderId = "ORD-" + Math.floor(Math.random() * 9000 + 1000);
-
-        if (walletDeduction > 0) {
-          await db.applyWalletDebit(walletDeduction, orderId);
-        }
-        if (pointsRedeemed > 0) {
-          await db.applyLoyaltyDebit(pointsRedeemed, orderId);
-        }
-
-        // Earn points on netTotal
-        await db.awardLoyaltyPoints(netTotal, orderId);
-
-        // Save Order
-        await db.saveOrder({
-          id: orderId,
-          customer: customerName,
-          date: new Date().toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-          total: netTotal,
-          originalTotal: baseTotal,
-          couponDiscount: appliedDiscount,
+        const res = await processWalletPointsCheckoutAction({
+          cart,
           couponCode: appliedCouponCode,
-          walletPaid: walletDeduction,
-          gatewayPaid: 0,
-          pointsRedeemed: pointsRedeemed,
-          pointsDiscount: loyaltyDiscount,
-          pointsEarned: Math.floor(netTotal / 10),
-          status: "Paid via Wallet",
-          items: cart.map((item) => item.productName),
+          walletDeduction,
+          pointsRedeemed,
+          loyaltyDiscount,
+          baseTotal,
+          netTotal,
+          customerName,
+          idempotencyKey,
+          addressId: selectedAddress?.id,
+          userId,
         });
+
+        if (!res.success) {
+          triggerToast(res.error || "Failed to place order.");
+          return;
+        }
+
+        // Sync local storage to match server's computed balances
+        if (res.walletBalance !== undefined) {
+          localStorage.setItem("wallet_balance", res.walletBalance.toString());
+        }
+        if (res.loyaltyPoints !== undefined) {
+          localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
+        }
+
+        // Sync order history locally if in offline mode
+        try {
+          const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
+          localOrders.unshift(res.order);
+          localStorage.setItem("orders_history", JSON.stringify(localOrders));
+        } catch (e) {
+          console.error(e);
+        }
+
+        // Clear cart
+        useCartStore.getState().clearCart();
 
         triggerToast("Order placed successfully!");
         setTimeout(() => {
           router.push("/orderconfirmed");
         }, 1000);
       } else {
-        // Forward to payment gateway
-        const checkoutState = {
-          customer: customerName,
-          originalTotal: baseTotal,
-          couponDiscount: appliedDiscount,
+        // Forward to payment gateway with server-verified signature
+        const res = await verifyAndPrepareGatewayCheckoutAction({
+          cart,
           couponCode: appliedCouponCode,
-          netTotal: netTotal,
-          walletDeduction: walletDeduction,
-          pointsRedeemed: pointsRedeemed,
-          pointsDiscount: loyaltyDiscount,
-          finalPayable: finalPayable,
-          items: cart.map((item) => item.productName),
-        };
-        sessionStorage.setItem("checkoutState", JSON.stringify(checkoutState));
+          walletDeduction,
+          pointsRedeemed,
+          loyaltyDiscount,
+          baseTotal,
+          netTotal,
+          customerName,
+          idempotencyKey,
+          addressId: selectedAddress?.id,
+          userId,
+        });
+
+        if (!res.success || !res.checkoutState) {
+          triggerToast(res.error || "Failed to prepare checkout session.");
+          return;
+        }
+
+        sessionStorage.setItem("checkoutState", JSON.stringify(res.checkoutState));
         router.push("/paymentgateway");
       }
     }
@@ -369,85 +380,10 @@ export default function CheckoutPage() {
                   <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 01 of 03</span>
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Delivery Details</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                  <div className="space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="fname">First Name</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="fname"
-                      placeholder="ENTER FIRST NAME"
-                      type="text"
-                      value={form.fname}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="lname">Last Name</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="lname"
-                      placeholder="ENTER LAST NAME"
-                      type="text"
-                      value={form.lname}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="email">Email Address</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="email"
-                      placeholder="ENTER EMAIL ADDRESS"
-                      type="email"
-                      value={form.email}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="address">Full Address</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="address"
-                      placeholder="ENTER FULL RESIDENTIAL ADDRESS"
-                      type="text"
-                      value={form.address}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="city">City</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="city"
-                      placeholder="ENTER CITY"
-                      type="text"
-                      value={form.city}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="pincode">Pin Code</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="pincode"
-                      placeholder="ENTER PIN CODE"
-                      type="text"
-                      value={form.pincode}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline" htmlFor="phone">Phone Number</label>
-                    <input
-                      className="w-full px-4 py-3 bg-white/30 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white/50 text-[10px] font-black uppercase tracking-wider outline-none transition-all duration-300 shadow-sm rounded-lg text-on-surface placeholder-on-surface/40"
-                      id="phone"
-                      placeholder="ENTER 10-DIGIT MOBILE NUMBER"
-                      type="tel"
-                      value={form.phone}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
+                <AddressList 
+                  userId={userId} 
+                  onAddressSelected={(address) => setSelectedAddress(address)} 
+                />
               </div>
             )}
 
@@ -587,15 +523,15 @@ export default function CheckoutPage() {
                     <div className="text-[10px] font-medium space-y-2 uppercase tracking-wide">
                       <p>
                         <span className="text-outline">Client Name:</span>{" "}
-                        <span className="font-bold text-on-surface">{form.fname} {form.lname}</span>
+                        <span className="font-bold text-on-surface">{selectedAddress?.name}</span>
                       </p>
                       <p>
                         <span className="text-outline">Address:</span>{" "}
-                        <span className="font-bold text-on-surface">{form.address}, {form.city} - {form.pincode}</span>
+                        <span className="font-bold text-on-surface">{selectedAddress?.address_line_1}{selectedAddress?.address_line_2 ? `, ${selectedAddress.address_line_2}` : ""}, {selectedAddress?.city} - {selectedAddress?.postal_code}</span>
                       </p>
                       <p>
                         <span className="text-outline">Contact:</span>{" "}
-                        <span className="font-bold text-on-surface">{form.phone}</span> | <span className="text-on-surface">{form.email}</span>
+                        <span className="font-bold text-on-surface">{selectedAddress?.phone}</span> | <span className="text-on-surface">{user?.email || "guest@stitch6k.com"}</span>
                       </p>
                     </div>
                   </div>

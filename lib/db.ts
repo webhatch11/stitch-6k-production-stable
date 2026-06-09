@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress } from "./registry";
+import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory } from "./registry";
 import { InventoryService } from "./services/inventory";
 
 // Helper mappings for Database compatibility
@@ -69,6 +69,21 @@ const mapDbOrderToOrder = (o: any): Order => {
     returnRejectReason: o.return_reject_reason,
     qualityCheckPassed: o.quality_check_passed,
     shiprocketId: o.shiprocket_id || o.shiprocketId || "",
+  };
+};
+
+const mapDbCouponToCoupon = (c: any): Coupon => {
+  if (!c) return c;
+  return {
+    id: c.id,
+    code: c.code,
+    discount: Number(c.discount),
+    type: c.type,
+    active: c.active,
+    expiryDate: c.expiry_date || c.expiryDate,
+    minCartValue: c.min_cart_value !== undefined ? Number(c.min_cart_value) : (c.minCartValue !== undefined ? Number(c.minCartValue) : undefined),
+    maxUsage: c.max_usage !== undefined ? Number(c.max_usage) : (c.maxUsage !== undefined ? Number(c.maxUsage) : undefined),
+    usageCount: c.usage_count !== undefined ? Number(c.usage_count) : (c.usageCount !== undefined ? Number(c.usageCount) : undefined),
   };
 };
 
@@ -309,7 +324,7 @@ export const db = {
       console.error("Error fetching coupons from Supabase:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map(mapDbCouponToCoupon);
   },
 
   async saveCoupon(coupon: Partial<Coupon>): Promise<void> {
@@ -322,6 +337,14 @@ export const db = {
       discount: coupon.discount || 10,
       type: coupon.type || "percent",
       active: coupon.active !== undefined ? coupon.active : true,
+      expiry_date: coupon.expiryDate,
+      expiryDate: coupon.expiryDate,
+      min_cart_value: coupon.minCartValue,
+      minCartValue: coupon.minCartValue,
+      max_usage: coupon.maxUsage,
+      maxUsage: coupon.maxUsage,
+      usage_count: coupon.usageCount,
+      usageCount: coupon.usageCount,
     };
 
     const { error } = await supabase.from("coupons").upsert(dbPayload);
@@ -342,22 +365,122 @@ export const db = {
     }
   },
 
-  async validateCoupon(code: string): Promise<Coupon | undefined> {
+  async validateCoupon(code: string, cartTotal: number): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.validateCoupon(code);
+      return RegistryManager.validateCoupon(code, cartTotal);
     }
     const { data, error } = await supabase
       .from("coupons")
       .select("*")
       .eq("code", code.toUpperCase())
-      .eq("active", true)
       .maybeSingle();
 
     if (error) {
       console.error("Error validating coupon on Supabase:", error);
-      return undefined;
+      return { valid: false, error: "Database error validating coupon." };
     }
-    return data || undefined;
+    if (!data) {
+      return { valid: false, error: "Coupon not found." };
+    }
+
+    const coupon = mapDbCouponToCoupon(data);
+
+    if (!coupon.active) {
+      return { valid: false, error: "Coupon is inactive." };
+    }
+    if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
+      return { valid: false, error: "Coupon has expired." };
+    }
+    if (coupon.minCartValue !== undefined && cartTotal < coupon.minCartValue) {
+      return { valid: false, error: `Minimum cart value of ₹${coupon.minCartValue} required.` };
+    }
+    if (coupon.maxUsage !== undefined && coupon.usageCount !== undefined && coupon.usageCount >= coupon.maxUsage) {
+      return { valid: false, error: "Coupon usage limit has been reached." };
+    }
+
+    return { valid: true, coupon };
+  },
+
+  async incrementCouponUsage(code: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.incrementCouponUsage(code);
+    }
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("code", code.toUpperCase())
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Error fetching coupon to increment usage:", error);
+      return false;
+    }
+
+    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : (data.usageCount !== undefined ? Number(data.usageCount) : 0);
+    const newUsage = currentUsage + 1;
+
+    const updatePayload: any = {};
+    if (data.usage_count !== undefined) {
+      updatePayload.usage_count = newUsage;
+    }
+    if (data.usageCount !== undefined) {
+      updatePayload.usageCount = newUsage;
+    }
+    if (Object.keys(updatePayload).length === 0) {
+      updatePayload.usage_count = newUsage;
+    }
+
+    const { error: updateErr } = await supabase
+      .from("coupons")
+      .update(updatePayload)
+      .eq("code", code.toUpperCase());
+
+    if (updateErr) {
+      console.error("Error updating coupon usage count on Supabase:", updateErr);
+      return false;
+    }
+    return true;
+  },
+
+  async decrementCouponUsage(code: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.decrementCouponUsage(code);
+    }
+    const { data, error } = await supabase
+      .from("coupons")
+      .select("*")
+      .eq("code", code.toUpperCase())
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Error fetching coupon to decrement usage:", error);
+      return false;
+    }
+
+    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : (data.usageCount !== undefined ? Number(data.usageCount) : 0);
+    const newUsage = Math.max(0, currentUsage - 1);
+
+    const updatePayload: any = {};
+    if (data.usage_count !== undefined) {
+      updatePayload.usage_count = newUsage;
+    }
+    if (data.usageCount !== undefined) {
+      updatePayload.usageCount = newUsage;
+    }
+    if (Object.keys(updatePayload).length === 0) {
+      updatePayload.usage_count = newUsage;
+    }
+
+    const { error: updateErr } = await supabase
+      .from("coupons")
+      .update(updatePayload)
+      .eq("code", code.toUpperCase());
+
+    if (updateErr) {
+      console.error("Error updating coupon usage count on Supabase:", updateErr);
+      return false;
+    }
+    return true;
   },
 
   // --- Wallet ---
@@ -400,21 +523,35 @@ export const db = {
     return { balance, transactions };
   },
 
-  async applyWalletDebit(amount: number, orderId: string): Promise<void> {
+  async applyWalletDebit(amount: number, orderId: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletDebit(amount, orderId);
     }
     const balance = await this.getWalletBalance();
+    if (amount > balance) {
+      return { success: false, error: "Insufficient wallet balance." };
+    }
     const newBalance = balance - amount;
 
-    await supabase.from("account_balances").upsert({ key: "wallet_balance", value: newBalance });
-    await supabase.from("wallet_transactions").insert({
+    const { error: upsertErr } = await supabase.from("account_balances").upsert({ key: "wallet_balance", value: newBalance });
+    if (upsertErr) {
+      console.error("Error updating wallet balance on Supabase:", upsertErr);
+      return { success: false, error: "Database error debiting wallet." };
+    }
+
+    const { error: insertErr } = await supabase.from("wallet_transactions").insert({
       id: "WTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       amount: amount,
       type: "debit",
       description: `Payment for Order #${orderId}`,
     });
+
+    if (insertErr) {
+      console.error("Error logging wallet transaction on Supabase:", insertErr);
+    }
+
+    return { success: true };
   },
 
   async applyWalletCredit(amount: number, description: string, orderId: string): Promise<void> {
@@ -474,21 +611,35 @@ export const db = {
     return { points, transactions };
   },
 
-  async applyLoyaltyDebit(points: number, orderId: string): Promise<void> {
+  async applyLoyaltyDebit(points: number, orderId: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyDebit(points, orderId);
     }
     const balance = await this.getLoyaltyPoints();
-    const newBalance = Math.max(0, balance - points);
+    if (points > balance) {
+      return { success: false, error: "Insufficient loyalty points balance." };
+    }
+    const newBalance = balance - points;
 
-    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
-    await supabase.from("loyalty_transactions").insert({
+    const { error: upsertErr } = await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+    if (upsertErr) {
+      console.error("Error updating loyalty points on Supabase:", upsertErr);
+      return { success: false, error: "Database error debiting loyalty points." };
+    }
+
+    const { error: insertErr } = await supabase.from("loyalty_transactions").insert({
       id: "LTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       points: points,
       type: "debit",
       description: `Redeemed on Order #${orderId}`,
     });
+
+    if (insertErr) {
+      console.error("Error logging loyalty transaction on Supabase:", insertErr);
+    }
+
+    return { success: true };
   },
 
   async awardLoyaltyPoints(total: number, orderId: string): Promise<void> {
@@ -508,6 +659,23 @@ export const db = {
       points: points,
       type: "credit",
       description: `Earned on Order #${orderId}`,
+    });
+  },
+
+  async applyLoyaltyCredit(points: number, description: string, orderId: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.applyLoyaltyCredit(points, description, orderId);
+    }
+    const balance = await this.getLoyaltyPoints();
+    const newBalance = balance + points;
+
+    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+    await supabase.from("loyalty_transactions").insert({
+      id: "LTX-" + Date.now(),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      points: points,
+      type: "credit",
+      description: description || `Refund for Order #${orderId}`,
     });
   },
 
@@ -886,6 +1054,19 @@ export const db = {
     }
   },
 
+  async restoreStock(items: any[]): Promise<void> {
+    const products = await this.getProducts();
+    for (const item of items) {
+      const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+      if (product) {
+        const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
+        const color = item.color || "Atelier Choice";
+        const qty = item.quantity || 1;
+        await InventoryService.restoreStockAtomic(product.id, size, color, qty);
+      }
+    }
+  },
+
   async resetPrototype(): Promise<void> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.resetPrototype();
@@ -894,8 +1075,60 @@ export const db = {
     await supabase.from("orders").delete().neq("id", "");
     await supabase.from("wallet_transactions").delete().neq("id", "");
     await supabase.from("loyalty_transactions").delete().neq("id", "");
+    await supabase.from("order_status_history").delete().neq("id", "");
     await supabase.from("account_balances").upsert({ key: "wallet_balance", value: 2500 });
     await supabase.from("account_balances").upsert({ key: "loyalty_points", value: 2000 });
     console.log("[Supabase DB Reset Completed]");
+  },
+
+  async getOrderStatusHistory(orderId: string): Promise<OrderStatusHistory[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.getOrderStatusHistory(orderId);
+    }
+    const { data, error } = await supabase
+      .from("order_status_history")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching order status history:", error);
+      return [];
+    }
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      order_id: row.order_id,
+      status: row.status,
+      updated_by: row.updated_by || "system",
+      metadata: row.metadata || {},
+      created_at: row.created_at
+    }));
+  },
+
+  async addOrderStatusHistory(orderId: string, status: string, updatedBy?: string, metadata?: any): Promise<OrderStatusHistory> {
+    if (!isSupabaseConfigured || !supabase) {
+      return RegistryManager.addOrderStatusHistory(orderId, status, updatedBy, metadata);
+    }
+    const entry = {
+      id: "OSH-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
+      order_id: orderId,
+      status,
+      updated_by: updatedBy || "system",
+      metadata: metadata || {},
+      created_at: new Date().toISOString()
+    };
+    const { error } = await supabase.from("order_status_history").insert(entry);
+    if (error) {
+      console.error("Error inserting order status history:", error);
+      throw error;
+    }
+    return {
+      id: entry.id,
+      order_id: entry.order_id,
+      status: entry.status,
+      updated_by: entry.updated_by,
+      metadata: entry.metadata,
+      created_at: entry.created_at
+    };
   },
 };

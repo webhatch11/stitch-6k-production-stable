@@ -75,6 +75,16 @@ export interface Order {
   returnRejectReason?: string;
   qualityCheckPassed?: boolean;
   shiprocketId?: string;
+  idempotencyKey?: string;
+}
+
+export interface OrderStatusHistory {
+  id: string;
+  order_id: string;
+  status: string;
+  metadata?: any;
+  created_at: string;
+  updated_by: string;
 }
 
 export interface Coupon {
@@ -83,6 +93,10 @@ export interface Coupon {
   discount: number;
   type: "percent" | "flat";
   active: boolean;
+  expiryDate?: string;
+  minCartValue?: number;
+  maxUsage?: number;
+  usageCount?: number;
 }
 
 export interface WalletTransaction {
@@ -91,6 +105,7 @@ export interface WalletTransaction {
   amount: number;
   type: "credit" | "debit";
   description: string;
+  idempotencyKey?: string;
 }
 
 export interface LoyaltyTransaction {
@@ -99,6 +114,7 @@ export interface LoyaltyTransaction {
   points: number;
   type: "credit" | "debit";
   description: string;
+  idempotencyKey?: string;
 }
 
 export interface UserAddress {
@@ -124,7 +140,8 @@ const WALLET_TX_KEY = "registry_wallet_transactions";
 const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
 const ADDRESSES_KEY = "registry_addresses";
-const CURRENT_VERSION = "5.4_genz_collection";
+const ORDER_STATUS_HISTORY_KEY = "registry_order_status_history";
+const CURRENT_VERSION = "5.6_status_history";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -142,6 +159,7 @@ export const RegistryManager = {
       localStorage.removeItem(LOYALTY_POINTS_KEY);
       localStorage.removeItem(LOYALTY_TX_KEY);
       localStorage.removeItem(ADDRESSES_KEY);
+      localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
       localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
     }
 
@@ -905,9 +923,11 @@ export const RegistryManager = {
 
     if (!localStorage.getItem(COUPONS_KEY)) {
       const seedCoupons: Coupon[] = [
-        { id: "CPN-1", code: "HERITAGE10", discount: 10, type: "percent", active: true },
-        { id: "CPN-2", code: "LAUNCH500", discount: 500, type: "flat", active: true },
-        { id: "CPN-3", code: "FESTIVE24", discount: 10, type: "percent", active: true },
+        { id: "CPN-1", code: "HERITAGE10", discount: 10, type: "percent", active: true, minCartValue: 5000, maxUsage: 100, usageCount: 5, expiryDate: "2027-12-31" },
+        { id: "CPN-2", code: "LAUNCH500", discount: 500, type: "flat", active: true, minCartValue: 2000, maxUsage: 50, usageCount: 12, expiryDate: "2027-12-31" },
+        { id: "CPN-3", code: "FESTIVE24", discount: 10, type: "percent", active: false, minCartValue: 1000, maxUsage: 10, usageCount: 2, expiryDate: "2024-12-31" },
+        { id: "CPN-4", code: "EXPIRED50", discount: 50, type: "percent", active: true, minCartValue: 100, maxUsage: 10, usageCount: 0, expiryDate: "2025-01-01" },
+        { id: "CPN-5", code: "LIMITOUT", discount: 15, type: "percent", active: true, minCartValue: 100, maxUsage: 10, usageCount: 10, expiryDate: "2027-12-31" },
       ];
       localStorage.setItem(COUPONS_KEY, JSON.stringify(seedCoupons));
     }
@@ -1038,6 +1058,10 @@ export const RegistryManager = {
     const existingIndex = orders.findIndex(o => o.id === order.id);
     const oldOrder = existingIndex !== -1 ? orders[existingIndex] : null;
 
+    if (existingIndex === -1 && order.id && orders.some(o => o.id === order.id)) {
+      throw new Error("duplicate key value violates unique constraint \"orders_pkey\"");
+    }
+
     const newOrder: Order = {
       id: order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000),
       customer: order.customer || (oldOrder ? oldOrder.customer : "Guest Customer"),
@@ -1062,14 +1086,19 @@ export const RegistryManager = {
       returnRejectReason: order.returnRejectReason !== undefined ? order.returnRejectReason : (oldOrder ? oldOrder.returnRejectReason : undefined),
       qualityCheckPassed: order.qualityCheckPassed !== undefined ? order.qualityCheckPassed : (oldOrder ? oldOrder.qualityCheckPassed : undefined),
       shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (oldOrder ? oldOrder.shiprocketId : undefined),
+      idempotencyKey: order.idempotencyKey || order.id,
     };
 
     if (existingIndex !== -1) {
       orders[existingIndex] = newOrder;
+      if (oldOrder && oldOrder.status !== newOrder.status) {
+        this.addOrderStatusHistory(newOrder.id, newOrder.status, "system", { previous_status: oldOrder.status });
+      }
     } else {
       orders.unshift(newOrder);
       localStorage.setItem("cartCount", "0");
       localStorage.removeItem("cart_items");
+      this.addOrderStatusHistory(newOrder.id, newOrder.status, "system", { info: "Order created" });
     }
     localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
     return newOrder;
@@ -1100,10 +1129,46 @@ export const RegistryManager = {
     localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
   },
 
-  validateCoupon(code: string): Coupon | undefined {
-    if (!isBrowser()) return undefined;
+  validateCoupon(code: string, cartTotal: number): { valid: boolean; coupon?: Coupon; error?: string } {
+    if (!isBrowser()) return { valid: false, error: "Validation not possible in SSR environment." };
     const coupons = this.getCoupons();
-    return coupons.find((c) => c.code.toUpperCase() === code.toUpperCase() && c.active);
+    const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (!coupon) {
+      return { valid: false, error: "Coupon not found." };
+    }
+    if (!coupon.active) {
+      return { valid: false, error: "Coupon is inactive." };
+    }
+    if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
+      return { valid: false, error: "Coupon has expired." };
+    }
+    if (coupon.minCartValue !== undefined && cartTotal < coupon.minCartValue) {
+      return { valid: false, error: `Minimum cart value of ₹${coupon.minCartValue} required.` };
+    }
+    if (coupon.maxUsage !== undefined && coupon.usageCount !== undefined && coupon.usageCount >= coupon.maxUsage) {
+      return { valid: false, error: "Coupon usage limit has been reached." };
+    }
+    return { valid: true, coupon };
+  },
+
+  incrementCouponUsage(code: string): boolean {
+    if (!isBrowser()) return false;
+    const coupons = this.getCoupons();
+    const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (!coupon) return false;
+    coupon.usageCount = (coupon.usageCount || 0) + 1;
+    localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
+    return true;
+  },
+
+  decrementCouponUsage(code: string): boolean {
+    if (!isBrowser()) return false;
+    const coupons = this.getCoupons();
+    const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (!coupon) return false;
+    coupon.usageCount = Math.max(0, (coupon.usageCount || 0) - 1);
+    localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
+    return true;
   },
 
   getWalletBalance(): number {
@@ -1125,36 +1190,52 @@ export const RegistryManager = {
     };
   },
 
-  applyWalletDebit(amount: number, orderId: string) {
-    if (!isBrowser()) return;
+  applyWalletDebit(amount: number, orderId: string): { success: boolean; error?: string } {
+    if (!isBrowser()) return { success: false, error: "SSR Environment" };
+    
+    const txs = this.getWalletTransactions();
+    if (txs.some(t => t.idempotencyKey === orderId)) {
+      throw new Error("duplicate key value violates unique constraint \"wallet_transactions_idempotency_key_key\"");
+    }
+
     let balance = this.getWalletBalance();
+    if (amount > balance) {
+      return { success: false, error: "Insufficient wallet balance." };
+    }
     balance -= amount;
     localStorage.setItem(WALLET_BALANCE_KEY, balance.toString());
 
-    const txs = this.getWalletTransactions();
     txs.unshift({
       id: "WTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       amount: amount,
       type: "debit",
       description: `Payment for Order #${orderId}`,
+      idempotencyKey: orderId,
     });
     localStorage.setItem(WALLET_TX_KEY, JSON.stringify(txs));
+    return { success: true };
   },
 
   applyWalletCredit(amount: number, description: string, orderId: string) {
     if (!isBrowser()) return;
+    
+    const txs = this.getWalletTransactions();
+    if (txs.some(t => t.idempotencyKey === `refund-${orderId}`)) {
+      throw new Error("duplicate key value violates unique constraint \"wallet_transactions_idempotency_key_key\"");
+    }
+
     let balance = this.getWalletBalance();
     balance += amount;
     localStorage.setItem(WALLET_BALANCE_KEY, balance.toString());
 
-    const txs = this.getWalletTransactions();
     txs.unshift({
       id: "WTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       amount: amount,
       type: "credit",
       description: description || `Refund for Order #${orderId}`,
+      idempotencyKey: `refund-${orderId}`,
     });
     localStorage.setItem(WALLET_TX_KEY, JSON.stringify(txs));
   },
@@ -1178,38 +1259,77 @@ export const RegistryManager = {
     };
   },
 
-  applyLoyaltyDebit(points: number, orderId: string) {
-    if (!isBrowser()) return;
-    let balance = this.getLoyaltyPoints();
-    balance = Math.max(0, balance - points);
-    localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
+  applyLoyaltyDebit(points: number, orderId: string): { success: boolean; error?: string } {
+    if (!isBrowser()) return { success: false, error: "SSR Environment" };
 
     const txs = this.getLoyaltyTransactions();
+    if (txs.some(t => t.idempotencyKey === orderId)) {
+      throw new Error("duplicate key value violates unique constraint \"loyalty_transactions_idempotency_key_key\"");
+    }
+
+    let balance = this.getLoyaltyPoints();
+    if (points > balance) {
+      return { success: false, error: "Insufficient loyalty points balance." };
+    }
+    balance -= points;
+    localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
+
     txs.unshift({
       id: "LTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       points: points,
       type: "debit",
       description: `Redeemed on Order #${orderId}`,
+      idempotencyKey: orderId,
     });
     localStorage.setItem(LOYALTY_TX_KEY, JSON.stringify(txs));
+    return { success: true };
   },
 
   awardLoyaltyPoints(total: number, orderId: string) {
     if (!isBrowser()) return;
+
+    const txs = this.getLoyaltyTransactions();
+    if (txs.some(t => t.idempotencyKey === `earn-${orderId}`)) {
+      return; // Deduplicate earning
+    }
+
     const points = Math.floor(total / 10);
     if (points <= 0) return;
     let balance = this.getLoyaltyPoints();
     balance += points;
     localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
 
-    const txs = this.getLoyaltyTransactions();
     txs.unshift({
       id: "LTX-" + Date.now(),
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       points: points,
       type: "credit",
       description: `Earned on Order #${orderId}`,
+      idempotencyKey: `earn-${orderId}`,
+    });
+    localStorage.setItem(LOYALTY_TX_KEY, JSON.stringify(txs));
+  },
+
+  applyLoyaltyCredit(points: number, description: string, orderId: string) {
+    if (!isBrowser()) return;
+
+    const txs = this.getLoyaltyTransactions();
+    if (txs.some(t => t.idempotencyKey === `refund-${orderId}`)) {
+      throw new Error("duplicate key value violates unique constraint \"loyalty_transactions_idempotency_key_key\"");
+    }
+
+    let balance = this.getLoyaltyPoints();
+    balance += points;
+    localStorage.setItem(LOYALTY_POINTS_KEY, balance.toString());
+
+    txs.unshift({
+      id: "LTX-" + Date.now(),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      points: points,
+      type: "credit",
+      description: description || `Refund for Order #${orderId}`,
+      idempotencyKey: `refund-${orderId}`,
     });
     localStorage.setItem(LOYALTY_TX_KEY, JSON.stringify(txs));
   },
@@ -1549,6 +1669,30 @@ export const RegistryManager = {
     localStorage.setItem(ADDRESSES_KEY, JSON.stringify(addresses));
   },
 
+  getOrderStatusHistory(orderId: string): OrderStatusHistory[] {
+    if (!isBrowser()) return [];
+    this.init();
+    const history = JSON.parse(localStorage.getItem(ORDER_STATUS_HISTORY_KEY) || "[]") as OrderStatusHistory[];
+    return history.filter(h => h.order_id === orderId).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  },
+
+  addOrderStatusHistory(orderId: string, status: string, updatedBy?: string, metadata?: any): OrderStatusHistory {
+    if (!isBrowser()) throw new Error("Browser only");
+    this.init();
+    const history = JSON.parse(localStorage.getItem(ORDER_STATUS_HISTORY_KEY) || "[]") as OrderStatusHistory[];
+    const entry: OrderStatusHistory = {
+      id: "OSH-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
+      order_id: orderId,
+      status,
+      updated_by: updatedBy || "system",
+      metadata: metadata || {},
+      created_at: new Date().toISOString()
+    };
+    history.push(entry);
+    localStorage.setItem(ORDER_STATUS_HISTORY_KEY, JSON.stringify(history));
+    return entry;
+  },
+
   resetPrototype() {
     if (!isBrowser()) return;
     localStorage.removeItem(PRODUCTS_KEY);
@@ -1561,6 +1705,7 @@ export const RegistryManager = {
     localStorage.removeItem(LOYALTY_POINTS_KEY);
     localStorage.removeItem(LOYALTY_TX_KEY);
     localStorage.removeItem(ADDRESSES_KEY);
+    localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
     window.location.reload();
   },
 };

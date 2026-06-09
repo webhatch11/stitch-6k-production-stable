@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     points_discount NUMERIC DEFAULT 0,
     points_earned INTEGER DEFAULT 0,
     shiprocket_id TEXT DEFAULT '',
+    idempotency_key TEXT UNIQUE,
     
     -- Returns & Refunds Details
     return_reason TEXT,
@@ -122,6 +123,7 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
     amount NUMERIC NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('credit', 'debit')),
     description TEXT,
+    idempotency_key TEXT UNIQUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -133,6 +135,7 @@ CREATE TABLE IF NOT EXISTS public.loyalty_transactions (
     points INTEGER NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('credit', 'debit')),
     description TEXT,
+    idempotency_key TEXT UNIQUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -164,3 +167,13 @@ INSERT INTO public.coupons (id, code, discount, type, active) VALUES
 ('CPN-1', 'HERITAGE10', 10, 'percent', true),
 ('CPN-2', 'LAUNCH500', 500, 'flat', true)
 ON CONFLICT (code) DO NOTHING;
+
+-- 9. Table: order_status_history (immutable audit log for order state changes)
+CREATE TABLE IF NOT EXISTS public.order_status_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_by TEXT DEFAULT 'system'
+);

@@ -23,6 +23,8 @@ export async function processWalletPointsCheckoutAction(payload: {
   netTotal: number;
   customerName: string;
   idempotencyKey: string;
+  addressId?: string;
+  userId?: string;
 }) {
   const {
     cart,
@@ -66,13 +68,15 @@ export async function processWalletPointsCheckoutAction(payload: {
   // Validate coupon
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const coupon = await db.validateCoupon(couponCode);
-    if (coupon) {
-      if (coupon.type === "percent") {
-        verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
-      } else {
-        verifiedCouponDiscount = coupon.discount;
-      }
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal);
+    if (!couponRes.valid || !couponRes.coupon) {
+      return { success: false, error: couponRes.error || "Invalid coupon code." };
+    }
+    const coupon = couponRes.coupon;
+    if (coupon.type === "percent") {
+      verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
+    } else {
+      verifiedCouponDiscount = coupon.discount;
     }
   }
 
@@ -114,12 +118,39 @@ export async function processWalletPointsCheckoutAction(payload: {
   // D. Deduct inventory stock server-side
   await db.deductStock(cart);
 
-  // E. Debit balances server-side
+  // E. Debit balances server-side with rollback support
   if (walletDeduction > 0) {
-    await db.applyWalletDebit(walletDeduction, idempotencyKey);
+    const res = await db.applyWalletDebit(walletDeduction, idempotencyKey);
+    if (!res.success) {
+      await db.restoreStock(cart);
+      return { success: false, error: res.error || "Failed to deduct wallet balance." };
+    }
   }
+
   if (pointsRedeemed > 0) {
-    await db.applyLoyaltyDebit(pointsRedeemed, idempotencyKey);
+    const res = await db.applyLoyaltyDebit(pointsRedeemed, idempotencyKey);
+    if (!res.success) {
+      if (walletDeduction > 0) {
+        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      await db.restoreStock(cart);
+      return { success: false, error: res.error || "Failed to redeem loyalty points." };
+    }
+  }
+
+  // Increment coupon usage
+  if (couponCode) {
+    const ok = await db.incrementCouponUsage(couponCode);
+    if (!ok) {
+      if (pointsRedeemed > 0) {
+        await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      if (walletDeduction > 0) {
+        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      await db.restoreStock(cart);
+      return { success: false, error: "Failed to apply coupon usage count." };
+    }
   }
 
   // Award new loyalty points
@@ -147,7 +178,22 @@ export async function processWalletPointsCheckoutAction(payload: {
     items: cart.map((item) => item.productName),
   };
 
-  const savedOrder = await db.saveOrder(orderData);
+  let savedOrder;
+  try {
+    savedOrder = await db.saveOrder(orderData);
+  } catch (err) {
+    if (couponCode) {
+      await db.decrementCouponUsage(couponCode);
+    }
+    if (pointsRedeemed > 0) {
+      await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey);
+    }
+    if (walletDeduction > 0) {
+      await db.applyWalletCredit(walletDeduction, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey);
+    }
+    await db.restoreStock(cart);
+    return { success: false, error: "Failed to record checkout order in database." };
+  }
 
   return {
     success: true,
@@ -213,13 +259,15 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const coupon = await db.validateCoupon(couponCode);
-    if (coupon) {
-      if (coupon.type === "percent") {
-        verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
-      } else {
-        verifiedCouponDiscount = coupon.discount;
-      }
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal);
+    if (!couponRes.valid || !couponRes.coupon) {
+      return { success: false, error: couponRes.error || "Invalid coupon code." };
+    }
+    const coupon = couponRes.coupon;
+    if (coupon.type === "percent") {
+      verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
+    } else {
+      verifiedCouponDiscount = coupon.discount;
     }
   }
 
@@ -337,12 +385,39 @@ export async function completeGatewayCheckoutAction(payload: {
   // D. Deduct inventory stock
   await db.deductStock(cartItems);
 
-  // E. Debit balances
+  // E. Debit balances with rollback support
   if (walletDeduction > 0) {
-    await db.applyWalletDebit(walletDeduction, idempotencyKey);
+    const res = await db.applyWalletDebit(walletDeduction, idempotencyKey);
+    if (!res.success) {
+      await db.restoreStock(cartItems);
+      return { success: false, error: res.error || "Failed to deduct wallet balance." };
+    }
   }
+
   if (pointsRedeemed > 0) {
-    await db.applyLoyaltyDebit(pointsRedeemed, idempotencyKey);
+    const res = await db.applyLoyaltyDebit(pointsRedeemed, idempotencyKey);
+    if (!res.success) {
+      if (walletDeduction > 0) {
+        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      await db.restoreStock(cartItems);
+      return { success: false, error: res.error || "Failed to redeem loyalty points." };
+    }
+  }
+
+  // Increment coupon usage
+  if (couponCode) {
+    const ok = await db.incrementCouponUsage(couponCode);
+    if (!ok) {
+      if (pointsRedeemed > 0) {
+        await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      if (walletDeduction > 0) {
+        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey);
+      }
+      await db.restoreStock(cartItems);
+      return { success: false, error: "Failed to apply coupon usage count." };
+    }
   }
 
   // Award new loyalty points
@@ -370,7 +445,22 @@ export async function completeGatewayCheckoutAction(payload: {
     items,
   };
 
-  const savedOrder = await db.saveOrder(orderData);
+  let savedOrder;
+  try {
+    savedOrder = await db.saveOrder(orderData);
+  } catch (err) {
+    if (couponCode) {
+      await db.decrementCouponUsage(couponCode);
+    }
+    if (pointsRedeemed > 0) {
+      await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey);
+    }
+    if (walletDeduction > 0) {
+      await db.applyWalletCredit(walletDeduction, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey);
+    }
+    await db.restoreStock(cartItems);
+    return { success: false, error: "Failed to record checkout order in database." };
+  }
 
   const dbWalletBalance = await db.getWalletBalance();
   const dbLoyaltyPoints = await db.getLoyaltyPoints();

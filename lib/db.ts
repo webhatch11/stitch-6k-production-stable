@@ -405,41 +405,15 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.incrementCouponUsage(code);
     }
-    const { data, error } = await supabase
-      .from("coupons")
-      .select("*")
-      .eq("code", code.toUpperCase())
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("coupon_atomic_increment", {
+      p_code: code.toUpperCase()
+    });
 
-    if (error || !data) {
-      console.error("Error fetching coupon to increment usage:", error);
+    if (error) {
+      console.error("Error executing atomic coupon increment:", error);
       return false;
     }
-
-    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : (data.usageCount !== undefined ? Number(data.usageCount) : 0);
-    const newUsage = currentUsage + 1;
-
-    const updatePayload: any = {};
-    if (data.usage_count !== undefined) {
-      updatePayload.usage_count = newUsage;
-    }
-    if (data.usageCount !== undefined) {
-      updatePayload.usageCount = newUsage;
-    }
-    if (Object.keys(updatePayload).length === 0) {
-      updatePayload.usage_count = newUsage;
-    }
-
-    const { error: updateErr } = await supabase
-      .from("coupons")
-      .update(updatePayload)
-      .eq("code", code.toUpperCase());
-
-    if (updateErr) {
-      console.error("Error updating coupon usage count on Supabase:", updateErr);
-      return false;
-    }
-    return true;
+    return data === true;
   },
 
   async decrementCouponUsage(code: string): Promise<boolean> {
@@ -484,30 +458,45 @@ export const db = {
   },
 
   // --- Wallet ---
-  async getWalletBalance(): Promise<number> {
+  async getWalletBalance(userId?: string): Promise<number> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletBalance();
     }
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return 0;
+
     const { data, error } = await supabase
-      .from("account_balances")
-      .select("value")
-      .eq("key", "wallet_balance")
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", uid)
       .maybeSingle();
 
     if (error) {
       console.error("Error fetching wallet balance from Supabase:", error);
       return 0;
     }
-    return data ? Number(data.value) : 0;
+    return data ? Number(data.wallet_balance) : 0;
   },
 
-  async getWalletTransactions(): Promise<WalletTransaction[]> {
+  async getWalletTransactions(userId?: string): Promise<WalletTransaction[]> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletTransactions();
     }
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return [];
+
     const { data, error } = await supabase
       .from("wallet_transactions")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -517,85 +506,99 @@ export const db = {
     return data || [];
   },
 
-  async getWalletData() {
-    const balance = await this.getWalletBalance();
-    const transactions = await this.getWalletTransactions();
+  async getWalletData(userId?: string) {
+    const balance = await this.getWalletBalance(userId);
+    const transactions = await this.getWalletTransactions(userId);
     return { balance, transactions };
   },
 
-  async applyWalletDebit(amount: number, orderId: string): Promise<{ success: boolean; error?: string }> {
+  async applyWalletDebit(amount: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletDebit(amount, orderId);
     }
-    const balance = await this.getWalletBalance();
-    if (amount > balance) {
-      return { success: false, error: "Insufficient wallet balance." };
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
     }
-    const newBalance = balance - amount;
+    if (!uid) return { success: false, error: "User authentication required." };
 
-    const { error: upsertErr } = await supabase.from("account_balances").upsert({ key: "wallet_balance", value: newBalance });
-    if (upsertErr) {
-      console.error("Error updating wallet balance on Supabase:", upsertErr);
-      return { success: false, error: "Database error debiting wallet." };
-    }
-
-    const { error: insertErr } = await supabase.from("wallet_transactions").insert({
-      id: "WTX-" + Date.now(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      amount: amount,
-      type: "debit",
-      description: `Payment for Order #${orderId}`,
+    const { data, error } = await supabase.rpc("wallet_atomic_debit", {
+      p_user_id: uid,
+      p_amount: amount,
+      p_idempotency_key: orderId,
+      p_desc: `Payment for Order #${orderId}`
     });
 
-    if (insertErr) {
-      console.error("Error logging wallet transaction on Supabase:", insertErr);
+    if (error) {
+      console.error("Atomic wallet debit error:", error);
+      return { success: false, error: "Database error debiting wallet." };
     }
-
+    if (data && !data.success) {
+      return { success: false, error: data.error };
+    }
     return { success: true };
   },
 
-  async applyWalletCredit(amount: number, description: string, orderId: string): Promise<void> {
+  async applyWalletCredit(amount: number, description: string, orderId: string, userId?: string): Promise<void> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletCredit(amount, description, orderId);
     }
-    const balance = await this.getWalletBalance();
-    const newBalance = balance + amount;
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return;
 
-    await supabase.from("account_balances").upsert({ key: "wallet_balance", value: newBalance });
-    await supabase.from("wallet_transactions").insert({
-      id: "WTX-" + Date.now(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      amount: amount,
-      type: "credit",
-      description: description || `Refund for Order #${orderId}`,
+    await supabase.rpc("wallet_atomic_credit", {
+      p_user_id: uid,
+      p_amount: amount,
+      p_idempotency_key: "CREDIT-" + orderId + "-" + Date.now(),
+      p_desc: description || `Refund for Order #${orderId}`
     });
   },
 
   // --- Loyalty ---
-  async getLoyaltyPoints(): Promise<number> {
+  async getLoyaltyPoints(userId?: string): Promise<number> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyPoints();
     }
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return 0;
+
     const { data, error } = await supabase
-      .from("account_balances")
-      .select("value")
-      .eq("key", "loyalty_points")
+      .from("profiles")
+      .select("loyalty_points")
+      .eq("id", uid)
       .maybeSingle();
 
     if (error) {
       console.error("Error fetching loyalty points from Supabase:", error);
       return 0;
     }
-    return data ? Number(data.value) : 0;
+    return data ? Number(data.loyalty_points) : 0;
   },
 
-  async getLoyaltyTransactions(): Promise<LoyaltyTransaction[]> {
+  async getLoyaltyTransactions(userId?: string): Promise<LoyaltyTransaction[]> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyTransactions();
     }
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return [];
+
     const { data, error } = await supabase
       .from("loyalty_transactions")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -605,77 +608,78 @@ export const db = {
     return data || [];
   },
 
-  async getLoyaltyData() {
-    const points = await this.getLoyaltyPoints();
-    const transactions = await this.getLoyaltyTransactions();
+  async getLoyaltyData(userId?: string) {
+    const points = await this.getLoyaltyPoints(userId);
+    const transactions = await this.getLoyaltyTransactions(userId);
     return { points, transactions };
   },
 
-  async applyLoyaltyDebit(points: number, orderId: string): Promise<{ success: boolean; error?: string }> {
+  async applyLoyaltyDebit(points: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyDebit(points, orderId);
     }
-    const balance = await this.getLoyaltyPoints();
-    if (points > balance) {
-      return { success: false, error: "Insufficient loyalty points balance." };
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
     }
-    const newBalance = balance - points;
+    if (!uid) return { success: false, error: "User authentication required." };
 
-    const { error: upsertErr } = await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
-    if (upsertErr) {
-      console.error("Error updating loyalty points on Supabase:", upsertErr);
-      return { success: false, error: "Database error debiting loyalty points." };
-    }
-
-    const { error: insertErr } = await supabase.from("loyalty_transactions").insert({
-      id: "LTX-" + Date.now(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      points: points,
-      type: "debit",
-      description: `Redeemed on Order #${orderId}`,
+    const { data, error } = await supabase.rpc("loyalty_atomic_debit", {
+      p_user_id: uid,
+      p_points: points,
+      p_idempotency_key: orderId,
+      p_desc: `Redeemed on Order #${orderId}`
     });
 
-    if (insertErr) {
-      console.error("Error logging loyalty transaction on Supabase:", insertErr);
+    if (error) {
+      console.error("Atomic loyalty debit error:", error);
+      return { success: false, error: "Database error debiting loyalty points." };
     }
-
+    if (data && !data.success) {
+      return { success: false, error: data.error };
+    }
     return { success: true };
   },
 
-  async awardLoyaltyPoints(total: number, orderId: string): Promise<void> {
+  async awardLoyaltyPoints(total: number, orderId: string, userId?: string): Promise<void> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.awardLoyaltyPoints(total, orderId);
     }
     const points = Math.floor(total / 10);
     if (points <= 0) return;
 
-    const balance = await this.getLoyaltyPoints();
-    const newBalance = balance + points;
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return;
 
-    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
-    await supabase.from("loyalty_transactions").insert({
-      id: "LTX-" + Date.now(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      points: points,
-      type: "credit",
-      description: `Earned on Order #${orderId}`,
+    await supabase.rpc("loyalty_atomic_credit", {
+      p_user_id: uid,
+      p_points: points,
+      p_idempotency_key: "EARNED-" + orderId,
+      p_desc: `Earned on Order #${orderId}`
     });
   },
 
-  async applyLoyaltyCredit(points: number, description: string, orderId: string): Promise<void> {
+  async applyLoyaltyCredit(points: number, description: string, orderId: string, userId?: string): Promise<void> {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyCredit(points, description, orderId);
     }
-    const balance = await this.getLoyaltyPoints();
-    const newBalance = balance + points;
+    let uid = userId;
+    if (!uid) {
+      const { data: { user } } = await supabase.auth.getUser();
+      uid = user?.id;
+    }
+    if (!uid) return;
 
-    await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
-    await supabase.from("loyalty_transactions").insert({
-      id: "LTX-" + Date.now(),
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      points: points,
-      type: "credit",
-      description: description || `Refund for Order #${orderId}`,
+    await supabase.rpc("loyalty_atomic_credit", {
+      p_user_id: uid,
+      p_points: points,
+      p_idempotency_key: "CREDIT-" + orderId + "-" + Date.now(),
+      p_desc: description || `Refund for Order #${orderId}`
     });
   },
 
@@ -1026,22 +1030,46 @@ export const db = {
       .eq("id", id);
   },
 
-  async verifyStock(items: any[]): Promise<{ success: boolean; message?: string }> {
+  async verifyStock(items: any[], sessionId?: string): Promise<{ success: boolean; message?: string }> {
     // Format cart items for validation
     const formatted = items.map((item) => ({
       productName: item.productName,
       size: item.size || "M",
-      color: item.color,
+      color: item.color || "Atelier Choice",
       quantity: item.quantity || 1,
     }));
     const result = await InventoryService.validateStock(formatted);
     if (!result.success) {
       return { success: false, message: result.errors.join(" | ") };
     }
+
+    if (isSupabaseConfigured && supabase && sessionId) {
+      // Perform atomic reservations for all items
+      const products = await this.getProducts();
+      for (const item of formatted) {
+        const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+        if (product) {
+          const { data, error } = await supabase.rpc("reserve_variant_inventory_atomic", {
+            p_product_id: product.id,
+            p_size: item.size,
+            p_color: item.color,
+            p_quantity: item.quantity,
+            p_expires_mins: 15,
+            p_session: sessionId,
+          });
+          if (error || (data && !data.success)) {
+            // Rollback any reservations already made for this session
+            await supabase.from("inventory_reservations").delete().eq("session_id", sessionId);
+            return { success: false, message: data?.error || `Failed to reserve stock for ${item.productName}` };
+          }
+        }
+      }
+    }
+
     return { success: true };
   },
 
-  async deductStock(items: any[]): Promise<void> {
+  async deductStock(items: any[], sessionId?: string): Promise<void> {
     const products = await this.getProducts();
     for (const item of items) {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -1052,9 +1080,12 @@ export const db = {
         await InventoryService.deductStockAtomic(product.id, size, color, qty);
       }
     }
+    if (isSupabaseConfigured && supabase && sessionId) {
+      await supabase.from("inventory_reservations").update({ status: 'fulfilled' }).eq("session_id", sessionId);
+    }
   },
 
-  async restoreStock(items: any[]): Promise<void> {
+  async restoreStock(items: any[], sessionId?: string): Promise<void> {
     const products = await this.getProducts();
     for (const item of items) {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -1064,6 +1095,9 @@ export const db = {
         const qty = item.quantity || 1;
         await InventoryService.restoreStockAtomic(product.id, size, color, qty);
       }
+    }
+    if (isSupabaseConfigured && supabase && sessionId) {
+      await supabase.from("inventory_reservations").update({ status: 'cancelled' }).eq("session_id", sessionId);
     }
   },
 

@@ -177,3 +177,321 @@ CREATE TABLE IF NOT EXISTS public.order_status_history (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_by TEXT DEFAULT 'system'
 );
+
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS usage_count INTEGER DEFAULT 0;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_usage INTEGER;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS expiry_date TIMESTAMPTZ;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS min_cart_value NUMERIC;
+
+-- 10. Atomic Wallet Debit
+CREATE OR REPLACE FUNCTION wallet_atomic_debit(p_user_id UUID, p_amount NUMERIC, p_idempotency_key TEXT, p_desc TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_balance NUMERIC;
+    v_new_balance NUMERIC;
+    v_tx_id TEXT;
+BEGIN
+    IF EXISTS (SELECT 1 FROM wallet_transactions WHERE idempotency_key = p_idempotency_key) THEN
+        RETURN json_build_object('success', false, 'error', 'Duplicate transaction');
+    END IF;
+
+    SELECT wallet_balance INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'User not found');
+    END IF;
+
+    IF v_balance < p_amount THEN
+        RETURN json_build_object('success', false, 'error', 'Insufficient wallet balance');
+    END IF;
+
+    v_new_balance := v_balance - p_amount;
+    
+    UPDATE profiles SET wallet_balance = v_new_balance WHERE id = p_user_id;
+
+    v_tx_id := 'WTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
+    
+    INSERT INTO wallet_transactions (id, user_id, date, amount, type, description, idempotency_key)
+    VALUES (
+        v_tx_id, 
+        p_user_id, 
+        to_char(NOW(), 'DD Mon YYYY'), 
+        p_amount, 
+        'debit', 
+        p_desc, 
+        p_idempotency_key
+    );
+
+    RETURN json_build_object('success', true, 'new_balance', v_new_balance);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 11. Atomic Wallet Credit
+CREATE OR REPLACE FUNCTION wallet_atomic_credit(p_user_id UUID, p_amount NUMERIC, p_idempotency_key TEXT, p_desc TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_balance NUMERIC;
+    v_new_balance NUMERIC;
+    v_tx_id TEXT;
+BEGIN
+    IF p_idempotency_key IS NOT NULL AND EXISTS (SELECT 1 FROM wallet_transactions WHERE idempotency_key = p_idempotency_key) THEN
+        RETURN json_build_object('success', false, 'error', 'Duplicate transaction');
+    END IF;
+
+    SELECT wallet_balance INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'User not found');
+    END IF;
+
+    v_new_balance := v_balance + p_amount;
+    UPDATE profiles SET wallet_balance = v_new_balance WHERE id = p_user_id;
+
+    v_tx_id := 'WTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
+    
+    INSERT INTO wallet_transactions (id, user_id, date, amount, type, description, idempotency_key)
+    VALUES (
+        v_tx_id, 
+        p_user_id, 
+        to_char(NOW(), 'DD Mon YYYY'), 
+        p_amount, 
+        'credit', 
+        p_desc, 
+        p_idempotency_key
+    );
+
+    RETURN json_build_object('success', true, 'new_balance', v_new_balance);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 12. Atomic Loyalty Debit
+CREATE OR REPLACE FUNCTION loyalty_atomic_debit(p_user_id UUID, p_points INTEGER, p_idempotency_key TEXT, p_desc TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_balance INTEGER;
+    v_new_balance INTEGER;
+    v_tx_id TEXT;
+BEGIN
+    IF EXISTS (SELECT 1 FROM loyalty_transactions WHERE idempotency_key = p_idempotency_key) THEN
+        RETURN json_build_object('success', false, 'error', 'Duplicate transaction');
+    END IF;
+
+    SELECT loyalty_points INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'User not found');
+    END IF;
+
+    IF v_balance < p_points THEN
+        RETURN json_build_object('success', false, 'error', 'Insufficient loyalty points');
+    END IF;
+
+    v_new_balance := v_balance - p_points;
+    UPDATE profiles SET loyalty_points = v_new_balance WHERE id = p_user_id;
+
+    v_tx_id := 'LTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
+    
+    INSERT INTO loyalty_transactions (id, user_id, date, points, type, description, idempotency_key)
+    VALUES (
+        v_tx_id, 
+        p_user_id, 
+        to_char(NOW(), 'DD Mon YYYY'), 
+        p_points, 
+        'debit', 
+        p_desc, 
+        p_idempotency_key
+    );
+
+    RETURN json_build_object('success', true, 'new_balance', v_new_balance);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 13. Atomic Loyalty Credit
+CREATE OR REPLACE FUNCTION loyalty_atomic_credit(p_user_id UUID, p_points INTEGER, p_idempotency_key TEXT, p_desc TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_balance INTEGER;
+    v_new_balance INTEGER;
+    v_tx_id TEXT;
+BEGIN
+    IF p_idempotency_key IS NOT NULL AND EXISTS (SELECT 1 FROM loyalty_transactions WHERE idempotency_key = p_idempotency_key) THEN
+        RETURN json_build_object('success', false, 'error', 'Duplicate transaction');
+    END IF;
+
+    SELECT loyalty_points INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'User not found');
+    END IF;
+
+    v_new_balance := v_balance + p_points;
+    UPDATE profiles SET loyalty_points = v_new_balance WHERE id = p_user_id;
+
+    v_tx_id := 'LTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
+    
+    INSERT INTO loyalty_transactions (id, user_id, date, points, type, description, idempotency_key)
+    VALUES (
+        v_tx_id, 
+        p_user_id, 
+        to_char(NOW(), 'DD Mon YYYY'), 
+        p_points, 
+        'credit', 
+        p_desc, 
+        p_idempotency_key
+    );
+
+    RETURN json_build_object('success', true, 'new_balance', v_new_balance);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 14. Atomic Coupon Increment
+CREATE OR REPLACE FUNCTION coupon_atomic_increment(p_code TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_coupon coupons%ROWTYPE;
+BEGIN
+    SELECT * INTO v_coupon FROM coupons WHERE code = UPPER(p_code) FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'Coupon not found');
+    END IF;
+
+    IF NOT v_coupon.active THEN
+        RETURN json_build_object('success', false, 'error', 'Coupon is inactive');
+    END IF;
+
+    IF v_coupon.expiry_date IS NOT NULL AND v_coupon.expiry_date < NOW() THEN
+        RETURN json_build_object('success', false, 'error', 'Coupon has expired');
+    END IF;
+
+    IF v_coupon.max_usage IS NOT NULL AND COALESCE(v_coupon.usage_count, 0) >= v_coupon.max_usage THEN
+        RETURN json_build_object('success', false, 'error', 'Coupon usage limit reached');
+    END IF;
+
+    UPDATE coupons SET usage_count = COALESCE(usage_count, 0) + 1 WHERE code = UPPER(p_code);
+    
+    RETURN json_build_object('success', true);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 15. Atomic Inventory Reservation
+CREATE TABLE IF NOT EXISTS public.inventory_reservations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id TEXT REFERENCES public.products(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL,
+    status TEXT DEFAULT 'reserved' CHECK (status IN ('reserved', 'fulfilled', 'cancelled')),
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    session_id TEXT
+);
+
+CREATE OR REPLACE FUNCTION reserve_inventory_atomic(p_product_slug TEXT, p_quantity INTEGER, p_expires_mins INTEGER, p_session TEXT)
+RETURNS JSON AS $$
+DECLARE
+    v_product products%ROWTYPE;
+    v_active_reservations INTEGER;
+    v_available_stock INTEGER;
+BEGIN
+    SELECT * INTO v_product FROM products WHERE slug = p_product_slug FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'Product not found');
+    END IF;
+
+    SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
+    FROM inventory_reservations 
+    WHERE product_id = v_product.id AND status = 'reserved' AND expires_at > NOW();
+
+    v_available_stock := COALESCE(v_product.stock, 0) - v_active_reservations;
+
+    IF v_available_stock < p_quantity THEN
+        RETURN json_build_object('success', false, 'error', 'Insufficient inventory');
+    END IF;
+
+    INSERT INTO inventory_reservations (product_id, quantity, expires_at, session_id)
+    VALUES (v_product.id, p_quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
+
+    RETURN json_build_object('success', true, 'remaining_available', v_available_stock - p_quantity);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 16. Atomic Variant Inventory Operations
+CREATE OR REPLACE FUNCTION deduct_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
+RETURNS BOOLEAN AS 
+DECLARE
+    v_variant product_variants%ROWTYPE;
+BEGIN
+    SELECT * INTO v_variant FROM product_variants 
+    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
+    FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN FALSE;
+    END IF;
+
+    IF v_variant.stock < p_quantity THEN
+        RETURN FALSE;
+    END IF;
+
+    UPDATE product_variants SET stock = stock - p_quantity WHERE id = v_variant.id;
+    
+    INSERT INTO inventory_audit_logs (variant_id, quantity_changed, type, reason)
+    VALUES (v_variant.id, -p_quantity, 'deduction', 'Checkout order deduction');
+
+    RETURN TRUE;
+END;
+ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION restore_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
+RETURNS VOID AS 
+DECLARE
+    v_variant product_variants%ROWTYPE;
+BEGIN
+    SELECT * INTO v_variant FROM product_variants 
+    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
+    FOR UPDATE;
+    
+    IF FOUND THEN
+        UPDATE product_variants SET stock = stock + p_quantity WHERE id = v_variant.id;
+        
+        INSERT INTO inventory_audit_logs (variant_id, quantity_changed, type, reason)
+        VALUES (v_variant.id, p_quantity, 'restoration', 'Order cancelled restoration');
+    END IF;
+END;
+ LANGUAGE plpgsql;
+
+-- 17. Atomic Variant Inventory Reservation
+ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS size TEXT;
+ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS color TEXT;
+
+CREATE OR REPLACE FUNCTION reserve_variant_inventory_atomic(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER, p_expires_mins INTEGER, p_session TEXT)
+RETURNS JSON AS $$$
+DECLARE
+    v_variant product_variants%ROWTYPE;
+    v_active_reservations INTEGER;
+    v_available_stock INTEGER;
+BEGIN
+    SELECT * INTO v_variant FROM product_variants 
+    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
+    FOR UPDATE;
+    
+    IF NOT FOUND THEN
+        RETURN json_build_object('success', false, 'error', 'Variant not found');
+    END IF;
+
+    SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
+    FROM inventory_reservations 
+    WHERE product_id = p_product_id AND size = p_size AND color = p_color AND status = 'reserved' AND expires_at > NOW();
+
+    v_available_stock := COALESCE(v_variant.stock, 0) - v_active_reservations;
+
+    IF v_available_stock < p_quantity THEN
+        RETURN json_build_object('success', false, 'error', 'Insufficient inventory');
+    END IF;
+
+    INSERT INTO inventory_reservations (product_id, size, color, quantity, expires_at, session_id)
+    VALUES (p_product_id, p_size, p_color, p_quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
+
+    RETURN json_build_object('success', true, 'remaining_available', v_available_stock - p_quantity);
+END;
+$$$ LANGUAGE plpgsql;

@@ -495,3 +495,38 @@ BEGIN
     RETURN json_build_object('success', true, 'remaining_available', v_available_stock - p_quantity);
 END;
 $$$ LANGUAGE plpgsql;
+
+-- 18. Phase 3 Updates: Razorpay Integration Tables
+
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'PENDING';
+
+CREATE TABLE IF NOT EXISTS public.payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+    razorpay_payment_id TEXT UNIQUE,
+    razorpay_order_id TEXT,
+    amount NUMERIC NOT NULL,
+    currency TEXT DEFAULT 'INR',
+    status TEXT DEFAULT 'CREATED',
+    method TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.payment_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    payment_id UUID REFERENCES public.payments(id) ON DELETE CASCADE,
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.webhook_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id TEXT UNIQUE NOT NULL,
+    payload JSONB NOT NULL,
+    signature TEXT,
+    processed BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

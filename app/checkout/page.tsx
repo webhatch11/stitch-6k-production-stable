@@ -14,6 +14,9 @@ import { useAuthStore } from "@/stores/authStore";
 import { AddressList } from "@/components/checkout/AddressList";
 import { UserAddress } from "@/lib/registry";
 import { useToastStore } from "@/stores/toastStore";
+import { PaymentProcessingScreen } from "@/components/checkout/PaymentProcessingScreen";
+import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen";
+import Script from "next/script";
 
 interface CartItem {
   productName: string;
@@ -26,6 +29,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [paymentFailureError, setPaymentFailureError] = useState("");
 
   // Zustand Store Connection
   const {
@@ -238,28 +244,100 @@ export default function CheckoutPage() {
           router.push("/orderconfirmed");
         }, 1000);
       } else {
-        // Forward to payment gateway with server-verified signature
-        const res = await verifyAndPrepareGatewayCheckoutAction({
-          cart,
-          couponCode: appliedCouponCode,
-          walletDeduction,
-          pointsRedeemed,
-          loyaltyDiscount,
-          baseTotal,
-          netTotal,
-          customerName,
-          idempotencyKey,
-          addressId: selectedAddress?.id,
-          userId,
-        });
+        // Forward to Razorpay API
+        setProcessingPayment(true);
+        try {
+          const createRes = await fetch("/api/payments/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cart,
+              couponCode: appliedCouponCode,
+              walletDeduction,
+              pointsRedeemed,
+              loyaltyDiscount,
+              baseTotal,
+              netTotal,
+              customerName,
+              idempotencyKey,
+              addressId: selectedAddress?.id,
+              userId,
+            })
+          });
+          
+          const createData = await createRes.json();
+          if (!createData.success) {
+            setProcessingPayment(false);
+            setPaymentFailureError(createData.error || "Failed to initialize payment");
+            setPaymentFailed(true);
+            return;
+          }
 
-        if (!res.success || !res.checkoutState) {
-          triggerToast(res.error || "Failed to prepare checkout session.");
-          return;
+          const options = {
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            amount: createData.amount,
+            currency: createData.currency,
+            name: "Stitch 6K",
+            description: "Premium Shirts Checkout",
+            image: "/assets/logo.png",
+            order_id: createData.razorpayOrderId,
+            handler: async function (response: any) {
+              try {
+                const verifyRes = await fetch("/api/payments/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature,
+                    checkoutState: createData.checkoutState
+                  })
+                });
+                
+                const verifyData = await verifyRes.json();
+                if (verifyData.success) {
+                   useCartStore.getState().clearCart();
+                   router.push("/orderconfirmed");
+                } else {
+                   setProcessingPayment(false);
+                   setPaymentFailureError(verifyData.error || "Payment verification failed.");
+                   setPaymentFailed(true);
+                }
+              } catch (e) {
+                 setProcessingPayment(false);
+                 setPaymentFailureError("Network error during verification.");
+                 setPaymentFailed(true);
+              }
+            },
+            prefill: {
+              name: customerName,
+              email: user?.email || "guest@stitch6k.com",
+              contact: selectedAddress?.phone || ""
+            },
+            theme: {
+              color: "#1d2745"
+            },
+            modal: {
+              ondismiss: function() {
+                setProcessingPayment(false);
+              }
+            }
+          };
+
+          const rzp1 = new (window as any).Razorpay(options);
+          
+          rzp1.on('payment.failed', function (response: any){
+            setProcessingPayment(false);
+            setPaymentFailureError(response.error.description);
+            setPaymentFailed(true);
+          });
+          
+          rzp1.open();
+        } catch (error) {
+          setProcessingPayment(false);
+          setPaymentFailureError("Failed to communicate with payment server.");
+          setPaymentFailed(true);
         }
-
-        sessionStorage.setItem("checkoutState", JSON.stringify(res.checkoutState));
-        router.push("/paymentgateway");
       }
     }
   };
@@ -303,6 +381,18 @@ export default function CheckoutPage() {
 
   return (
     <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      {processingPayment && <PaymentProcessingScreen />}
+      {paymentFailed && (
+        <PaymentFailureScreen 
+          onRetry={() => {
+             setPaymentFailed(false);
+             handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+          }} 
+          errorMsg={paymentFailureError} 
+        />
+      )}
+
       {/* Toast Notification handled globally now */}
 
       {/* Top Announcement Scrolling Marquee */}

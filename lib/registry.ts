@@ -145,26 +145,7 @@ const CURRENT_VERSION = "5.6_status_history";
 
 const isBrowser = () => typeof window !== "undefined";
 
-export const RegistryManager = {
-  init() {
-    if (!isBrowser()) return;
-
-    const savedVersion = localStorage.getItem(VERSION_KEY);
-    if (savedVersion !== CURRENT_VERSION) {
-      localStorage.removeItem(PRODUCTS_KEY);
-      localStorage.removeItem(ORDERS_KEY);
-      localStorage.removeItem(COUPONS_KEY);
-      localStorage.removeItem(WALLET_BALANCE_KEY);
-      localStorage.removeItem(WALLET_TX_KEY);
-      localStorage.removeItem(LOYALTY_POINTS_KEY);
-      localStorage.removeItem(LOYALTY_TX_KEY);
-      localStorage.removeItem(ADDRESSES_KEY);
-      localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
-      localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
-    }
-
-    if (!localStorage.getItem(PRODUCTS_KEY)) {
-      const seedProducts: Product[] = [
+export const seedProducts: Product[] = [
         {
           id: "seed-feat-1",
           slug: "luxury-black-shirt",
@@ -895,7 +876,28 @@ export const RegistryManager = {
           reviews: []
         }
       ];
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProducts));
+
+
+export const RegistryManager = {
+  init() {
+    if (!isBrowser()) return;
+
+    const savedVersion = localStorage.getItem(VERSION_KEY);
+    if (savedVersion !== CURRENT_VERSION) {
+      localStorage.removeItem(PRODUCTS_KEY);
+      localStorage.removeItem(ORDERS_KEY);
+      localStorage.removeItem(COUPONS_KEY);
+      localStorage.removeItem(WALLET_BALANCE_KEY);
+      localStorage.removeItem(WALLET_TX_KEY);
+      localStorage.removeItem(LOYALTY_POINTS_KEY);
+      localStorage.removeItem(LOYALTY_TX_KEY);
+      localStorage.removeItem(ADDRESSES_KEY);
+      localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
+      localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
+    }
+
+    if (!localStorage.getItem(PRODUCTS_KEY)) {
+      localStorage.setItem('seed_init_flag', 'true');      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(seedProducts));
 
     }
 
@@ -962,9 +964,15 @@ export const RegistryManager = {
   },
 
   getProducts(): Product[] {
-    if (!isBrowser()) return [];
+    if (!isBrowser()) return seedProducts;
     this.init();
-    return JSON.parse(localStorage.getItem(PRODUCTS_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(PRODUCTS_KEY) || JSON.stringify(seedProducts));
+  },
+
+  getProductBySlug(slug: string): Product | undefined {
+    if (!isBrowser()) return seedProducts.find(p => p.slug === slug);
+    const products = this.getProducts();
+    return products.find(p => p.slug === slug);
   },
 
   saveProduct(product: Partial<Product>) {
@@ -1543,10 +1551,7 @@ export const RegistryManager = {
     return true;
   },
 
-  getProductBySlug(slug: string): Product | undefined {
-    const products = this.getProducts();
-    return products.find((p) => p.slug === slug);
-  },
+
 
   relatedProducts(slug: string): Product[] {
     const products = this.getProducts();

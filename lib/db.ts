@@ -1165,4 +1165,154 @@ export const db = {
       created_at: entry.created_at
     };
   },
+
+  async getCustomers(): Promise<any[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      const orders = await this.getOrders();
+      const customerMap = new Map<string, any>();
+
+      const defaultCustomers = [
+        { name: "Aarav Sharma", email: "aarav.sharma@example.com", wallet_balance: 2500, loyalty_points: 500, ltv: 0, order_count: 0 },
+        { name: "Ananya Patel", email: "ananya.patel@example.com", wallet_balance: 1800, loyalty_points: 320, ltv: 0, order_count: 0 },
+        { name: "Kabir Mehta", email: "kabir.mehta@example.com", wallet_balance: 0, loyalty_points: 150, ltv: 0, order_count: 0 }
+      ];
+
+      for (const c of defaultCustomers) {
+        customerMap.set(c.email, c);
+      }
+
+      for (const order of orders) {
+        const email = `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`;
+        const existing = customerMap.get(email);
+        const orderTotal = order.status !== "Cancelled" && order.status !== "Expired" ? order.total : 0;
+        const orderCount = 1;
+
+        if (existing) {
+          existing.ltv += orderTotal;
+          existing.order_count += orderCount;
+          if (order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest") {
+            existing.wallet_balance = await this.getWalletBalance();
+            existing.loyalty_points = await this.getLoyaltyPoints();
+          }
+        } else {
+          customerMap.set(email, {
+            name: order.customer,
+            email,
+            wallet_balance: order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest"
+              ? await this.getWalletBalance()
+              : Math.floor(Math.random() * 2000),
+            loyalty_points: order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest"
+              ? await this.getLoyaltyPoints()
+              : Math.floor(Math.random() * 400),
+            ltv: orderTotal,
+            order_count: orderCount,
+          });
+        }
+      }
+
+      return Array.from(customerMap.values());
+    }
+
+    const { data: profiles, error: pError } = await supabase
+      .from("profiles")
+      .select("*");
+
+    if (pError) {
+      console.error("Error fetching profiles:", pError);
+      return [];
+    }
+
+    const { data: orders, error: oError } = await supabase
+      .from("orders")
+      .select("user_id, total, status");
+
+    if (oError) {
+      console.error("Error fetching orders for customers:", oError);
+      return (profiles || []).map(p => ({
+        ...p,
+        ltv: 0,
+        order_count: 0
+      }));
+    }
+
+    return (profiles || []).map(p => {
+      const userOrders = (orders || []).filter(o => o.user_id === p.id);
+      const validOrders = userOrders.filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+      const ltv = validOrders.reduce((sum, o) => sum + Number(o.total), 0);
+      return {
+        name: p.name,
+        email: p.email,
+        wallet_balance: Number(p.wallet_balance || 0),
+        loyalty_points: Number(p.loyalty_points || 0),
+        ltv,
+        order_count: userOrders.length,
+        id: p.id
+      };
+    });
+  },
+
+  async adjustCustomerBalance(email: string, type: "wallet" | "loyalty", amount: number, description: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (type === "wallet") {
+        if (amount < 0) {
+          await this.applyWalletDebit(Math.abs(amount), "ADMIN-ADJ", "ADMIN-ADJ");
+        } else {
+          await this.applyWalletCredit(amount, description, "ADMIN-ADJ");
+        }
+      } else {
+        if (amount < 0) {
+          await this.applyLoyaltyDebit(Math.abs(amount), "ADMIN-ADJ");
+        } else {
+          await this.applyLoyaltyCredit(amount, description, "ADMIN-ADJ");
+        }
+      }
+      return true;
+    }
+
+    const { data: profile, error: pError } = await supabase
+      .from("profiles")
+      .select("id, wallet_balance, loyalty_points")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (pError || !profile) return false;
+
+    if (type === "wallet") {
+      const newBalance = Number(profile.wallet_balance || 0) + amount;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: newBalance })
+        .eq("id", profile.id);
+
+      if (error) return false;
+
+      await supabase.from("wallet_transactions").insert({
+        id: "WLT-ADJ-" + Date.now(),
+        user_id: profile.id,
+        date: new Date().toLocaleDateString("en-IN"),
+        amount: Math.abs(amount),
+        type: amount > 0 ? "credit" : "debit",
+        description
+      });
+    } else {
+      const newPoints = Number(profile.loyalty_points || 0) + amount;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ loyalty_points: newPoints })
+        .eq("id", profile.id);
+
+      if (error) return false;
+
+      await supabase.from("loyalty_transactions").insert({
+        id: "LYL-ADJ-" + Date.now(),
+        user_id: profile.id,
+        date: new Date().toLocaleDateString("en-IN"),
+        points: Math.abs(amount),
+        type: amount > 0 ? "credit" : "debit",
+        description
+      });
+    }
+
+    return true;
+  },
 };

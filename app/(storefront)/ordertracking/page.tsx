@@ -140,6 +140,7 @@ function OrderTrackingContent() {
       active: true,
     });
 
+    const isShipped = order.status === "Shipped";
     const isDelivered = order.status === "Delivered";
     const isReturned = order.status === "Returned";
     const isReturnTransit = order.status === "Return in Transit";
@@ -151,7 +152,7 @@ function OrderTrackingContent() {
       dateStr: formatTimelineDate(orderDate, 1, "08:30 AM"),
       desc: "Package dispatched from Varanasi Workshop in custom luxury packing and handed to Shiprocket courier partner.",
       icon: "local_shipping",
-      active: isDelivered || isReturned || isReturnTransit || isReturnReq,
+      active: isShipped || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
 
     // Milestone 3: Sorting
@@ -160,7 +161,7 @@ function OrderTrackingContent() {
       dateStr: formatTimelineDate(orderDate, 2, "04:15 PM"),
       desc: "Processed through Shiprocket automated routing at Bengaluru West Hub. Handover confirmed.",
       icon: "hub",
-      active: isDelivered || isReturned || isReturnTransit || isReturnReq,
+      active: isShipped || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
 
     // Milestone 4: Out for Delivery
@@ -458,6 +459,18 @@ function OrderTrackingContent() {
                       <p className="font-headline font-black text-xl mt-4 text-on-surface">₹{matchedOrder.total.toLocaleString("en-IN")}</p>
                     </div>
                   </div>
+                  {matchedOrder.shiprocketId && (
+                    <div className="mt-6 pt-6 border-t border-outline-variant/20 flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                        <span className="text-outline">Courier Partner</span>
+                        <span className="text-on-surface">Shiprocket Express</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                        <span className="text-outline">AWB Waybill</span>
+                        <span className="text-on-surface font-mono select-all bg-surface-container-low px-2 py-1 border border-outline-variant/10">{matchedOrder.shiprocketId}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-6">

@@ -119,16 +119,24 @@ function OrderDetailsContent() {
       "Ship via Shiprocket",
       `Automatically dispatch Order #${order.id} via Shiprocket Courier routing?`,
       async () => {
-        const randomAwb = "SR" + Math.floor(1000000 + Math.random() * 9000000);
-        const orders = await db.getOrders();
-        const idx = orders.findIndex((o) => o.id === order.id);
-        if (idx !== -1) {
-          orders[idx].status = "Shipped";
-          orders[idx].shiprocketId = randomAwb;
-          await db.saveOrder(orders[idx]);
-          triggerToast(`Shiprocket Routing Success! AWB Assigned: ${randomAwb}`);
-          window.dispatchEvent(new Event("storage"));
-          await loadOrderDetails();
+        try {
+          const res = await fetch("/api/logistics/dispatch-order", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ orderId: order.id }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            triggerToast(`Shiprocket Routing Success! AWB Assigned: ${data.awbCode}${data.isMock ? " (Mock)" : ""}`);
+            window.dispatchEvent(new Event("storage"));
+            await loadOrderDetails();
+          } else {
+            triggerToast(`Error: ${data.error || "Dispatch failed."}`);
+          }
+        } catch (err: any) {
+          triggerToast(`Network Error: ${err.message || "Failed to dispatch."}`);
         }
       }
     );

@@ -530,3 +530,10 @@ CREATE TABLE IF NOT EXISTS public.webhook_logs (
     processed BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 19. Phase 4 Updates: Performance Optimization Indexes
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON public.orders(customer);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_wallet_transactions_user ON public.wallet_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_loyalty_transactions_user ON public.loyalty_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order ON public.payments(order_id);

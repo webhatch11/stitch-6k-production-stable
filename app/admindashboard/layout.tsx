@@ -32,6 +32,11 @@ export default function AdminLayout({
       icon: "shopping_basket",
     },
     {
+      href: "/admindashboard/customers",
+      label: "Customers",
+      icon: "group",
+    },
+    {
       href: "/admindashboard/invoices",
       label: "Invoices",
       icon: "description",

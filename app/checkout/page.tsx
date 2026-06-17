@@ -12,6 +12,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { AddressList } from "@/components/checkout/AddressList";
+import { AddressErrorBoundary } from "@/components/checkout/AddressErrorBoundary";
 import { UserAddress } from "@/lib/registry";
 import { useToastStore } from "@/stores/toastStore";
 import { PaymentProcessingScreen } from "@/components/checkout/PaymentProcessingScreen";
@@ -32,6 +33,7 @@ export default function CheckoutPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [paymentFailureError, setPaymentFailureError] = useState("");
+  const [addressCount, setAddressCount] = useState<number | null>(null);
 
   // Zustand Store Connection
   const {
@@ -508,10 +510,13 @@ export default function CheckoutPage() {
                   <span className="block text-[10px] font-black tracking-[0.25em] text-secondary uppercase italic">Step 01 of 03</span>
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Delivery Details</h2>
                 </div>
-                <AddressList 
-                  userId={userId} 
-                  onAddressSelected={(address) => setSelectedAddress(address)} 
-                />
+                <AddressErrorBoundary>
+                  <AddressList 
+                    userId={userId} 
+                    onAddressSelected={(address) => setSelectedAddress(address)} 
+                    onAddressCountChange={(count) => setAddressCount(count)}
+                  />
+                </AddressErrorBoundary>
               </div>
             )}
 
@@ -765,10 +770,24 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {currentStep === 1 && !selectedAddress && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center animate-fade-in flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-sm font-black">info</span>
+                      {addressCount === 0 
+                        ? "Please add a delivery address to proceed." 
+                        : "Please select a delivery address to proceed."}
+                    </div>
+                  )}
+
                   {/* Primary Action Button */}
                   <button
                     onClick={handleSubmit}
-                    className="w-full bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary hover:shadow-[0_10px_25px_rgba(254,212,136,0.15)] hover:-translate-y-0.5 active:translate-y-0 py-4 font-headline font-black text-xs tracking-[0.25em] uppercase transition-all duration-500 ease-out rounded-xl shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-3 mt-4"
+                    disabled={currentStep === 1 && !selectedAddress}
+                    className={`w-full py-4 font-headline font-black text-xs tracking-[0.25em] uppercase transition-all duration-500 ease-out rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 mt-4 ${
+                      currentStep === 1 && !selectedAddress
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
+                        : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary hover:shadow-[0_10px_25px_rgba(254,212,136,0.15)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                    }`}
                   >
                     {getButtonText()}
                   </button>
@@ -801,9 +820,22 @@ export default function CheckoutPage() {
           <span className="text-outline">Final Payable</span>
           <span className="text-[#fed488] text-sm">₹ {finalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
         </div>
+        {currentStep === 1 && !selectedAddress && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg text-[9px] font-bold uppercase tracking-widest text-center animate-fade-in flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-xs font-black">info</span>
+            {addressCount === 0 
+              ? "Please add a delivery address to proceed." 
+              : "Please select a delivery address to proceed."}
+          </div>
+        )}
         <button
           onClick={handleSubmit}
-          className="w-full bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary py-4 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-xl active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-md"
+          disabled={currentStep === 1 && !selectedAddress}
+          className={`w-full py-4 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-xl flex items-center justify-center gap-2 shadow-md ${
+            currentStep === 1 && !selectedAddress
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
+              : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary active:scale-95 cursor-pointer"
+          }`}
         >
           <span>{getButtonText()}</span>
           <span className="material-symbols-outlined text-sm">arrow_forward</span>

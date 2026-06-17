@@ -256,7 +256,17 @@ export default function CheckoutPage() {
       } else {
         // Forward to Razorpay API
         setProcessingPayment(true);
+        
+        // 1. Verify Razorpay SDK loading
+        if (!(window as any).Razorpay) {
+          console.error("[Razorpay SDK] window.Razorpay is not loaded");
+          triggerToast("❌ Razorpay payment client is not loaded. Please wait or refresh the page.");
+          setProcessingPayment(false);
+          return;
+        }
+
         try {
+          console.log("[Razorpay] Initiating order creation...");
           const createRes = await fetch("/api/payments/create-order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -276,15 +286,18 @@ export default function CheckoutPage() {
           });
           
           const createData = await createRes.json();
+          console.log("[Razorpay] Order creation API response:", createData);
+
           if (!createData.success) {
+            console.error("[Razorpay] Order creation failed:", createData.error);
+            triggerToast(`❌ Payment initialization failed: ${createData.error || "Please try again."}`);
             setProcessingPayment(false);
-            setPaymentFailureError(createData.error || "Failed to initialize payment");
-            setPaymentFailed(true);
             return;
           }
 
+          console.log("[Razorpay] Initializing payment modal with ID:", createData.razorpayOrderId);
           const options = {
-            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_mockkey",
             amount: createData.amount,
             currency: createData.currency,
             name: "Stitch 6K",
@@ -292,6 +305,8 @@ export default function CheckoutPage() {
             image: "/assets/logo.png",
             order_id: createData.razorpayOrderId,
             handler: async function (response: any) {
+              console.log("[Razorpay] Payment successful, verifying signature:", response);
+              setProcessingPayment(true);
               try {
                 const verifyRes = await fetch("/api/payments/verify", {
                   method: "POST",
@@ -305,6 +320,8 @@ export default function CheckoutPage() {
                 });
                 
                 const verifyData = await verifyRes.json();
+                console.log("[Razorpay] Verification API response:", verifyData);
+
                 if (verifyData.success) {
                    useCartStore.getState().clearCart();
                    router.push("/orderconfirmed");
@@ -314,6 +331,7 @@ export default function CheckoutPage() {
                    setPaymentFailed(true);
                 }
               } catch (e) {
+                 console.error("[Razorpay] Verification network error:", e);
                  setProcessingPayment(false);
                  setPaymentFailureError("Network error during verification.");
                  setPaymentFailed(true);
@@ -329,7 +347,9 @@ export default function CheckoutPage() {
             },
             modal: {
               ondismiss: function() {
+                console.log("[Razorpay] Payment modal dismissed by user.");
                 setProcessingPayment(false);
+                triggerToast("ℹ️ Payment canceled by user.");
               }
             }
           };
@@ -337,16 +357,18 @@ export default function CheckoutPage() {
           const rzp1 = new (window as any).Razorpay(options);
           
           rzp1.on('payment.failed', function (response: any){
+            console.error("[Razorpay] Payment failed on modal:", response.error);
             setProcessingPayment(false);
-            setPaymentFailureError(response.error.description);
+            setPaymentFailureError(response.error.description || "Payment failed.");
             setPaymentFailed(true);
           });
           
+          console.log("[Razorpay] Opening checkout modal...");
           rzp1.open();
-        } catch (error) {
+        } catch (error: any) {
+          console.error("[Razorpay] Communication error:", error);
+          triggerToast(`❌ Failed to connect to payment server: ${error.message || "Please check connection."}`);
           setProcessingPayment(false);
-          setPaymentFailureError("Failed to communicate with payment server.");
-          setPaymentFailed(true);
         }
       }
     }

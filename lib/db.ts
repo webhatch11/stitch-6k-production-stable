@@ -222,6 +222,24 @@ export const db = {
 
   async saveOrder(order: Partial<Order>): Promise<Order> {
     if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") {
+        return {
+          id: order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000),
+          customer: order.customer || "Guest Customer",
+          date: order.date || new Date().toLocaleDateString("en-IN"),
+          total: order.total || 0,
+          status: order.status || "Pending",
+          items: order.items || [],
+          originalTotal: order.originalTotal || 0,
+          couponDiscount: order.couponDiscount || 0,
+          couponCode: order.couponCode || "",
+          walletPaid: order.walletPaid || 0,
+          gatewayPaid: order.gatewayPaid || 0,
+          pointsRedeemed: order.pointsRedeemed || 0,
+          pointsDiscount: order.pointsDiscount || 0,
+          pointsEarned: order.pointsEarned || 0,
+        };
+      }
       return RegistryManager.saveOrder(order);
     }
     const newOrder: Order = {
@@ -949,6 +967,21 @@ export const db = {
 
   async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
     if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") {
+        return {
+          id: address.id || "ADDR-" + Date.now(),
+          user_id: address.user_id || "guest",
+          name: address.name || "",
+          phone: address.phone || "",
+          address_line_1: address.address_line_1 || "",
+          address_line_2: address.address_line_2 || "",
+          city: address.city || "",
+          state: address.state || "",
+          postal_code: address.postal_code || "",
+          country: address.country || "India",
+          is_default: address.is_default || false,
+        };
+      }
       return RegistryManager.saveAddress(address);
     }
     const newAddress: UserAddress = {
@@ -1141,6 +1174,16 @@ export const db = {
 
   async addOrderStatusHistory(orderId: string, status: string, updatedBy?: string, metadata?: any): Promise<OrderStatusHistory> {
     if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") {
+        return {
+          id: "OSH-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
+          order_id: orderId,
+          status,
+          updated_by: updatedBy || "system",
+          metadata: metadata || {},
+          created_at: new Date().toISOString()
+        };
+      }
       return RegistryManager.addOrderStatusHistory(orderId, status, updatedBy, metadata);
     }
     const entry = {

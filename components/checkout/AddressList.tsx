@@ -36,8 +36,8 @@ const AddressCard = React.memo(function AddressCard({
       tabIndex={0}
       className={`relative p-5 rounded-xl border transition-all duration-300 outline-none select-none cursor-pointer flex flex-col justify-between ${
         isSelected
-          ? "bg-[#fed488]/10 border-[#fed488] shadow-[0_0_20px_rgba(254,212,136,0.2)] focus:ring-2 focus:ring-[#fed488]"
-          : "bg-white/30 border-outline-variant/20 hover:border-outline-variant/50 focus:bg-white/50 focus:border-outline-variant/50"
+          ? "bg-[#fed488]/15 border-[#fed488] shadow-[0_0_20px_rgba(254,212,136,0.25)] focus:ring-2 focus:ring-[#fed488]"
+          : "bg-white border-outline-variant/40 hover:border-outline-variant/80 hover:shadow-sm focus:border-outline-variant/80 focus:bg-neutral-50/50"
       }`}
       onClick={() => onSelect(address)}
       onKeyDown={(e) => onKeyPress(e, address)}
@@ -48,7 +48,7 @@ const AddressCard = React.memo(function AddressCard({
           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
             isSelected
               ? "border-[#775a19] bg-[#775a19]"
-              : "border-outline-variant/50"
+              : "border-outline-variant/70 bg-white"
           }`}
         >
           {isSelected && <span className="w-2 h-2 bg-white rounded-full"></span>}
@@ -57,7 +57,7 @@ const AddressCard = React.memo(function AddressCard({
 
       <div>
         <div className="flex flex-wrap items-center gap-2 mb-2">
-          <h4 className="text-[11px] font-black uppercase tracking-wider text-on-surface">
+          <h4 className="text-[11px] font-black uppercase tracking-wider text-neutral-950">
             {address.name}
           </h4>
           {address.is_default && (
@@ -67,14 +67,14 @@ const AddressCard = React.memo(function AddressCard({
           )}
         </div>
 
-        <p className="text-[10px] font-semibold tracking-wide text-on-surface/80 uppercase">
+        <p className="text-[10px] font-semibold tracking-wide text-neutral-700 uppercase leading-relaxed">
           {address.address_line_1}
           {address.address_line_2 && <>, {address.address_line_2}</>}
         </p>
-        <p className="text-[10px] font-semibold tracking-wide text-on-surface/80 uppercase">
+        <p className="text-[10px] font-semibold tracking-wide text-neutral-700 uppercase leading-relaxed">
           {address.city}, {address.state} - {address.postal_code}
         </p>
-        <p className="text-[10px] font-bold tracking-wide text-on-surface/85 uppercase mt-2">
+        <p className="text-[10px] font-bold tracking-wide text-neutral-850 uppercase mt-2">
           Phone: {address.phone}
         </p>
       </div>
@@ -130,6 +130,11 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
   const selectedAddressId = useCheckoutStore((state) => state.selectedAddressId);
   const setAddressId = useCheckoutStore((state) => state.setAddressId);
   const setSelectedAddress = useCheckoutStore((state) => state.setSelectedAddress);
+  const selectedAddress = useCheckoutStore((state) => state.selectedAddress);
+
+  // Debug Logs
+  console.log("Addresses:", addresses);
+  console.log("Selected:", selectedAddress);
 
   // Fallback Selection Priority Helper
   const determineSelection = useCallback((list: UserAddress[], targetId?: string | null): UserAddress | null => {
@@ -161,10 +166,14 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     try {
       const res = await getUserAddressesAction(userId);
       if (res.success && res.addresses) {
-        setAddresses(res.addresses);
-        if (onAddressCountChange) onAddressCountChange(res.addresses.length);
+        // Filter out corrupted/empty address records
+        const validAddresses = res.addresses.filter(
+          (a) => a && a.id && a.name && a.address_line_1 && a.city && a.state && a.postal_code
+        );
+        setAddresses(validAddresses);
+        if (onAddressCountChange) onAddressCountChange(validAddresses.length);
 
-        const toSelect = determineSelection(res.addresses, selectId);
+        const toSelect = determineSelection(validAddresses, selectId);
         if (toSelect) {
           setAddressId(toSelect.id);
           localStorage.setItem("selectedAddressId", toSelect.id);
@@ -187,6 +196,35 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
   useEffect(() => {
     fetchAddresses();
   }, [userId, fetchAddresses]);
+
+  // Synchronization effect to ensure selectedAddress and selectedAddressId stay fully in sync with the addresses list
+  useEffect(() => {
+    if (addresses.length > 0) {
+      if (selectedAddressId) {
+        const matchingAddress = addresses.find((a) => a.id === selectedAddressId);
+        if (matchingAddress) {
+          if (!selectedAddress || selectedAddress.id !== matchingAddress.id || JSON.stringify(selectedAddress) !== JSON.stringify(matchingAddress)) {
+            if (onAddressSelected) onAddressSelected(matchingAddress);
+          }
+        } else {
+          // If selectedAddressId is not found in the list, determine fallback selection
+          const fallback = determineSelection(addresses);
+          if (onAddressSelected) onAddressSelected(fallback);
+        }
+      } else {
+        // If selectedAddressId is null but selectedAddress is set, clean it up
+        if (selectedAddress) {
+          if (onAddressSelected) onAddressSelected(null);
+        }
+      }
+    } else {
+      // If there are no addresses, reset selections
+      if (selectedAddressId || selectedAddress) {
+        setAddressId(null);
+        if (onAddressSelected) onAddressSelected(null);
+      }
+    }
+  }, [selectedAddressId, selectedAddress, addresses, onAddressSelected, setAddressId, determineSelection]);
 
   // Auto-scroll to selected card
   useEffect(() => {
@@ -376,30 +414,30 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     setIsModalOpen(true);
   }, []);
 
-  // Loading Skeletons
+  // Loading Skeletons - Using high visibility neutral shades for light backgrounds
   if (loading && addresses.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-2">
-          <div className="h-5 w-36 bg-white/10 rounded animate-pulse"></div>
-          <div className="h-4 w-20 bg-white/10 rounded animate-pulse"></div>
+          <div className="h-5 w-36 bg-neutral-200 rounded animate-pulse"></div>
+          <div className="h-4 w-20 bg-neutral-200 rounded animate-pulse"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="p-5 rounded-xl border border-outline-variant/10 bg-white/10 space-y-4 animate-pulse"
+              className="p-5 rounded-xl border border-neutral-200/50 bg-neutral-100/70 space-y-4 animate-pulse"
             >
               <div className="flex items-center gap-2">
-                <div className="h-4 w-24 bg-white/15 rounded"></div>
-                {i === 1 && <div className="h-3.5 w-12 bg-white/15 rounded"></div>}
+                <div className="h-4 w-24 bg-neutral-200 rounded"></div>
+                {i === 1 && <div className="h-3.5 w-12 bg-neutral-200 rounded"></div>}
               </div>
-              <div className="h-3 w-48 bg-white/10 rounded"></div>
-              <div className="h-3 w-40 bg-white/10 rounded"></div>
-              <div className="h-3 w-32 bg-white/10 rounded"></div>
-              <div className="h-4 w-full bg-white/5 pt-3 border-t border-white/5 flex gap-4">
-                <div className="h-3.5 w-8 bg-white/10 rounded"></div>
-                <div className="h-3.5 w-10 bg-white/10 rounded"></div>
+              <div className="h-3 w-48 bg-neutral-200/80 rounded"></div>
+              <div className="h-3 w-40 bg-neutral-200/80 rounded"></div>
+              <div className="h-3 w-32 bg-neutral-200/80 rounded"></div>
+              <div className="h-4 w-full bg-neutral-100 pt-3 border-t border-neutral-200/30 flex gap-4">
+                <div className="h-3.5 w-8 bg-neutral-200 rounded"></div>
+                <div className="h-3.5 w-10 bg-neutral-200 rounded"></div>
               </div>
             </div>
           ))}

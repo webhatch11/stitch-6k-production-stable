@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { UserAddress } from "@/lib/registry";
 import { getUserAddressesAction, saveUserAddressAction, deleteUserAddressAction, setDefaultUserAddressAction } from "@/app/actions/addresses";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useToastStore } from "@/stores/toastStore";
-import { AddressFormModal } from "./AddressFormModal";
 import { addressSchema } from "@/lib/schemas/address";
 
 // Memoized Address Card component for optimized rendering
@@ -124,14 +123,30 @@ interface Props {
 export function AddressList({ userId, onAddressSelected, onAddressCountChange }: Props) {
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // High Conversion View States
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAddingInline, setIsAddingInline] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Partial<UserAddress> | null>(null);
+
+  // Form Field State
+  const [formData, setFormData] = useState<Partial<UserAddress>>({
+    name: "",
+    phone: "",
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    is_default: false,
+  });
+  const [formLoading, setFormLoading] = useState(false);
 
   const selectedAddressId = useCheckoutStore((state) => state.selectedAddressId);
   const setAddressId = useCheckoutStore((state) => state.setAddressId);
   const selectedAddress = useCheckoutStore((state) => state.selectedAddress);
 
-  // Keep references to callback props stable so they do not trigger infinite effect loops
+  // Keep references to callback props stable so they do not trigger infinite loops
   const onAddressSelectedRef = useRef(onAddressSelected);
   const onAddressCountChangeRef = useRef(onAddressCountChange);
 
@@ -140,32 +155,46 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     onAddressCountChangeRef.current = onAddressCountChange;
   }, [onAddressSelected, onAddressCountChange]);
 
+  // Sync form data with selected editing card
+  useEffect(() => {
+    if (editingAddress) {
+      setFormData({ ...editingAddress });
+    } else {
+      setFormData({
+        name: "",
+        phone: "",
+        address_line_1: "",
+        address_line_2: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        is_default: false,
+      });
+    }
+  }, [editingAddress, isAddingInline]);
+
   // Debug Logs
   console.log("Addresses:", addresses);
   console.log("Selected:", selectedAddress);
 
-  // Fallback Selection Priority Helper - utilizes getState to remain 100% stable
+  // Fallback Selection Helper - getState keeps callback 100% stable
   const determineSelection = useCallback((list: UserAddress[], targetId?: string | null): UserAddress | null => {
     if (list.length === 0) return null;
     const activeSelectedId = useCheckoutStore.getState().selectedAddressId;
 
-    // 1. Newly added address (passed targetId)
     if (targetId) {
       const found = list.find((a) => a.id === targetId);
       if (found) return found;
     }
 
-    // 2. Previously selected address
     if (activeSelectedId) {
       const found = list.find((a) => a.id === activeSelectedId);
       if (found) return found;
     }
 
-    // 3. Default address
     const defaultAddr = list.find((a) => a.is_default);
     if (defaultAddr) return defaultAddr;
 
-    // 4. First available address
     return list[0];
   }, []);
 
@@ -175,7 +204,6 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     try {
       const res = await getUserAddressesAction(userId);
       if (res.success && res.addresses) {
-        // Filter out corrupted/empty address records
         const validAddresses = res.addresses.filter(
           (a) => a && a.id && a.name && a.address_line_1 && a.city && a.state && a.postal_code
         );
@@ -195,7 +223,6 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
       }
     } catch (err) {
       console.error("[AddressList] Fetch addresses failed:", err);
-      // Let parent Error Boundary handle it if fatal
       throw err;
     } finally {
       setLoading(false);
@@ -206,7 +233,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     fetchAddresses();
   }, [userId, fetchAddresses]);
 
-  // Synchronization effect to ensure selectedAddress and selectedAddressId stay fully in sync with the addresses list
+  // Synchronization effect to ensure selectedAddress and selectedAddressId stay in sync
   useEffect(() => {
     if (addresses.length > 0) {
       if (selectedAddressId) {
@@ -216,18 +243,15 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             if (onAddressSelectedRef.current) onAddressSelectedRef.current(matchingAddress);
           }
         } else {
-          // If selectedAddressId is not found in the list, determine fallback selection
           const fallback = determineSelection(addresses);
           if (onAddressSelectedRef.current) onAddressSelectedRef.current(fallback);
         }
       } else {
-        // If selectedAddressId is null but selectedAddress is set, clean it up
         if (selectedAddress) {
           if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
         }
       }
     } else {
-      // If there are no addresses, reset selections
       if (selectedAddressId || selectedAddress) {
         setAddressId(null);
         if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
@@ -251,11 +275,12 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     }
   }, [selectedAddressId]);
 
-  // Selection Callback Handler
+  // Selection Handler
   const handleSelect = useCallback((address: UserAddress) => {
     setAddressId(address.id);
     localStorage.setItem("selectedAddressId", address.id);
     if (onAddressSelectedRef.current) onAddressSelectedRef.current(address);
+    setIsExpanded(false); // Auto-collapse list on selection to keep flow clean
     console.log("[Analytics] address_selected", { id: address.id });
   }, [setAddressId]);
 
@@ -268,39 +293,43 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
   }, [handleSelect]);
 
   // Save/Add Address Callback (with Optimistic UI updates)
-  const handleSaveAddress = async (formData: Partial<UserAddress>) => {
-    formData.user_id = userId;
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
 
-    // Validate using client Zod schema
-    const validation = addressSchema.safeParse(formData);
+    const dataToSave = {
+      ...formData,
+      user_id: userId,
+    };
+
+    // Validate using Zod schema
+    const validation = addressSchema.safeParse(dataToSave);
     if (!validation.success) {
-      const errorMsg = validation.error.issues.map((e) => e.message).join(". ");
+      const errorMsg = validation.error.issues.map((issue) => issue.message).join(". ");
       useToastStore.getState().addToast(`❌ Validation Error: ${errorMsg}`);
-      throw new Error(`Validation Error: ${errorMsg}`);
+      setFormLoading(false);
+      return;
     }
 
-    // Capture backup state for potential rollback
     const previousAddresses = [...addresses];
     const previousSelectedId = selectedAddressId;
 
-    // Generate optimistic address object
-    const isNew = !formData.id;
-    const tempId = formData.id || "optimistic-addr-" + Date.now();
+    const isFirstTime = previousAddresses.length === 0;
+    const tempId = dataToSave.id || "optimistic-addr-" + Date.now();
     const optimisticAddress: UserAddress = {
       id: tempId,
       user_id: userId,
-      name: formData.name || "",
-      phone: formData.phone || "",
-      address_line_1: formData.address_line_1 || "",
-      address_line_2: formData.address_line_2 || "",
-      city: formData.city || "",
-      state: formData.state || "",
-      postal_code: formData.postal_code || "",
-      country: formData.country || "India",
-      is_default: formData.is_default || false,
+      name: dataToSave.name || "",
+      phone: dataToSave.phone || "",
+      address_line_1: dataToSave.address_line_1 || "",
+      address_line_2: dataToSave.address_line_2 || "",
+      city: dataToSave.city || "",
+      state: dataToSave.state || "",
+      postal_code: dataToSave.postal_code || "",
+      country: dataToSave.country || "India",
+      is_default: dataToSave.is_default || false,
     };
 
-    // Update default flags optimistically
     const optimisticList = previousAddresses.map((a) => {
       if (optimisticAddress.is_default && a.user_id === userId) {
         return { ...a, is_default: false };
@@ -308,7 +337,6 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
       return a;
     });
 
-    // Insert or replace in optimistic list
     const index = optimisticList.findIndex((a) => a.id === tempId);
     if (index !== -1) {
       optimisticList[index] = optimisticAddress;
@@ -316,49 +344,55 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
       optimisticList.unshift(optimisticAddress);
     }
 
-    // OPTIMISTIC UPDATE: Apply instantly in the UI
+    // Apply UI Updates Optimistically
     setAddresses(optimisticList);
     setAddressId(tempId);
     if (onAddressSelectedRef.current) onAddressSelectedRef.current(optimisticAddress);
     if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(optimisticList.length);
-    setIsModalOpen(false); // Close modal instantly!
-    useToastStore.getState().addToast("✓ Address saved and selected");
+    
+    setIsAddingInline(false);
+    setEditingAddress(null);
+    useToastStore.getState().addToast("✓ Address saved successfully.");
 
-    // Perform API Sync
+    // First time auto-advance to step 2
+    if (isFirstTime) {
+      useCheckoutStore.getState().setStep(2);
+    }
+
     try {
-      const res = await saveUserAddressAction(formData);
+      const res = await saveUserAddressAction(dataToSave);
       if (res.success && res.address) {
-        // Fetch real database records and apply fallback select
         const listRes = await getUserAddressesAction(userId);
         if (listRes.success && listRes.addresses) {
-          setAddresses(listRes.addresses);
-          if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(listRes.addresses.length);
+          const validAddresses = listRes.addresses.filter(
+            (a) => a && a.id && a.name && a.address_line_1 && a.city && a.state && a.postal_code
+          );
+          setAddresses(validAddresses);
+          if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(validAddresses.length);
 
-          // Find matching DB address (by ID for edits or matching fields for additions)
-          const matchedDbAddr = listRes.addresses.find(
+          const matchedDbAddr = validAddresses.find(
             (a) => a.id === res.address?.id || (a.name === res.address?.name && a.address_line_1 === res.address?.address_line_1)
           );
 
-          const finalSelect = matchedDbAddr || listRes.addresses[0];
+          const finalSelect = matchedDbAddr || validAddresses[0];
           setAddressId(finalSelect.id);
           localStorage.setItem("selectedAddressId", finalSelect.id);
           if (onAddressSelectedRef.current) onAddressSelectedRef.current(finalSelect);
-
-          console.log("[Analytics] address_added", { id: finalSelect.id, is_default: finalSelect.is_default });
         }
       } else {
         throw new Error(res.error || "Failed to save address");
       }
     } catch (err: any) {
-      // Rollback Optimistic UI state on failure
       setAddresses(previousAddresses);
       setAddressId(previousSelectedId);
       if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(previousAddresses.length);
-      
+
       const revertedSelect = previousAddresses.find((a) => a.id === previousSelectedId) || null;
       if (onAddressSelectedRef.current) onAddressSelectedRef.current(revertedSelect);
 
       useToastStore.getState().addToast(`❌ Save Failed: ${err.message || "Please check details and try again."}`);
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -378,12 +412,10 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(newList.length);
 
             if (newList.length === 0) {
-              // Delete last address edge case: completely reset
               setAddressId(null);
               localStorage.removeItem("selectedAddressId");
               if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
             } else {
-              // Select next fallback by priority rules
               const toSelect = determineSelection(newList);
               if (toSelect) {
                 setAddressId(toSelect.id);
@@ -413,17 +445,197 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     }
   };
 
-  const openAddModal = useCallback(() => {
+  const openAddInline = useCallback(() => {
     setEditingAddress(null);
-    setIsModalOpen(true);
+    setIsAddingInline(true);
   }, []);
 
   const openEditModal = useCallback((address: UserAddress) => {
     setEditingAddress(address);
-    setIsModalOpen(true);
+    setIsAddingInline(false);
   }, []);
 
-  // Loading Skeletons - Using high visibility neutral shades for light backgrounds
+  // Inline address input rendering
+  const renderInlineForm = () => {
+    const isFirstTime = addresses.length === 0;
+    return (
+      <form onSubmit={handleSaveAddress} className="space-y-4 bg-white/40 border border-outline-variant/20 rounded-2xl p-6 shadow-sm">
+        <h4 className="text-xs font-headline font-black uppercase tracking-wider text-neutral-900">
+          {editingAddress ? "Edit Delivery Address" : "New Delivery Address"}
+        </h4>
+        
+        <div className="space-y-1.5">
+          <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
+          <input
+            required
+            name="name"
+            value={formData.name || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+            placeholder="ENTER FULL NAME"
+          />
+        </div>
+        
+        <div className="space-y-1.5">
+          <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
+          <input
+            required
+            name="phone"
+            type="tel"
+            value={formData.phone || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+            placeholder="ENTER 10-DIGIT MOBILE NUMBER"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 1</label>
+          <input
+            required
+            name="address_line_1"
+            value={formData.address_line_1 || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, address_line_1: e.target.value }))}
+            className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+            placeholder="HOUSE/FLAT NO, STREET, AREA"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 2 (Optional)</label>
+          <input
+            name="address_line_2"
+            value={formData.address_line_2 || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, address_line_2: e.target.value }))}
+            className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+            placeholder="LOCALITY / LANDMARK"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">City</label>
+            <input
+              required
+              name="city"
+              value={formData.city || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+              placeholder="CITY"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Pin Code</label>
+            <input
+              required
+              name="postal_code"
+              value={formData.postal_code || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+              className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+              placeholder="PIN CODE"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">State</label>
+          <input
+            required
+            name="state"
+            value={formData.state || ""}
+            onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+            className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
+            placeholder="STATE"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <div className="relative flex items-center justify-center">
+            <input
+              type="checkbox"
+              id="is_default_inline"
+              checked={formData.is_default || false}
+              onChange={(e) => setFormData(prev => ({ ...prev, is_default: e.target.checked }))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
+            />
+            <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] flex items-center justify-center">
+              <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
+                check
+              </span>
+            </div>
+          </div>
+          <label htmlFor="is_default_inline" className="font-black cursor-pointer select-none text-[10px] tracking-wider text-on-surface/80 uppercase">
+            Set as Default Address
+          </label>
+        </div>
+
+        <div className="pt-4 flex gap-4">
+          {!isFirstTime && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingInline(false);
+                setEditingAddress(null);
+              }}
+              className="flex-1 py-3 border border-outline-variant/20 text-[10px] font-black uppercase tracking-widest text-on-surface hover:bg-white/50 rounded-lg transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={formLoading}
+            className="flex-1 py-3 bg-neutral-950 hover:bg-[#fed488] hover:text-neutral-950 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer shadow-md"
+          >
+            {formLoading 
+              ? "Saving..." 
+              : isFirstTime 
+                ? "Save & Continue" 
+                : "Save Address"}
+          </button>
+        </div>
+      </form>
+    );
+  };
+
+  // Collapsed summary preview for returning users
+  const renderSummaryView = () => {
+    if (!selectedAddress) return null;
+    return (
+      <div className="bg-white border border-outline-variant/30 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-sm text-[#775a19]">check_circle</span>
+            <h4 className="text-[11px] font-black uppercase tracking-wider text-neutral-950">
+              Deliver to: {selectedAddress.name}
+            </h4>
+            {selectedAddress.is_default && (
+              <span className="bg-[#775a19]/10 text-[#775a19] text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-sm">
+                DEFAULT
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] font-semibold text-neutral-700 uppercase leading-relaxed ml-6">
+            {selectedAddress.address_line_1}
+            {selectedAddress.address_line_2 && <>, {selectedAddress.address_line_2}</>}
+            {", "}{selectedAddress.city}, {selectedAddress.state} - {selectedAddress.postal_code}
+          </p>
+          <p className="text-[10px] font-bold text-neutral-800 uppercase mt-1 ml-6">
+            Phone: {selectedAddress.phone}
+          </p>
+        </div>
+        
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="sm:ml-auto px-4 py-2 border border-outline-variant/60 hover:border-neutral-900 text-[9px] font-black uppercase tracking-widest text-neutral-900 transition-all rounded-lg bg-transparent cursor-pointer shrink-0 text-center"
+        >
+          Change Address
+        </button>
+      </div>
+    );
+  };
+
+  // Loading Skeletons
   if (loading && addresses.length === 0) {
     return (
       <div className="space-y-6">
@@ -455,55 +667,62 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     );
   }
 
+  // First-time users see the form inline automatically
+  if (addresses.length === 0) {
+    return renderInlineForm();
+  }
+
+  // Collapsed default state
+  if (!isExpanded) {
+    return renderSummaryView();
+  }
+
+  // Expanded View
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-4 border-b border-outline-variant/20 pb-2">
-        <h3 className="text-sm font-headline font-black tracking-widest uppercase text-on-surface">
-          Saved Addresses
+        <h3 className="text-sm font-headline font-black tracking-widest uppercase text-neutral-900">
+          Select Delivery Address
         </h3>
-        <button
-          onClick={openAddModal}
-          className="text-[10px] font-black uppercase tracking-widest text-[#775a19] hover:text-[#fed488] transition-colors flex items-center gap-1 bg-transparent border-none cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">add</span> Add New
-        </button>
       </div>
 
-      {addresses.length === 0 ? (
-        <div className="text-center py-10 bg-white/20 border border-outline-variant/20 rounded-xl">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-outline">
-            No saved addresses found.
-          </p>
-          <button
-            onClick={openAddModal}
-            className="mt-4 border border-[#775a19] text-[#775a19] px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-[#775a19] hover:text-white transition-all bg-transparent cursor-pointer"
-          >
-            Add Address
-          </button>
-        </div>
+      {(isAddingInline || editingAddress) ? (
+        renderInlineForm()
       ) : (
-        <div role="radiogroup" aria-label="Select shipping address" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {addresses.map((address) => (
-            <AddressCard
-              key={address.id}
-              address={address}
-              isSelected={selectedAddressId === address.id}
-              onSelect={handleSelect}
-              onEdit={openEditModal}
-              onDelete={handleDelete}
-              onSetDefault={handleSetDefault}
-              onKeyPress={handleKeyPress}
-            />
-          ))}
-        </div>
-      )}
+        <>
+          <div role="radiogroup" aria-label="Select shipping address" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {addresses.map((address) => (
+              <AddressCard
+                key={address.id}
+                address={address}
+                isSelected={selectedAddressId === address.id}
+                onSelect={handleSelect}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+                onSetDefault={handleSetDefault}
+                onKeyPress={handleKeyPress}
+              />
+            ))}
+          </div>
 
-      <AddressFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        address={editingAddress}
-        onSave={handleSaveAddress}
-      />
+          <div className="flex gap-4 pt-4 border-t border-outline-variant/10">
+            <button
+              onClick={openAddInline}
+              className="flex-grow py-3 border border-dashed border-outline-variant/60 hover:border-neutral-900 text-[10px] font-black uppercase tracking-widest text-neutral-800 hover:text-neutral-950 transition-all rounded-lg bg-transparent cursor-pointer flex items-center justify-center gap-1"
+            >
+              <span className="material-symbols-outlined text-sm">add</span> Add New Address
+            </button>
+            {selectedAddress && (
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="px-6 py-3 bg-neutral-950 hover:bg-[#fed488] hover:text-neutral-950 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer shadow-md"
+              >
+                Done
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

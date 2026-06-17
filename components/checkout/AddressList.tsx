@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { UserAddress } from "@/lib/registry";
 import { getUserAddressesAction, saveUserAddressAction, deleteUserAddressAction, setDefaultUserAddressAction } from "@/app/actions/addresses";
 import { useCheckoutStore } from "@/stores/checkoutStore";
@@ -129,16 +129,25 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
   const selectedAddressId = useCheckoutStore((state) => state.selectedAddressId);
   const setAddressId = useCheckoutStore((state) => state.setAddressId);
-  const setSelectedAddress = useCheckoutStore((state) => state.setSelectedAddress);
   const selectedAddress = useCheckoutStore((state) => state.selectedAddress);
+
+  // Keep references to callback props stable so they do not trigger infinite effect loops
+  const onAddressSelectedRef = useRef(onAddressSelected);
+  const onAddressCountChangeRef = useRef(onAddressCountChange);
+
+  useEffect(() => {
+    onAddressSelectedRef.current = onAddressSelected;
+    onAddressCountChangeRef.current = onAddressCountChange;
+  }, [onAddressSelected, onAddressCountChange]);
 
   // Debug Logs
   console.log("Addresses:", addresses);
   console.log("Selected:", selectedAddress);
 
-  // Fallback Selection Priority Helper
+  // Fallback Selection Priority Helper - utilizes getState to remain 100% stable
   const determineSelection = useCallback((list: UserAddress[], targetId?: string | null): UserAddress | null => {
     if (list.length === 0) return null;
+    const activeSelectedId = useCheckoutStore.getState().selectedAddressId;
 
     // 1. Newly added address (passed targetId)
     if (targetId) {
@@ -147,8 +156,8 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     }
 
     // 2. Previously selected address
-    if (selectedAddressId) {
-      const found = list.find((a) => a.id === selectedAddressId);
+    if (activeSelectedId) {
+      const found = list.find((a) => a.id === activeSelectedId);
       if (found) return found;
     }
 
@@ -158,7 +167,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
     // 4. First available address
     return list[0];
-  }, [selectedAddressId]);
+  }, []);
 
   // Fetch addresses and apply priority rules
   const fetchAddresses = useCallback(async (selectId?: string | null) => {
@@ -171,17 +180,17 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
           (a) => a && a.id && a.name && a.address_line_1 && a.city && a.state && a.postal_code
         );
         setAddresses(validAddresses);
-        if (onAddressCountChange) onAddressCountChange(validAddresses.length);
+        if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(validAddresses.length);
 
         const toSelect = determineSelection(validAddresses, selectId);
         if (toSelect) {
           setAddressId(toSelect.id);
           localStorage.setItem("selectedAddressId", toSelect.id);
-          if (onAddressSelected) onAddressSelected(toSelect);
+          if (onAddressSelectedRef.current) onAddressSelectedRef.current(toSelect);
         } else {
           setAddressId(null);
           localStorage.removeItem("selectedAddressId");
-          if (onAddressSelected) onAddressSelected(null);
+          if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
         }
       }
     } catch (err) {
@@ -191,7 +200,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     } finally {
       setLoading(false);
     }
-  }, [userId, determineSelection, setAddressId, onAddressSelected, onAddressCountChange]);
+  }, [userId, determineSelection, setAddressId]);
 
   useEffect(() => {
     fetchAddresses();
@@ -204,27 +213,27 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
         const matchingAddress = addresses.find((a) => a.id === selectedAddressId);
         if (matchingAddress) {
           if (!selectedAddress || selectedAddress.id !== matchingAddress.id || JSON.stringify(selectedAddress) !== JSON.stringify(matchingAddress)) {
-            if (onAddressSelected) onAddressSelected(matchingAddress);
+            if (onAddressSelectedRef.current) onAddressSelectedRef.current(matchingAddress);
           }
         } else {
           // If selectedAddressId is not found in the list, determine fallback selection
           const fallback = determineSelection(addresses);
-          if (onAddressSelected) onAddressSelected(fallback);
+          if (onAddressSelectedRef.current) onAddressSelectedRef.current(fallback);
         }
       } else {
         // If selectedAddressId is null but selectedAddress is set, clean it up
         if (selectedAddress) {
-          if (onAddressSelected) onAddressSelected(null);
+          if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
         }
       }
     } else {
       // If there are no addresses, reset selections
       if (selectedAddressId || selectedAddress) {
         setAddressId(null);
-        if (onAddressSelected) onAddressSelected(null);
+        if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
       }
     }
-  }, [selectedAddressId, selectedAddress, addresses, onAddressSelected, setAddressId, determineSelection]);
+  }, [selectedAddressId, selectedAddress, addresses, setAddressId, determineSelection]);
 
   // Auto-scroll to selected card
   useEffect(() => {
@@ -246,9 +255,9 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
   const handleSelect = useCallback((address: UserAddress) => {
     setAddressId(address.id);
     localStorage.setItem("selectedAddressId", address.id);
-    if (onAddressSelected) onAddressSelected(address);
+    if (onAddressSelectedRef.current) onAddressSelectedRef.current(address);
     console.log("[Analytics] address_selected", { id: address.id });
-  }, [setAddressId, onAddressSelected]);
+  }, [setAddressId]);
 
   // Keyboard accessibility handler
   const handleKeyPress = useCallback((e: React.KeyboardEvent, address: UserAddress) => {
@@ -310,8 +319,8 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     // OPTIMISTIC UPDATE: Apply instantly in the UI
     setAddresses(optimisticList);
     setAddressId(tempId);
-    if (onAddressSelected) onAddressSelected(optimisticAddress);
-    if (onAddressCountChange) onAddressCountChange(optimisticList.length);
+    if (onAddressSelectedRef.current) onAddressSelectedRef.current(optimisticAddress);
+    if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(optimisticList.length);
     setIsModalOpen(false); // Close modal instantly!
     useToastStore.getState().addToast("✓ Address saved and selected");
 
@@ -323,7 +332,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
         const listRes = await getUserAddressesAction(userId);
         if (listRes.success && listRes.addresses) {
           setAddresses(listRes.addresses);
-          if (onAddressCountChange) onAddressCountChange(listRes.addresses.length);
+          if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(listRes.addresses.length);
 
           // Find matching DB address (by ID for edits or matching fields for additions)
           const matchedDbAddr = listRes.addresses.find(
@@ -333,7 +342,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
           const finalSelect = matchedDbAddr || listRes.addresses[0];
           setAddressId(finalSelect.id);
           localStorage.setItem("selectedAddressId", finalSelect.id);
-          if (onAddressSelected) onAddressSelected(finalSelect);
+          if (onAddressSelectedRef.current) onAddressSelectedRef.current(finalSelect);
 
           console.log("[Analytics] address_added", { id: finalSelect.id, is_default: finalSelect.is_default });
         }
@@ -344,10 +353,10 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
       // Rollback Optimistic UI state on failure
       setAddresses(previousAddresses);
       setAddressId(previousSelectedId);
-      if (onAddressCountChange) onAddressCountChange(previousAddresses.length);
+      if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(previousAddresses.length);
       
       const revertedSelect = previousAddresses.find((a) => a.id === previousSelectedId) || null;
-      if (onAddressSelected) onAddressSelected(revertedSelect);
+      if (onAddressSelectedRef.current) onAddressSelectedRef.current(revertedSelect);
 
       useToastStore.getState().addToast(`❌ Save Failed: ${err.message || "Please check details and try again."}`);
     }
@@ -366,20 +375,20 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
           if (listRes.success && listRes.addresses) {
             const newList = listRes.addresses;
             setAddresses(newList);
-            if (onAddressCountChange) onAddressCountChange(newList.length);
+            if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(newList.length);
 
             if (newList.length === 0) {
               // Delete last address edge case: completely reset
               setAddressId(null);
               localStorage.removeItem("selectedAddressId");
-              if (onAddressSelected) onAddressSelected(null);
+              if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
             } else {
               // Select next fallback by priority rules
               const toSelect = determineSelection(newList);
               if (toSelect) {
                 setAddressId(toSelect.id);
                 localStorage.setItem("selectedAddressId", toSelect.id);
-                if (onAddressSelected) onAddressSelected(toSelect);
+                if (onAddressSelectedRef.current) onAddressSelectedRef.current(toSelect);
               }
             }
           }

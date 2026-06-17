@@ -57,6 +57,14 @@ export default function CheckoutPage() {
     setIdempotencyKey,
   } = useCheckoutStore();
 
+  const handleAddressSelected = React.useCallback((address: UserAddress | null) => {
+    setSelectedAddress(address);
+  }, [setSelectedAddress]);
+
+  const handleAddressCountChange = React.useCallback((count: number) => {
+    setAddressCount(count);
+  }, []);
+
   const user = useAuthStore((state) => state.user);
   const userId = user?.email || "guest";
 
@@ -513,8 +521,8 @@ export default function CheckoutPage() {
                 <AddressErrorBoundary>
                   <AddressList 
                     userId={userId} 
-                    onAddressSelected={(address) => setSelectedAddress(address)} 
-                    onAddressCountChange={(count) => setAddressCount(count)}
+                    onAddressSelected={handleAddressSelected} 
+                    onAddressCountChange={handleAddressCountChange}
                   />
                 </AddressErrorBoundary>
               </div>

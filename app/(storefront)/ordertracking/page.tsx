@@ -21,6 +21,9 @@ function OrderTrackingContent() {
 
   // Data States
   const [matchedOrder, setMatchedOrder] = useState<Order | null>(null);
+  const [shipment, setShipment] = useState<any | null>(null);
+  const [shipmentEvents, setShipmentEvents] = useState<any[] | null>(null);
+  const [orderEvents, setOrderEvents] = useState<any[]>([]);
   const [matchedProduct, setMatchedProduct] = useState<Product | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
@@ -35,7 +38,6 @@ function OrderTrackingContent() {
   }, [orderIdParam]);
 
   const loadRecentOrders = async () => {
-    // Show up to 3 recent orders
     const orders = await db.getOrders();
     setRecentOrders(orders.slice(0, 3));
   };
@@ -51,7 +53,6 @@ function OrderTrackingContent() {
     setActiveOrderId(orderId);
     setViewState("loading");
 
-    // Message loops
     const messages = [
       "Establishing connection to Shiprocket routing nodes...",
       "Authenticating Waybill with Xpress logistics...",
@@ -65,29 +66,40 @@ function OrderTrackingContent() {
     const msgInterval = setInterval(() => {
       msgIndex = (msgIndex + 1) % messages.length;
       setLoadingStatusText(messages[msgIndex]);
-    }, 200);
+    }, 150);
 
     setTimeout(async () => {
-      clearInterval(msgInterval);
+      try {
+        const res = await fetch(`/api/logistics/track?orderId=${orderId}`);
+        clearInterval(msgInterval);
 
-      // Search registry
-      const ordersList = await db.getOrders();
-      const order = ordersList.find((o) => o.id.toUpperCase() === orderId.toUpperCase());
+        if (!res.ok) {
+          setViewState("error");
+          return;
+        }
 
-      if (!order) {
+        const data = await res.json();
+        if (!data.success) {
+          setViewState("error");
+          return;
+        }
+
+        setMatchedOrder(data.order);
+        setShipment(data.shipment);
+        setShipmentEvents(data.events);
+        setOrderEvents(data.orderEvents || []);
+
+        // Search matching product
+        const products = await db.getProducts();
+        const product = products.find((p) => p.title.toLowerCase() === data.order.items[0].toLowerCase());
+        setMatchedProduct(product || null);
+
+        setViewState("dashboard");
+      } catch (err) {
+        clearInterval(msgInterval);
+        console.error("Tracking API error:", err);
         setViewState("error");
-        return;
       }
-
-      // Found order!
-      setMatchedOrder(order);
-
-      // Search matching product
-      const products = await db.getProducts();
-      const product = products.find((p) => p.title.toLowerCase() === order.items[0].toLowerCase());
-      setMatchedProduct(product || null);
-
-      setViewState("dashboard");
     }, 800);
   };
 
@@ -95,6 +107,9 @@ function OrderTrackingContent() {
     setSearchOrderId("");
     setActiveOrderId(null);
     setMatchedOrder(null);
+    setShipment(null);
+    setShipmentEvents(null);
+    setOrderEvents([]);
     setMatchedProduct(null);
     router.push("/ordertracking");
   };
@@ -128,8 +143,73 @@ function OrderTrackingContent() {
 
   // Generate dynamic progress milestones list based on order status
   const getTimelineMilestones = (order: Order) => {
+    if (orderEvents && orderEvents.length > 0) {
+      return orderEvents.map((evt: any) => {
+        let icon = "inventory_2";
+        const evLower = evt.event.toLowerCase();
+        if (evLower.includes("created")) icon = "inventory_2";
+        else if (evLower.includes("pending")) icon = "pending";
+        else if (evLower.includes("successful") || evLower.includes("success") || evLower.includes("paid")) icon = "check_circle";
+        else if (evLower.includes("failed")) icon = "error";
+        else if (evLower.includes("expired")) icon = "timer_off";
+        else if (evLower.includes("shipment created") || evLower.includes("packed")) icon = "package_2";
+        else if (evLower.includes("awb") || evLower.includes("dispatched") || evLower.includes("shipped")) icon = "local_shipping";
+        else if (evLower.includes("delivered")) icon = "check_circle";
+
+        return {
+          title: evt.event,
+          dateStr: new Date(evt.created_at).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          desc: `Stitch 6K System log for order lifecycle transition.`,
+          icon,
+          active: true,
+        };
+      });
+    }
+
+    if (shipmentEvents && shipmentEvents.length > 0) {
+      return shipmentEvents.map((ev: any) => {
+        let icon = "local_shipping";
+        const statusLower = ev.status.toLowerCase();
+        if (statusLower.includes("placed")) icon = "inventory_2";
+        else if (statusLower.includes("packed")) icon = "package_2";
+        else if (statusLower.includes("out for delivery") || statusLower.includes("out_for_delivery")) icon = "hail";
+        else if (statusLower.includes("delivered")) icon = "check_circle";
+        else if (statusLower.includes("returned")) icon = "assignment_return";
+
+        return {
+          title: ev.activity,
+          dateStr: new Date(ev.timestamp).toLocaleString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          desc: ev.location ? `Facility Location: ${ev.location}` : "Routing through logistics network",
+          icon,
+          active: true,
+        };
+      });
+    }
+
     const orderDate = getOrderDate(order.date);
     const milestones = [];
+
+    const statusLower = (order.status || "").toLowerCase();
+    const isPaid = ["paid", "shipped", "delivered", "returned", "packed", "out for delivery", "out_for_delivery"].includes(statusLower);
+    const isPacked = ["packed", "shipped", "out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
+    const isShipped = ["shipped", "out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
+    const isOutForDelivery = ["out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
+    const isDelivered = ["delivered", "returned"].includes(statusLower);
+    const isReturned = statusLower === "returned";
+    const isReturnTransit = statusLower === "return in transit" || statusLower === "return_in_transit";
+    const isReturnReq = statusLower === "return requested" || statusLower === "return_requested";
 
     // Milestone 1: Placed
     milestones.push({
@@ -137,43 +217,46 @@ function OrderTrackingContent() {
       dateStr: formatTimelineDate(orderDate, 0, "10:00 AM"),
       desc: "Your order has been verified and registered. Materials prepared for weaving.",
       icon: "inventory_2",
-      active: true,
+      active: isPaid,
     });
 
-    const isShipped = order.status === "Shipped";
-    const isDelivered = order.status === "Delivered";
-    const isReturned = order.status === "Returned";
-    const isReturnTransit = order.status === "Return in Transit";
-    const isReturnReq = order.status === "Return Requested";
+    // Milestone 2: Packed
+    milestones.push({
+      title: "Package Packed & Ready",
+      dateStr: formatTimelineDate(orderDate, 0, "06:30 PM"),
+      desc: "Package custom-finished and sealed. Waybill generated and assigned to courier partner.",
+      icon: "package_2",
+      active: isPacked || isShipped || isOutForDelivery || isDelivered || isReturned,
+    });
 
-    // Milestone 2: Dispatch
+    // Milestone 3: Dispatch
     milestones.push({
       title: "Workshop Dispatch",
       dateStr: formatTimelineDate(orderDate, 1, "08:30 AM"),
       desc: "Package dispatched from Varanasi Workshop in custom luxury packing and handed to Shiprocket courier partner.",
       icon: "local_shipping",
-      active: isShipped || isDelivered || isReturned || isReturnTransit || isReturnReq,
+      active: isShipped || isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
 
-    // Milestone 3: Sorting
+    // Milestone 4: Sorting
     milestones.push({
       title: "Arrived at Sorting Facility",
       dateStr: formatTimelineDate(orderDate, 2, "04:15 PM"),
       desc: "Processed through Shiprocket automated routing at Bengaluru West Hub. Handover confirmed.",
       icon: "hub",
-      active: isShipped || isDelivered || isReturned || isReturnTransit || isReturnReq,
+      active: isShipped || isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
 
-    // Milestone 4: Out for Delivery
+    // Milestone 5: Out for Delivery
     milestones.push({
       title: "Out for Delivery",
       dateStr: formatTimelineDate(orderDate, 3, "09:00 AM"),
       desc: "Shiprocket delivery agent Sunil K. (+91 90876 XXXXX) is out for delivery to your address.",
       icon: "hail",
-      active: isDelivered || isReturned || isReturnTransit || isReturnReq,
+      active: isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
 
-    // Milestone 5: Handed over
+    // Milestone 6: Handed over
     milestones.push({
       title: "Package Handed Over",
       dateStr: formatTimelineDate(orderDate, 3, "02:30 PM"),
@@ -221,6 +304,13 @@ function OrderTrackingContent() {
   };
 
   const getExpectedDateText = (order: Order) => {
+    if (shipment && shipment.etd) {
+      return new Date(shipment.etd).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      }).toUpperCase();
+    }
     const parsedDate = getOrderDate(order.date);
     let daysToAdd = 5;
     if (order.status === "Delivered") daysToAdd = 3;
@@ -356,7 +446,7 @@ function OrderTrackingContent() {
                   </p>
                   <button
                     onClick={clearTracking}
-                    className="mt-2 text-[9px] font-black uppercase tracking-widest text-secondary hover:text-on-surface flex items-center gap-1 group transition-colors bg-transparent"
+                    className="mt-2 text-[9px] font-black uppercase tracking-widest text-secondary hover:text-on-surface flex items-center gap-1 group transition-colors bg-transparent border-none outline-none cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-sm group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
                     Track Another Order
@@ -373,26 +463,28 @@ function OrderTrackingContent() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`size-2 rounded-full ${
-                        matchedOrder.status === "Delivered"
+                        (shipment?.status || matchedOrder.status) === "Delivered"
                           ? "bg-green-500"
-                          : matchedOrder.status === "Returned" || matchedOrder.status === "Return Rejected"
+                          : ["Returned", "Return Rejected", "Cancelled"].includes(shipment?.status || matchedOrder.status)
                           ? "bg-red-500"
                           : "bg-amber-500"
                       }`}
                     ></span>
-                    <span className="text-xs font-bold uppercase tracking-widest">{matchedOrder.status}</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">{shipment?.status || matchedOrder.status}</span>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Logistics Partner</p>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-widest">SR-Xpress</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">
+                      {shipment?.courier_name || "Shiprocket Partner"}
+                    </span>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Waybill Number</p>
-                  <span className="text-xs font-bold font-mono tracking-tight">
-                    SR772{matchedOrder.id.replace(/\D/g, "") || "4022"}
+                  <span className="text-xs font-bold font-mono tracking-tight select-all">
+                    {shipment?.awb_code || matchedOrder.shiprocketId || "PENDING"}
                   </span>
                 </div>
                 <div className="bg-surface-container-low p-6">

@@ -75,6 +75,8 @@ export interface Order {
   qualityCheckPassed?: boolean;
   shiprocketId?: string;
   idempotencyKey?: string;
+  cartItems?: any[];
+  paymentStatus?: string;
 }
 
 export interface OrderStatusHistory {
@@ -130,6 +132,40 @@ export interface UserAddress {
   is_default: boolean;
 }
 
+export interface Shipment {
+  id: string;
+  order_id: string;
+  shiprocket_order_id: string;
+  shipment_id: string;
+  awb_code: string;
+  courier_name: string;
+  status: string;
+  etd?: string;
+  weight?: number;
+  dimensions_length?: number;
+  dimensions_width?: number;
+  dimensions_height?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ShipmentEvent {
+  id: string;
+  shipment_id: string;
+  status: string;
+  activity: string;
+  location?: string;
+  timestamp: string;
+  created_at?: string;
+}
+
+export interface TrackingLog {
+  id: string;
+  shipment_id: string;
+  raw_payload: any;
+  created_at: string;
+}
+
 const PRODUCTS_KEY = "registry_products";
 const ORDERS_KEY = "registry_orders";
 const COUPONS_KEY = "registry_coupons";
@@ -140,7 +176,10 @@ const LOYALTY_POINTS_KEY = "registry_loyalty_points";
 const LOYALTY_TX_KEY = "registry_loyalty_transactions";
 const ADDRESSES_KEY = "registry_addresses";
 const ORDER_STATUS_HISTORY_KEY = "registry_order_status_history";
-const CURRENT_VERSION = "5.6_status_history";
+const SHIPMENTS_KEY = "registry_shipments";
+const SHIPMENT_EVENTS_KEY = "registry_shipment_events";
+const TRACKING_LOGS_KEY = "registry_tracking_logs";
+const CURRENT_VERSION = "5.7_logistics";
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -892,6 +931,9 @@ export const RegistryManager = {
       localStorage.removeItem(LOYALTY_TX_KEY);
       localStorage.removeItem(ADDRESSES_KEY);
       localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
+      localStorage.removeItem(SHIPMENTS_KEY);
+      localStorage.removeItem(SHIPMENT_EVENTS_KEY);
+      localStorage.removeItem(TRACKING_LOGS_KEY);
       localStorage.setItem(VERSION_KEY, CURRENT_VERSION);
     }
 
@@ -1697,6 +1739,85 @@ export const RegistryManager = {
     return entry;
   },
 
+  getShipments(): Shipment[] {
+    if (!isBrowser()) return [];
+    this.init();
+    return JSON.parse(localStorage.getItem(SHIPMENTS_KEY) || "[]") as Shipment[];
+  },
+
+  getShipmentByOrderId(orderId: string): Shipment | null {
+    const shipments = this.getShipments();
+    return shipments.find(s => s.order_id === orderId) || null;
+  },
+
+  getShipmentEvents(shipmentId: string): ShipmentEvent[] {
+    if (!isBrowser()) return [];
+    this.init();
+    const events = JSON.parse(localStorage.getItem(SHIPMENT_EVENTS_KEY) || "[]") as ShipmentEvent[];
+    return events.filter(e => e.shipment_id === shipmentId).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  },
+
+  saveShipment(shipment: Partial<Shipment>): Shipment {
+    if (!isBrowser()) throw new Error("Browser only");
+    this.init();
+    const shipments = this.getShipments();
+    const newShipment: Shipment = {
+      id: shipment.id || "SHIP-" + Date.now(),
+      order_id: shipment.order_id || "",
+      shiprocket_order_id: shipment.shiprocket_order_id || "",
+      shipment_id: shipment.shipment_id || "",
+      awb_code: shipment.awb_code || "",
+      courier_name: shipment.courier_name || "",
+      status: shipment.status || "Order Placed",
+      etd: shipment.etd || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      weight: shipment.weight || 0.4,
+      dimensions_length: shipment.dimensions_length || 30,
+      dimensions_width: shipment.dimensions_width || 22,
+      dimensions_height: shipment.dimensions_height || 5,
+      created_at: shipment.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const existingIndex = shipments.findIndex(s => s.id === newShipment.id || (newShipment.awb_code && s.awb_code === newShipment.awb_code) || (newShipment.order_id && s.order_id === newShipment.order_id));
+    if (existingIndex !== -1) {
+      shipments[existingIndex] = { ...shipments[existingIndex], ...newShipment, updated_at: new Date().toISOString() };
+    } else {
+      shipments.unshift(newShipment);
+    }
+    localStorage.setItem(SHIPMENTS_KEY, JSON.stringify(shipments));
+    return newShipment;
+  },
+
+  saveShipmentEvent(event: Partial<ShipmentEvent>): ShipmentEvent {
+    if (!isBrowser()) throw new Error("Browser only");
+    this.init();
+    const events = JSON.parse(localStorage.getItem(SHIPMENT_EVENTS_KEY) || "[]") as ShipmentEvent[];
+    const newEvent: ShipmentEvent = {
+      id: event.id || "EVT-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+      shipment_id: event.shipment_id || "",
+      status: event.status || "",
+      activity: event.activity || "",
+      location: event.location || "",
+      timestamp: event.timestamp || new Date().toISOString()
+    };
+    events.push(newEvent);
+    localStorage.setItem(SHIPMENT_EVENTS_KEY, JSON.stringify(events));
+    return newEvent;
+  },
+
+  saveTrackingLog(log: { shipment_id: string; raw_payload: any }): void {
+    if (!isBrowser()) return;
+    this.init();
+    const logs = JSON.parse(localStorage.getItem(TRACKING_LOGS_KEY) || "[]") as TrackingLog[];
+    logs.push({
+      id: "LOG-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+      shipment_id: log.shipment_id,
+      raw_payload: log.raw_payload,
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem(TRACKING_LOGS_KEY, JSON.stringify(logs));
+  },
+
   resetPrototype() {
     if (!isBrowser()) return;
     localStorage.removeItem(PRODUCTS_KEY);
@@ -1710,6 +1831,9 @@ export const RegistryManager = {
     localStorage.removeItem(LOYALTY_TX_KEY);
     localStorage.removeItem(ADDRESSES_KEY);
     localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
+    localStorage.removeItem(SHIPMENTS_KEY);
+    localStorage.removeItem(SHIPMENT_EVENTS_KEY);
+    localStorage.removeItem(TRACKING_LOGS_KEY);
     window.location.reload();
   },
 };

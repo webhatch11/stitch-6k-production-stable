@@ -537,3 +537,82 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_user ON public.wallet_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_loyalty_transactions_user ON public.loyalty_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order ON public.payments(order_id);
+
+-- 20. Logistics & Tracking Tables
+CREATE TABLE IF NOT EXISTS public.shipments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+    shiprocket_order_id TEXT,
+    shipment_id TEXT,
+    awb_code TEXT UNIQUE,
+    courier_name TEXT,
+    status TEXT NOT NULL,
+    etd TIMESTAMPTZ,
+    weight NUMERIC,
+    dimensions_length INTEGER DEFAULT 30,
+    dimensions_width INTEGER DEFAULT 22,
+    dimensions_height INTEGER DEFAULT 5,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.shipment_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shipment_id UUID REFERENCES public.shipments(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    activity TEXT NOT NULL,
+    location TEXT,
+    timestamp TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.tracking_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    shipment_id UUID REFERENCES public.shipments(id) ON DELETE CASCADE,
+    raw_payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shipments_order ON public.shipments(order_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_awb ON public.shipments(awb_code);
+CREATE INDEX IF NOT EXISTS idx_shipment_events_shipment ON public.shipment_events(shipment_id);
+
+-- 21. Database Sequence for Sequential Order Numbers
+CREATE SEQUENCE IF NOT EXISTS public.order_number_seq START WITH 1;
+
+CREATE OR REPLACE FUNCTION public.get_next_order_number()
+RETURNS TEXT AS $$
+DECLARE
+    v_seq_val INTEGER;
+BEGIN
+    SELECT nextval('public.order_number_seq') INTO v_seq_val;
+    RETURN 'STK-2026-' || lpad(v_seq_val::text, 6, '0');
+END;
+$$ LANGUAGE plpgsql;
+
+-- 22. Payment Audit Logs Table
+CREATE TABLE IF NOT EXISTS public.payment_audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    source TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 23. Order Events Timeline Table
+CREATE TABLE IF NOT EXISTS public.order_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT REFERENCES public.orders(id) ON DELETE CASCADE,
+    event TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Alter check constraint on inventory reservations if present
+ALTER TABLE public.inventory_reservations DROP CONSTRAINT IF EXISTS inventory_reservations_status_check;
+ALTER TABLE public.inventory_reservations ADD CONSTRAINT inventory_reservations_status_check CHECK (status IN ('reserved', 'fulfilled', 'cancelled', 'ACTIVE', 'FULFILLED', 'RELEASED', 'EXPIRED'));
+
+-- Alter orders table to store full JSON cart items
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cart_items JSONB DEFAULT '[]';
+
+

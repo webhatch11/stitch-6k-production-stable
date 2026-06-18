@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
       .digest("hex");
 
     if (generatedSignature !== razorpay_signature) {
+      const orderId = checkoutState.orderId || checkoutState.idempotencyKey;
+      
       // Log the failure
       if (supabase) {
         await supabase.from("payment_logs").insert({
@@ -42,19 +44,28 @@ export async function POST(req: NextRequest) {
         await supabase.from("orders").update({
           payment_status: "FAILED",
           status: "FAILED"
-        }).eq("razorpay_order_id", razorpay_order_id);
+        }).eq("id", orderId);
       }
       
       // Also mark local order as failed
       await db.saveOrder({
-        id: checkoutState.idempotencyKey,
+        id: orderId,
         status: "FAILED"
       });
+
+      // Release inventory reservation
+      await db.releaseReservation(checkoutState.idempotencyKey);
+      await db.createOrderEvent(orderId, "Payment Failed");
 
       return NextResponse.json({ success: false, error: "Payment verification failed: Invalid signature" }, { status: 400 });
     }
 
+    const orderId = checkoutState.orderId || checkoutState.idempotencyKey;
+
     // Payment is legitimately successful.
+    // 0. Deduct inventory variant stock and fulfill reservation
+    await db.deductStock(checkoutState.cartItems, checkoutState.idempotencyKey);
+
     // 1. Complete the logic (Wallet/Loyalty/Coupons)
     
     // Increment coupon usage
@@ -64,36 +75,40 @@ export async function POST(req: NextRequest) {
     
     // Debit wallet if used
     if (checkoutState.walletDeduction > 0) {
-      await db.applyWalletDebit(checkoutState.walletDeduction, checkoutState.idempotencyKey, checkoutState.userId);
+      await db.applyWalletDebit(checkoutState.walletDeduction, orderId, checkoutState.userId);
     }
 
     // Debit points if used
     if (checkoutState.pointsRedeemed > 0) {
-      await db.applyLoyaltyDebit(checkoutState.pointsRedeemed, checkoutState.idempotencyKey, checkoutState.userId);
+      await db.applyLoyaltyDebit(checkoutState.pointsRedeemed, orderId, checkoutState.userId);
     }
 
     // Award new points
     const earned = Math.floor(checkoutState.netTotal / 10);
     if (earned > 0) {
-      await db.awardLoyaltyPoints(checkoutState.netTotal, checkoutState.idempotencyKey, checkoutState.userId);
+      await db.awardLoyaltyPoints(checkoutState.netTotal, orderId, checkoutState.userId);
     }
 
     // Update order status to PAID
     await db.saveOrder({
-      id: checkoutState.idempotencyKey,
+      id: orderId,
       status: "PAID",
       pointsEarned: earned
     });
+
+    // Write audit log and events
+    await db.createPaymentAuditLog(orderId, "PAYMENT_PENDING", "PAID", "verify_route");
+    await db.createOrderEvent(orderId, "Payment Successful");
 
     if (supabase) {
       await supabase.from("orders").update({
         payment_status: "PAID",
         status: "PAID",
         points_earned: earned
-      }).eq("id", checkoutState.idempotencyKey);
+      }).eq("id", orderId);
 
       // Find the payment record
-      const { data: payment } = await supabase.from("payments").select("id").eq("order_id", checkoutState.idempotencyKey).single();
+      const { data: payment } = await supabase.from("payments").select("id").eq("order_id", orderId).single();
       
       if (payment) {
         await supabase.from("payments").update({
@@ -109,6 +124,9 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+
+    // Trigger Shiprocket fulfillment creation
+    await db.dispatchFulfillment(orderId);
 
     return NextResponse.json({ success: true, message: "Payment verified successfully" });
 

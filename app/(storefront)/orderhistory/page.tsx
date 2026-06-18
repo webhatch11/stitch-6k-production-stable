@@ -11,8 +11,9 @@ export default function OrderHistoryPage() {
 
   // Return Modal states
   const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [returnReason, setReturnReason] = useState("Size does not fit");
+  const [returnReason, setReturnReason] = useState("Wrong size");
   const [returnDetails, setReturnDetails] = useState("");
   const [refundOption, setRefundOption] = useState("bank");
   const [uploadedImageName, setUploadedImageName] = useState("");
@@ -198,24 +199,25 @@ export default function OrderHistoryPage() {
                 ) : (
                   orders.map((order) => {
                     // Badge styles
-                    let statusClass = "bg-green-500/10 text-green-700 border border-green-500/20";
-                    let statusDotClass = "bg-green-500";
+                    const statusLower = (order.status || "").toLowerCase();
+                    let statusClass = "bg-stone-500/10 text-stone-700 border border-stone-500/20";
+                    let statusDotClass = "bg-stone-500";
 
-                    if (order.status === "Delivered") {
+                    if (statusLower === "delivered") {
                       statusClass = "bg-green-500/10 text-green-700 border border-green-500/20";
                       statusDotClass = "bg-green-500";
-                    } else if (order.status === "Returned" || order.status === "Return Rejected") {
+                    } else if (statusLower === "returned" || statusLower === "return rejected" || statusLower === "failed") {
                       statusClass = "bg-red-500/10 text-red-600 border border-red-500/20";
                       statusDotClass = "bg-red-500";
-                    } else if (order.status === "Return Requested" || order.status === "Return in Transit") {
+                    } else if (statusLower === "return requested" || statusLower === "return in transit" || statusLower === "payment_pending" || statusLower === "payment pending") {
                       statusClass = "bg-amber-500/10 text-amber-700 border border-amber-500/20";
                       statusDotClass = "bg-amber-500";
-                    } else if (order.status === "Paid via Wallet" || order.status === "Paid") {
+                    } else if (statusLower === "paid via wallet" || statusLower === "paid" || statusLower === "shipped") {
                       statusClass = "bg-blue-500/10 text-blue-700 border border-blue-500/20";
                       statusDotClass = "bg-blue-500";
-                    } else {
-                      statusClass = "bg-stone-500/10 text-stone-700 border border-stone-500/20";
-                      statusDotClass = "bg-stone-500";
+                    } else if (statusLower === "expired" || statusLower === "cancelled") {
+                      statusClass = "bg-stone-500/10 text-stone-600 border border-stone-500/20";
+                      statusDotClass = "bg-stone-400";
                     }
 
                     const returnEligible = order.status === "Delivered" && isEligibleForReturn(order.date);
@@ -294,6 +296,17 @@ export default function OrderHistoryPage() {
                             >
                               Track Shipment
                             </Link>
+                            {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
+                              <button
+                                onClick={() => {
+                                  setSelectedOrderId(order.id);
+                                  setLabelModalOpen(true);
+                                }}
+                                className="inline-flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary flex-1 md:flex-initial"
+                              >
+                                Return Label
+                              </button>
+                            )}
                             {returnEligible && (
                               <button
                                 onClick={() => handleOpenReturnModal(order.id)}
@@ -349,10 +362,11 @@ export default function OrderHistoryPage() {
                   onChange={(e) => setReturnReason(e.target.value)}
                   className="w-full border-b border-x-0 border-t-0 border-outline-variant/30 focus:border-secondary focus:ring-0 text-xs font-bold uppercase tracking-widest py-3 rounded-none bg-surface text-on-surface"
                 >
-                  <option value="Size does not fit">Size does not fit</option>
-                  <option value="Quality not as expected">Quality not as expected</option>
-                  <option value="Received incorrect item">Received incorrect item</option>
-                  <option value="Changed my mind">Changed my mind</option>
+                  <option value="Wrong size">Wrong size</option>
+                  <option value="Damaged item">Damaged item</option>
+                  <option value="Defective product">Defective product</option>
+                  <option value="Incorrect item">Incorrect item</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
@@ -416,6 +430,106 @@ export default function OrderHistoryPage() {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase transition-all rounded-none font-bold"
               >
                 Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {labelModalOpen && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-white p-8 max-w-md w-full border-t-2 border-t-secondary border-x border-b border-outline-variant/20 rounded-none shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <h3 className="font-headline text-xl font-black uppercase tracking-tight mb-6 text-on-surface text-center">Fulfillment Return Label</h3>
+            
+            {/* Printable Area */}
+            <div id="printable-return-label" className="border-2 border-double border-secondary p-6 space-y-6 bg-white text-neutral-900 select-none">
+              <div className="flex justify-between items-center pb-4 border-b border-neutral-200">
+                <span className="text-xs font-black tracking-widest">STITCH 6K ATELIER</span>
+                <span className="text-[8px] font-black border border-neutral-800 px-1 py-0.5 uppercase tracking-widest">PREPAID</span>
+              </div>
+
+              {/* Barcode SVG */}
+              <div className="text-center py-2">
+                <svg width="220" height="50" className="mx-auto text-black">
+                  <rect x="0" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="6" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="10" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="18" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="24" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="28" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="36" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="40" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="48" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="54" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="58" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="66" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="70" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="78" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="84" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="88" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="96" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="100" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="108" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="114" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="118" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="126" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="130" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="138" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="144" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="148" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="156" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="160" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="168" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="174" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="178" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="186" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="190" y="0" width="4" height="50" fill="currentColor"/>
+                  <rect x="198" y="0" width="2" height="50" fill="currentColor"/>
+                  <rect x="204" y="0" width="1" height="50" fill="currentColor"/>
+                  <rect x="208" y="0" width="3" height="50" fill="currentColor"/>
+                  <rect x="216" y="0" width="4" height="50" fill="currentColor"/>
+                </svg>
+                <span className="text-[8px] font-mono tracking-widest uppercase text-neutral-600 block mt-1">
+                  AWB: RET-{orders.find(o => o.id === selectedOrderId)?.shiprocketId || "SR" + Math.floor(Math.random() * 900000 + 100000)}
+                </span>
+              </div>
+
+              {/* Delivery Details */}
+              <div className="grid grid-cols-2 gap-4 text-[9px] uppercase tracking-wider border-t border-b border-neutral-100 py-4 text-left">
+                <div>
+                  <span className="text-neutral-400 font-bold block mb-1">Return From:</span>
+                  <span className="font-extrabold text-neutral-800">{orders.find(o => o.id === selectedOrderId)?.customer || "Atelier Guest"}</span>
+                  <span className="block mt-0.5 text-neutral-600 font-medium">Order: #{selectedOrderId}</span>
+                  <span className="block text-neutral-600 font-medium truncate">Reason: {orders.find(o => o.id === selectedOrderId)?.returnReason || "Wrong size"}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-400 font-bold block mb-1">Return To:</span>
+                  <span className="font-extrabold text-neutral-800">Stitch 6K Warehouse</span>
+                  <span className="block mt-0.5 text-neutral-600 font-medium">Returns Processing Unit</span>
+                  <span className="block text-neutral-600 font-medium">Tiruppur District, TN, 641604</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-[8px] text-neutral-400 font-bold uppercase tracking-widest pt-2">
+                <span>Weight: 0.40 KG</span>
+                <span>Type: Reverse Logistics</span>
+              </div>
+            </div>
+
+            {/* Print Controls */}
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={() => setLabelModalOpen(false)}
+                className="flex-grow border border-outline-variant/60 text-outline hover:text-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-surface-container-low transition-all rounded-none bg-transparent cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex-grow bg-secondary text-white hover:bg-on-surface py-4 text-[10px] font-black tracking-[0.2em] uppercase transition-all rounded-none border-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">print</span>
+                Print Label
               </button>
             </div>
           </div>

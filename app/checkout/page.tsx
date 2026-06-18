@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import {
   processWalletPointsCheckoutAction,
   verifyAndPrepareGatewayCheckoutAction,
+  processCodCheckoutAction,
 } from "@/app/actions/checkout";
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
@@ -34,6 +35,9 @@ export default function CheckoutPage() {
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [paymentFailureError, setPaymentFailureError] = useState("");
   const [addressCount, setAddressCount] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
+  const [codAllowed, setCodAllowed] = useState(true);
+  const [codReason, setCodReason] = useState("");
 
   // Zustand Store Connection
   const {
@@ -140,6 +144,32 @@ export default function CheckoutPage() {
   const finalPayable = netTotal - walletDeduction;
   const subtotal = netTotal / 1.12;
   const gst = netTotal - subtotal;
+
+  // Evaluate COD Eligibility dynamically
+  useEffect(() => {
+    if (isHydrated) {
+      if (selectedAddress) {
+        import("@/lib/codRules").then(({ evaluateCodRules }) => {
+          const res = evaluateCodRules({
+            pincode: selectedAddress.postal_code,
+            orderTotal: finalPayable,
+            customerEmail: user?.email || undefined
+          });
+          setCodAllowed(res.allowed);
+          setCodReason(res.reason || "");
+          if (!res.allowed && paymentMethod === "cod") {
+            setPaymentMethod("online");
+          }
+        });
+      } else {
+        setCodAllowed(false);
+        setCodReason("Please select a delivery address.");
+        if (paymentMethod === "cod") {
+          setPaymentMethod("online");
+        }
+      }
+    }
+  }, [isHydrated, selectedAddress, finalPayable, user, paymentMethod]);
 
   // Coupon Code Validation
   const handleApplyCoupon = async () => {
@@ -253,6 +283,58 @@ export default function CheckoutPage() {
         setTimeout(() => {
           router.push("/orderconfirmed");
         }, 1000);
+      } else if (paymentMethod === "cod") {
+        // Cash on Delivery Placement
+        setProcessingPayment(true);
+        try {
+          const res = await processCodCheckoutAction({
+            cart,
+            couponCode: appliedCouponCode,
+            walletDeduction,
+            pointsRedeemed,
+            loyaltyDiscount,
+            baseTotal,
+            netTotal,
+            customerName,
+            idempotencyKey,
+            addressId: selectedAddress?.id,
+            userId,
+            pincode: selectedAddress?.postal_code || "",
+          });
+
+          if (!res.success) {
+            triggerToast(res.error || "Failed to place COD order.");
+            setProcessingPayment(false);
+            return;
+          }
+
+          if (res.walletBalance !== undefined) {
+            localStorage.setItem("wallet_balance", res.walletBalance.toString());
+          }
+          if (res.loyaltyPoints !== undefined) {
+            localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
+          }
+
+          try {
+            const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
+            localOrders.unshift(res.order);
+            localStorage.setItem("orders_history", JSON.stringify(localOrders));
+          } catch (e) {
+            console.error(e);
+          }
+
+          useCartStore.getState().clearCart();
+          triggerToast("✓ COD Order placed successfully!");
+          setProcessingPayment(false);
+          setTimeout(() => {
+            router.push("/orderconfirmed");
+          }, 1000);
+
+        } catch (err: any) {
+          console.error("COD place order exception:", err);
+          triggerToast("❌ Error occurred while placing COD order.");
+          setProcessingPayment(false);
+        }
       } else {
         // Forward to Razorpay API
         setProcessingPayment(true);
@@ -378,7 +460,8 @@ export default function CheckoutPage() {
   const getButtonText = () => {
     if (currentStep === 1) return "Proceed to Perks & Wallet";
     if (currentStep === 2) return "Proceed to Final Review";
-    return finalPayable === 0 ? "Pay via Wallet & Points" : "Confirm & Complete Payment";
+    if (finalPayable === 0) return "Pay via Wallet & Points";
+    return paymentMethod === "cod" ? "Place COD Order" : "Confirm & Complete Payment";
   };
 
   // Luxury Brand Shimmer Skeleton Loading
@@ -680,6 +763,47 @@ export default function CheckoutPage() {
                   <h2 className="text-2xl sm:text-3xl font-headline font-black tracking-tight uppercase text-on-surface">Final Verification</h2>
                 </div>
                 <div className="space-y-6">
+                  {/* Payment Option Selector */}
+                  <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-4">
+                    <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Select Payment Option</h4>
+                    <div className="flex flex-col gap-4">
+                      {/* Online Payment Option */}
+                      <label className={`flex items-center gap-3 cursor-pointer border p-4 transition-all ${paymentMethod === "online" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="online"
+                          checked={paymentMethod === "online"}
+                          onChange={() => setPaymentMethod("online")}
+                          className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
+                        />
+                        <div className="flex flex-col text-left">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Online Payment (UPI, Cards, NetBanking)</span>
+                          <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">Pay via Razorpay Secure Gateway (Recommended)</span>
+                        </div>
+                      </label>
+
+                      {/* Cash on Delivery Option */}
+                      <label className={`flex items-center gap-3 border p-4 transition-all ${!codAllowed ? "opacity-50 cursor-not-allowed bg-neutral-100/10" : "cursor-pointer"} ${paymentMethod === "cod" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cod"
+                          disabled={!codAllowed}
+                          checked={paymentMethod === "cod"}
+                          onChange={() => setPaymentMethod("cod")}
+                          className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
+                        />
+                        <div className="flex flex-col text-left">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Cash on Delivery (COD)</span>
+                          <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">
+                            {codAllowed ? "Pay cash at your doorstep" : `COD Unavailable: ${codReason}`}
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Destination Overview */}
                   <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-4">
                     <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Delivery Destination</h4>

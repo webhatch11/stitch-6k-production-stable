@@ -96,8 +96,13 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal</h4>
+            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal & Policy</h4>
             <ul className="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70 list-none p-0">
+              <li>
+                <Link href="/about" className="hover:text-white transition-colors">
+                  About Us
+                </Link>
+              </li>
               <li>
                 <Link href="/terms" className="hover:text-white transition-colors">
                   Terms & Conditions
@@ -106,6 +111,16 @@ export default function Footer() {
               <li>
                 <Link href="/privacy" className="hover:text-white transition-colors">
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/refund-policy" className="hover:text-white transition-colors">
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellation-policy" className="hover:text-white transition-colors">
+                  Cancellation Policy
                 </Link>
               </li>
             </ul>

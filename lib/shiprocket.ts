@@ -135,34 +135,26 @@ export interface ShiprocketDispatchResult {
 
 export const shiprocket = {
   /**
-   * Create an adhoc order in Shiprocket and assign AWB automatically
+   * Create order in Shiprocket
    */
-  async createAndDispatchOrder(payload: ShiprocketOrderPayload): Promise<ShiprocketDispatchResult> {
+  async createOrder(payload: ShiprocketOrderPayload): Promise<{ success: boolean; shiprocketOrderId?: number; shipmentId?: number; isMock: boolean; error?: string }> {
     const isActuallyMock = isMockMode || (await getAuthToken()) === "mock_shiprocket_fallback_token";
 
     if (isActuallyMock) {
-      console.log(`[Shiprocket MOCK] Dispatching order ${payload.order_id} to Shiprocket Sandbox...`);
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
+      console.log(`[Shiprocket MOCK] Creating order ${payload.order_id} in Sandbox...`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const mockOrderId = Math.floor(10000000 + Math.random() * 90000000);
       const mockShipmentId = Math.floor(10000000 + Math.random() * 90000000);
-      const mockAwb = "SR" + Math.floor(10000000 + Math.random() * 90000000);
-
       return {
         success: true,
         shiprocketOrderId: mockOrderId,
         shipmentId: mockShipmentId,
-        awbCode: mockAwb,
-        courierName: "Shiprocket Premium Express (Mock)",
         isMock: true,
       };
     }
 
     try {
       const token = await getAuthToken();
-
-      // Step 1: Create Order in Shiprocket
       const orderRes = await fetch("https://apiv2.shiprocket.in/v1/external/orders/create/adhoc", {
         method: "POST",
         headers: {
@@ -185,7 +177,42 @@ export const shiprocket = {
         throw new Error(`Shiprocket created order but returned no shipment_id. Response: ${JSON.stringify(orderData)}`);
       }
 
-      // Step 2: Auto-assign AWB for the shipment
+      return {
+        success: true,
+        shiprocketOrderId,
+        shipmentId,
+        isMock: false,
+      };
+    } catch (err: any) {
+      console.error("[Shiprocket SDK] Create order API exception:", err);
+      return {
+        success: false,
+        error: err.message || "Order creation failed",
+        isMock: false,
+      };
+    }
+  },
+
+  /**
+   * Generate AWB for an existing shipment
+   */
+  async generateAWB(shipmentId: number): Promise<{ success: boolean; awbCode?: string; courierName?: string; isMock: boolean; error?: string }> {
+    const isActuallyMock = isMockMode || (await getAuthToken()) === "mock_shiprocket_fallback_token";
+
+    if (isActuallyMock) {
+      console.log(`[Shiprocket MOCK] Generating AWB for shipment ${shipmentId}...`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const mockAwb = "SR" + Math.floor(10000000 + Math.random() * 90000000);
+      return {
+        success: true,
+        awbCode: mockAwb,
+        courierName: "Shiprocket Premium Express (Mock)",
+        isMock: true,
+      };
+    }
+
+    try {
+      const token = await getAuthToken();
       const awbRes = await fetch("https://apiv2.shiprocket.in/v1/external/courier/assign/awb", {
         method: "POST",
         headers: {
@@ -197,47 +224,119 @@ export const shiprocket = {
         }),
       });
 
-      let awbCode: string | undefined;
-      let courierName: string | undefined;
-
-      if (awbRes.ok) {
-        const awbData = await awbRes.json();
-        if (awbData.status === 200 && awbData.response?.data?.awb_code) {
-          awbCode = awbData.response.data.awb_code;
-          courierName = awbData.response.data.courier_name;
-        } else {
-          console.warn("[Shiprocket SDK] AWB assignment response structure did not match or failed:", awbData);
-        }
-      } else {
+      if (!awbRes.ok) {
         const errText = await awbRes.text();
-        console.warn(`[Shiprocket SDK] Failed to automatically assign AWB via API: ${errText}`);
+        throw new Error(`AWB assignment failed: ${errText}`);
       }
 
-      return {
-        success: true,
-        shiprocketOrderId,
-        shipmentId,
-        awbCode: awbCode || `PENDING-AWB-${shipmentId}`,
-        courierName: courierName || "Shiprocket Partner Courier",
-        isMock: false,
-      };
-
+      const awbData = await awbRes.json();
+      if (awbData.status === 200 && awbData.response?.data?.awb_code) {
+        return {
+          success: true,
+          awbCode: awbData.response.data.awb_code,
+          courierName: awbData.response.data.courier_name || "Shiprocket Partner Courier",
+          isMock: false,
+        };
+      } else {
+        throw new Error(awbData.response?.data?.message || "Failed to assign AWB from Shiprocket API response.");
+      }
     } catch (err: any) {
-      console.error("[Shiprocket SDK] Dispatch order API exception:", err);
+      console.error("[Shiprocket SDK] Generate AWB exception:", err);
       return {
         success: false,
-        error: err.message || "Unknown Shiprocket dispatch error",
+        error: err.message || "AWB assignment failed",
         isMock: false,
       };
     }
   },
 
   /**
+   * Cancel Shipment order
+   */
+  async cancelShipment(shiprocketOrderId: number): Promise<{ success: boolean; message?: string; error?: string }> {
+    const isActuallyMock = isMockMode || (await getAuthToken()) === "mock_shiprocket_fallback_token";
+
+    if (isActuallyMock) {
+      console.log(`[Shiprocket MOCK] Cancelling order ${shiprocketOrderId}...`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return {
+        success: true,
+        message: `Shiprocket order #${shiprocketOrderId} cancelled successfully (mock).`,
+      };
+    }
+
+    try {
+      const token = await getAuthToken();
+      const cancelRes = await fetch("https://apiv2.shiprocket.in/v1/external/orders/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ids: [shiprocketOrderId],
+        }),
+      });
+
+      if (!cancelRes.ok) {
+        const errText = await cancelRes.text();
+        throw new Error(`Cancel request failed: ${errText}`);
+      }
+
+      const data = await cancelRes.json();
+      return {
+        success: true,
+        message: data.message || `Shiprocket order #${shiprocketOrderId} cancelled successfully.`,
+      };
+    } catch (err: any) {
+      console.error("[Shiprocket SDK] Cancel shipment exception:", err);
+      return {
+        success: false,
+        error: err.message || "Cancel shipment request failed",
+      };
+    }
+  },
+
+  /**
+   * Create an adhoc order in Shiprocket and assign AWB automatically
+   */
+  async createAndDispatchOrder(payload: ShiprocketOrderPayload): Promise<ShiprocketDispatchResult> {
+    const orderRes = await this.createOrder(payload);
+    if (!orderRes.success) {
+      return {
+        success: false,
+        error: orderRes.error || "Failed to create Shiprocket order",
+        isMock: orderRes.isMock,
+      };
+    }
+
+    const awbRes = await this.generateAWB(orderRes.shipmentId!);
+    if (!awbRes.success) {
+      return {
+        success: true,
+        shiprocketOrderId: orderRes.shiprocketOrderId,
+        shipmentId: orderRes.shipmentId,
+        awbCode: `PENDING-AWB-${orderRes.shipmentId}`,
+        courierName: "Shiprocket Partner Courier",
+        isMock: orderRes.isMock,
+      };
+    }
+
+    return {
+      success: true,
+      shiprocketOrderId: orderRes.shiprocketOrderId,
+      shipmentId: orderRes.shipmentId,
+      awbCode: awbRes.awbCode,
+      courierName: awbRes.courierName,
+      isMock: orderRes.isMock,
+    };
+  },
+
+  /**
    * Track Shipment AWB status
    */
   async trackShipment(awbCode: string): Promise<any> {
-    if (isMockMode || awbCode.startsWith("SR")) {
-      // Return simulated progress based on AWB number
+    if (isMockMode || awbCode.startsWith("SR") || awbCode.startsWith("PENDING-AWB-")) {
       const numericPart = parseInt(awbCode.replace(/\D/g, ""), 10) || 0;
       const stateIndex = numericPart % 5;
       
@@ -253,7 +352,7 @@ export const shiprocket = {
         success: true,
         awb: awbCode,
         current_status: states[stateIndex].status,
-        etd: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN"),
+        etd: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
         scans: [
           { date: new Date().toISOString(), activity: states[stateIndex].desc, location: "New Delhi Hub" }
         ],

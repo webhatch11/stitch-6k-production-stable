@@ -1,6 +1,23 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory } from "./registry";
+import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
+import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
+import { shiprocket } from "./shiprocket";
+
+// Initialize BullMQ background jobs on server start
+if (typeof window === "undefined") {
+  const globalAny = global as any;
+  if (!globalAny.jobsInitialized) {
+    globalAny.jobsInitialized = true;
+    import("./jobs/jobs-init").then(({ initJobs }) => {
+      initJobs().catch((err) => console.warn("Failed to initialize background jobs:", err.message));
+    });
+    // Import workers to start listening
+    import("./jobs/reservation-cleanup").catch(() => {});
+    import("./jobs/shipment-retry").catch(() => {});
+    import("./jobs/shipment-sync").catch(() => {});
+  }
+}
 
 // Helper mappings for Database compatibility
 const mapDbProductToProduct = (p: any): Product => {
@@ -69,6 +86,8 @@ const mapDbOrderToOrder = (o: any): Order => {
     returnRejectReason: o.return_reject_reason,
     qualityCheckPassed: o.quality_check_passed,
     shiprocketId: o.shiprocket_id || o.shiprocketId || "",
+    cartItems: o.cart_items || [],
+    paymentStatus: o.payment_status || o.paymentStatus || "",
   };
 };
 
@@ -90,8 +109,13 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
 export const db = {
   // --- Products ---
   async getProducts(): Promise<Product[]> {
+    const cached = await CacheService.get<Product[]>("products:list");
+    if (cached) return cached;
+
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getProducts();
+      const res = await RegistryManager.getProducts();
+      await CacheService.set("products:list", res, 600);
+      return res;
     }
     const { data, error } = await supabase
       .from("products")
@@ -102,10 +126,21 @@ export const db = {
       console.error("Error fetching products from Supabase:", error);
       return [];
     }
-    return (data || []).map(mapDbProductToProduct);
+    const res = (data || []).map(mapDbProductToProduct);
+    await CacheService.set("products:list", res, 600);
+    return res;
   },
 
   async saveProduct(product: Partial<Product>): Promise<void> {
+    // Invalidate caches
+    await CacheService.del("products:list");
+    if (product.slug) {
+      await CacheService.del(`products:slug:${product.slug}`);
+    } else if (product.title) {
+      const resolvedSlug = product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      await CacheService.del(`products:slug:${resolvedSlug}`);
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.saveProduct(product);
     }
@@ -152,8 +187,14 @@ export const db = {
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
+    const cacheKey = `products:slug:${slug}`;
+    const cached = await CacheService.get<Product>(cacheKey);
+    if (cached) return cached;
+
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getProductBySlug(slug);
+      const res = await RegistryManager.getProductBySlug(slug);
+      if (res) await CacheService.set(cacheKey, res, 600);
+      return res;
     }
     const { data, error } = await supabase
       .from("products")
@@ -165,7 +206,9 @@ export const db = {
       console.error("Error fetching product by slug from Supabase:", error);
       return undefined;
     }
-    return data ? mapDbProductToProduct(data) : undefined;
+    const res = data ? mapDbProductToProduct(data) : undefined;
+    if (res) await CacheService.set(cacheKey, res, 600);
+    return res;
   },
 
   async relatedProducts(slug: string): Promise<Product[]> {
@@ -193,6 +236,10 @@ export const db = {
   },
 
   async deleteProduct(id: string): Promise<void> {
+    // Invalidate caches
+    await CacheService.del("products:list");
+    await CacheService.delPattern("products:slug:*");
+
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.deleteProduct(id);
     }
@@ -221,6 +268,9 @@ export const db = {
   },
 
   async saveOrder(order: Partial<Order>): Promise<Order> {
+    // Invalidate metrics cache
+    await CacheService.del("analytics:dashboard");
+
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
         return {
@@ -242,69 +292,127 @@ export const db = {
       }
       return RegistryManager.saveOrder(order);
     }
-    const newOrder: Order = {
-      id: order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000),
-      customer: order.customer || "Guest Customer",
-      date: order.date || new Date().toLocaleDateString("en-IN"),
-      total: order.total || 0,
-      status: order.status || "Pending",
-      items: order.items || [],
-      originalTotal: order.originalTotal || 0,
-      couponDiscount: order.couponDiscount || 0,
-      couponCode: order.couponCode || "",
-      walletPaid: order.walletPaid || 0,
-      gatewayPaid: order.gatewayPaid || 0,
-      pointsRedeemed: order.pointsRedeemed || 0,
-      pointsDiscount: order.pointsDiscount || 0,
-      pointsEarned: order.pointsEarned || 0,
-      returnReason: order.returnReason,
-      returnDetails: order.returnDetails,
-      returnImage: order.returnImage,
-      refundOption: order.refundOption,
-      returnRequestDate: order.returnRequestDate,
-      returnDate: order.returnDate,
-      returnRejectReason: order.returnRejectReason,
-      qualityCheckPassed: order.qualityCheckPassed,
-      shiprocketId: order.shiprocketId,
-    };
 
-    const dbPayload = {
-      id: newOrder.id,
-      customer: newOrder.customer,
-      date: newOrder.date,
-      total: newOrder.total,
-      status: newOrder.status,
-      items: newOrder.items,
-      original_total: newOrder.originalTotal,
-      coupon_discount: newOrder.couponDiscount,
-      coupon_code: newOrder.couponCode,
-      wallet_paid: newOrder.walletPaid,
-      gateway_paid: newOrder.gatewayPaid,
-      points_redeemed: newOrder.pointsRedeemed,
-      points_discount: newOrder.pointsDiscount,
-      points_earned: newOrder.pointsEarned,
-      return_reason: newOrder.returnReason,
-      return_details: newOrder.returnDetails,
-      return_image: newOrder.returnImage,
-      refund_option: newOrder.refundOption,
-      return_request_date: newOrder.returnRequestDate,
-      return_date: newOrder.returnDate,
-      return_reject_reason: newOrder.returnRejectReason,
-      quality_check_passed: newOrder.qualityCheckPassed,
-      shiprocket_id: newOrder.shiprocketId,
-    };
+    const orderId = order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000);
 
-    const { error } = await supabase.from("orders").upsert(dbPayload);
-    if (error) {
-      console.error("Error saving order to Supabase:", error);
-      throw error;
+    // Check if order exists
+    const { data: existingOrder, error: fetchError } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Error fetching order to save:", fetchError);
     }
-    return newOrder;
+
+    const isExisting = !!existingOrder;
+
+    // Build DB payload with only defined fields (partial update/insert)
+    const dbPayload: any = {};
+    if (order.id !== undefined) dbPayload.id = orderId;
+    if (order.customer !== undefined) dbPayload.customer = order.customer;
+    if (order.date !== undefined) dbPayload.date = order.date;
+    if (order.total !== undefined) dbPayload.total = order.total;
+    if (order.status !== undefined) dbPayload.status = order.status;
+    if (order.items !== undefined) dbPayload.items = order.items;
+    if (order.originalTotal !== undefined) dbPayload.original_total = order.originalTotal;
+    if (order.couponDiscount !== undefined) dbPayload.coupon_discount = order.couponDiscount;
+    if (order.couponCode !== undefined) dbPayload.coupon_code = order.couponCode;
+    if (order.walletPaid !== undefined) dbPayload.wallet_paid = order.walletPaid;
+    if (order.gatewayPaid !== undefined) dbPayload.gateway_paid = order.gatewayPaid;
+    if (order.pointsRedeemed !== undefined) dbPayload.points_redeemed = order.pointsRedeemed;
+    if (order.pointsDiscount !== undefined) dbPayload.points_discount = order.pointsDiscount;
+    if (order.pointsEarned !== undefined) dbPayload.points_earned = order.pointsEarned;
+    if (order.returnReason !== undefined) dbPayload.return_reason = order.returnReason;
+    if (order.returnDetails !== undefined) dbPayload.return_details = order.returnDetails;
+    if (order.returnImage !== undefined) dbPayload.return_image = order.returnImage;
+    if (order.refundOption !== undefined) dbPayload.refund_option = order.refundOption;
+    if (order.returnRequestDate !== undefined) dbPayload.return_request_date = order.returnRequestDate;
+    if (order.returnDate !== undefined) dbPayload.return_date = order.returnDate;
+    if (order.returnRejectReason !== undefined) dbPayload.return_reject_reason = order.returnRejectReason;
+    if (order.qualityCheckPassed !== undefined) dbPayload.quality_check_passed = order.qualityCheckPassed;
+    if (order.shiprocketId !== undefined) dbPayload.shiprocket_id = order.shiprocketId;
+    if (order.idempotencyKey !== undefined) dbPayload.idempotency_key = order.idempotencyKey;
+    if (order.cartItems !== undefined) dbPayload.cart_items = order.cartItems;
+    if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
+
+    if (isExisting) {
+      const { error } = await supabase.from("orders").update(dbPayload).eq("id", orderId);
+      if (error) {
+        console.error("Error updating order in Supabase:", error);
+        throw error;
+      }
+    } else {
+      // For insertion, default required fields if missing
+      const insertPayload = {
+        id: orderId,
+        customer: order.customer || "Guest Customer",
+        date: order.date || new Date().toLocaleDateString("en-IN"),
+        total: order.total || 0,
+        status: order.status || "Pending",
+        items: order.items || [],
+        original_total: order.originalTotal || 0,
+        coupon_discount: order.couponDiscount || 0,
+        coupon_code: order.couponCode || "",
+        wallet_paid: order.walletPaid || 0,
+        gateway_paid: order.gatewayPaid || 0,
+        points_redeemed: order.pointsRedeemed || 0,
+        points_discount: order.pointsDiscount || 0,
+        points_earned: order.pointsEarned || 0,
+        idempotency_key: order.idempotencyKey || orderId,
+        cart_items: order.cartItems || [],
+        payment_status: order.paymentStatus || "PENDING",
+        ...dbPayload
+      };
+      const { error } = await supabase.from("orders").insert(insertPayload);
+      if (error) {
+        console.error("Error inserting order in Supabase:", error);
+        throw error;
+      }
+    }
+
+    // Return merged Order representation
+    const mergedOrder: Order = {
+      id: orderId,
+      customer: order.customer || (existingOrder ? existingOrder.customer : "Guest Customer"),
+      date: order.date || (existingOrder ? existingOrder.date : new Date().toLocaleDateString("en-IN")),
+      total: order.total !== undefined ? order.total : (existingOrder ? Number(existingOrder.total) : 0),
+      status: order.status || (existingOrder ? existingOrder.status : "Pending"),
+      items: order.items || (existingOrder ? existingOrder.items : []),
+      originalTotal: order.originalTotal !== undefined ? order.originalTotal : (existingOrder ? Number(existingOrder.original_total) : 0),
+      couponDiscount: order.couponDiscount !== undefined ? order.couponDiscount : (existingOrder ? Number(existingOrder.coupon_discount) : 0),
+      couponCode: order.couponCode !== undefined ? order.couponCode : (existingOrder ? existingOrder.coupon_code : ""),
+      walletPaid: order.walletPaid !== undefined ? order.walletPaid : (existingOrder ? Number(existingOrder.wallet_paid) : 0),
+      gatewayPaid: order.gatewayPaid !== undefined ? order.gatewayPaid : (existingOrder ? Number(existingOrder.gateway_paid) : 0),
+      pointsRedeemed: order.pointsRedeemed !== undefined ? order.pointsRedeemed : (existingOrder ? Number(existingOrder.points_redeemed) : 0),
+      pointsDiscount: order.pointsDiscount !== undefined ? order.pointsDiscount : (existingOrder ? Number(existingOrder.points_discount) : 0),
+      pointsEarned: order.pointsEarned !== undefined ? order.pointsEarned : (existingOrder ? Number(existingOrder.points_earned) : 0),
+      returnReason: order.returnReason !== undefined ? order.returnReason : (existingOrder ? existingOrder.return_reason : undefined),
+      returnDetails: order.returnDetails !== undefined ? order.returnDetails : (existingOrder ? existingOrder.return_details : undefined),
+      returnImage: order.returnImage !== undefined ? order.returnImage : (existingOrder ? existingOrder.return_image : undefined),
+      refundOption: order.refundOption !== undefined ? order.refundOption : (existingOrder ? existingOrder.refund_option : undefined),
+      returnRequestDate: order.returnRequestDate !== undefined ? order.returnRequestDate : (existingOrder ? existingOrder.return_request_date : undefined),
+      returnDate: order.returnDate !== undefined ? order.returnDate : (existingOrder ? existingOrder.return_date : undefined),
+      returnRejectReason: order.returnRejectReason !== undefined ? order.returnRejectReason : (existingOrder ? existingOrder.return_reject_reason : undefined),
+      qualityCheckPassed: order.qualityCheckPassed !== undefined ? order.qualityCheckPassed : (existingOrder ? existingOrder.quality_check_passed : undefined),
+      shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (existingOrder ? existingOrder.shiprocket_id : undefined),
+      cartItems: order.cartItems || (existingOrder ? existingOrder.cart_items : []),
+      paymentStatus: order.paymentStatus || (existingOrder ? existingOrder.payment_status : "PENDING"),
+    };
+
+    return mergedOrder;
   },
 
   async getDashboardMetrics() {
+    const cacheKey = "analytics:dashboard";
+    const cached = await CacheService.get<any>(cacheKey);
+    if (cached) return cached;
+
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getDashboardMetrics();
+      const res = await RegistryManager.getDashboardMetrics();
+      await CacheService.set(cacheKey, res, 300);
+      return res;
     }
     const orders = await this.getOrders();
     const activeOrders = orders.filter((o) => o.status !== "Returned");
@@ -315,7 +423,7 @@ export const db = {
     const walletLiability = await this.getWalletBalance();
     const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
-    return {
+    const res = {
       totalOrders: activeOrders.length,
       totalRevenue: revenue,
       cashRevenue: cashRevenue,
@@ -325,13 +433,21 @@ export const db = {
       walletLiability: walletLiability,
       conversion: "4.2%",
     };
+    await CacheService.set(cacheKey, res, 300);
+    return res;
   },
 
 
   // --- Coupons ---
   async getCoupons(): Promise<Coupon[]> {
+    const cacheKey = "settings:coupons";
+    const cached = await CacheService.get<Coupon[]>(cacheKey);
+    if (cached) return cached;
+
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getCoupons();
+      const res = await RegistryManager.getCoupons();
+      await CacheService.set(cacheKey, res, 86400); // 24 hours
+      return res;
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -342,10 +458,13 @@ export const db = {
       console.error("Error fetching coupons from Supabase:", error);
       return [];
     }
-    return (data || []).map(mapDbCouponToCoupon);
+    const res = (data || []).map(mapDbCouponToCoupon);
+    await CacheService.set(cacheKey, res, 86400); // 24 hours
+    return res;
   },
 
   async saveCoupon(coupon: Partial<Coupon>): Promise<void> {
+    await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.saveCoupon(coupon);
     }
@@ -373,6 +492,7 @@ export const db = {
   },
 
   async deleteCoupon(id: string): Promise<void> {
+    await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.deleteCoupon(id);
     }
@@ -1357,5 +1477,407 @@ export const db = {
     }
 
     return true;
+  },
+
+  // --- Shipments ---
+  async getShipmentByOrderId(orderId: string): Promise<Shipment | null> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") return null;
+      return RegistryManager.getShipmentByOrderId(orderId);
+    }
+    const { data, error } = await supabase
+      .from("shipments")
+      .select("*")
+      .eq("order_id", orderId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching shipment from Supabase:", error);
+      return null;
+    }
+    return data;
+  },
+
+  async getShipmentEvents(shipmentId: string): Promise<ShipmentEvent[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") return [];
+      return RegistryManager.getShipmentEvents(shipmentId);
+    }
+    const { data, error } = await supabase
+      .from("shipment_events")
+      .select("*")
+      .eq("shipment_id", shipmentId)
+      .order("timestamp", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching shipment events from Supabase:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async saveShipment(shipment: Partial<Shipment>): Promise<Shipment> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") {
+        return {
+          id: shipment.id || "SHIP-" + Date.now(),
+          order_id: shipment.order_id || "",
+          shiprocket_order_id: shipment.shiprocket_order_id || "",
+          shipment_id: shipment.shipment_id || "",
+          awb_code: shipment.awb_code || "",
+          courier_name: shipment.courier_name || "",
+          status: shipment.status || "Order Placed",
+          etd: shipment.etd || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+          weight: shipment.weight || 0.4,
+          dimensions_length: shipment.dimensions_length || 30,
+          dimensions_width: shipment.dimensions_width || 22,
+          dimensions_height: shipment.dimensions_height || 5,
+          created_at: shipment.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      }
+      return RegistryManager.saveShipment(shipment);
+    }
+
+    const payload = {
+      order_id: shipment.order_id,
+      shiprocket_order_id: shipment.shiprocket_order_id,
+      shipment_id: shipment.shipment_id,
+      awb_code: shipment.awb_code,
+      courier_name: shipment.courier_name,
+      status: shipment.status,
+      etd: shipment.etd,
+      weight: shipment.weight,
+      dimensions_length: shipment.dimensions_length || 30,
+      dimensions_width: shipment.dimensions_width || 22,
+      dimensions_height: shipment.dimensions_height || 5,
+      updated_at: new Date().toISOString()
+    };
+
+    if (shipment.id) {
+      (payload as any).id = shipment.id;
+    } else {
+      (payload as any).id = "SHIP-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+    }
+
+    const { data, error } = await supabase
+      .from("shipments")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving shipment to Supabase:", error);
+      throw error;
+    }
+    return data;
+  },
+
+  async saveShipmentEvent(event: Partial<ShipmentEvent>): Promise<ShipmentEvent> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") {
+        return {
+          id: event.id || "EVT-" + Date.now(),
+          shipment_id: event.shipment_id || "",
+          status: event.status || "",
+          activity: event.activity || "",
+          location: event.location || "",
+          timestamp: event.timestamp || new Date().toISOString()
+        };
+      }
+      return RegistryManager.saveShipmentEvent(event);
+    }
+
+    const payload = {
+      shipment_id: event.shipment_id,
+      status: event.status,
+      activity: event.activity,
+      location: event.location,
+      timestamp: event.timestamp || new Date().toISOString()
+    };
+
+    if (event.id) {
+      (payload as any).id = event.id;
+    } else {
+      (payload as any).id = "EVT-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+    }
+
+    const { data, error } = await supabase
+      .from("shipment_events")
+      .upsert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving shipment event to Supabase:", error);
+      throw error;
+    }
+    return data;
+  },
+
+  async saveTrackingLog(log: { shipment_id: string; raw_payload: any }): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window === "undefined") return;
+      return RegistryManager.saveTrackingLog(log);
+    }
+
+    const { error } = await supabase
+      .from("tracking_logs")
+      .insert({
+        shipment_id: log.shipment_id,
+        raw_payload: log.raw_payload
+      });
+
+    if (error) {
+      console.error("Error saving tracking log to Supabase:", error);
+    }
+  },
+
+  async getNextOrderNumber(): Promise<string> {
+    if (!isSupabaseConfigured || !supabase) {
+      return `TEMP-${Date.now()}`;
+    }
+    const { data, error } = await supabase.rpc("get_next_order_number");
+    if (error) {
+      console.error("Error getting next order number from DB:", error);
+      return `TEMP-${Date.now()}`;
+    }
+    return data;
+  },
+
+  async createPaymentAuditLog(orderId: string, previousStatus: string | null, newStatus: string, source: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      console.log(`[Offline Payment Audit Log] Order: ${orderId}, ${previousStatus} -> ${newStatus} via ${source}`);
+      return;
+    }
+    const { error } = await supabase.from("payment_audit_logs").insert({
+      order_id: orderId,
+      previous_status: previousStatus,
+      new_status: newStatus,
+      source: source
+    });
+    if (error) {
+      console.error("Error creating payment audit log:", error);
+    }
+  },
+
+  async createOrderEvent(orderId: string, event: string): Promise<void> {
+    if (!isSupabaseConfigured || !supabase) {
+      console.log(`[Offline Order Event] Order: ${orderId}, Event: ${event}`);
+      if (typeof window !== "undefined") {
+        try {
+          const events = JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
+          events.push({ event, created_at: new Date().toISOString() });
+          localStorage.setItem(`order_events:${orderId}`, JSON.stringify(events));
+        } catch (e) {
+          console.error("Error writing local storage order events", e);
+        }
+      }
+      return;
+    }
+    const { error } = await supabase.from("order_events").insert({
+      order_id: orderId,
+      event: event
+    });
+    if (error) {
+      console.error("Error creating order event:", error);
+    }
+  },
+
+  async getOrderEvents(orderId: string): Promise<any[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window !== "undefined") {
+        try {
+          return JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+      return [];
+    }
+    const { data, error } = await supabase
+      .from("order_events")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Error fetching order events:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async releaseReservation(sessionId: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("inventory_reservations").update({ status: 'RELEASED' }).eq("session_id", sessionId);
+    }
+  },
+
+  async dispatchFulfillment(orderId: string): Promise<{ success: boolean; status: 'CREATED' | 'RETRYING'; error?: string }> {
+    try {
+      const orders = await this.getOrders();
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        throw new Error(`Order ${orderId} not found`);
+      }
+
+      // Resolve delivery address
+      let shippingAddress = {
+        name: order.customer,
+        phone: "+91 9876543210",
+        address_line_1: "Apt 402, Sky-High Residency",
+        address_line_2: "7th Main, Sector 4, HSR Layout",
+        city: "Bengaluru",
+        state: "Karnataka",
+        postal_code: "560102",
+        country: "India",
+        email: `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`
+      };
+
+      try {
+        const addresses = await this.getUserAddresses();
+        const userAddr = addresses.find(a => a.name.toLowerCase() === order.customer.toLowerCase() || a.is_default);
+        if (userAddr) {
+          shippingAddress = {
+            name: userAddr.name || order.customer,
+            phone: userAddr.phone || "+91 9876543210",
+            address_line_1: userAddr.address_line_1 || "Apt 402, Sky-High Residency",
+            address_line_2: userAddr.address_line_2 || "7th Main, Sector 4, HSR Layout",
+            city: userAddr.city || "Bengaluru",
+            state: userAddr.state || "Karnataka",
+            postal_code: userAddr.postal_code || "560102",
+            country: userAddr.country || "India",
+            email: `${(userAddr.name || order.customer).toLowerCase().replace(/\s+/g, ".")}@example.com`
+          };
+        }
+      } catch (err) {
+        console.warn("[Dispatch] Failed to query addresses:", err);
+      }
+
+      // Format items
+      const quantity = order.items.length || 1;
+      const orderItems = order.items.map((itemStr: any, idx: number) => {
+        const name = typeof itemStr === "string" ? itemStr : (itemStr.productName || itemStr.title || "Luxury Atelier Shirt");
+        const sku = `SKU-${name.toUpperCase().substring(0, 5).replace(/\s+/g, "")}-${idx}`;
+        return {
+          name,
+          sku,
+          units: 1,
+          selling_price: Math.round(order.total / quantity),
+        };
+      });
+
+      const weight = 0.4 * quantity;
+      const length = 30;
+      const width = 22;
+      const height = Math.max(5, 5 * quantity);
+
+      const shiprocketPayload = {
+        order_id: order.id,
+        order_date: new Date().toISOString().split("T")[0],
+        pickup_location: "Varanasi Workshop",
+        billing_customer_name: shippingAddress.name.split(" ")[0] || "Customer",
+        billing_last_name: shippingAddress.name.split(" ").slice(1).join(" ") || "Atelier",
+        billing_address: shippingAddress.address_line_1,
+        billing_address_2: shippingAddress.address_line_2,
+        billing_city: shippingAddress.city,
+        billing_pincode: shippingAddress.postal_code,
+        billing_state: shippingAddress.state,
+        billing_country: shippingAddress.country,
+        billing_email: shippingAddress.email,
+        billing_phone: shippingAddress.phone,
+        shipping_is_billing: true,
+        order_items: orderItems,
+        payment_method: "Prepaid" as const,
+        sub_total: order.total,
+        length,
+        width,
+        height,
+        weight,
+      };
+
+      const result = await shiprocket.createAndDispatchOrder(shiprocketPayload);
+
+      if (!result.success) {
+        // Queue retry via BullMQ
+        try {
+          const { Queue } = await import("bullmq");
+          const connection = new (await import("ioredis")).default(process.env.REDIS_URL || "redis://localhost:6379");
+          const retryQueue = new Queue("shipment-retry", { connection });
+          await retryQueue.add("retry_shipment", { orderId }, { delay: 5 * 60 * 1000 }); // initial 5 mins delay
+          await retryQueue.close();
+        } catch (queueErr) {
+          console.error("[Dispatch] Failed to queue retry job:", queueErr);
+        }
+
+        // Save failed shipment as RETRYING
+        await this.saveShipment({
+          order_id: order.id,
+          shiprocket_order_id: "",
+          shipment_id: "",
+          awb_code: `RETRY-AWB-${order.id}`,
+          courier_name: "Shiprocket Partner Courier",
+          status: "RETRYING",
+          weight,
+          dimensions_length: length,
+          dimensions_width: width,
+          dimensions_height: height,
+        });
+
+        await this.createOrderEvent(order.id, "Shipment Failed - Retrying");
+
+        return { success: false, status: 'RETRYING', error: result.error };
+      }
+
+      // Success
+      await this.saveShipment({
+        order_id: order.id,
+        shiprocket_order_id: String(result.shiprocketOrderId || ""),
+        shipment_id: String(result.shipmentId || ""),
+        awb_code: result.awbCode || "",
+        courier_name: result.courierName || "Shiprocket Partner Courier",
+        status: "CREATED",
+        weight,
+        dimensions_length: length,
+        dimensions_width: width,
+        dimensions_height: height,
+      });
+
+      await this.createOrderEvent(order.id, "Shipment Created");
+      await this.createOrderEvent(order.id, "AWB Generated");
+
+      // Update order status with shiprocketId
+      const updatedOrder = { ...order, shiprocketId: result.awbCode || "" };
+      await this.saveOrder(updatedOrder);
+
+      return { success: true, status: 'CREATED' };
+
+    } catch (e: any) {
+      console.error("[Dispatch] Unhandled dispatch exception:", e);
+      // Save shipment as RETRYING
+      await this.saveShipment({
+        order_id: orderId,
+        shiprocket_order_id: "",
+        shipment_id: "",
+        awb_code: `RETRY-AWB-${orderId}`,
+        courier_name: "Shiprocket Partner Courier",
+        status: "RETRYING",
+      });
+
+      await this.createOrderEvent(orderId, "Shipment Failed - Retrying");
+
+      // Queue retry via BullMQ
+      try {
+        const { Queue } = await import("bullmq");
+        const connection = new (await import("ioredis")).default(process.env.REDIS_URL || "redis://localhost:6379");
+        const retryQueue = new Queue("shipment-retry", { connection });
+        await retryQueue.add("retry_shipment", { orderId }, { delay: 5 * 60 * 1000 });
+        await retryQueue.close();
+      } catch (queueErr) {
+        console.error("[Dispatch] Failed to queue retry job:", queueErr);
+      }
+
+      return { success: false, status: 'RETRYING', error: e.message };
+    }
   },
 };

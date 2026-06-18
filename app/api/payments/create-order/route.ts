@@ -39,15 +39,38 @@ export async function POST(req: NextRequest) {
 
     const { checkoutState } = verification;
 
+    // 2. Check if order with this idempotencyKey already exists
+    if (supabase) {
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id, razorpay_order_id, total")
+        .eq("idempotency_key", payload.idempotencyKey)
+        .maybeSingle();
+
+      if (existingOrder) {
+        return NextResponse.json({
+          success: true,
+          orderId: existingOrder.id,
+          razorpayOrderId: existingOrder.razorpay_order_id,
+          amount: Math.round(existingOrder.total * 100),
+          currency: "INR",
+          checkoutState: { ...checkoutState, orderId: existingOrder.id }
+        });
+      }
+    }
+
     if (checkoutState.finalPayable <= 0) {
       return NextResponse.json({ success: false, error: "Total must be greater than 0 for Razorpay." }, { status: 400 });
     }
 
-    // 2. Create Razorpay Order
+    // 3. Generate sequential order number from DB sequence
+    const sequentialOrderId = await db.getNextOrderNumber();
+
+    // 4. Create Razorpay Order with sequential order number as receipt
     const options = {
       amount: Math.round(checkoutState.finalPayable * 100), // amount in paise
       currency: "INR",
-      receipt: checkoutState.idempotencyKey,
+      receipt: sequentialOrderId,
     };
 
     const rzpOrder = await razorpay.orders.create(options);
@@ -56,13 +79,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Failed to generate Razorpay order." }, { status: 500 });
     }
 
-    // 3. Save initial order as PAYMENT_PENDING in the DB
-    // First lock the inventory. `verifyAndPrepareGatewayCheckoutAction` verified it, now we formally lock it.
-    await db.deductStock(checkoutState.cartItems, checkoutState.idempotencyKey);
-    
-    // Save order
+    // 5. Save initial order as PAYMENT_PENDING in the DB (stock is already reserved via verifyStock)
     const orderData = {
-      id: checkoutState.idempotencyKey,
+      id: sequentialOrderId,
       customer: checkoutState.customer,
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       total: checkoutState.netTotal,
@@ -76,19 +95,26 @@ export async function POST(req: NextRequest) {
       pointsEarned: 0, // Earned later on success
       status: "PAYMENT_PENDING",
       items: checkoutState.items,
+      idempotencyKey: payload.idempotencyKey,
+      cartItems: checkoutState.cartItems,
+      paymentStatus: "PAYMENT_PENDING",
     };
 
     await db.saveOrder(orderData);
+
+    // Create order events
+    await db.createOrderEvent(sequentialOrderId, "Order Created");
+    await db.createOrderEvent(sequentialOrderId, "Payment Pending");
 
     // Update with Razorpay fields
     if (supabase) {
       await supabase.from("orders").update({
         razorpay_order_id: rzpOrder.id,
         payment_status: "PAYMENT_PENDING"
-      }).eq("id", checkoutState.idempotencyKey);
+      }).eq("id", sequentialOrderId);
 
       await supabase.from("payments").insert({
-        order_id: checkoutState.idempotencyKey,
+        order_id: sequentialOrderId,
         razorpay_order_id: rzpOrder.id,
         amount: checkoutState.finalPayable,
         currency: "INR",
@@ -97,14 +123,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Return to client
+    // 6. Return to client
     return NextResponse.json({
       success: true,
-      orderId: checkoutState.idempotencyKey,
+      orderId: sequentialOrderId,
       razorpayOrderId: rzpOrder.id,
       amount: options.amount,
       currency: options.currency,
-      checkoutState
+      checkoutState: { ...checkoutState, orderId: sequentialOrderId }
     });
 
   } catch (error: any) {

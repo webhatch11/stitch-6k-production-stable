@@ -73,40 +73,92 @@ export async function POST(req: NextRequest) {
       // In case client callback `/api/payments/verify` failed or user closed tab before redirect,
       // webhook serves as a backup to mark order PAID.
       if (supabase) {
-        const { data: order } = await supabase.from("orders").select("id, status").eq("razorpay_order_id", razorpayOrderId).single();
-        if (order && order.status !== "PAID") {
-          await supabase.from("orders").update({ payment_status: "PAID", status: "PAID" }).eq("id", order.id);
-          await db.saveOrder({ id: order.id, status: "PAID" });
+        const { data: dbOrder } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("razorpay_order_id", razorpayOrderId)
+          .maybeSingle();
 
-          // Log payment transition
-          const { data: payment } = await supabase.from("payments").select("id").eq("order_id", order.id).single();
+        if (dbOrder && dbOrder.status !== "PAID") {
+          const orderId = dbOrder.id;
+
+          // 0. Deduct variant stock and fulfill reservation
+          await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+
+          // 1. Update status to PAID in db/local
+          await db.saveOrder({
+            id: orderId,
+            status: "PAID"
+          });
+
+          await db.createPaymentAuditLog(orderId, "PAYMENT_PENDING", "PAID", "webhook");
+          await db.createOrderEvent(orderId, "Payment Successful");
+
+          await supabase.from("orders").update({
+            payment_status: "PAID",
+            status: "PAID"
+          }).eq("id", orderId);
+
+          // Find payment
+          const { data: payment } = await supabase.from("payments").select("id").eq("order_id", orderId).maybeSingle();
           if (payment) {
+            await supabase.from("payments").update({
+              razorpay_payment_id: razorpayPaymentId,
+              status: "CAPTURED"
+            }).eq("id", payment.id);
+
             await supabase.from("payment_logs").insert({
               payment_id: payment.id,
               previous_status: "CREATED",
               new_status: "CAPTURED",
-              metadata: { event: eventName, source: "webhook" }
+              metadata: { event: eventName, source: "webhook", razorpay_payment_id: razorpayPaymentId }
             });
-            await supabase.from("payments").update({ status: "CAPTURED", razorpay_payment_id: razorpayPaymentId }).eq("id", payment.id);
           }
+
+          // Trigger Shiprocket fulfillment
+          await db.dispatchFulfillment(orderId);
         }
       }
     } else if (eventName === "payment.failed") {
       if (supabase) {
-        const { data: order } = await supabase.from("orders").select("id, status").eq("razorpay_order_id", razorpayOrderId).single();
-        if (order && order.status !== "PAID") {
-          await supabase.from("orders").update({ payment_status: "FAILED", status: "FAILED" }).eq("id", order.id);
-          await db.saveOrder({ id: order.id, status: "FAILED" });
-          
-          const { data: payment } = await supabase.from("payments").select("id").eq("order_id", order.id).single();
+        const { data: dbOrder } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("razorpay_order_id", razorpayOrderId)
+          .maybeSingle();
+
+        if (dbOrder && dbOrder.status !== "PAID") {
+          const orderId = dbOrder.id;
+
+          // Update status to FAILED
+          await db.saveOrder({
+            id: orderId,
+            status: "FAILED"
+          });
+
+          await db.createPaymentAuditLog(orderId, "PAYMENT_PENDING", "FAILED", "webhook");
+          await db.createOrderEvent(orderId, "Payment Failed");
+
+          await supabase.from("orders").update({
+            payment_status: "FAILED",
+            status: "FAILED"
+          }).eq("id", orderId);
+
+          // Release reservation
+          await db.releaseReservation(dbOrder.idempotency_key);
+
+          const { data: payment } = await supabase.from("payments").select("id").eq("order_id", orderId).maybeSingle();
           if (payment) {
+            await supabase.from("payments").update({
+              status: "FAILED"
+            }).eq("id", payment.id);
+
             await supabase.from("payment_logs").insert({
               payment_id: payment.id,
               previous_status: "CREATED",
               new_status: "FAILED",
-              metadata: { event: eventName, reason: paymentEntity.error_description }
+              metadata: { event: eventName, reason: paymentEntity?.error_description }
             });
-            await supabase.from("payments").update({ status: "FAILED" }).eq("id", payment.id);
           }
         }
       }

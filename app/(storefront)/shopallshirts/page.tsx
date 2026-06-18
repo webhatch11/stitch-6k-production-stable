@@ -38,6 +38,10 @@ export default function ShopAllShirts() {
   const wishlistStore = useWishlistStore();
   const recentStore = useRecentStore();
 
+  // Pagination & Infinite Scroll states
+  const [visibleCount, setVisibleCount] = useState(6);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -45,6 +49,35 @@ export default function ShopAllShirts() {
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [debouncedSearchQuery, selectedMaterials, selectedSize, maxPrice, sortBy]);
+
+  // Infinite Scroll IntersectionObserver hook
+  useEffect(() => {
+    if (!loaderRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 6, filteredProducts.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLoader = loaderRef.current;
+    observer.observe(currentLoader);
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [filteredProducts, visibleCount]);
 
   // Scroll hook removed - handled by layout navbar
 
@@ -301,7 +334,7 @@ export default function ShopAllShirts() {
               </div>
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
-                {filteredProducts.map((product, index) => {
+                {filteredProducts.slice(0, visibleCount).map((product, index) => {
                   // Dynamic Badges - Sleek, capsule-style, semi-transparent
                   let badgeElement = null;
                   if (product.isNew) {
@@ -345,6 +378,7 @@ export default function ShopAllShirts() {
                             src={product.image || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800"}
                             alt={product.title}
                             fill
+                            loading="lazy"
                             sizes="(max-width: 768px) 50vw, 33vw"
                           />
 
@@ -354,6 +388,7 @@ export default function ShopAllShirts() {
                             src={secondaryImg || "https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800"}
                             alt={`${product.title} Lifestyle`}
                             fill
+                            loading="lazy"
                             sizes="(max-width: 768px) 50vw, 33vw"
                           />
 
@@ -427,16 +462,16 @@ export default function ShopAllShirts() {
               </div>
             )}
 
-            {/* PAGINATION */}
-            <div className="mt-12 md:mt-20 flex flex-wrap justify-center gap-6 text-xs uppercase">
-              <button className="text-gray-300">Prev</button>
-              <div className="flex gap-4">
-                <span className="border-b border-black">01</span>
-                <span>02</span>
-                <span>03</span>
+            {/* Infinite Scroll Trigger */}
+            {visibleCount < filteredProducts.length && (
+              <div ref={loaderRef} className="col-span-full py-12 flex justify-center items-center">
+                <div className="size-8 text-[#fed488] animate-spin relative flex items-center justify-center">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 48 48">
+                    <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="3" strokeDasharray="30 30" strokeLinecap="round" />
+                  </svg>
+                </div>
               </div>
-              <button>Next</button>
-            </div>
+            )}
           </section>
         </div>
 

@@ -13,6 +13,23 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        net: false,
+        tls: false,
+        dns: false,
+        fs: false,
+        child_process: false,
+        crypto: false,
+        os: false,
+        stream: false,
+        worker_threads: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

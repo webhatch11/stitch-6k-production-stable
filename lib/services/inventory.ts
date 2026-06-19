@@ -105,7 +105,7 @@ export const InventoryService = {
     const errors: string[] = [];
     const availableStockMap: { [key: string]: number } = {};
 
-    let products;
+    let products: any[];
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from("products").select("*");
       if (error) {

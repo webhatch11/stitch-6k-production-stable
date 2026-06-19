@@ -72,71 +72,136 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Payment verification failed: Invalid signature" }, { status: 400 });
     }
 
-    // Payment is legitimately successful.
-    // All values sourced exclusively from dbOrder (DB row), never from client input.
-
-    // 0. Deduct inventory variant stock and fulfill reservation
-    await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
-
-    // 1. Complete the logic (Wallet/Loyalty/Coupons)
-
-    // Increment coupon usage
-    if (dbOrder.coupon_code) {
-      await db.incrementCouponUsage(dbOrder.coupon_code);
+    // Idempotency: if this order was already processed, return success without
+    // running any side effects.
+    if (dbOrder.status === "PAID") {
+      return NextResponse.json({ success: true, message: "Order already processed" });
     }
 
-    // Debit wallet if used
-    if (dbOrder.wallet_paid > 0) {
-      await db.applyWalletDebit(dbOrder.wallet_paid, dbOrder.id, dbOrder.user_id);
+    if (dbOrder.status === "FAILED") {
+      return NextResponse.json({ success: false, error: "Order in failed state, cannot reprocess" }, { status: 400 });
     }
 
-    // Debit points if used
-    if (dbOrder.points_redeemed > 0) {
-      await db.applyLoyaltyDebit(dbOrder.points_redeemed, dbOrder.id, dbOrder.user_id);
-    }
-
-    // Award new points
+    // Compute earned points before the atomic claim so all 4 columns are written
+    // in a single UPDATE statement.
     const earned = Math.floor(dbOrder.total / 10);
-    if (earned > 0) {
+
+    // Atomic compare-and-set: only one process (verify or webhook) wins this UPDATE.
+    // The WHERE status='PAYMENT_PENDING' predicate means only the first caller
+    // transitions the row; subsequent callers see claimed=null and return early.
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({
+        status: "PAID",
+        payment_status: "PAID",
+        points_earned: earned,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", dbOrder.id)
+      .eq("status", "PAYMENT_PENDING")
+      .select("id")
+      .maybeSingle();
+
+    if (claimErr) {
+      console.error("[verify] claim error:", claimErr);
+      return NextResponse.json({ success: false, error: "Failed to claim order" }, { status: 500 });
+    }
+
+    if (!claimed) {
+      return NextResponse.json({ success: true, message: "Order already processed" });
+    }
+
+    // We won the race. Run side effects in order.
+    // Failures here are logged but do NOT roll back PAID status — the customer's
+    // payment is captured and reverting to PAYMENT_PENDING risks a second charge.
+    // Inventory and ledger discrepancies are reconciled by ops.
+
+    // a. Deduct inventory stock
+    try {
+      await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+    } catch (e) {
+      console.error("[verify] deductStock failed:", e);
+    }
+
+    // b. Increment coupon usage
+    if (dbOrder.coupon_code) {
+      try {
+        await db.incrementCouponUsage(dbOrder.coupon_code);
+      } catch (e) {
+        console.error("[verify] incrementCouponUsage failed:", e);
+      }
+    }
+
+    // c. Debit wallet
+    if (dbOrder.wallet_paid > 0) {
+      try {
+        await db.applyWalletDebit(dbOrder.wallet_paid, dbOrder.id, dbOrder.user_id);
+      } catch (e) {
+        console.error("[verify] applyWalletDebit failed:", e);
+      }
+    }
+
+    // d. Debit loyalty points
+    if (dbOrder.points_redeemed > 0) {
+      try {
+        await db.applyLoyaltyDebit(dbOrder.points_redeemed, dbOrder.id, dbOrder.user_id);
+      } catch (e) {
+        console.error("[verify] applyLoyaltyDebit failed:", e);
+      }
+    }
+
+    // e. Award loyalty points
+    try {
       await db.awardLoyaltyPoints(dbOrder.total, dbOrder.id, dbOrder.user_id);
+    } catch (e) {
+      console.error("[verify] awardLoyaltyPoints failed:", e);
     }
 
-    // Update order status to PAID
-    await db.saveOrder({
-      id: dbOrder.id,
-      status: "PAID",
-      pointsEarned: earned
-    });
+    // f. Update payments record
+    try {
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("order_id", dbOrder.id)
+        .single();
 
-    // Write audit log and events
-    await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "PAID", "verify_route");
-    await db.createOrderEvent(dbOrder.id, "Payment Successful");
+      if (payment) {
+        await supabase.from("payments").update({
+          razorpay_payment_id,
+          status: "CAPTURED"
+        }).eq("id", payment.id);
 
-    await supabase.from("orders").update({
-      payment_status: "PAID",
-      status: "PAID",
-      points_earned: earned
-    }).eq("id", dbOrder.id);
-
-    // Find the payment record
-    const { data: payment } = await supabase.from("payments").select("id").eq("order_id", dbOrder.id).single();
-
-    if (payment) {
-      await supabase.from("payments").update({
-        razorpay_payment_id,
-        status: "CAPTURED"
-      }).eq("id", payment.id);
-
-      await supabase.from("payment_logs").insert({
-        payment_id: payment.id,
-        previous_status: "CREATED",
-        new_status: "CAPTURED",
-        metadata: { razorpay_payment_id, razorpay_signature }
-      });
+        await supabase.from("payment_logs").insert({
+          payment_id: payment.id,
+          previous_status: "CREATED",
+          new_status: "CAPTURED",
+          metadata: { razorpay_payment_id, razorpay_signature }
+        });
+      }
+    } catch (e) {
+      console.error("[verify] payments update failed:", e);
     }
 
-    // Trigger Shiprocket fulfillment creation
-    await db.dispatchFulfillment(dbOrder.id);
+    // g. Payment audit log
+    try {
+      await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "PAID", "verify_route");
+    } catch (e) {
+      console.error("[verify] createPaymentAuditLog failed:", e);
+    }
+
+    // h. Order event
+    try {
+      await db.createOrderEvent(dbOrder.id, "Payment Successful");
+    } catch (e) {
+      console.error("[verify] createOrderEvent failed:", e);
+    }
+
+    // i. Dispatch fulfillment
+    try {
+      await db.dispatchFulfillment(dbOrder.id);
+    } catch (e) {
+      console.error("[verify] dispatchFulfillment failed:", e);
+    }
 
     return NextResponse.json({ success: true, message: "Payment verified successfully" });
 

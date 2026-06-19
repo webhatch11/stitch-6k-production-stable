@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
         status: "PAID",
         payment_status: "PAID",
         points_earned: earned,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", dbOrder.id)
       .eq("status", "PAYMENT_PENDING")

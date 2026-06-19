@@ -31,14 +31,14 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT,
     is_atelier_exclusive BOOLEAN DEFAULT false,
     is_genz BOOLEAN DEFAULT false,
-    
+
     -- Sizing Stock Levels Matrix
     size_stock_s INTEGER DEFAULT 0,
     size_stock_m INTEGER DEFAULT 0,
     size_stock_l INTEGER DEFAULT 0,
     size_stock_xl INTEGER DEFAULT 0,
     size_stock_xxl INTEGER DEFAULT 0,
-    
+
     -- Tax, Discounts, & Margins
     base_price NUMERIC,
     gst_rate NUMERIC DEFAULT 12,
@@ -49,14 +49,14 @@ CREATE TABLE IF NOT EXISTS public.products (
     material TEXT DEFAULT '',
     colors TEXT[] DEFAULT '{}',
     ratings NUMERIC DEFAULT 5.0,
-    
+
     -- Spec Sheets
     spec_fabric TEXT,
     spec_fit TEXT,
     spec_collar TEXT,
     spec_sleeve TEXT,
     spec_care TEXT,
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     points_earned INTEGER DEFAULT 0,
     shiprocket_id TEXT DEFAULT '',
     idempotency_key TEXT UNIQUE,
-    
+
     -- Returns & Refunds Details
     return_reason TEXT,
     return_details TEXT,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     return_date TEXT,
     return_reject_reason TEXT,
     quality_check_passed BOOLEAN,
-    
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -163,7 +163,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Seed base coupons
-INSERT INTO public.coupons (id, code, discount, type, active) VALUES 
+INSERT INTO public.coupons (id, code, discount, type, active) VALUES
 ('CPN-1', 'HERITAGE10', 10, 'percent', true),
 ('CPN-2', 'LAUNCH500', 500, 'flat', true)
 ON CONFLICT (code) DO NOTHING;
@@ -196,7 +196,7 @@ BEGIN
     END IF;
 
     SELECT wallet_balance INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'User not found');
     END IF;
@@ -206,19 +206,19 @@ BEGIN
     END IF;
 
     v_new_balance := v_balance - p_amount;
-    
+
     UPDATE profiles SET wallet_balance = v_new_balance WHERE id = p_user_id;
 
     v_tx_id := 'WTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
-    
+
     INSERT INTO wallet_transactions (id, user_id, date, amount, type, description, idempotency_key)
     VALUES (
-        v_tx_id, 
-        p_user_id, 
-        to_char(NOW(), 'DD Mon YYYY'), 
-        p_amount, 
-        'debit', 
-        p_desc, 
+        v_tx_id,
+        p_user_id,
+        to_char(NOW(), 'DD Mon YYYY'),
+        p_amount,
+        'debit',
+        p_desc,
         p_idempotency_key
     );
 
@@ -239,7 +239,7 @@ BEGIN
     END IF;
 
     SELECT wallet_balance INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'User not found');
     END IF;
@@ -248,15 +248,15 @@ BEGIN
     UPDATE profiles SET wallet_balance = v_new_balance WHERE id = p_user_id;
 
     v_tx_id := 'WTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
-    
+
     INSERT INTO wallet_transactions (id, user_id, date, amount, type, description, idempotency_key)
     VALUES (
-        v_tx_id, 
-        p_user_id, 
-        to_char(NOW(), 'DD Mon YYYY'), 
-        p_amount, 
-        'credit', 
-        p_desc, 
+        v_tx_id,
+        p_user_id,
+        to_char(NOW(), 'DD Mon YYYY'),
+        p_amount,
+        'credit',
+        p_desc,
         p_idempotency_key
     );
 
@@ -277,7 +277,7 @@ BEGIN
     END IF;
 
     SELECT loyalty_points INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'User not found');
     END IF;
@@ -290,15 +290,15 @@ BEGIN
     UPDATE profiles SET loyalty_points = v_new_balance WHERE id = p_user_id;
 
     v_tx_id := 'LTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
-    
+
     INSERT INTO loyalty_transactions (id, user_id, date, points, type, description, idempotency_key)
     VALUES (
-        v_tx_id, 
-        p_user_id, 
-        to_char(NOW(), 'DD Mon YYYY'), 
-        p_points, 
-        'debit', 
-        p_desc, 
+        v_tx_id,
+        p_user_id,
+        to_char(NOW(), 'DD Mon YYYY'),
+        p_points,
+        'debit',
+        p_desc,
         p_idempotency_key
     );
 
@@ -319,7 +319,7 @@ BEGIN
     END IF;
 
     SELECT loyalty_points INTO v_balance FROM profiles WHERE id = p_user_id FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'User not found');
     END IF;
@@ -328,15 +328,15 @@ BEGIN
     UPDATE profiles SET loyalty_points = v_new_balance WHERE id = p_user_id;
 
     v_tx_id := 'LTX-' || floor(extract(epoch from clock_timestamp()) * 1000)::TEXT;
-    
+
     INSERT INTO loyalty_transactions (id, user_id, date, points, type, description, idempotency_key)
     VALUES (
-        v_tx_id, 
-        p_user_id, 
-        to_char(NOW(), 'DD Mon YYYY'), 
-        p_points, 
-        'credit', 
-        p_desc, 
+        v_tx_id,
+        p_user_id,
+        to_char(NOW(), 'DD Mon YYYY'),
+        p_points,
+        'credit',
+        p_desc,
         p_idempotency_key
     );
 
@@ -351,7 +351,7 @@ DECLARE
     v_coupon coupons%ROWTYPE;
 BEGIN
     SELECT * INTO v_coupon FROM coupons WHERE code = UPPER(p_code) FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'Coupon not found');
     END IF;
@@ -369,7 +369,7 @@ BEGIN
     END IF;
 
     UPDATE coupons SET usage_count = COALESCE(usage_count, 0) + 1 WHERE code = UPPER(p_code);
-    
+
     RETURN json_build_object('success', true);
 END;
 $$ LANGUAGE plpgsql;
@@ -393,13 +393,13 @@ DECLARE
     v_available_stock INTEGER;
 BEGIN
     SELECT * INTO v_product FROM products WHERE slug = p_product_slug FOR UPDATE;
-    
+
     IF NOT FOUND THEN
         RETURN json_build_object('success', false, 'error', 'Product not found');
     END IF;
 
-    SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
-    FROM inventory_reservations 
+    SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations
+    FROM inventory_reservations
     WHERE product_id = v_product.id AND status = 'reserved' AND expires_at > NOW();
 
     v_available_stock := COALESCE(v_product.stock, 0) - v_active_reservations;
@@ -415,86 +415,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 16. Atomic Variant Inventory Operations
-CREATE OR REPLACE FUNCTION deduct_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
-RETURNS BOOLEAN AS 
-DECLARE
-    v_variant product_variants%ROWTYPE;
-BEGIN
-    SELECT * INTO v_variant FROM product_variants 
-    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
-    FOR UPDATE;
-    
-    IF NOT FOUND THEN
-        RETURN FALSE;
-    END IF;
+-- NOTE: deduct_variant_stock, restore_variant_stock, and
+-- reserve_variant_inventory_atomic are omitted — broken SQL syntax
+-- (missing $$ delimiters / $$$ typo). See issue #5 of the security review.
 
-    IF v_variant.stock < p_quantity THEN
-        RETURN FALSE;
-    END IF;
-
-    UPDATE product_variants SET stock = stock - p_quantity WHERE id = v_variant.id;
-    
-    INSERT INTO inventory_audit_logs (variant_id, quantity_changed, type, reason)
-    VALUES (v_variant.id, -p_quantity, 'deduction', 'Checkout order deduction');
-
-    RETURN TRUE;
-END;
- LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION restore_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
-RETURNS VOID AS 
-DECLARE
-    v_variant product_variants%ROWTYPE;
-BEGIN
-    SELECT * INTO v_variant FROM product_variants 
-    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
-    FOR UPDATE;
-    
-    IF FOUND THEN
-        UPDATE product_variants SET stock = stock + p_quantity WHERE id = v_variant.id;
-        
-        INSERT INTO inventory_audit_logs (variant_id, quantity_changed, type, reason)
-        VALUES (v_variant.id, p_quantity, 'restoration', 'Order cancelled restoration');
-    END IF;
-END;
- LANGUAGE plpgsql;
-
--- 17. Atomic Variant Inventory Reservation
+-- 17. Atomic Variant Inventory Reservation — DDL only (function omitted, see note above)
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS size TEXT;
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS color TEXT;
-
-CREATE OR REPLACE FUNCTION reserve_variant_inventory_atomic(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER, p_expires_mins INTEGER, p_session TEXT)
-RETURNS JSON AS $$$
-DECLARE
-    v_variant product_variants%ROWTYPE;
-    v_active_reservations INTEGER;
-    v_available_stock INTEGER;
-BEGIN
-    SELECT * INTO v_variant FROM product_variants 
-    WHERE product_id = p_product_id AND size = p_size AND color = p_color 
-    FOR UPDATE;
-    
-    IF NOT FOUND THEN
-        RETURN json_build_object('success', false, 'error', 'Variant not found');
-    END IF;
-
-    SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
-    FROM inventory_reservations 
-    WHERE product_id = p_product_id AND size = p_size AND color = p_color AND status = 'reserved' AND expires_at > NOW();
-
-    v_available_stock := COALESCE(v_variant.stock, 0) - v_active_reservations;
-
-    IF v_available_stock < p_quantity THEN
-        RETURN json_build_object('success', false, 'error', 'Insufficient inventory');
-    END IF;
-
-    INSERT INTO inventory_reservations (product_id, size, color, quantity, expires_at, session_id)
-    VALUES (p_product_id, p_size, p_color, p_quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
-
-    RETURN json_build_object('success', true, 'remaining_available', v_available_stock - p_quantity);
-END;
-$$$ LANGUAGE plpgsql;
 
 -- 18. Phase 3 Updates: Razorpay Integration Tables
 
@@ -639,7 +566,7 @@ BEGIN
 
     -- Insert JSON items into temp table
     INSERT INTO temp_items
-    SELECT 
+    SELECT
         (value->>'product_id')::TEXT,
         (value->>'size')::TEXT,
         (value->>'color')::TEXT,
@@ -647,7 +574,7 @@ BEGIN
     FROM jsonb_array_elements(p_items);
 
     -- Loop to lock and validate sorted items
-    FOR item IN 
+    FOR item IN
         SELECT * FROM temp_items ORDER BY product_id, size, color
     LOOP
         v_product_id := item.product_id;
@@ -656,18 +583,18 @@ BEGIN
         v_quantity := item.quantity;
 
         -- Lock row
-        SELECT * INTO v_variant FROM product_variants 
-        WHERE product_id = v_product_id AND size = v_size AND color = v_color 
+        SELECT * INTO v_variant FROM product_variants
+        WHERE product_id = v_product_id AND size = v_size AND color = v_color
         FOR UPDATE;
-        
+
         IF NOT FOUND THEN
             v_errors := array_append(v_errors, 'Variant not found: ' || v_product_id || ' (' || v_size || '/' || v_color || ')');
             CONTINUE;
         END IF;
 
         -- Get active reservations
-        SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
-        FROM inventory_reservations 
+        SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations
+        FROM inventory_reservations
         WHERE product_id = v_product_id AND size = v_size AND color = v_color AND status = 'reserved' AND expires_at > NOW();
 
         v_available_stock := COALESCE(v_variant.stock, 0) - v_active_reservations;
@@ -705,12 +632,12 @@ DECLARE
     v_inventory_count INTEGER;
 BEGIN
     -- Active orders are those that are not Returned and not FAILED and not EXPIRED
-    SELECT 
+    SELECT
         COALESCE(COUNT(id), 0),
         COALESCE(SUM(total), 0),
         COALESCE(SUM(gateway_paid), 0),
         COALESCE(SUM(wallet_paid), 0)
-    INTO 
+    INTO
         v_total_orders,
         v_total_revenue,
         v_cash_revenue,
@@ -739,5 +666,3 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
-
-

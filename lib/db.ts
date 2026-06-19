@@ -1592,8 +1592,6 @@ export const db = {
 
     if (shipment.id) {
       (payload as any).id = shipment.id;
-    } else {
-      (payload as any).id = "SHIP-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
     }
 
     const { data, error } = await supabase
@@ -1634,8 +1632,6 @@ export const db = {
 
     if (event.id) {
       (payload as any).id = event.id;
-    } else {
-      (payload as any).id = "EVT-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
     }
 
     const { data, error } = await supabase

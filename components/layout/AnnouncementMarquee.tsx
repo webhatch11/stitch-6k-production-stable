@@ -1,8 +1,12 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 
 export default function AnnouncementMarquee() {
+  const pathname = usePathname();
+  if (pathname === "/") return null;
+
   return (
     <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
       <div className="flex animate-marquee whitespace-nowrap">

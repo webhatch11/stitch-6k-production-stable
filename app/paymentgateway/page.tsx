@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/db";
 import { completeGatewayCheckoutAction } from "@/app/actions/checkout";
 import { useCartStore } from "@/stores/cartStore";
 

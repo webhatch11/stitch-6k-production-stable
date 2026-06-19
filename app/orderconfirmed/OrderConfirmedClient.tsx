@@ -1,0 +1,185 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { Order } from "@/lib/registry";
+
+interface OrderConfirmedClientProps {
+  lastOrder: Order | null;
+}
+
+export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClientProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const orderId = lastOrder ? lastOrder.id : "STK-2026-000001";
+  const customer = lastOrder ? lastOrder.customer : "Valued Client";
+  const total = lastOrder ? lastOrder.total : 14500;
+  const items = lastOrder ? lastOrder.items : ["Signature Linen Shirt"];
+
+  return (
+    <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
+      {/* Top Announcement Scrolling Marquee */}
+      <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+        <div className="flex animate-marquee whitespace-nowrap">
+          <div className="flex shrink-0 items-center gap-12 px-6">
+            <span>FREE DELIVERY ACROSS INDIA</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>100% PREMIUM COTTON & LINEN</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>EASY 7-DAY RETURNS</span>
+            <span className="text-secondary-fixed-dim">•</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-12 px-6">
+            <span>FREE DELIVERY ACROSS INDIA</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>100% PREMIUM COTTON & LINEN</span>
+            <span className="text-secondary-fixed-dim">•</span>
+            <span>EASY 7-DAY RETURNS</span>
+            <span className="text-secondary-fixed-dim">•</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Header */}
+      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-12">
+            <Link href="/" className="flex items-center group">
+              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
+                <img 
+                  src="/assets/logo.png" 
+                  alt="6K Logo" 
+                  className="max-w-full max-h-full object-contain" 
+                  draggable={false}
+                />
+              </div>
+            </Link>
+            <nav className="hidden md:flex items-center gap-8">
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">Home</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">GEN-Z</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/shopallshirts">Shop All</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/orderhistory">Order History</Link>
+              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/ordertracking">Track Order</Link>
+            </nav>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/shoppingbag" className="material-symbols-outlined text-outline hover:text-primary transition-colors">shopping_bag</Link>
+            <Link href="/myprofile" className="material-symbols-outlined text-outline hover:text-primary transition-colors">person</Link>
+            <Link href="/admindashboard" className="material-symbols-outlined text-outline hover:text-primary transition-colors">admin_panel_settings</Link>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="material-symbols-outlined md:hidden bg-transparent border-none">menu</button>
+          </div>
+        </div>
+        {mobileMenuOpen && (
+          <div className="flex flex-col mt-4 space-y-4 md:hidden">
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/">Home</Link>
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/genz">GEN-Z</Link>
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/shopallshirts">Shop All</Link>
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/orderhistory">Order History</Link>
+            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/ordertracking">Track Order</Link>
+          </div>
+        )}
+      </header>
+
+      {/* Main Container */}
+      <main className="max-w-7xl mx-auto px-6 py-16 lg:py-32 flex-grow w-full">
+        {/* Hero Section */}
+        <div className="text-center mb-24 max-w-3xl mx-auto">
+          <span className="text-[10px] font-black uppercase tracking-[0.5em] text-secondary mb-8 block">Order Confirmation</span>
+          <h1 className="font-headline text-5xl lg:text-7xl font-black tracking-tighter text-on-surface uppercase leading-none mb-6">
+            Order<br />
+            <span className="opacity-30">Confirmed.</span>
+          </h1>
+          <div className="h-px bg-gradient-to-r from-transparent via-[#d1c5b4] to-transparent w-32 mx-auto mb-8"></div>
+          <p className="text-xs font-bold text-outline uppercase tracking-[0.2em] leading-relaxed">
+            Your order has been recorded in our system. <br />
+            Reference: <span className="text-on-surface font-mono font-bold">#{orderId}</span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+          {/* Left Column: Timeline */}
+          <div className="lg:col-span-7 space-y-16">
+            <section>
+              <h3 className="font-headline text-xs font-black uppercase tracking-[0.3em] mb-12 border-l-2 border-secondary pl-6">Order Timeline</h3>
+              <div className="space-y-12">
+                <div className="flex gap-8">
+                  <span className="text-[10px] font-black text-secondary uppercase tracking-widest pt-1 flex-shrink-0 w-24">Immediate</span>
+                  <div>
+                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Workshop Preparation</h4>
+                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Materials selection and design layouts matching details for #{orderId}.</p>
+                  </div>
+                </div>
+                <div className="flex gap-8">
+                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">12-24 Hours</span>
+                  <div>
+                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Handloom Tailoring</h4>
+                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Atelier master tailors begin weaving work. Finishes handloom seams and sets custom embroidery accents.</p>
+                  </div>
+                </div>
+                <div className="flex gap-8">
+                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">2 Days</span>
+                  <div>
+                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Logistics Despatch</h4>
+                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Order packaged securely in luxury design box. Assigned to Shiprocket express delivery partner.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Invoice Details */}
+          <div className="lg:col-span-5 bg-white border border-outline-variant/10 p-8 shadow-sm">
+            <h3 className="font-headline text-xs font-black uppercase tracking-[0.3em] mb-8">Summary Receipt</h3>
+            <div className="space-y-6 text-xs font-bold uppercase tracking-wider text-outline">
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                <span>Client Name</span>
+                <span className="text-on-surface font-extrabold">{customer}</span>
+              </div>
+              <div className="flex justify-between items-start border-b border-outline-variant/10 pb-4">
+                <span>Products Ordered</span>
+                <div className="text-right">
+                  {items.map((item, idx) => (
+                    <span key={idx} className="block text-on-surface font-extrabold">{item}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
+                <span>Shipment Status</span>
+                <span className="text-secondary font-black">PREPARING ATELIER DISPATCH</span>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-on-surface font-black">Valuation</span>
+                <span className="font-headline font-black text-2xl text-on-surface">₹{total.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+            <div className="mt-12 space-y-4">
+              <Link
+                href="/orderhistory"
+                className="w-full inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-on-surface/10"
+              >
+                Go to Order History
+              </Link>
+              <Link
+                href={`/invoice?orderId=${orderId}`}
+                className="w-full inline-flex items-center justify-center bg-transparent text-outline hover:text-on-surface py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-outline-variant/30 hover:border-on-surface/50"
+              >
+                Download Invoice (PDF)
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-outline-variant/10 py-8 px-6 lg:px-20 bg-surface-container-lowest text-center">
+        <p className="text-[9px] font-bold text-outline uppercase tracking-widest">
+          © {new Date().getFullYear()} Stitch 6K Atelier. Handcrafted in South India. All rights reserved.
+        </p>
+      </footer>
+    </div>
+  );
+}

@@ -3,7 +3,7 @@ import IORedis from "ioredis";
 // Global connection cache for Redis
 let redis: IORedis | null = null;
 try {
-  if (process.env.REDIS_URL) {
+  if (process.env.REDIS_URL && process.env.NEXT_PHASE !== "phase-production-build") {
     redis = new IORedis(process.env.REDIS_URL, {
       maxRetriesPerRequest: 3,
     });

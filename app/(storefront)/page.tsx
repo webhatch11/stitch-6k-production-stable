@@ -48,8 +48,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "150 Items",
     registryId: "MARBLE-001",
     ctaLink: "/product/luxury-black-shirt",
-    bgImage: "/assets/hero_showroom_marble.jpeg",
-    frontImage: "/assets/hero_showroom_marble.jpeg",
+    bgImage: "/assets/hero_showroom_marble.webp",
+    frontImage: "/assets/hero_showroom_marble.webp",
   },
   {
     badge: "Premium Series 02",
@@ -62,8 +62,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "500 Items",
     registryId: "WHITE-002",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/hero_showroom_white.jpeg",
-    frontImage: "/assets/hero_showroom_white.jpeg",
+    bgImage: "/assets/hero_showroom_white.webp",
+    frontImage: "/assets/hero_showroom_white.webp",
   },
   {
     badge: "Premium Series 03",
@@ -76,8 +76,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "300 Items",
     registryId: "NAVY-003",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/hero_navy_street.jpeg",
-    frontImage: "/assets/hero_navy_street.jpeg",
+    bgImage: "/assets/hero_navy_street.webp",
+    frontImage: "/assets/hero_navy_street.webp",
   },
   {
     badge: "Spring Series 04",
@@ -90,8 +90,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "200 Items",
     registryId: "SPRING-004",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/hero_spring_street.jpeg",
-    frontImage: "/assets/hero_spring_street.jpeg",
+    bgImage: "/assets/hero_spring_street.webp",
+    frontImage: "/assets/hero_spring_street.webp",
   },
   {
     badge: "Resort Series 05",
@@ -104,8 +104,8 @@ const heroSlides: HeroSlide[] = [
     rarity: "100 Items",
     registryId: "BEACH-005",
     ctaLink: "/shopallshirts",
-    bgImage: "/assets/hero_beach_custom.jpeg",
-    frontImage: "/assets/hero_beach_custom.jpeg",
+    bgImage: "/assets/hero_beach_custom.webp",
+    frontImage: "/assets/hero_beach_custom.webp",
   },
 ];
 
@@ -588,22 +588,15 @@ export default function Home() {
 
   // Preloader transition
   useEffect(() => {
-    // Disable body scroll while loading
-    document.body.style.overflow = "hidden";
-
-    const exitTimeout = setTimeout(() => {
-      setLoaderExitClass(true);
-      document.body.style.overflow = "";
-    }, 2700);
+    // Start exit transition immediately on page load
+    setLoaderExitClass(true);
 
     const removeTimeout = setTimeout(() => {
       setShowLoader(false);
-    }, 3900); // 2700ms + 1200ms transition time
+    }, 400); // 400ms transition time
 
     return () => {
-      clearTimeout(exitTimeout);
       clearTimeout(removeTimeout);
-      document.body.style.overflow = "";
     };
   }, []);
 
@@ -702,7 +695,7 @@ export default function Home() {
       {showLoader && (
         <div
           id="brand-loader"
-          className={`fixed inset-0 bg-[#000000] flex flex-col items-center justify-center z-[9999] overflow-hidden transition-all duration-[1200ms] cubic-bezier(0.85, 0, 0.15, 1) ${
+          className={`fixed inset-0 bg-[#000000] flex flex-col items-center justify-center z-[9999] overflow-hidden transition-all duration-[400ms] cubic-bezier(0.85, 0, 0.15, 1) ${
             loaderExitClass ? "opacity-0 -translate-y-full scale-[0.96] pointer-events-none" : "opacity-100"
           }`}
         >

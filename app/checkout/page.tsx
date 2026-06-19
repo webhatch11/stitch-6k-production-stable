@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/db";
 import {
   processWalletPointsCheckoutAction,
   verifyAndPrepareGatewayCheckoutAction,
   processCodCheckoutAction,
+  getLoyaltyAndWalletAction,
+  validateCouponAction,
+  verifyStockAction,
 } from "@/app/actions/checkout";
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
@@ -104,8 +106,9 @@ export default function CheckoutPage() {
 
     // Fetch Available Perks
     const fetchPerks = async () => {
-      const points = await db.getLoyaltyPoints();
-      const wallet = await db.getWalletBalance();
+      const walletRes = await getLoyaltyAndWalletAction();
+      const points = walletRes.loyaltyPoints || 0;
+      const wallet = walletRes.walletBalance || 0;
       setAvailablePoints(points);
       setAvailableWallet(wallet);
     };
@@ -181,7 +184,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    const res = await db.validateCoupon(code, baseTotal);
+    const couponRes = await validateCouponAction(code, baseTotal);
+    const res = (couponRes.success && couponRes.res) ? couponRes.res : { valid: false, coupon: undefined, error: couponRes.error };
 
     if (res.valid && res.coupon) {
       const coupon = res.coupon;
@@ -232,7 +236,7 @@ export default function CheckoutPage() {
       const customerName = selectedAddress?.name || "Guest";
 
       // Verify stock before any checkout actions
-      const stockCheck = await db.verifyStock(cart);
+      const stockCheck = await verifyStockAction(cart);
       if (!stockCheck.success) {
         triggerToast(stockCheck.message || "Insufficient inventory stock.");
         return;

@@ -5,7 +5,7 @@ import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
 
 // Initialize BullMQ background jobs on server start
-if (typeof window === "undefined") {
+if (typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build") {
   const globalAny = global as any;
   if (!globalAny.jobsInitialized) {
     globalAny.jobsInitialized = true;
@@ -88,6 +88,7 @@ const mapDbOrderToOrder = (o: any): Order => {
     shiprocketId: o.shiprocket_id || o.shiprocketId || "",
     cartItems: o.cart_items || [],
     paymentStatus: o.payment_status || o.paymentStatus || "",
+    userId: o.user_id || undefined,
   };
 };
 
@@ -251,20 +252,48 @@ export const db = {
   },
 
   // --- Orders ---
-  async getOrders(): Promise<Order[]> {
+  async getOrders(userId?: string): Promise<Order[]> {
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getOrders();
+      const list = await RegistryManager.getOrders();
+      if (userId) {
+        return list.filter((o) => o.customer === userId || o.customer.toLowerCase().includes(userId.toLowerCase()));
+      }
+      return list;
     }
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("orders").select("*");
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching orders from Supabase:", error);
       return [];
     }
     return (data || []).map(mapDbOrderToOrder);
+  },
+
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return this.getOrders(userId);
+  },
+
+  async getOrderById(orderId: string): Promise<Order | null> {
+    if (!isSupabaseConfigured || !supabase) {
+      const list = await RegistryManager.getOrders();
+      const order = list.find((o) => o.id === orderId);
+      return order || null;
+    }
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching order by id ${orderId}:`, error);
+      return null;
+    }
+    return data ? mapDbOrderToOrder(data) : null;
   },
 
   async saveOrder(order: Partial<Order>): Promise<Order> {
@@ -336,7 +365,8 @@ export const db = {
     if (order.idempotencyKey !== undefined) dbPayload.idempotency_key = order.idempotencyKey;
     if (order.cartItems !== undefined) dbPayload.cart_items = order.cartItems;
     if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
-
+    if (order.userId !== undefined) dbPayload.user_id = order.userId;
+ 
     if (isExisting) {
       const { error } = await supabase.from("orders").update(dbPayload).eq("id", orderId);
       if (error) {
@@ -363,6 +393,7 @@ export const db = {
         idempotency_key: order.idempotencyKey || orderId,
         cart_items: order.cartItems || [],
         payment_status: order.paymentStatus || "PENDING",
+        user_id: order.userId || null,
         ...dbPayload
       };
       const { error } = await supabase.from("orders").insert(insertPayload);
@@ -414,27 +445,24 @@ export const db = {
       await CacheService.set(cacheKey, res, 300);
       return res;
     }
-    const orders = await this.getOrders();
-    const activeOrders = orders.filter((o) => o.status !== "Returned");
-    const products = await this.getProducts();
-    const revenue = activeOrders.reduce((sum, o) => sum + o.total, 0);
-    const cashRevenue = activeOrders.reduce((sum, o) => sum + (o.gatewayPaid || 0), 0);
-    const creditRevenue = activeOrders.reduce((sum, o) => sum + (o.walletPaid || 0), 0);
-    const walletLiability = await this.getWalletBalance();
-    const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
-    const res = {
-      totalOrders: activeOrders.length,
-      totalRevenue: revenue,
-      cashRevenue: cashRevenue,
-      creditRevenue: creditRevenue,
-      inventoryCount: products.length,
-      totalStock: totalStock,
-      walletLiability: walletLiability,
-      conversion: "4.2%",
-    };
-    await CacheService.set(cacheKey, res, 300);
-    return res;
+    const { data, error } = await supabase.rpc("get_dashboard_aggregates");
+    if (error) {
+      console.error("Error fetching dashboard aggregates via RPC:", error);
+      return {
+        totalOrders: 0,
+        totalRevenue: 0,
+        cashRevenue: 0,
+        creditRevenue: 0,
+        inventoryCount: 0,
+        totalStock: 0,
+        walletLiability: 0,
+        conversion: "4.2%",
+      };
+    }
+
+    await CacheService.set(cacheKey, data, 300);
+    return data;
   },
 
 
@@ -1197,24 +1225,32 @@ export const db = {
     }
 
     if (isSupabaseConfigured && supabase && sessionId) {
-      // Perform atomic reservations for all items
+      // Perform atomic reservations for all items in a single batch RPC call
       const products = await this.getProducts();
-      for (const item of formatted) {
+      const batchItems = formatted.map((item) => {
         const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
-        if (product) {
-          const { data, error } = await supabase.rpc("reserve_variant_inventory_atomic", {
-            p_product_id: product.id,
-            p_size: item.size,
-            p_color: item.color,
-            p_quantity: item.quantity,
-            p_expires_mins: 15,
-            p_session: sessionId,
-          });
-          if (error || (data && !data.success)) {
-            // Rollback any reservations already made for this session
-            await supabase.from("inventory_reservations").delete().eq("session_id", sessionId);
-            return { success: false, message: data?.error || `Failed to reserve stock for ${item.productName}` };
-          }
+        return {
+          product_id: product ? product.id : "",
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+        };
+      }).filter((item) => item.product_id !== "");
+
+      if (batchItems.length > 0) {
+        const { data, error } = await supabase.rpc("reserve_variant_inventory_batch_atomic", {
+          p_items: batchItems,
+          p_expires_mins: 15,
+          p_session: sessionId,
+        });
+
+        if (error || (data && !data.success)) {
+          // Rollback any reservations already made for this session
+          await supabase.from("inventory_reservations").delete().eq("session_id", sessionId);
+          return { 
+            success: false, 
+            message: data?.error || data?.errors?.join(" | ") || error?.message || "Failed to reserve batch inventory stock" 
+          };
         }
       }
     }
@@ -1715,8 +1751,7 @@ export const db = {
 
   async dispatchFulfillment(orderId: string): Promise<{ success: boolean; status: 'CREATED' | 'RETRYING'; error?: string }> {
     try {
-      const orders = await this.getOrders();
-      const order = orders.find(o => o.id === orderId);
+      const order = await this.getOrderById(orderId);
       if (!order) {
         throw new Error(`Order ${orderId} not found`);
       }

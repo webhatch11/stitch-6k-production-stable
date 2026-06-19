@@ -77,6 +77,7 @@ export interface Order {
   idempotencyKey?: string;
   cartItems?: any[];
   paymentStatus?: string;
+  userId?: string;
 }
 
 export interface OrderStatusHistory {

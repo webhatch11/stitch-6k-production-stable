@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { Product } from "@/lib/registry";
+import { getServerUser } from "@/lib/supabase-server";
 
 interface CartItem {
   productId?: string;
@@ -103,8 +104,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // C. Check Idempotency Key (prevent duplicate orders)
-  const orders = await db.getOrders();
-  const existingOrder = orders.find(o => o.id === idempotencyKey);
+  const existingOrder = await db.getOrderById(idempotencyKey);
   if (existingOrder) {
     return { 
       success: true, 
@@ -339,8 +339,7 @@ export async function completeGatewayCheckoutAction(payload: {
   }
 
   // B. Check Idempotency Key (already processed?)
-  const orders = await db.getOrders();
-  const existingOrder = orders.find(o => o.id === idempotencyKey);
+  const existingOrder = await db.getOrderById(idempotencyKey);
   if (existingOrder) {
     return { 
       success: true, 
@@ -575,8 +574,7 @@ export async function processCodCheckoutAction(payload: {
   }
 
   // Check Idempotency Key (prevent duplicate orders)
-  const orders = await db.getOrders();
-  const existingOrder = orders.find(o => o.id === idempotencyKey);
+  const existingOrder = await db.getOrderById(idempotencyKey);
   if (existingOrder) {
     return { 
       success: true, 
@@ -684,3 +682,30 @@ export async function processCodCheckoutAction(payload: {
     loyaltyPoints: updatedLoyalty,
   };
 }
+
+export async function getLoyaltyAndWalletAction() {
+  const user = await getServerUser();
+  const userId = user?.id;
+  const loyaltyPoints = await db.getLoyaltyPoints(userId);
+  const walletBalance = await db.getWalletBalance(userId);
+  return { success: true, loyaltyPoints, walletBalance };
+}
+
+export async function validateCouponAction(code: string, baseTotal: number) {
+  try {
+    const res = await db.validateCoupon(code, baseTotal);
+    return { success: true, res };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to validate coupon" };
+  }
+}
+
+export async function verifyStockAction(cart: any[]) {
+  try {
+    const res = await db.verifyStock(cart);
+    return res;
+  } catch (err: any) {
+    return { success: false, message: err.message || "Failed to verify stock" };
+  }
+}
+

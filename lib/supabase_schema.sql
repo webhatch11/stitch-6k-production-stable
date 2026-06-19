@@ -615,4 +615,129 @@ ALTER TABLE public.inventory_reservations ADD CONSTRAINT inventory_reservations_
 -- Alter orders table to store full JSON cart items
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cart_items JSONB DEFAULT '[]';
 
+-- 24. Batch Variant Inventory Reservation (N+1 query solution)
+CREATE OR REPLACE FUNCTION reserve_variant_inventory_batch_atomic(p_items JSONB, p_expires_mins INTEGER, p_session TEXT)
+RETURNS JSON AS $$
+DECLARE
+    item RECORD;
+    v_variant RECORD;
+    v_active_reservations INTEGER;
+    v_available_stock INTEGER;
+    v_errors TEXT[] := ARRAY[]::TEXT[];
+    v_product_id TEXT;
+    v_size TEXT;
+    v_color TEXT;
+    v_quantity INTEGER;
+BEGIN
+    -- Temporary table to hold and sort items to prevent deadlocks
+    CREATE TEMP TABLE temp_items (
+        product_id TEXT,
+        size TEXT,
+        color TEXT,
+        quantity INTEGER
+    ) ON COMMIT DROP;
+
+    -- Insert JSON items into temp table
+    INSERT INTO temp_items
+    SELECT 
+        (value->>'product_id')::TEXT,
+        (value->>'size')::TEXT,
+        (value->>'color')::TEXT,
+        (value->>'quantity')::INTEGER
+    FROM jsonb_array_elements(p_items);
+
+    -- Loop to lock and validate sorted items
+    FOR item IN 
+        SELECT * FROM temp_items ORDER BY product_id, size, color
+    LOOP
+        v_product_id := item.product_id;
+        v_size := item.size;
+        v_color := item.color;
+        v_quantity := item.quantity;
+
+        -- Lock row
+        SELECT * INTO v_variant FROM product_variants 
+        WHERE product_id = v_product_id AND size = v_size AND color = v_color 
+        FOR UPDATE;
+        
+        IF NOT FOUND THEN
+            v_errors := array_append(v_errors, 'Variant not found: ' || v_product_id || ' (' || v_size || '/' || v_color || ')');
+            CONTINUE;
+        END IF;
+
+        -- Get active reservations
+        SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations 
+        FROM inventory_reservations 
+        WHERE product_id = v_product_id AND size = v_size AND color = v_color AND status = 'reserved' AND expires_at > NOW();
+
+        v_available_stock := COALESCE(v_variant.stock, 0) - v_active_reservations;
+
+        IF v_available_stock < v_quantity THEN
+            v_errors := array_append(v_errors, 'Insufficient inventory for: ' || v_product_id || ' (' || v_size || '/' || v_color || '). Available: ' || v_available_stock || ', Requested: ' || v_quantity);
+        END IF;
+    END LOOP;
+
+    -- If errors exist, return failure without inserting reservations (transaction rolls back)
+    IF array_length(v_errors, 1) > 0 THEN
+        RETURN json_build_object('success', false, 'errors', v_errors);
+    END IF;
+
+    -- Insert reservations if all checks pass
+    FOR item IN SELECT * FROM temp_items LOOP
+        INSERT INTO inventory_reservations (product_id, size, color, quantity, expires_at, session_id)
+        VALUES (item.product_id, item.size, item.color, item.quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
+    END LOOP;
+
+    RETURN json_build_object('success', true);
+END;
+$$ LANGUAGE plpgsql;
+
+-- 25. Database Aggregate Calculations for Admin Dashboard (Performance optimization)
+CREATE OR REPLACE FUNCTION get_dashboard_aggregates()
+RETURNS JSON AS $$
+DECLARE
+    v_total_orders INTEGER;
+    v_total_revenue NUMERIC;
+    v_cash_revenue NUMERIC;
+    v_credit_revenue NUMERIC;
+    v_total_stock NUMERIC;
+    v_wallet_liability NUMERIC;
+    v_inventory_count INTEGER;
+BEGIN
+    -- Active orders are those that are not Returned and not FAILED and not EXPIRED
+    SELECT 
+        COALESCE(COUNT(id), 0),
+        COALESCE(SUM(total), 0),
+        COALESCE(SUM(gateway_paid), 0),
+        COALESCE(SUM(wallet_paid), 0)
+    INTO 
+        v_total_orders,
+        v_total_revenue,
+        v_cash_revenue,
+        v_credit_revenue
+    FROM public.orders
+    WHERE status != 'Returned' AND status != 'FAILED' AND status != 'EXPIRED';
+
+    -- Wallet liability is the sum of wallet balance across all users
+    SELECT COALESCE(SUM(wallet_balance), 0) INTO v_wallet_liability FROM public.profiles;
+
+    -- Total products in inventory (inventory count)
+    SELECT COALESCE(COUNT(id), 0) INTO v_inventory_count FROM public.products;
+
+    -- Total sum of stock of all variants (total stock)
+    SELECT COALESCE(SUM(stock), 0) INTO v_total_stock FROM public.product_variants;
+
+    RETURN json_build_object(
+        'totalOrders', v_total_orders,
+        'totalRevenue', v_total_revenue,
+        'cashRevenue', v_cash_revenue,
+        'creditRevenue', v_credit_revenue,
+        'inventoryCount', v_inventory_count,
+        'totalStock', v_total_stock,
+        'walletLiability', v_wallet_liability,
+        'conversion', '4.2%'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
 

@@ -60,6 +60,40 @@ export const InventoryService = {
   },
 
   /**
+   * Batch helper to fetch variants for multiple products
+   */
+  async getVariantsForProducts(productIds: string[]): Promise<ProductVariant[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      const variants: ProductVariant[] = [];
+      for (const pid of productIds) {
+        const productVariants = await this.getVariantsForProduct(pid);
+        variants.push(...productVariants);
+      }
+      return variants;
+    }
+
+    const { data, error } = await supabase
+      .from("product_variants")
+      .select("*")
+      .in("product_id", productIds);
+
+    if (error) {
+      console.error("Error fetching product variants batch:", error);
+      return [];
+    }
+
+    return (data || []).map((v: any) => ({
+      id: v.id,
+      productId: v.product_id,
+      size: v.size,
+      color: v.color,
+      sku: v.sku,
+      price: Number(v.price),
+      stock: Number(v.stock),
+    }));
+  },
+
+  /**
    * Server-side inventory validation for a list of cart items.
    * Ensures that color, size, and quantities are fully checked.
    */
@@ -73,8 +107,20 @@ export const InventoryService = {
 
     const products = await RegistryManager.getProducts();
 
-    for (const item of items) {
+    // Resolve product IDs first
+    const productIds: string[] = [];
+    const itemsWithProducts = items.map((item) => {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+      if (product) {
+        productIds.push(product.id);
+      }
+      return { item, product };
+    });
+
+    // Fetch all variants in one single batch query!
+    const allVariants = productIds.length > 0 ? await this.getVariantsForProducts(productIds) : [];
+
+    for (const { item, product } of itemsWithProducts) {
       if (!product) {
         errors.push(`Product "${item.productName}" not found.`);
         continue;
@@ -84,10 +130,10 @@ export const InventoryService = {
       const color = item.color || "Atelier Choice";
       const key = `${product.id}-${size}-${color}`;
 
-      // Retrieve variants for detailed check
-      const variants = await this.getVariantsForProduct(product.id);
-      const variant = variants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase()) || 
-                      variants.find((v) => v.size === size); // Fallback to size only if color match isn't exact
+      // Filter from preloaded variants
+      const productVariants = allVariants.filter((v) => v.productId === product.id);
+      const variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase()) || 
+                      productVariants.find((v) => v.size === size); // Fallback to size only if color match isn't exact
 
       const availableStock = variant ? variant.stock : (product.sizeStock?.[size] || 0);
       availableStockMap[key] = availableStock;

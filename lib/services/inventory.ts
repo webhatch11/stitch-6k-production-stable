@@ -105,7 +105,32 @@ export const InventoryService = {
     const errors: string[] = [];
     const availableStockMap: { [key: string]: number } = {};
 
-    const products = await RegistryManager.getProducts();
+    let products;
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("products").select("*");
+      if (error) {
+        console.error("Error fetching products in validateStock from Supabase:", error);
+        products = [];
+      } else {
+        products = (data || []).map((p: any) => ({
+          id: p.id,
+          title: p.title,
+          price: Number(p.price),
+          category: p.category,
+          image: p.image,
+          colors: p.colors || [],
+          sizeStock: {
+            S: p.size_stock_s || 0,
+            M: p.size_stock_m || 0,
+            L: p.size_stock_l || 0,
+            XL: p.size_stock_xl || 0,
+            XXL: p.size_stock_xxl || 0,
+          }
+        }));
+      }
+    } else {
+      products = await RegistryManager.getProducts();
+    }
 
     // Resolve product IDs first
     const productIds: string[] = [];

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { supabase } from "@/lib/supabase";
+import { supabaseService as supabase } from "@/lib/supabase-service";
 import { db } from "@/lib/db";
 
 export async function POST(req: NextRequest) {

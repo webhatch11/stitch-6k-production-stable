@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { shiprocket } from "@/lib/shiprocket";
-import { supabase } from "@/lib/supabase";
+import { supabaseService as supabase } from "@/lib/supabase-service";
 import { ShipmentEvent } from "@/lib/registry";
 
 export async function GET(req: NextRequest) {

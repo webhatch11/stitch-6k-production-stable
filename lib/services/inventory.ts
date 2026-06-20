@@ -1,5 +1,5 @@
 import { RegistryManager } from "../registry";
-import { supabase, isSupabaseConfigured } from "../supabase";
+import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "../supabase-service";
 import { ProductVariant, InventoryReservation, StockAuditLog } from "../../types/inventory";
 
 // In-memory simulation of reservations and audit logs for when Supabase is not configured.

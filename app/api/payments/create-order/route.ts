@@ -3,7 +3,7 @@ import { razorpay } from "@/lib/razorpay";
 import { db } from "@/lib/db";
 import { verifyAndPrepareGatewayCheckoutAction } from "@/app/actions/checkout";
 import { z } from "zod";
-import { supabase } from "@/lib/supabase";
+import { supabaseService as supabase } from "@/lib/supabase-service";
 
 const createOrderSchema = z.object({
   cart: z.array(z.any()).min(1),

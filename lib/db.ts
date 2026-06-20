@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "./supabase-service";
 import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
@@ -628,11 +628,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletBalance();
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return 0;
 
     const { data, error } = await supabase
@@ -652,11 +648,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletTransactions();
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return [];
 
     const { data, error } = await supabase
@@ -682,11 +674,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletDebit(amount, orderId);
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return { success: false, error: "User authentication required." };
 
     const { data, error } = await supabase.rpc("wallet_atomic_debit", {
@@ -710,11 +698,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletCredit(amount, description, orderId);
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return;
 
     await supabase.rpc("wallet_atomic_credit", {
@@ -730,11 +714,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyPoints();
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return 0;
 
     const { data, error } = await supabase
@@ -754,11 +734,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyTransactions();
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return [];
 
     const { data, error } = await supabase
@@ -784,11 +760,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyDebit(points, orderId);
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return { success: false, error: "User authentication required." };
 
     const { data, error } = await supabase.rpc("loyalty_atomic_debit", {
@@ -815,11 +787,7 @@ export const db = {
     const points = Math.floor(total / 10);
     if (points <= 0) return;
 
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return;
 
     await supabase.rpc("loyalty_atomic_credit", {
@@ -834,11 +802,7 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyCredit(points, description, orderId);
     }
-    let uid = userId;
-    if (!uid) {
-      const { data: { user } } = await supabase.auth.getUser();
-      uid = user?.id;
-    }
+    const uid = userId;
     if (!uid) return;
 
     await supabase.rpc("loyalty_atomic_credit", {

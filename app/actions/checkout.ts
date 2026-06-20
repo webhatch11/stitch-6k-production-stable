@@ -84,8 +84,8 @@ export async function processWalletPointsCheckoutAction(payload: {
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
 
   // Check wallet and loyalty points balances
-  const dbWalletBalance = await db.getWalletBalance();
-  const dbLoyaltyPoints = await db.getLoyaltyPoints();
+  const dbWalletBalance = await db.getWalletBalance(userId);
+  const dbLoyaltyPoints = await db.getLoyaltyPoints(userId);
 
   // Validate that deductions don't exceed actual balances
   if (walletDeduction > dbWalletBalance) {
@@ -273,8 +273,8 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
 
-  const dbWalletBalance = await db.getWalletBalance();
-  const dbLoyaltyPoints = await db.getLoyaltyPoints();
+  const dbWalletBalance = await db.getWalletBalance(userId);
+  const dbLoyaltyPoints = await db.getLoyaltyPoints(userId);
 
   if (walletDeduction > dbWalletBalance) {
     return { success: false, error: "Security Alert: Wallet deduction exceeds available balance." };
@@ -393,8 +393,8 @@ export async function processCodCheckoutAction(payload: {
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
 
   // Check wallet and loyalty points balances
-  const dbWalletBalance = await db.getWalletBalance();
-  const dbLoyaltyPoints = await db.getLoyaltyPoints();
+  const dbWalletBalance = await db.getWalletBalance(userId);
+  const dbLoyaltyPoints = await db.getLoyaltyPoints(userId);
 
   // Validate that deductions don't exceed actual balances
   if (walletDeduction > dbWalletBalance) {

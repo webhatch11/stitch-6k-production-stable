@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { razorpay } from "../../lib/razorpay";
-import { supabase } from "../../lib/supabase";
+import { supabaseService as supabase } from "../../lib/supabase-service";
 import { db } from "../../lib/db";
 import IORedis from "ioredis";
 

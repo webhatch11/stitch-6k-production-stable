@@ -415,9 +415,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- 16a. Inventory Audit Logs Table (required by deduct_variant_stock and restore_variant_stock)
+CREATE TABLE IF NOT EXISTS public.inventory_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    variant_id UUID NOT NULL REFERENCES public.product_variants(id) ON DELETE CASCADE,
+    quantity_changed INTEGER NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('deduction', 'restoration', 'adjustment')),
+    reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_audit_logs_variant ON public.inventory_audit_logs(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_audit_logs_created ON public.inventory_audit_logs(created_at DESC);
+
 -- 16. Atomic Variant Inventory Operations
 CREATE OR REPLACE FUNCTION deduct_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
-RETURNS BOOLEAN AS 
+RETURNS BOOLEAN AS $$
 DECLARE
     v_variant product_variants%ROWTYPE;
 BEGIN
@@ -440,10 +453,10 @@ BEGIN
 
     RETURN TRUE;
 END;
- LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION restore_variant_stock(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER)
-RETURNS VOID AS 
+RETURNS VOID AS $$
 DECLARE
     v_variant product_variants%ROWTYPE;
 BEGIN
@@ -458,14 +471,14 @@ BEGIN
         VALUES (v_variant.id, p_quantity, 'restoration', 'Order cancelled restoration');
     END IF;
 END;
- LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- 17. Atomic Variant Inventory Reservation
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS size TEXT;
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS color TEXT;
 
 CREATE OR REPLACE FUNCTION reserve_variant_inventory_atomic(p_product_id TEXT, p_size TEXT, p_color TEXT, p_quantity INTEGER, p_expires_mins INTEGER, p_session TEXT)
-RETURNS JSON AS $$$
+RETURNS JSON AS $$
 DECLARE
     v_variant product_variants%ROWTYPE;
     v_active_reservations INTEGER;
@@ -494,7 +507,7 @@ BEGIN
 
     RETURN json_build_object('success', true, 'remaining_available', v_available_stock - p_quantity);
 END;
-$$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- 18. Phase 3 Updates: Razorpay Integration Tables
 

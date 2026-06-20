@@ -89,6 +89,7 @@ const mapDbOrderToOrder = (o: any): Order => {
     cartItems: o.cart_items || [],
     paymentStatus: o.payment_status || o.paymentStatus || "",
     userId: o.user_id || undefined,
+    address_snapshot: o.address_snapshot || null,
   };
 };
 
@@ -366,7 +367,8 @@ export const db = {
     if (order.cartItems !== undefined) dbPayload.cart_items = order.cartItems;
     if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
     if (order.userId !== undefined) dbPayload.user_id = order.userId;
- 
+    if (order.address_snapshot !== undefined) dbPayload.address_snapshot = order.address_snapshot;
+
     if (isExisting) {
       const { error } = await supabase.from("orders").update(dbPayload).eq("id", orderId);
       if (error) {
@@ -394,6 +396,7 @@ export const db = {
         cart_items: order.cartItems || [],
         payment_status: order.paymentStatus || "PENDING",
         user_id: order.userId || null,
+        address_snapshot: order.address_snapshot ?? null,
         ...dbPayload
       };
       const { error } = await supabase.from("orders").insert(insertPayload);
@@ -430,6 +433,7 @@ export const db = {
       shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (existingOrder ? existingOrder.shiprocket_id : undefined),
       cartItems: order.cartItems || (existingOrder ? existingOrder.cart_items : []),
       paymentStatus: order.paymentStatus || (existingOrder ? existingOrder.payment_status : "PENDING"),
+      address_snapshot: order.address_snapshot !== undefined ? order.address_snapshot : (existingOrder ? existingOrder.address_snapshot : null),
     };
 
     return mergedOrder;
@@ -1077,6 +1081,21 @@ export const db = {
     return data || [];
   },
 
+  async getAddressById(addressId: string, userId: string): Promise<UserAddress | null> {
+    if (!isSupabaseConfigured || !supabase) return null;
+    const { data, error } = await supabase
+      .from("user_addresses")
+      .select("*")
+      .eq("id", addressId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) {
+      console.error("Error fetching address by id:", error);
+      return null;
+    }
+    return data || null;
+  },
+
   async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
@@ -1716,38 +1735,22 @@ export const db = {
         throw new Error(`Order ${orderId} not found`);
       }
 
-      // Resolve delivery address
-      let shippingAddress = {
-        name: order.customer,
-        phone: "+91 9876543210",
-        address_line_1: "Apt 402, Sky-High Residency",
-        address_line_2: "7th Main, Sector 4, HSR Layout",
-        city: "Bengaluru",
-        state: "Karnataka",
-        postal_code: "560102",
-        country: "India",
-        email: `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`
-      };
-
-      try {
-        const addresses = await this.getUserAddresses();
-        const userAddr = addresses.find(a => a.name.toLowerCase() === order.customer.toLowerCase() || a.is_default);
-        if (userAddr) {
-          shippingAddress = {
-            name: userAddr.name || order.customer,
-            phone: userAddr.phone || "+91 9876543210",
-            address_line_1: userAddr.address_line_1 || "Apt 402, Sky-High Residency",
-            address_line_2: userAddr.address_line_2 || "7th Main, Sector 4, HSR Layout",
-            city: userAddr.city || "Bengaluru",
-            state: userAddr.state || "Karnataka",
-            postal_code: userAddr.postal_code || "560102",
-            country: userAddr.country || "India",
-            email: `${(userAddr.name || order.customer).toLowerCase().replace(/\s+/g, ".")}@example.com`
-          };
-        }
-      } catch (err) {
-        console.warn("[Dispatch] Failed to query addresses:", err);
+      // Use the address captured at checkout time — no fallback or name-matching
+      const snap = order.address_snapshot;
+      if (!snap) {
+        throw new Error(`Order ${orderId} has no address_snapshot — cannot dispatch without a verified delivery address`);
       }
+      const shippingAddress = {
+        name: snap.name || order.customer,
+        phone: snap.phone || "",
+        address_line_1: snap.address_line_1 || "",
+        address_line_2: snap.address_line_2 || "",
+        city: snap.city || "",
+        state: snap.state || "",
+        postal_code: snap.postal_code || "",
+        country: snap.country || "India",
+        email: snap.email || "",
+      };
 
       // Format items
       const quantity = order.items.length || 1;

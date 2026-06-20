@@ -78,6 +78,7 @@ export interface Order {
   cartItems?: any[];
   paymentStatus?: string;
   userId?: string;
+  address_snapshot?: any;
 }
 
 export interface OrderStatusHistory {

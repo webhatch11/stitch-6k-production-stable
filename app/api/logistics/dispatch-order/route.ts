@@ -68,41 +68,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: `Order #${orderId} has already been dispatched with AWB ${order.shiprocketId}.` }, { status: 400 });
     }
 
-    // 4. Resolve delivery address (fetch from user_addresses if available, else use standard mock HSR Layout address)
-    // We try to find default address or first address for order customer / customer name
-    let shippingAddress = {
-      name: order.customer,
-      phone: "+91 9876543210",
-      address_line_1: "Apt 402, Sky-High Residency",
-      address_line_2: "7th Main, Sector 4, HSR Layout",
-      city: "Bengaluru",
-      state: "Karnataka",
-      postal_code: "560102",
-      country: "India",
-      email: `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`
-    };
-
-    // If order has an owner, we check if they have a real saved address
-    // We try to use guest addresses if no userId exists
-    try {
-      const addresses = await db.getUserAddresses();
-      const userAddr = addresses.find(a => a.name.toLowerCase() === order.customer.toLowerCase() || a.is_default);
-      if (userAddr) {
-        shippingAddress = {
-          name: userAddr.name || order.customer,
-          phone: userAddr.phone || "+91 9876543210",
-          address_line_1: userAddr.address_line_1 || "Apt 402, Sky-High Residency",
-          address_line_2: userAddr.address_line_2 || "7th Main, Sector 4, HSR Layout",
-          city: userAddr.city || "Bengaluru",
-          state: userAddr.state || "Karnataka",
-          postal_code: userAddr.postal_code || "560102",
-          country: userAddr.country || "India",
-          email: `${(userAddr.name || order.customer).toLowerCase().replace(/\s+/g, ".")}@example.com`
-        };
-      }
-    } catch (err) {
-      console.warn("[Dispatch API] Failed to query user addresses, using defaults:", err);
+    // 4. Read delivery address from checkout-time snapshot — no fallback or name-matching
+    const snap = order.address_snapshot;
+    if (!snap) {
+      return NextResponse.json(
+        { success: false, error: `Order #${orderId} has no address_snapshot — cannot dispatch without a verified delivery address` },
+        { status: 422 }
+      );
     }
+    const shippingAddress = {
+      name: snap.name || order.customer,
+      phone: snap.phone || "",
+      address_line_1: snap.address_line_1 || "",
+      address_line_2: snap.address_line_2 || "",
+      city: snap.city || "",
+      state: snap.state || "",
+      postal_code: snap.postal_code || "",
+      country: snap.country || "India",
+      email: snap.email || "",
+    };
 
     // 5. Build Shiprocket order items payload
     // Items in the order are saved as string titles like "Luxury Black Shirt" or JSON

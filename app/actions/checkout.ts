@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { Product } from "@/lib/registry";
 import { getServerUser } from "@/lib/supabase-server";
+import { supabaseService as supabase } from "@/lib/supabase-service";
 
 interface CartItem {
   productId?: string;
@@ -41,12 +42,19 @@ export async function processWalletPointsCheckoutAction(payload: {
     userId,
   } = payload;
 
-  // 0. Verify address authorization
+  // 0. Resolve and snapshot delivery address
+  let addressSnapshot: any = null;
   if (addressId && userId) {
-    const addresses = await db.getUserAddresses(userId);
-    if (!addresses.find(a => a.id === addressId)) {
+    const addr = await db.getAddressById(addressId, userId);
+    if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
+    let email = "";
+    if (supabase) {
+      const authResult = await supabase.auth.admin.getUserById(userId);
+      email = authResult.data?.user?.email || "";
+    }
+    addressSnapshot = { ...addr, email };
   }
 
   // A. Verify stock first server-side
@@ -176,6 +184,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     pointsEarned: Math.floor(verifiedNetTotal / 10),
     status: "Paid via Wallet",
     items: cart.map((item) => item.productName),
+    address_snapshot: addressSnapshot,
   };
 
   let savedOrder;
@@ -232,12 +241,19 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     userId,
   } = payload;
 
-  // 0. Verify address authorization
+  // 0. Resolve and snapshot delivery address
+  let addressSnapshot: any = null;
   if (addressId && userId) {
-    const addresses = await db.getUserAddresses(userId);
-    if (!addresses.find(a => a.id === addressId)) {
+    const addr = await db.getAddressById(addressId, userId);
+    if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
+    let email = "";
+    if (supabase) {
+      const authResult = await supabase.auth.admin.getUserById(userId);
+      email = authResult.data?.user?.email || "";
+    }
+    addressSnapshot = { ...addr, email };
   }
 
   // A. Verify stock first
@@ -302,6 +318,7 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
       cartItems: cart,
       idempotencyKey,
       userId,
+      addressSnapshot,
     }
   };
 }
@@ -336,12 +353,19 @@ export async function processCodCheckoutAction(payload: {
     pincode,
   } = payload;
 
-  // 0. Verify address authorization
+  // 0. Resolve and snapshot delivery address
+  let addressSnapshot: any = null;
   if (addressId && userId) {
-    const addresses = await db.getUserAddresses(userId);
-    if (!addresses.find(a => a.id === addressId)) {
+    const addr = await db.getAddressById(addressId, userId);
+    if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
+    let email = "";
+    if (supabase) {
+      const authResult = await supabase.auth.admin.getUserById(userId);
+      email = authResult.data?.user?.email || "";
+    }
+    addressSnapshot = { ...addr, email };
   }
 
   // A. Verify COD eligibility rules server-side
@@ -477,12 +501,13 @@ export async function processCodCheckoutAction(payload: {
     pointsEarned: Math.floor(verifiedNetTotal / 10),
     status: "Order Placed",
     items: cart.map((item) => item.productName),
+    address_snapshot: addressSnapshot,
   };
 
   let savedOrder;
   try {
     savedOrder = await db.saveOrder(orderData);
-    
+
     // Add status history entry
     await db.addOrderStatusHistory(idempotencyKey, "Order Placed", "COD Checkout System", {
       payment_method: "COD",

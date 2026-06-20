@@ -29,38 +29,22 @@ export const shipmentRetryWorker = new Worker(
           return;
         }
 
-        // Resolve shipping address
-        let shippingAddress = {
-          name: order.customer,
-          phone: "+91 9876543210",
-          address_line_1: "Apt 402, Sky-High Residency",
-          address_line_2: "7th Main, Sector 4, HSR Layout",
-          city: "Bengaluru",
-          state: "Karnataka",
-          postal_code: "560102",
-          country: "India",
-          email: `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`
-        };
-
-        try {
-          const addresses = await db.getUserAddresses();
-          const userAddr = addresses.find(a => a.name.toLowerCase() === order.customer.toLowerCase() || a.is_default);
-          if (userAddr) {
-            shippingAddress = {
-              name: userAddr.name || order.customer,
-              phone: userAddr.phone || "+91 9876543210",
-              address_line_1: userAddr.address_line_1 || "Apt 402, Sky-High Residency",
-              address_line_2: userAddr.address_line_2 || "7th Main, Sector 4, HSR Layout",
-              city: userAddr.city || "Bengaluru",
-              state: userAddr.state || "Karnataka",
-              postal_code: userAddr.postal_code || "560102",
-              country: userAddr.country || "India",
-              email: `${(userAddr.name || order.customer).toLowerCase().replace(/\s+/g, ".")}@example.com`
-            };
-          }
-        } catch (err) {
-          console.warn("[Shipment Retry Worker] Address resolution failed:", err);
+        // Use the address captured at checkout time — no fallback or name-matching
+        const snap = order.address_snapshot;
+        if (!snap) {
+          throw new Error(`Order ${orderId} has no address_snapshot — cannot dispatch without a verified delivery address`);
         }
+        const shippingAddress = {
+          name: snap.name || order.customer,
+          phone: snap.phone || "",
+          address_line_1: snap.address_line_1 || "",
+          address_line_2: snap.address_line_2 || "",
+          city: snap.city || "",
+          state: snap.state || "",
+          postal_code: snap.postal_code || "",
+          country: snap.country || "India",
+          email: snap.email || "",
+        };
 
         const quantity = order.items.length || 1;
         const orderItems = order.items.map((itemStr: any, idx: number) => {

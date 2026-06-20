@@ -1,5 +1,6 @@
 -- Stitch 6K Heritage + GEN-Z Streetwear - Supabase PostgreSQL Schema
 -- Run this script in the Supabase SQL Editor to set up all tables
+--
 
 -- Enable UUID extension if not enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -15,6 +16,29 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     loyalty_points INTEGER DEFAULT 500,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 1.5. Table: user_addresses (user shipping/billing address book)
+CREATE TABLE IF NOT EXISTS public.user_addresses (
+  id             TEXT PRIMARY KEY,
+  user_id        UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name           TEXT NOT NULL,
+  phone          TEXT DEFAULT '',
+  address_line_1 TEXT NOT NULL,
+  address_line_2 TEXT DEFAULT '',
+  city           TEXT NOT NULL,
+  state          TEXT NOT NULL,
+  postal_code    TEXT NOT NULL,
+  country        TEXT DEFAULT 'India',
+  is_default     BOOLEAN DEFAULT false,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id
+  ON public.user_addresses (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_addresses_user_default
+  ON public.user_addresses (user_id) WHERE is_default = true;
 
 -- 2. Table: products (main inventory catalog)
 CREATE TABLE IF NOT EXISTS public.products (
@@ -627,6 +651,9 @@ ALTER TABLE public.inventory_reservations ADD CONSTRAINT inventory_reservations_
 
 -- Alter orders table to store full JSON cart items
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cart_items JSONB DEFAULT '[]';
+
+-- Alter orders table to store delivery address at checkout time (issue #8)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS address_snapshot JSONB;
 
 -- 24. Batch Variant Inventory Reservation (N+1 query solution)
 CREATE OR REPLACE FUNCTION reserve_variant_inventory_batch_atomic(p_items JSONB, p_expires_mins INTEGER, p_session TEXT)

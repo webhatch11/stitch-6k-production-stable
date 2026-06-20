@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
       idempotencyKey: payload.idempotencyKey,
       cartItems: checkoutState.cartItems,
       paymentStatus: "PAYMENT_PENDING",
+      address_snapshot: checkoutState.addressSnapshot ?? null,
     };
 
     await db.saveOrder(orderData);

@@ -4,6 +4,12 @@ import { supabaseService as supabase } from "@/lib/supabase-service";
 
 export async function POST(req: NextRequest) {
   try {
+    // TODO (Day 14 — Shiprocket integration): implement webhook
+    // authentication once Shiprocket's actual auth scheme is
+    // confirmed. Per docs they use either IP allowlisting or a
+    // pre-shared token. Current code does NOT authenticate the
+    // webhook source — only safe behind a reverse proxy with
+    // IP-based filtering, OR until verification is added.
     const body = await req.json();
     const { awb, current_status, current_status_code, etd, scans } = body;
 

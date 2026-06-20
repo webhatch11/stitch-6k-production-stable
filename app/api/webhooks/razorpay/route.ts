@@ -6,30 +6,38 @@ import { db } from "@/lib/db";
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("x-razorpay-signature");
+
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-
-    // 1. Signature Verification with Fallback
-    if (process.env.NODE_ENV === "production" || secret) {
-      if (!signature) {
-        return NextResponse.json({ error: "Missing signature" }, { status: 400 });
-      }
-      if (!secret) {
-        return NextResponse.json({ error: "Webhook secret missing in environment" }, { status: 500 });
-      }
-
-      const expectedSignature = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody)
-        .digest("hex");
-
-      if (expectedSignature !== signature) {
-        console.error("Webhook signature mismatch!");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-      }
-    } else {
-      console.warn("⚠️ Running in development mode without RAZORPAY_WEBHOOK_SECRET. Skipping verification.");
+    if (!secret) {
+      console.error("[Webhook] RAZORPAY_WEBHOOK_SECRET is not configured. Refusing all webhooks.");
+      return NextResponse.json(
+        { error: "Webhook secret not configured" },
+        { status: 500 }
+      );
     }
+
+    const signature = req.headers.get("x-razorpay-signature");
+    if (!signature) {
+      return NextResponse.json(
+        { error: "Missing signature header" },
+        { status: 400 }
+      );
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (expectedSignature !== signature) {
+      console.error("[Webhook] Signature mismatch");
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 401 }
+      );
+    }
+
+    // Signature valid, continue with event processing
 
     const payload = JSON.parse(rawBody);
     const eventName = payload.event;

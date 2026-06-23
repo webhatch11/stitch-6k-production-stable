@@ -135,6 +135,7 @@ export async function proxy(request: NextRequest) {
     if (!user) {
       console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to /login.`);
       url.pathname = "/login";
+      url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
 
@@ -148,7 +149,8 @@ export async function proxy(request: NextRequest) {
 
       if (!profile || profile.role !== "admin") {
         console.error(`[SECURITY VIOLATION] Unauthorized admin access attempt to "${path}" by user "${user.email}" (UID: ${user.id}) from IP ${ip}. Access denied.`);
-        url.pathname = "/";
+        url.pathname = "/myprofile";
+        url.searchParams.set("error", "admin_required");
         return NextResponse.redirect(url);
       }
     }
@@ -162,12 +164,14 @@ export async function proxy(request: NextRequest) {
     if (!mockSession) {
       console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to /login.`);
       url.pathname = "/login";
+      url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
 
     if (isAdminRoute && mockRole !== "admin") {
       console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to root.`);
-      url.pathname = "/";
+      url.pathname = "/myprofile";
+      url.searchParams.set("error", "admin_required");
       return NextResponse.redirect(url);
     }
 

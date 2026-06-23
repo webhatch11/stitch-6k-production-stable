@@ -2,48 +2,10 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Product } from "@/lib/registry";
 import { db } from "@/lib/db";
+import { saveProductAction } from "@/app/actions/admin-products";
+import CloudinaryUploadWidget from "@/app/admindashboard/CloudinaryUploadWidget";
 
-// Helper function to compress images using HTML5 canvas to prevent LocalStorage quota overflow
-const compressImage = (base64Str: string, maxWidth = 800, maxHeight = 800, quality = 0.7): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let width = img.width;
-      let height = img.height;
-
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedBase64 = canvas.toDataURL("image/jpeg", quality);
-        resolve(compressedBase64);
-      } else {
-        resolve(base64Str);
-      }
-    };
-    img.onerror = () => {
-      resolve(base64Str);
-    };
-  });
-};
 
 function AddProductContent() {
   const router = useRouter();
@@ -211,41 +173,6 @@ function AddProductContent() {
 
   const finalPrice = calculateFinalPrice();
 
-  // Handle local image file load with inline compression
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const slotsAvailable = 4 - selectedImages.length;
-    if (slotsAvailable <= 0) return;
-
-    const filesToUpload = Array.from(files).slice(0, slotsAvailable);
-    const newCompressedImages: string[] = [];
-
-    for (const file of filesToUpload) {
-      try {
-        const rawBase64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result) resolve(event.target.result as string);
-            else reject(new Error("Failed to read file"));
-          };
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        });
-
-        const compressed = await compressImage(rawBase64);
-        newCompressedImages.push(compressed);
-      } catch (err) {
-        console.error("Error reading/compressing image:", err);
-      }
-    }
-
-    if (newCompressedImages.length > 0) {
-      setSelectedImages((prev) => [...prev, ...newCompressedImages]);
-    }
-  };
-
   const removeLocalImage = (index: number) => {
     const updated = [...selectedImages];
     updated.splice(index, 1);
@@ -291,58 +218,45 @@ function AddProductContent() {
       primaryImage = primary;
     }
 
-    const payload: Product = {
+    const input = {
       id: finalSKU,
       title: title.trim(),
       category: finalCategory,
-      price: finalPrice,
-      basePrice: basePrice,
-      gstRate: gstRate,
-      discountRate: discountRate,
-      stock: totalStock,
       description: description.trim() || `${title} in premium ${finalCategory} weave.`,
+      basePrice,
+      gstRate,
+      discountRate,
       image: primaryImage,
       images: productImages,
-      isNew: badgeNew,
-      isAtelierExclusive: badgeExclusive,
-      customBadge: enableCustomBadge ? customBadgeText.trim() : "",
-      sizeStock: {
-        S: stockS,
-        M: stockM,
-        L: stockL,
-        XL: stockXL,
-        XXL: stockXXL,
-      },
+      sizeStock: { S: stockS, M: stockM, L: stockL, XL: stockXL, XXL: stockXXL },
       specFabric: specFabric.trim() || `Premium ${finalCategory}`,
       specFit: specFit.trim() || "Relaxed Fit",
       specCollar: specCollar.trim() || "Spread Collar",
       specSleeve: specSleeve.trim() || "Full Sleeves",
       specCare: specCare.trim() || "Dry clean only.",
+      isNew: badgeNew,
+      isAtelierExclusive: badgeExclusive,
+      customBadge: enableCustomBadge ? customBadgeText.trim() : "",
     };
 
     try {
-      if (editProductId) {
-        // Edit Mode
-        await db.saveProduct(payload);
-        setSuccessModalText("Product updated successfully!");
-      } else {
-        // Add Mode
+      if (!editProductId) {
         const list = await db.getProducts();
         const exists = list.some((prod) => prod.id === finalSKU);
         if (exists) {
           triggerToast("SKU already exists. Please choose a unique SKU reference.");
           return;
         }
-        await db.saveProduct(payload);
-        setSuccessModalText("Product created successfully!");
       }
+      const result = await saveProductAction(input);
+      if (!result.success) {
+        triggerToast(result.error || "Failed to save product");
+        return;
+      }
+      setSuccessModalText(editProductId ? "Product updated successfully!" : "Product created successfully!");
     } catch (e: any) {
       console.error(e);
-      if (e?.name === "QuotaExceededError" || e?.message?.includes("exceeded the quota") || e?.message?.includes("QuotaExceededError")) {
-        triggerToast("Storage full! Please use direct Image URLs or compress your local photos under 500KB.");
-      } else {
-        triggerToast("Failed to save product details");
-      }
+      triggerToast("Failed to save product details");
     }
   };
 
@@ -819,77 +733,63 @@ function AddProductContent() {
                 </button>
               </div>
 
-              {/* Mode 1: Local Upload */}
+              {/* Mode 1: Cloudinary Upload */}
               {imageMode === "upload" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Add Image slot */}
-                    {selectedImages.length < 4 && (
-                      <div
-                        onClick={() => document.getElementById("fileInputTrigger")?.click()}
-                        className="aspect-[3/4] flex flex-col items-center justify-center border-2 border-dashed border-gray-200 bg-[#fafafa] hover:border-[#fed488] hover:bg-white transition-colors cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-4xl text-gray-400">add_photo_alternate</span>
-                        <p className="text-[9px] font-black uppercase tracking-widest mt-2 text-gray-500">
-                          Add Photo
-                        </p>
-                        <input
-                          type="file"
-                          id="fileInputTrigger"
-                          multiple
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    )}
+                <div className="space-y-6">
+                  <CloudinaryUploadWidget
+                    onUpload={(urls) => setSelectedImages(urls)}
+                    maxFiles={4}
+                    buttonLabel="Upload via Cloudinary"
+                  />
 
-                    {selectedImages.map((imgSrc, idx) => (
-                      <div
-                        key={idx}
-                        className={`aspect-[3/4] border-2 relative group overflow-hidden bg-white transition-all ${
-                          primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02]" : "border-gray-200"
-                        }`}
-                      >
-                        <img src={imgSrc} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
-                        
-                        {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeLocalImage(idx);
-                            if (primaryImageIndex === idx) {
-                              setPrimaryImageIndex(0);
-                            } else if (primaryImageIndex > idx) {
-                              setPrimaryImageIndex(primaryImageIndex - 1);
-                            }
-                          }}
-                          className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors border-none cursor-pointer opacity-0 group-hover:opacity-100"
+                  {selectedImages.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {selectedImages.map((imgSrc, idx) => (
+                        <div
+                          key={idx}
+                          className={`aspect-[3/4] border-2 relative group overflow-hidden bg-white transition-all ${
+                            primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02]" : "border-gray-200"
+                          }`}
                         >
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </button>
+                          <img src={imgSrc} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
 
-                        {/* Cover Image Action/Status */}
-                        {primaryImageIndex === idx ? (
-                          <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
-                            <span className="material-symbols-outlined text-[10px]">star</span>
-                            Primary Cover
-                          </div>
-                        ) : (
                           <button
                             type="button"
-                            onClick={() => setPrimaryImageIndex(idx)}
-                            className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeLocalImage(idx);
+                              if (primaryImageIndex === idx) {
+                                setPrimaryImageIndex(0);
+                              } else if (primaryImageIndex > idx) {
+                                setPrimaryImageIndex(primaryImageIndex - 1);
+                              }
+                            }}
+                            className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors border-none cursor-pointer opacity-0 group-hover:opacity-100"
                           >
-                            Set as Cover
+                            <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-2 italic opacity-60">
-                    Quota limit: Up to 4 product photos in base64. Select one as Primary Cover.
+
+                          {primaryImageIndex === idx ? (
+                            <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
+                              <span className="material-symbols-outlined text-[10px]">star</span>
+                              Primary Cover
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryImageIndex(idx)}
+                              className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              Set as Cover
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic opacity-60">
+                    Uploads go to Cloudinary CDN. Up to 4 images. Select one as Primary Cover.
                   </p>
                 </div>
               )}

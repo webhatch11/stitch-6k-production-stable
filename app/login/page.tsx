@@ -8,7 +8,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  
+
   // Auth Modes: 'signin' | 'signup'
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   
@@ -83,9 +83,20 @@ export default function LoginPage() {
             password,
           });
           if (error) throw error;
-          
+
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user?.id ?? "")
+            .maybeSingle();
+
+          const redirectTo = new URLSearchParams(window.location.search).get("redirect");
           router.refresh();
-          router.push("/myprofile");
+          router.push(
+            profile?.role === "admin"
+              ? (redirectTo || "/admindashboard")
+              : (redirectTo || "/myprofile")
+          );
         }
       } else {
         // --- LocalStorage Mock Authentication Fallback ---
@@ -146,8 +157,13 @@ export default function LoginPage() {
           document.cookie = `mock_user_role=${profile.role}; path=/; max-age=86400`;
           document.cookie = `mock_user_email=${profile.email}; path=/; max-age=86400`;
           document.cookie = `mock_user_name=${profile.name}; path=/; max-age=86400`;
+          const redirectTo = new URLSearchParams(window.location.search).get("redirect");
           router.refresh();
-          router.push("/myprofile");
+          router.push(
+            profile.role === "admin"
+              ? (redirectTo || "/admindashboard")
+              : (redirectTo || "/myprofile")
+          );
         }
       }
     } catch (err: any) {

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { Order } from "@/lib/registry";
+import { getCustomersAction, getOrdersAction } from "@/app/actions/admin-reads";
+import { adjustCustomerBalanceAction } from "@/app/actions/admin-customers";
 
 interface CustomerData {
   name: string;
@@ -54,31 +55,35 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
   const loadDossier = async () => {
     try {
       setLoading(true);
-      const allCustomers = await db.getCustomers();
-      const matched = allCustomers.find((c) => c.email.toLowerCase() === email.toLowerCase());
-
-      if (matched) {
-        setCustomer(matched);
-      } else {
-        // Fallback for mock if not found in list
-        setCustomer({
-          name: email.split("@")[0].toUpperCase().replace(".", " "),
-          email,
-          wallet_balance: 0,
-          loyalty_points: 0,
-          ltv: 0,
-          order_count: 0
-        });
+      const customersRes = await getCustomersAction();
+      if (customersRes.success) {
+        const matched = (customersRes.customers || []).find(
+          (c: any) => c.email.toLowerCase() === email.toLowerCase()
+        );
+        if (matched) {
+          setCustomer(matched);
+        } else {
+          setCustomer({
+            name: email.split("@")[0].toUpperCase().replace(".", " "),
+            email,
+            wallet_balance: 0,
+            loyalty_points: 0,
+            ltv: 0,
+            order_count: 0,
+          });
+        }
       }
 
-      // Fetch customer orders
-      const allOrders = await db.getOrders();
-      const customerOrders = allOrders.filter(
-        (o) =>
-          o.customer.toLowerCase().replace(/\s+/g, ".") + "@example.com" === email.toLowerCase() ||
-          (email.toLowerCase().includes("guest") && (o.customer.toLowerCase() === "guest customer" || o.customer.toLowerCase() === "guest"))
-      );
-      setOrders(customerOrders);
+      const ordersRes = await getOrdersAction();
+      if (ordersRes.success) {
+        const customerOrders = (ordersRes.orders || []).filter(
+          (o) =>
+            o.customer.toLowerCase().replace(/\s+/g, ".") + "@example.com" === email.toLowerCase() ||
+            (email.toLowerCase().includes("guest") &&
+              (o.customer.toLowerCase() === "guest customer" || o.customer.toLowerCase() === "guest"))
+        );
+        setOrders(customerOrders);
+      }
     } catch (err) {
       console.error("Failed to load customer dossier:", err);
     } finally {
@@ -102,15 +107,15 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
       return;
     }
 
-    const success = await db.adjustCustomerBalance(email, "wallet", finalAmount, walletDesc);
-    if (success) {
+    const res = await adjustCustomerBalanceAction(email, "wallet", finalAmount, walletDesc);
+    if (res.success) {
       triggerToast(`Successfully adjusted wallet by ₹${amountVal} (${walletType})`);
       setWalletAmount("");
       setWalletDesc("Admin Manual Adjustment");
       window.dispatchEvent(new Event("storage"));
       await loadDossier();
     } else {
-      triggerToast("Failed to adjust wallet balance.");
+      triggerToast(res.error || "Failed to adjust wallet balance.");
     }
   };
 
@@ -130,15 +135,15 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
       return;
     }
 
-    const success = await db.adjustCustomerBalance(email, "loyalty", finalPoints, loyaltyDesc);
-    if (success) {
+    const res = await adjustCustomerBalanceAction(email, "loyalty", finalPoints, loyaltyDesc);
+    if (res.success) {
       triggerToast(`Successfully adjusted loyalty points by ${pointsVal} pts (${loyaltyType})`);
       setLoyaltyAmount("");
       setLoyaltyDesc("Admin Manual Adjustment");
       window.dispatchEvent(new Event("storage"));
       await loadDossier();
     } else {
-      triggerToast("Failed to adjust loyalty points.");
+      triggerToast(res.error || "Failed to adjust loyalty points.");
     }
   };
 

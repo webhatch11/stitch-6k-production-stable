@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Order } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getOrdersAction } from "@/app/actions/admin-reads";
+import { bulkUpdateOrderStatusAction } from "@/app/actions/admin-orders";
 
 export default function OrdersLedgerPage() {
   const router = useRouter();
@@ -50,8 +51,12 @@ export default function OrdersLedgerPage() {
   }, [currentFilter, searchQuery]);
 
   const loadOrders = async () => {
-    const list = await db.getOrders();
-    setOrders(list);
+    const res = await getOrdersAction();
+    if (!res.success) {
+      triggerToast(res.error || "Failed to load orders");
+      return;
+    }
+    setOrders(res.orders || []);
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,19 +82,17 @@ export default function OrdersLedgerPage() {
 
   const confirmBulkStatusChange = async () => {
     if (selectedOrderIds.length === 0 || !bulkStatusToApply) return;
-    const allOrders = await db.getOrders();
-    let count = 0;
-    for (const o of allOrders) {
-      if (selectedOrderIds.includes(o.id)) {
-        count++;
-        o.status = bulkStatusToApply;
-        await db.saveOrder(o);
-      }
+    const res = await bulkUpdateOrderStatusAction(selectedOrderIds, bulkStatusToApply);
+    if (!res.success) {
+      triggerToast(res.error || "Bulk update failed");
+      setModalOpen(false);
+      setBulkStatusToApply("");
+      return;
     }
     window.dispatchEvent(new Event("storage"));
     await loadOrders();
     setSelectedOrderIds([]);
-    triggerToast(`Successfully updated status for ${count} order(s) to "${bulkStatusToApply}".`);
+    triggerToast(`Successfully updated status for ${res.count ?? selectedOrderIds.length} order(s) to "${bulkStatusToApply}".`);
     setModalOpen(false);
     setBulkStatusToApply("");
   };

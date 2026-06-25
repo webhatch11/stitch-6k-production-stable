@@ -1,8 +1,29 @@
-import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "./supabase-service";
 import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
+
+// Lazy-loaded service client. The supabase-service module is server-only
+// (it carries SUPABASE_SERVICE_ROLE_KEY and has a browser-throw guard).
+// We import it dynamically inside a server-only branch so it never enters
+// client bundles.
+
+type ServiceModule = typeof import("./supabase-service");
+let _serviceMod: ServiceModule | null = null;
+
+function loadService(): { supabase: ServiceModule["supabaseService"] | null; isSupabaseConfigured: boolean } {
+  if (typeof window !== "undefined") {
+    return { supabase: null, isSupabaseConfigured: false };
+  }
+  if (!_serviceMod) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _serviceMod = require("./supabase-service") as ServiceModule;
+  }
+  return {
+    supabase: _serviceMod.supabaseService,
+    isSupabaseConfigured: _serviceMod.isServiceClientConfigured,
+  };
+}
 
 // Initialize BullMQ background jobs on server start
 if (typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build") {
@@ -111,6 +132,7 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
 export const db = {
   // --- Products ---
   async getProducts(): Promise<Product[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     const cached = await CacheService.get<Product[]>("products:list");
     if (cached) return cached;
 
@@ -134,6 +156,7 @@ export const db = {
   },
 
   async saveProduct(product: Partial<Product>): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate caches
     await CacheService.del("products:list");
     if (product.slug) {
@@ -178,7 +201,6 @@ export const db = {
       material: product.material || "",
       colors: product.colors || [],
       ratings: product.ratings || 5.0,
-      reviews: product.reviews || [],
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);
@@ -189,6 +211,7 @@ export const db = {
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
+    const { supabase, isSupabaseConfigured } = loadService();
     const cacheKey = `products:slug:${slug}`;
     const cached = await CacheService.get<Product>(cacheKey);
     if (cached) return cached;
@@ -214,6 +237,7 @@ export const db = {
   },
 
   async relatedProducts(slug: string): Promise<Product[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.relatedProducts(slug);
     }
@@ -238,6 +262,7 @@ export const db = {
   },
 
   async deleteProduct(id: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate caches
     await CacheService.del("products:list");
     await CacheService.delPattern("products:slug:*");
@@ -254,6 +279,7 @@ export const db = {
 
   // --- Orders ---
   async getOrders(userId?: string): Promise<Order[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const list = await RegistryManager.getOrders();
       if (userId) {
@@ -279,6 +305,7 @@ export const db = {
   },
 
   async getOrderById(orderId: string): Promise<Order | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const list = await RegistryManager.getOrders();
       const order = list.find((o) => o.id === orderId);
@@ -298,6 +325,7 @@ export const db = {
   },
 
   async saveOrder(order: Partial<Order>): Promise<Order> {
+    const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate metrics cache
     await CacheService.del("analytics:dashboard");
 
@@ -440,6 +468,7 @@ export const db = {
   },
 
   async getDashboardMetrics() {
+    const { supabase, isSupabaseConfigured } = loadService();
     const cacheKey = "analytics:dashboard";
     const cached = await CacheService.get<any>(cacheKey);
     if (cached) return cached;
@@ -472,6 +501,7 @@ export const db = {
 
   // --- Coupons ---
   async getCoupons(): Promise<Coupon[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     const cacheKey = "settings:coupons";
     const cached = await CacheService.get<Coupon[]>(cacheKey);
     if (cached) return cached;
@@ -496,6 +526,7 @@ export const db = {
   },
 
   async saveCoupon(coupon: Partial<Coupon>): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.saveCoupon(coupon);
@@ -524,6 +555,7 @@ export const db = {
   },
 
   async deleteCoupon(id: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.deleteCoupon(id);
@@ -536,6 +568,7 @@ export const db = {
   },
 
   async validateCoupon(code: string, cartTotal: number): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.validateCoupon(code, cartTotal);
     }
@@ -572,6 +605,7 @@ export const db = {
   },
 
   async incrementCouponUsage(code: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.incrementCouponUsage(code);
     }
@@ -587,6 +621,7 @@ export const db = {
   },
 
   async decrementCouponUsage(code: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.decrementCouponUsage(code);
     }
@@ -629,6 +664,7 @@ export const db = {
 
   // --- Wallet ---
   async getWalletBalance(userId?: string): Promise<number> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletBalance();
     }
@@ -649,6 +685,7 @@ export const db = {
   },
 
   async getWalletTransactions(userId?: string): Promise<WalletTransaction[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getWalletTransactions();
     }
@@ -675,6 +712,7 @@ export const db = {
   },
 
   async applyWalletDebit(amount: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletDebit(amount, orderId);
     }
@@ -699,6 +737,7 @@ export const db = {
   },
 
   async applyWalletCredit(amount: number, description: string, orderId: string, userId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyWalletCredit(amount, description, orderId);
     }
@@ -715,6 +754,7 @@ export const db = {
 
   // --- Loyalty ---
   async getLoyaltyPoints(userId?: string): Promise<number> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyPoints();
     }
@@ -735,6 +775,7 @@ export const db = {
   },
 
   async getLoyaltyTransactions(userId?: string): Promise<LoyaltyTransaction[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getLoyaltyTransactions();
     }
@@ -761,6 +802,7 @@ export const db = {
   },
 
   async applyLoyaltyDebit(points: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyDebit(points, orderId);
     }
@@ -785,6 +827,7 @@ export const db = {
   },
 
   async awardLoyaltyPoints(total: number, orderId: string, userId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.awardLoyaltyPoints(total, orderId);
     }
@@ -803,6 +846,7 @@ export const db = {
   },
 
   async applyLoyaltyCredit(points: number, description: string, orderId: string, userId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.applyLoyaltyCredit(points, description, orderId);
     }
@@ -822,6 +866,7 @@ export const db = {
     orderId: string,
     payload: { reason: string; details: string; image: string; refundOption: string }
   ): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.requestManualReturn(orderId, payload);
     }
@@ -850,6 +895,7 @@ export const db = {
   },
 
   async approveReturnPickup(orderId: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.approveReturnPickup(orderId);
     }
@@ -862,6 +908,7 @@ export const db = {
   },
 
   async processReturnRefund(orderId: string, qualityCheckPassed = true): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.processReturnRefund(orderId, qualityCheckPassed);
     }
@@ -955,6 +1002,7 @@ export const db = {
   },
 
   async rejectReturn(orderId: string, rejectReason: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.rejectReturn(orderId, rejectReason);
     }
@@ -970,6 +1018,7 @@ export const db = {
   },
 
   async cancelOrderAndRefund(orderId: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.cancelOrderAndRefund(orderId);
     }
@@ -1052,6 +1101,7 @@ export const db = {
   },
 
   async approvePendingOrder(orderId: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.approvePendingOrder(orderId);
     }
@@ -1065,6 +1115,7 @@ export const db = {
 
   // --- Addresses ---
   async getUserAddresses(userId: string = "guest"): Promise<UserAddress[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getAddresses(userId);
     }
@@ -1082,6 +1133,7 @@ export const db = {
   },
 
   async getAddressById(addressId: string, userId: string): Promise<UserAddress | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) return null;
     const { data, error } = await supabase
       .from("user_addresses")
@@ -1097,6 +1149,7 @@ export const db = {
   },
 
   async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
         return {
@@ -1157,6 +1210,7 @@ export const db = {
   },
 
   async deleteUserAddress(id: string, userId: string = "guest"): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.deleteAddress(id);
     }
@@ -1179,6 +1233,7 @@ export const db = {
   },
 
   async setDefaultUserAddress(id: string, userId: string = "guest"): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.setDefaultAddress(id, userId);
     }
@@ -1195,6 +1250,7 @@ export const db = {
   },
 
   async verifyStock(items: any[], sessionId?: string): Promise<{ success: boolean; message?: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
     // Format cart items for validation
     const formatted = items.map((item) => ({
       productName: item.productName,
@@ -1242,6 +1298,7 @@ export const db = {
   },
 
   async deductStock(items: any[], sessionId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     const products = await this.getProducts();
     for (const item of items) {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -1258,6 +1315,7 @@ export const db = {
   },
 
   async restoreStock(items: any[], sessionId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     const products = await this.getProducts();
     for (const item of items) {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -1274,6 +1332,7 @@ export const db = {
   },
 
   async resetPrototype(): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.resetPrototype();
     }
@@ -1288,6 +1347,7 @@ export const db = {
   },
 
   async getOrderStatusHistory(orderId: string): Promise<OrderStatusHistory[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.getOrderStatusHistory(orderId);
     }
@@ -1312,6 +1372,7 @@ export const db = {
   },
 
   async addOrderStatusHistory(orderId: string, status: string, updatedBy?: string, metadata?: any): Promise<OrderStatusHistory> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
         return {
@@ -1349,6 +1410,7 @@ export const db = {
   },
 
   async getCustomers(): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const orders = await this.getOrders();
       const customerMap = new Map<string, any>();
@@ -1434,6 +1496,7 @@ export const db = {
   },
 
   async adjustCustomerBalance(email: string, type: "wallet" | "loyalty", amount: number, description: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (type === "wallet") {
         if (amount < 0) {
@@ -1500,6 +1563,7 @@ export const db = {
 
   // --- Shipments ---
   async getShipmentByOrderId(orderId: string): Promise<Shipment | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") return null;
       return RegistryManager.getShipmentByOrderId(orderId);
@@ -1518,6 +1582,7 @@ export const db = {
   },
 
   async getShipmentEvents(shipmentId: string): Promise<ShipmentEvent[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") return [];
       return RegistryManager.getShipmentEvents(shipmentId);
@@ -1536,6 +1601,7 @@ export const db = {
   },
 
   async saveShipment(shipment: Partial<Shipment>): Promise<Shipment> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
         return {
@@ -1591,6 +1657,7 @@ export const db = {
   },
 
   async saveShipmentEvent(event: Partial<ShipmentEvent>): Promise<ShipmentEvent> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") {
         return {
@@ -1631,6 +1698,7 @@ export const db = {
   },
 
   async saveTrackingLog(log: { shipment_id: string; raw_payload: any }): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window === "undefined") return;
       return RegistryManager.saveTrackingLog(log);
@@ -1649,6 +1717,7 @@ export const db = {
   },
 
   async getNextOrderNumber(): Promise<string> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return `TEMP-${Date.now()}`;
     }
@@ -1661,6 +1730,7 @@ export const db = {
   },
 
   async createPaymentAuditLog(orderId: string, previousStatus: string | null, newStatus: string, source: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       console.log(`[Offline Payment Audit Log] Order: ${orderId}, ${previousStatus} -> ${newStatus} via ${source}`);
       return;
@@ -1677,6 +1747,7 @@ export const db = {
   },
 
   async createOrderEvent(orderId: string, event: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       console.log(`[Offline Order Event] Order: ${orderId}, Event: ${event}`);
       if (typeof window !== "undefined") {
@@ -1700,6 +1771,7 @@ export const db = {
   },
 
   async getOrderEvents(orderId: string): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window !== "undefined") {
         try {
@@ -1723,6 +1795,7 @@ export const db = {
   },
 
   async releaseReservation(sessionId: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (isSupabaseConfigured && supabase) {
       await supabase.from("inventory_reservations").update({ status: 'RELEASED' }).eq("session_id", sessionId);
     }

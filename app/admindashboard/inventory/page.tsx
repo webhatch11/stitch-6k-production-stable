@@ -3,7 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Product } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getProductsAction } from "@/app/actions/admin-reads";
+import {
+  deleteProductAction,
+  restockProductAction,
+  adjustProductSizeAction,
+} from "@/app/actions/admin-products";
 
 export default function InventoryLedgerPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -45,8 +50,12 @@ export default function InventoryLedgerPage() {
   }, []);
 
   const loadProducts = async () => {
-    const list = await db.getProducts();
-    setProducts(list);
+    const res = await getProductsAction();
+    if (!res.success) {
+      triggerToast(res.error || "Failed to load products");
+      return;
+    }
+    setProducts(res.products || []);
   };
 
   const handleDeleteProduct = (p: Product) => {
@@ -56,7 +65,11 @@ export default function InventoryLedgerPage() {
 
   const confirmDeleteProduct = async () => {
     if (!targetProduct) return;
-    await db.deleteProduct(targetProduct.id);
+    const res = await deleteProductAction(targetProduct.id);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to delete product");
+      return;
+    }
     triggerToast("Product removed successfully");
     setModalType(null);
     setTargetProduct(null);
@@ -64,47 +77,14 @@ export default function InventoryLedgerPage() {
   };
 
   const handleInlineAdjust = async (productId: string, size: "S" | "M" | "L" | "XL" | "XXL", diff: number) => {
-    const allProducts = await db.getProducts();
-    const idx = allProducts.findIndex((p) => p.id === productId);
-    if (idx !== -1) {
-      const p = allProducts[idx];
-      const currentSizeStock = p.sizeStock || {};
-      const currentVal = currentSizeStock[size] || 0;
-      const newVal = Math.max(0, currentVal + diff);
-      
-      const newSizeStock = {
-        ...currentSizeStock,
-        [size]: newVal
-      };
-      
-      // Recalculate total stock count
-      const newTotal =
-        (newSizeStock.S || 0) +
-        (newSizeStock.M || 0) +
-        (newSizeStock.L || 0) +
-        (newSizeStock.XL || 0) +
-        (newSizeStock.XXL || 0);
-      
-      const updatedProduct = {
-        ...p,
-        sizeStock: newSizeStock,
-        stock: newTotal
-      };
-      
-      try {
-        await db.saveProduct(updatedProduct);
-        window.dispatchEvent(new Event("storage"));
-        await loadProducts();
-        triggerToast(`Adjusted size ${size} stock for ${p.title}`);
-      } catch (err: any) {
-        console.error(err);
-        if (err?.name === "QuotaExceededError" || err?.message?.includes("quota")) {
-          triggerToast("Storage limit reached! Cannot save stock adjustment.");
-        } else {
-          triggerToast("Failed to save stock changes");
-        }
-      }
+    const res = await adjustProductSizeAction(productId, size, diff);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to save stock changes");
+      return;
     }
+    window.dispatchEvent(new Event("storage"));
+    await loadProducts();
+    triggerToast(`Adjusted size ${size} stock`);
   };
 
   const handleRestockClick = (p: Product) => {
@@ -120,45 +100,16 @@ export default function InventoryLedgerPage() {
       triggerToast("Please enter a valid positive number.");
       return;
     }
-
-    const allProducts = await db.getProducts();
-    const idx = allProducts.findIndex((item) => item.id === targetProduct.id);
-    if (idx !== -1) {
-      const item = allProducts[idx];
-      const currentSizeStock = item.sizeStock || {};
-      const newSizeStock = {
-        S: (currentSizeStock.S || 0) + qty,
-        M: (currentSizeStock.M || 0) + qty,
-        L: (currentSizeStock.L || 0) + qty,
-        XL: (currentSizeStock.XL || 0) + qty,
-        XXL: (currentSizeStock.XXL || 0) + qty,
-      };
-      const newTotal =
-        (newSizeStock.S || 0) +
-        (newSizeStock.M || 0) +
-        (newSizeStock.L || 0) +
-        (newSizeStock.XL || 0) +
-        (newSizeStock.XXL || 0);
-
-      const updatedProduct = {
-        ...item,
-        sizeStock: newSizeStock,
-        stock: newTotal
-      };
-      try {
-        await db.saveProduct(updatedProduct);
-        window.dispatchEvent(new Event("storage"));
-        await loadProducts();
-        triggerToast(`Restocked +${qty} units to all sizes of ${targetProduct.title}`);
-      } catch (err: any) {
-        console.error(err);
-        if (err?.name === "QuotaExceededError" || err?.message?.includes("quota")) {
-          triggerToast("Storage limit reached! Cannot save restock adjustments.");
-        } else {
-          triggerToast("Failed to save restock details");
-        }
-      }
+    const res = await restockProductAction(targetProduct.id, qty);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to save restock details");
+      setModalType(null);
+      setTargetProduct(null);
+      return;
     }
+    window.dispatchEvent(new Event("storage"));
+    await loadProducts();
+    triggerToast(`Restocked +${qty} units to all sizes of ${targetProduct.title}`);
     setModalType(null);
     setTargetProduct(null);
   };

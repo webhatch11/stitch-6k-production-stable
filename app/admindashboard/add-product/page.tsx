@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { db } from "@/lib/db";
 import { saveProductAction } from "@/app/actions/admin-products";
+import { getProductsAction } from "@/app/actions/admin-reads";
 import CloudinaryUploadWidget from "@/app/admindashboard/CloudinaryUploadWidget";
 
 
@@ -73,8 +73,8 @@ function AddProductContent() {
   // Detect Edit Mode & Pre-populate
   useEffect(() => {
     const loadProductData = async () => {
-      // 1. Fetch unique categories from current inventory
-      const items = await db.getProducts();
+      const res = await getProductsAction();
+      const items = res.success ? (res.products || []) : [];
       const uniqueCats = Array.from(new Set(items.map((p) => p.category).filter(Boolean)));
       const seedCats = ["Cotton", "Linen", "Denim", "Silk Blend", "Silk"];
       const combinedCats = Array.from(new Set([...seedCats, ...uniqueCats]));
@@ -241,7 +241,8 @@ function AddProductContent() {
 
     try {
       if (!editProductId) {
-        const list = await db.getProducts();
+        const listRes = await getProductsAction();
+        const list = listRes.success ? (listRes.products || []) : [];
         const exists = list.some((prod) => prod.id === finalSKU);
         if (exists) {
           triggerToast("SKU already exists. Please choose a unique SKU reference.");

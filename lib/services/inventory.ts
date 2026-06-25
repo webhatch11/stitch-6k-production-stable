@@ -1,6 +1,22 @@
 import { RegistryManager } from "../registry";
-import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "../supabase-service";
 import { ProductVariant, InventoryReservation, StockAuditLog } from "../../types/inventory";
+
+type ServiceModule = typeof import("../supabase-service");
+let _serviceMod: ServiceModule | null = null;
+
+function loadService(): { supabase: ServiceModule["supabaseService"] | null; isSupabaseConfigured: boolean } {
+  if (typeof window !== "undefined") {
+    return { supabase: null, isSupabaseConfigured: false };
+  }
+  if (!_serviceMod) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    _serviceMod = require("../supabase-service") as ServiceModule;
+  }
+  return {
+    supabase: _serviceMod.supabaseService,
+    isSupabaseConfigured: _serviceMod.isServiceClientConfigured,
+  };
+}
 
 // In-memory simulation of reservations and audit logs for when Supabase is not configured.
 let localReservations: InventoryReservation[] = [];
@@ -11,6 +27,7 @@ export const InventoryService = {
    * Helper to fetch variants for a product
    */
   async getVariantsForProduct(productId: string): Promise<ProductVariant[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       // Generate mock variants from RegistryManager product sizes
       const products = await RegistryManager.getProducts();
@@ -63,6 +80,7 @@ export const InventoryService = {
    * Batch helper to fetch variants for multiple products
    */
   async getVariantsForProducts(productIds: string[]): Promise<ProductVariant[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const variants: ProductVariant[] = [];
       for (const pid of productIds) {
@@ -106,6 +124,7 @@ export const InventoryService = {
     const availableStockMap: { [key: string]: number } = {};
 
     let products: any[];
+    const { supabase, isSupabaseConfigured } = loadService();
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from("products").select("*");
       if (error) {
@@ -183,6 +202,7 @@ export const InventoryService = {
   async createReservation(variantId: string, quantity: number): Promise<InventoryReservation | null> {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const reservation: InventoryReservation = {
         id: "RES-" + Math.random().toString(36).substring(2, 9),
@@ -240,6 +260,7 @@ export const InventoryService = {
     color: string,
     quantity: number
   ): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       // Atomic logic on RegistryManager / local db
       const products = await RegistryManager.getProducts();
@@ -313,6 +334,7 @@ export const InventoryService = {
     color: string,
     quantity: number
   ): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       const products = await RegistryManager.getProducts();
       const product = products.find((p) => p.id === productId);
@@ -395,6 +417,7 @@ export const InventoryService = {
   },
 
   async getAuditLogs(): Promise<StockAuditLog[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return localAuditLogs;
     }

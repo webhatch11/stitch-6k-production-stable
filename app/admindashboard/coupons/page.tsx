@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Coupon } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getCouponsAction } from "@/app/actions/admin-reads";
+import { saveCouponAction, deleteCouponAction } from "@/app/actions/admin-coupons";
+
 
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -45,8 +47,12 @@ export default function CouponsLedgerPage() {
   }, []);
 
   const loadCoupons = async () => {
-    const list = await db.getCoupons();
-    setCoupons(list);
+    const res = await getCouponsAction();
+    if (!res.success) {
+      triggerToast(res.error || "Failed to load coupons");
+      return;
+    }
+    setCoupons(res.coupons || []);
   };
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
@@ -61,22 +67,20 @@ export default function CouponsLedgerPage() {
       return;
     }
 
-    const list = await db.getCoupons();
-    const exists = list.some((c) => c.code.toUpperCase() === code);
-    if (exists) {
-      triggerToast("Coupon code already exists");
-      return;
+    const existing = await getCouponsAction();
+    if (existing.success) {
+      const exists = (existing.coupons || []).some((c) => c.code.toUpperCase() === code);
+      if (exists) {
+        triggerToast("Coupon code already exists");
+        return;
+      }
     }
 
-    const newCoupon: Coupon = {
-      id: "CPN-" + Math.floor(Math.random() * 9000 + 1000),
-      code: code,
-      discount: cpnValue,
-      type: cpnType,
-      active: true,
-    };
-
-    await db.saveCoupon(newCoupon);
+    const res = await saveCouponAction({ code, discount: cpnValue, type: cpnType, active: true });
+    if (!res.success) {
+      triggerToast(res.error || "Failed to create coupon");
+      return;
+    }
     setAddModalOpen(false);
     setCpnCode("");
     setCpnValue(0);
@@ -92,7 +96,11 @@ export default function CouponsLedgerPage() {
 
   const confirmDeleteCoupon = async () => {
     if (!deleteTargetId) return;
-    await db.deleteCoupon(deleteTargetId);
+    const res = await deleteCouponAction(deleteTargetId);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to delete coupon");
+      return;
+    }
     triggerToast("Coupon deleted successfully");
     setDeleteTargetId(null);
     setDeleteTargetCode(null);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Order } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getOrdersAction } from "@/app/actions/admin-reads";
 
 export default function InvoicesLedgerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -45,7 +45,12 @@ export default function InvoicesLedgerPage() {
   }, []);
 
   const loadInvoices = async () => {
-    const ordersList = await db.getOrders();
+    const res = await getOrdersAction();
+    if (!res.success) {
+      triggerToast(res.error || "Failed to load orders");
+      return;
+    }
+    const ordersList = res.orders || [];
     setOrders(ordersList);
 
     let billedSum = 0;

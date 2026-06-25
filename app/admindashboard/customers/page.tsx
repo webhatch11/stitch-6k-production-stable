@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getCustomersAction } from "@/app/actions/admin-reads";
 
 interface CustomerData {
   name: string;
@@ -25,8 +25,12 @@ export default function CustomersManagementPage() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const data = await db.getCustomers();
-      setCustomers(data);
+      const res = await getCustomersAction();
+      if (!res.success) {
+        console.error("Failed to load customers:", res.error);
+        return;
+      }
+      setCustomers(res.customers || []);
     } catch (err) {
       console.error("Failed to load customers:", err);
     } finally {

@@ -92,3 +92,73 @@ export async function deleteProductAction(productId: string) {
     return { success: false, error: e.message || "Delete failed" };
   }
 }
+
+export async function restockProductAction(
+  productId: string,
+  addPerSize: number
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser();
+  if (!user || user.role !== "admin") {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
+  if (!Number.isInteger(addPerSize) || addPerSize <= 0) {
+    return { success: false, error: "addPerSize must be a positive integer" };
+  }
+  try {
+    const products = await db.getProducts();
+    const product = products.find((p) => p.id === productId);
+    if (!product) return { success: false, error: "Product not found" };
+    const s = product.sizeStock || {};
+    const newSizeStock = {
+      S: (s.S || 0) + addPerSize,
+      M: (s.M || 0) + addPerSize,
+      L: (s.L || 0) + addPerSize,
+      XL: (s.XL || 0) + addPerSize,
+      XXL: (s.XXL || 0) + addPerSize,
+    };
+    const newTotal =
+      newSizeStock.S + newSizeStock.M + newSizeStock.L + newSizeStock.XL + newSizeStock.XXL;
+    await db.saveProduct({ ...product, sizeStock: newSizeStock, stock: newTotal });
+    return { success: true };
+  } catch (e: any) {
+    console.error("[restockProductAction]", e);
+    return { success: false, error: e.message || "Restock failed" };
+  }
+}
+
+export async function adjustProductSizeAction(
+  productId: string,
+  size: "S" | "M" | "L" | "XL" | "XXL",
+  diff: number
+): Promise<{ success: boolean; error?: string }> {
+  const user = await getServerUser();
+  if (!user || user.role !== "admin") {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
+  const validSizes = ["S", "M", "L", "XL", "XXL"];
+  if (!validSizes.includes(size)) return { success: false, error: "Invalid size" };
+  if (!Number.isInteger(diff) || diff === 0) {
+    return { success: false, error: "diff must be a non-zero integer" };
+  }
+  try {
+    const products = await db.getProducts();
+    const product = products.find((p) => p.id === productId);
+    if (!product) return { success: false, error: "Product not found" };
+    const s = product.sizeStock || {};
+    const newVal = Math.max(0, (s[size] || 0) + diff);
+    const newSizeStock = { ...s, [size]: newVal };
+    const newTotal =
+      (newSizeStock.S || 0) +
+      (newSizeStock.M || 0) +
+      (newSizeStock.L || 0) +
+      (newSizeStock.XL || 0) +
+      (newSizeStock.XXL || 0);
+    await db.saveProduct({ ...product, sizeStock: newSizeStock, stock: newTotal });
+    return { success: true };
+  } catch (e: any) {
+    console.error("[adjustProductSizeAction]", e);
+    return { success: false, error: e.message || "Adjust failed" };
+  }
+}

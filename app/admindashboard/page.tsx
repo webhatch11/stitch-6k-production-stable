@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Order, Product } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getDashboardMetricsAction, getOrdersAction, getProductsAction } from "@/app/actions/admin-reads";
+import { deleteProductAction } from "@/app/actions/admin-products";
+import { bulkUpdateOrderStatusAction, processReturnRefundAction } from "@/app/actions/admin-orders";
 
 export default function AdminDashboardPage() {
   // Metrics
@@ -29,15 +31,6 @@ export default function AdminDashboardPage() {
   // Delete Confirmation States
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [deleteProductTitle, setDeleteProductTitle] = useState<string | null>(null);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-
-  const handleResetPrototype = async () => {
-    setResetConfirmOpen(false);
-    triggerToast("Resetting prototype data...");
-    setTimeout(async () => {
-      await db.resetPrototype();
-    }, 1000);
-  };
 
   const triggerToast = (msg: string) => {
     setToastText(msg);
@@ -67,12 +60,12 @@ export default function AdminDashboardPage() {
   }, []);
 
   const loadAdminData = async () => {
-    const rawMetrics = await db.getDashboardMetrics();
-    setMetrics(rawMetrics);
-    const ordersList = await db.getOrders();
-    setOrders(ordersList);
-    const productsList = await db.getProducts();
-    setProducts(productsList);
+    const metricsRes = await getDashboardMetricsAction();
+    if (metricsRes.success && metricsRes.metrics) setMetrics(metricsRes.metrics);
+    const ordersRes = await getOrdersAction();
+    if (ordersRes.success) setOrders(ordersRes.orders || []);
+    const productsRes = await getProductsAction();
+    if (productsRes.success) setProducts(productsRes.products || []);
   };
 
   const handleDeleteProductClick = (p: Product) => {
@@ -82,32 +75,34 @@ export default function AdminDashboardPage() {
 
   const confirmDeleteProduct = async () => {
     if (!deleteProductId) return;
-    await db.deleteProduct(deleteProductId);
+    const res = await deleteProductAction(deleteProductId);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to remove product");
+      return;
+    }
     triggerToast("Item removed");
     setDeleteProductId(null);
     setDeleteProductTitle(null);
     await loadAdminData();
   };
 
-  // Simulate updating status from the admin board for testing returns
   const handleUpdateStatus = async (orderId: string, nextStatus: string) => {
-    const ordersList = await db.getOrders();
-    const orderIndex = ordersList.findIndex((o) => o.id === orderId);
-    if (orderIndex !== -1) {
-      ordersList[orderIndex].status = nextStatus;
-      await db.saveOrder(ordersList[orderIndex]);
+    const res = await bulkUpdateOrderStatusAction([orderId], nextStatus);
+    if (res.success) {
       triggerToast(`Order #${orderId} status set to ${nextStatus}`);
       await loadAdminData();
+    } else {
+      triggerToast(res.error || "Failed to update status");
     }
   };
 
-  // Process manual refund return simulation
   const handleApproveReturn = async (orderId: string) => {
-    // Quality check passes
-    const success = await db.processReturnRefund(orderId, true);
-    if (success) {
+    const res = await processReturnRefundAction(orderId, true);
+    if (res.success) {
       triggerToast(`Return Refund Processed for #${orderId}`);
       await loadAdminData();
+    } else {
+      triggerToast(res.error || "Failed to process refund");
     }
   };
 
@@ -139,12 +134,6 @@ export default function AdminDashboardPage() {
             </div>
             <span className="material-symbols-outlined text-gray-500">calendar_today</span>
           </div>
-          <button
-            onClick={() => setResetConfirmOpen(true)}
-            className="border border-[#775a19]/35 hover:border-[#775a19] text-[#775a19] px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-[#775a19]/5 transition-all shadow-sm whitespace-nowrap bg-transparent cursor-pointer"
-          >
-            Reset Demo Data
-          </button>
           <button className="bg-[#0a0a0a] text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all shadow-lg whitespace-nowrap">
             Export Sales Report
           </button>
@@ -424,38 +413,6 @@ export default function AdminDashboardPage() {
                 className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
               >
                 Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Reset Database Confirmation Modal */}
-      {resetConfirmOpen && (
-        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
-            <div className="mx-auto w-12 h-12 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600">
-              <span className="material-symbols-outlined text-xl">restart_alt</span>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Reset Demo Data</h3>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
-                Are you sure you want to reset all orders, wallet transactions, and points to the factory seed state?
-              </p>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setResetConfirmOpen(false)}
-                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleResetPrototype}
-                className="flex-1 px-4 py-3 bg-amber-600 text-white hover:bg-amber-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
-              >
-                Reset Database
               </button>
             </div>
           </div>

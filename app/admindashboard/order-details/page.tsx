@@ -4,7 +4,15 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Order, Product } from "@/lib/registry";
-import { db } from "@/lib/db";
+import { getOrdersAction, getProductsAction } from "@/app/actions/admin-reads";
+import {
+  bulkUpdateOrderStatusAction,
+  approvePendingOrderAction,
+  cancelOrderAndRefundAction,
+  approveReturnPickupAction,
+  processReturnRefundAction,
+  rejectReturnAction,
+} from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
   const router = useRouter();
@@ -58,11 +66,14 @@ function OrderDetailsContent() {
   }, [orderId]);
 
   const loadOrderDetails = async () => {
-    const orders = await db.getOrders();
-    const matched = orders.find((o) => o.id === orderId) || (orders.length > 0 ? orders[0] : null);
-    setOrder(matched);
-    const prods = await db.getProducts();
-    setProducts(prods);
+    const ordersRes = await getOrdersAction();
+    if (ordersRes.success) {
+      const list = ordersRes.orders || [];
+      const matched = list.find((o) => o.id === orderId) || (list.length > 0 ? list[0] : null);
+      setOrder(matched ?? null);
+    }
+    const prodsRes = await getProductsAction();
+    if (prodsRes.success) setProducts(prodsRes.products || []);
   };
 
   if (!order) {
@@ -80,20 +91,18 @@ function OrderDetailsContent() {
     );
   }
 
-  // Update order status directly
   const handleUpdateStatus = (newStatus: string) => {
     openConfirmDialog(
       "Update Order Status",
       `Are you sure you want to update the status of Order #${order.id} to "${newStatus}"?`,
       async () => {
-        const orders = await db.getOrders();
-        const idx = orders.findIndex((o) => o.id === order.id);
-        if (idx !== -1) {
-          orders[idx].status = newStatus;
-          await db.saveOrder(orders[idx]);
+        const res = await bulkUpdateOrderStatusAction([order.id], newStatus);
+        if (res.success) {
           triggerToast(`Order status updated to: ${newStatus}`);
           window.dispatchEvent(new Event("storage"));
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to update status");
         }
       }
     );
@@ -104,11 +113,13 @@ function OrderDetailsContent() {
       "Approve Pending Order",
       `Clear Bank Payment & Mark Paid for Order #${order.id}?`,
       async () => {
-        const success = await db.approvePendingOrder(order.id);
-        if (success) {
+        const res = await approvePendingOrderAction(order.id);
+        if (res.success) {
           triggerToast("Payment marked as cleared. Status updated to Paid.");
           window.dispatchEvent(new Event("storage"));
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to approve order");
         }
       }
     );
@@ -169,11 +180,13 @@ function OrderDetailsContent() {
       "Cancel Order & Refund",
       confirmMsg,
       async () => {
-        const success = await db.cancelOrderAndRefund(order.id);
-        if (success) {
+        const res = await cancelOrderAndRefundAction(order.id);
+        if (res.success) {
           triggerToast("Order Cancelled. Refunds & Restocking completed.");
           window.dispatchEvent(new Event("storage"));
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to cancel order");
         }
       }
     );
@@ -185,10 +198,12 @@ function OrderDetailsContent() {
       "Confirm Return Pickup",
       `Confirm scheduled pickup for Order #${order.id}? This will set the order status to "Return in Transit".`,
       async () => {
-        const success = await db.approveReturnPickup(order.id);
-        if (success) {
+        const res = await approveReturnPickupAction(order.id);
+        if (res.success) {
           triggerToast('Pickup scheduled. Status: "Return in Transit"');
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to approve pickup");
         }
       }
     );
@@ -223,14 +238,16 @@ function OrderDetailsContent() {
       "Confirm Receipt & Refund",
       confirmMsg,
       async () => {
-        const success = await db.processReturnRefund(order.id, qualityCheck === "passed");
-        if (success) {
+        const res = await processReturnRefundAction(order.id, qualityCheck === "passed");
+        if (res.success) {
           triggerToast(
             qualityCheck === "passed"
               ? "Quality Check Passed: Refunded & Stock Restocked"
               : "Quality Check Failed: Refunded & Stock Unrestocked"
           );
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to process refund");
         }
       }
     );
@@ -245,12 +262,14 @@ function OrderDetailsContent() {
       "Reject Return Request",
       `Are you sure you want to REJECT the return request for Order #${order.id}?\n\nReason: "${rejectReason}"\n\nNo refund will be processed and the return request will be closed.`,
       async () => {
-        const success = await db.rejectReturn(order.id, rejectReason);
-        if (success) {
+        const res = await rejectReturnAction(order.id, rejectReason);
+        if (res.success) {
           setRejectModalOpen(false);
           setRejectReason("");
           triggerToast("Return Request Rejected");
           await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to reject return");
         }
       }
     );

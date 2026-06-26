@@ -1820,22 +1820,4 @@ export const RegistryManager = {
     localStorage.setItem(TRACKING_LOGS_KEY, JSON.stringify(logs));
   },
 
-  resetPrototype() {
-    if (!isBrowser()) return;
-    localStorage.removeItem(PRODUCTS_KEY);
-    localStorage.removeItem(ORDERS_KEY);
-    localStorage.removeItem(COUPONS_KEY);
-    localStorage.setItem("cartCount", "0");
-    localStorage.removeItem("cart_items");
-    localStorage.removeItem(WALLET_BALANCE_KEY);
-    localStorage.removeItem(WALLET_TX_KEY);
-    localStorage.removeItem(LOYALTY_POINTS_KEY);
-    localStorage.removeItem(LOYALTY_TX_KEY);
-    localStorage.removeItem(ADDRESSES_KEY);
-    localStorage.removeItem(ORDER_STATUS_HISTORY_KEY);
-    localStorage.removeItem(SHIPMENTS_KEY);
-    localStorage.removeItem(SHIPMENT_EVENTS_KEY);
-    localStorage.removeItem(TRACKING_LOGS_KEY);
-    window.location.reload();
-  },
 };

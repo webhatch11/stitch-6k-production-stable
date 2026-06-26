@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { saveProductAction } from "@/app/actions/admin-products";
 import { getProductsAction } from "@/app/actions/admin-reads";
-import CloudinaryUploadWidget from "@/app/admindashboard/CloudinaryUploadWidget";
+import CloudinaryUploadWidget, { type CloudinaryUploadHandle } from "@/app/admindashboard/CloudinaryUploadWidget";
 
 
 function AddProductContent() {
@@ -46,14 +46,13 @@ function AddProductContent() {
   const [gstRate, setGstRate] = useState(12);
   const [discountRate, setDiscountRate] = useState(0);
 
-  // Image Manager Mode: 'upload' | 'urls'
-  const [imageMode, setImageMode] = useState<"upload" | "urls">("upload");
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [imgUrl1, setImgUrl1] = useState("");
-  const [imgUrl2, setImgUrl2] = useState("");
-  const [imgUrl3, setImgUrl3] = useState("");
-  const [imgUrl4, setImgUrl4] = useState("");
-  const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
+  // 4-slot image grid: index 0 = primary cover, 1-3 = secondary images
+  const [selectedImages, setSelectedImages] = useState<string[]>(["", "", "", ""]);
+  // Ref (not state) — onUpload callback closure must read the LATEST
+  // target slot, not the value captured at render time.
+  const pendingSlotRef = useRef<number | null>(null);
+  // Ref to the single Cloudinary widget instance for the entire page
+  const cloudinaryRef = useRef<CloudinaryUploadHandle>(null);
 
   // Success Modal State
   const [successModalText, setSuccessModalText] = useState("");
@@ -69,6 +68,15 @@ function AddProductContent() {
       setShowToast(false);
     }, 3000);
   };
+
+  // Defensive cleanup: restore body scroll if Cloudinary widget leaves it locked
+  useEffect(() => {
+    return () => {
+      if (typeof document !== "undefined") {
+        document.body.style.overflow = "";
+      }
+    };
+  }, []);
 
   // Detect Edit Mode & Pre-populate
   useEffect(() => {
@@ -130,30 +138,14 @@ function AddProductContent() {
           setGstRate(p.gstRate || 12);
           setDiscountRate(p.discountRate || 0);
 
-          // Images
-          const imgList = p.images || (p.image ? [p.image] : []);
-          const hasUrlLinks = imgList.some(
-            (img) => img && (img.startsWith("http") || img.startsWith("//") || img.startsWith("data:") === false)
-          );
+          // Images — populate 4 fixed slots; empty string = empty slot.
+          const imgList = (p.images && p.images.length > 0)
+            ? p.images
+            : (p.image ? [p.image] : []);
 
-          if (hasUrlLinks) {
-            setImageMode("urls");
-            if (imgList[0]) setImgUrl1(imgList[0]);
-            if (imgList[1]) setImgUrl2(imgList[1]);
-            if (imgList[2]) setImgUrl3(imgList[2]);
-            if (imgList[3]) setImgUrl4(imgList[3]);
-            
-            const coverImage = p.image || imgList[0];
-            const foundIndex = imgList.indexOf(coverImage);
-            setPrimaryImageIndex(foundIndex !== -1 ? foundIndex : 0);
-          } else {
-            setImageMode("upload");
-            setSelectedImages(imgList);
-            
-            const coverImage = p.image || imgList[0];
-            const foundIndex = imgList.indexOf(coverImage);
-            setPrimaryImageIndex(foundIndex !== -1 ? foundIndex : 0);
-          }
+          const slotted = [...imgList.slice(0, 4)];
+          while (slotted.length < 4) slotted.push("");
+          setSelectedImages(slotted);
         }
       }
     };
@@ -173,12 +165,6 @@ function AddProductContent() {
 
   const finalPrice = calculateFinalPrice();
 
-  const removeLocalImage = (index: number) => {
-    const updated = [...selectedImages];
-    updated.splice(index, 1);
-    setSelectedImages(updated);
-  };
-
   // Submit and Save
   const handleSaveProduct = async () => {
     if (!title.trim()) {
@@ -192,16 +178,8 @@ function AddProductContent() {
       return;
     }
 
-    // Collect images
-    let productImages: string[] = [];
-    if (imageMode === "urls") {
-      if (imgUrl1.trim()) productImages.push(imgUrl1.trim());
-      if (imgUrl2.trim()) productImages.push(imgUrl2.trim());
-      if (imgUrl3.trim()) productImages.push(imgUrl3.trim());
-      if (imgUrl4.trim()) productImages.push(imgUrl4.trim());
-    } else {
-      productImages = selectedImages;
-    }
+    // Collect images — filter empty slots; slot order = save order
+    let productImages = selectedImages.filter((url) => url && url.trim().length > 0);
 
     if (productImages.length === 0) {
       productImages = [
@@ -209,14 +187,7 @@ function AddProductContent() {
       ];
     }
 
-    // Set primary image first in the list
-    let primaryImage = productImages[0];
-    if (primaryImageIndex > 0 && primaryImageIndex < productImages.length) {
-      const primary = productImages[primaryImageIndex];
-      const others = productImages.filter((_, i) => i !== primaryImageIndex);
-      productImages = [primary, ...others];
-      primaryImage = primary;
-    }
+    const primaryImage = productImages[0];
 
     const input = {
       id: finalSKU,
@@ -263,6 +234,21 @@ function AddProductContent() {
 
   return (
     <div className="p-8 lg:p-16">
+      {/* Single mounted Cloudinary widget — opened programmatically per slot */}
+      <CloudinaryUploadWidget
+        ref={cloudinaryRef}
+        onUpload={(newUrl) => {
+          const slotIdx = pendingSlotRef.current;
+          if (slotIdx === null) return;
+          setSelectedImages((prev) => {
+            const next = [...prev];
+            while (next.length < 4) next.push("");
+            next[slotIdx] = newUrl;
+            return next;
+          });
+          pendingSlotRef.current = null;
+        }}
+      />
       {/* Header bar actions */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
         <div>
@@ -702,203 +688,102 @@ function AddProductContent() {
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#775a19] mb-4 block">
                 Section 05
               </span>
-              <h3 className="font-headline font-black text-xl uppercase tracking-widest text-primary">Media Gallery</h3>
+              <h3 className="font-headline font-black text-xl uppercase tracking-widest text-primary">
+                Media Gallery
+              </h3>
               <p className="text-xs text-gray-500 mt-4 leading-relaxed font-semibold uppercase tracking-wider italic opacity-85">
-                Primary catalog showcase and alternate lifestyle slides.
+                4 image slots. Slot 1 is the primary cover shown on listings.
+                Slots 2–4 are secondary product images.
+              </p>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic opacity-60 mt-3">
+                Cloudinary CDN · Max 10 MB · png, jpg, webp
               </p>
             </div>
-            <div className="lg:col-span-8 space-y-6">
-              {/* Tab options switch */}
-              <div className="flex gap-6 border-b border-gray-200 pb-3">
-                <button
-                  type="button"
-                  onClick={() => setImageMode("upload")}
-                  className={`text-[10px] font-black uppercase tracking-widest pb-3 outline-none whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors ${
-                    imageMode === "upload"
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-gray-400 hover:text-primary border-b-2 border-transparent"
-                  }`}
-                >
-                  Upload Local Files
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setImageMode("urls")}
-                  className={`text-[10px] font-black uppercase tracking-widest pb-3 outline-none whitespace-nowrap bg-transparent border-none cursor-pointer transition-colors ${
-                    imageMode === "urls"
-                      ? "text-primary border-b-2 border-primary"
-                      : "text-gray-400 hover:text-primary border-b-2 border-transparent"
-                  }`}
-                >
-                  Use Image URLs
-                </button>
-              </div>
 
-              {/* Mode 1: Cloudinary Upload */}
-              {imageMode === "upload" && (
-                <div className="space-y-6">
-                  <CloudinaryUploadWidget
-                    onUpload={(urls) => setSelectedImages(urls)}
-                    maxFiles={4}
-                    buttonLabel="Upload via Cloudinary"
-                  />
+            <div className="lg:col-span-8">
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                {[0, 1, 2, 3].map((slotIdx) => {
+                  const url = selectedImages[slotIdx] || "";
+                  const isPrimary = slotIdx === 0;
+                  const isFilled = url.length > 0;
 
-                  {selectedImages.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {selectedImages.map((imgSrc, idx) => (
-                        <div
-                          key={idx}
-                          className={`aspect-[3/4] border-2 relative group overflow-hidden bg-white transition-all ${
-                            primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02]" : "border-gray-200"
-                          }`}
-                        >
-                          <img src={imgSrc} className="w-full h-full object-cover" alt={`Preview ${idx + 1}`} />
+                  const openForSlot = () => {
+                    pendingSlotRef.current = slotIdx;
+                    cloudinaryRef.current?.open();
+                  };
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeLocalImage(idx);
-                              if (primaryImageIndex === idx) {
-                                setPrimaryImageIndex(0);
-                              } else if (primaryImageIndex > idx) {
-                                setPrimaryImageIndex(primaryImageIndex - 1);
-                              }
-                            }}
-                            className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors border-none cursor-pointer opacity-0 group-hover:opacity-100"
-                          >
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          </button>
+                  return (
+                    <div
+                      key={slotIdx}
+                      className={`aspect-square border-2 relative group overflow-hidden bg-gray-50 transition-all ${
+                        isPrimary && isFilled
+                          ? "border-[#fed488] shadow-md"
+                          : "border-gray-200"
+                      }`}
+                    >
+                      {/* Slot label */}
+                      <div
+                        className={`absolute top-2 left-2 z-20 px-2 py-1 text-[8px] font-black uppercase tracking-widest ${
+                          isPrimary
+                            ? "bg-[#fed488] text-[#775a19]"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {isPrimary ? "★ Primary Cover" : `Image ${slotIdx + 1}`}
+                      </div>
 
-                          {primaryImageIndex === idx ? (
-                            <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
-                              <span className="material-symbols-outlined text-[10px]">star</span>
-                              Primary Cover
-                            </div>
-                          ) : (
+                      {isFilled ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`Slot ${slotIdx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+
+                          {/* Overlay buttons on hover */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setPrimaryImageIndex(idx)}
-                              className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
+                              onClick={openForSlot}
+                              className="px-4 py-2 bg-white text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#fed488] transition-colors border-none cursor-pointer"
                             >
-                              Set as Cover
+                              Replace
                             </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic opacity-60">
-                    Uploads go to Cloudinary CDN. Up to 4 images. Select one as Primary Cover.
-                  </p>
-                </div>
-              )}
-
-              {/* Mode 2: URLs inputs */}
-              {imageMode === "urls" && (
-                <div className="space-y-6 bg-white p-6 border border-gray-200">
-                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 leading-relaxed">
-                    Enter direct image addresses (CDN links) to prevent browser quota limit overflows.
-                  </p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[9px] font-black text-gray-400 mb-1.5 block">Showcase Cover Image</label>
-                      <input
-                        type="text"
-                        value={imgUrl1}
-                        onChange={(e) => setImgUrl1(e.target.value)}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-primary rounded-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] font-black text-gray-400 mb-1.5 block">Lifestyle Flip Image</label>
-                      <input
-                        type="text"
-                        value={imgUrl2}
-                        onChange={(e) => setImgUrl2(e.target.value)}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-primary rounded-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] font-black text-gray-400 mb-1.5 block">Detail Angle 1</label>
-                      <input
-                        type="text"
-                        value={imgUrl3}
-                        onChange={(e) => setImgUrl3(e.target.value)}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-primary rounded-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] font-black text-gray-400 mb-1.5 block">Detail Angle 2</label>
-                      <input
-                        type="text"
-                        value={imgUrl4}
-                        onChange={(e) => setImgUrl4(e.target.value)}
-                        placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-primary rounded-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* URL previews */}
-                  <div className="pt-6 border-t border-dashed border-gray-200">
-                    <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-3 block">
-                      Live URL Previews & Primary Selector
-                    </label>
-                    <div className="grid grid-cols-4 gap-4">
-                      {[imgUrl1, imgUrl2, imgUrl3, imgUrl4].map((urlStr, idx) => {
-                        const isVal = urlStr.trim().length > 0;
-                        return (
-                          <div
-                            key={idx}
-                            className={`aspect-[3/4] border-2 relative group overflow-hidden bg-gray-50 flex items-center justify-center text-center transition-all ${
-                              isVal && primaryImageIndex === idx ? "border-[#fed488] shadow-md scale-[1.02] bg-white" : "border-gray-200"
-                            }`}
-                          >
-                            {isVal ? (
-                              <>
-                                <img
-                                  src={urlStr.trim()}
-                                  className="w-full h-full object-cover"
-                                  alt={`URL Preview ${idx + 1}`}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "https://via.placeholder.com/150?text=Invalid+URL";
-                                  }}
-                                />
-                                
-                                {/* Cover Image Action/Status */}
-                                {primaryImageIndex === idx ? (
-                                  <div className="absolute bottom-0 left-0 right-0 bg-[#fed488] text-[#775a19] py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1">
-                                    <span className="material-symbols-outlined text-[10px]">star</span>
-                                    Primary Cover
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setPrimaryImageIndex(idx)}
-                                    className="absolute bottom-0 left-0 right-0 bg-black/75 hover:bg-[#fed488] hover:text-[#775a19] text-white py-2 px-2 text-[8px] font-black uppercase tracking-widest text-center border-none cursor-pointer transition-colors opacity-0 group-hover:opacity-100"
-                                  >
-                                    Set as Cover
-                                  </button>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-gray-400 text-[8px] font-black uppercase tracking-widest">
-                                Slot {idx + 1} Empty
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImages((prev) => {
+                                  const next = [...prev];
+                                  while (next.length < 4) next.push("");
+                                  next[slotIdx] = "";
+                                  return next;
+                                });
+                              }}
+                              className="px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-none cursor-pointer"
+                            >
+                              Delete
+                            </button>
                           </div>
-                        );
-                      })}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={openForSlot}
+                          className="w-full h-full flex flex-col items-center justify-center gap-2 bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-2xl text-gray-400">
+                            add_photo_alternate
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                            Click to upload
+                          </span>
+                        </button>
+                      )}
                     </div>
-                  </div>
-                </div>
-              )}
+                  );
+                })}
+              </div>
             </div>
           </div>
         </form>

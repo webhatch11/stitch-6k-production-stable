@@ -10,14 +10,14 @@ import {
   LoyaltyTransaction,
 } from "@/lib/registry";
 
-export async function getProductsAction(): Promise<{
+export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean }): Promise<{
   success: boolean;
   products?: Product[];
   error?: string;
 }> {
   try {
     await requireAdmin();
-    const products = await db.getProducts();
+    const products = await db.getProducts(options);
     return { success: true, products };
   } catch (e: any) {
     return { success: false, error: e.message || "Failed to load products" };

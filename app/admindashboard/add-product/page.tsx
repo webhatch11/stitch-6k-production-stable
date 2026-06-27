@@ -334,6 +334,7 @@ function AddProductContent() {
         triggerToast(result.error || "Failed to save product");
         return;
       }
+      router.refresh();
       setSuccessModalText(editProductId ? "Product updated successfully!" : "Product created successfully!");
     } catch (e: any) {
       console.error(e);

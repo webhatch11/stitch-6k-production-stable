@@ -1,6 +1,8 @@
 "use server";
 
 import { getServerUser } from "@/lib/supabase-server";
+import { requireAdmin } from "@/lib/admin-auth";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { Product } from "@/lib/registry";
 import { z } from "zod";
@@ -67,6 +69,10 @@ export async function saveProductAction(input: unknown) {
 
   try {
     await db.saveProduct(payload);
+    revalidatePath("/admindashboard/inventory");
+    revalidatePath("/shopallshirts");
+    revalidatePath("/genz");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (e: any) {
     console.error("[saveProductAction] error:", e);
@@ -74,22 +80,39 @@ export async function saveProductAction(input: unknown) {
   }
 }
 
-export async function deleteProductAction(productId: string) {
-  const user = await getServerUser();
-  if (!user || user.role !== "admin") {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  if (!productId || typeof productId !== "string") {
-    return { success: false, error: "Invalid product ID" };
-  }
-
+export async function deleteProductAction(id: string) {
   try {
-    await db.deleteProduct(productId);
+    await requireAdmin();
+    if (!id || typeof id !== "string") {
+      return { success: false, error: "Invalid product ID" };
+    }
+    const ok = await db.softDeleteProduct(id);
+    if (!ok) return { success: false, error: "Product not found" };
+    revalidatePath("/admindashboard/inventory");
+    revalidatePath("/shopallshirts");
+    revalidatePath("/genz");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (e: any) {
-    console.error("[deleteProductAction] error:", e);
-    return { success: false, error: e.message || "Delete failed" };
+    return { success: false, error: e.message || "Failed to delete product" };
+  }
+}
+
+export async function restoreProductAction(id: string) {
+  try {
+    await requireAdmin();
+    if (!id || typeof id !== "string") {
+      return { success: false, error: "Invalid product ID" };
+    }
+    const ok = await db.restoreProduct(id);
+    if (!ok) return { success: false, error: "Product not found" };
+    revalidatePath("/admindashboard/inventory");
+    revalidatePath("/shopallshirts");
+    revalidatePath("/genz");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Failed to restore product" };
   }
 }
 

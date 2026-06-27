@@ -78,6 +78,7 @@ const mapDbProductToProduct = (p: any): Product => {
     colors: p.colors || [],
     ratings: p.ratings ? Number(p.ratings) : undefined,
     reviews: p.reviews || [],
+    deleted_at: p.deleted_at || null,
   };
 };
 
@@ -131,27 +132,41 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
 
 export const db = {
   // --- Products ---
-  async getProducts(): Promise<Product[]> {
+  async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean }): Promise<Product[]> {
     const { supabase, isSupabaseConfigured } = loadService();
-    const cached = await CacheService.get<Product[]>("products:list");
+    const cacheKey = options?.trashedOnly
+      ? "products:list:trashed"
+      : options?.includeDeleted
+        ? "products:list:all"
+        : "products:list";
+    const cached = await CacheService.get<Product[]>(cacheKey);
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
       const res = await RegistryManager.getProducts();
-      await CacheService.set("products:list", res, 600);
+      await CacheService.set(cacheKey, res, 600);
       return res;
     }
-    const { data, error } = await supabase
+
+    let query = supabase
       .from("products")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (options?.trashedOnly) {
+      query = query.not("deleted_at", "is", null);
+    } else if (!options?.includeDeleted) {
+      query = query.is("deleted_at", null);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching products from Supabase:", error);
       return [];
     }
     const res = (data || []).map(mapDbProductToProduct);
-    await CacheService.set("products:list", res, 600);
+    await CacheService.set(cacheKey, res, 600);
     return res;
   },
 
@@ -159,12 +174,9 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate caches
     await CacheService.del("products:list");
-    if (product.slug) {
-      await CacheService.del(`products:slug:${product.slug}`);
-    } else if (product.title) {
-      const resolvedSlug = product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-      await CacheService.del(`products:slug:${resolvedSlug}`);
-    }
+    await CacheService.del("products:list:all");
+    await CacheService.del("products:list:trashed");
+    await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.saveProduct(product);
@@ -225,6 +237,7 @@ export const db = {
       .from("products")
       .select("*")
       .eq("slug", slug)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (error) {
@@ -248,6 +261,7 @@ export const db = {
       .from("products")
       .select("*")
       .neq("slug", slug)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -275,6 +289,62 @@ export const db = {
       console.error("Error deleting product from Supabase:", error);
       throw error;
     }
+  },
+
+  async softDeleteProduct(id: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    const { data: existing } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("id", id)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("products")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) return false;
+
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.del("products:list:trashed");
+    if (existing?.slug) {
+      await CacheService.del(`products:slug:${existing.slug}`);
+    }
+    await CacheService.delPattern("products:slug:*");
+
+    return true;
+  },
+
+  async restoreProduct(id: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    const { data: existing } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("id", id)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("products")
+      .update({ deleted_at: null })
+      .eq("id", id);
+
+    if (error) return false;
+
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.del("products:list:trashed");
+    if (existing?.slug) {
+      await CacheService.del(`products:slug:${existing.slug}`);
+    }
+    await CacheService.delPattern("products:slug:*");
+
+    return true;
   },
 
   // --- Orders ---

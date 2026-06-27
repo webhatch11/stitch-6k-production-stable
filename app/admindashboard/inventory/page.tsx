@@ -2,16 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { getProductsAction } from "@/app/actions/admin-reads";
 import {
   deleteProductAction,
+  restoreProductAction,
   restockProductAction,
   adjustProductSizeAction,
 } from "@/app/actions/admin-products";
 
 export default function InventoryLedgerPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [showTrash, setShowTrash] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<"all" | "inStock" | "lowStock" | "outOfStock">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,10 +51,11 @@ export default function InventoryLedgerPage() {
     return () => {
       window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTrash]);
 
   const loadProducts = async () => {
-    const res = await getProductsAction();
+    const res = await getProductsAction({ trashedOnly: showTrash });
     if (!res.success) {
       triggerToast(res.error || "Failed to load products");
       return;
@@ -73,6 +78,7 @@ export default function InventoryLedgerPage() {
     triggerToast("Product removed successfully");
     setModalType(null);
     setTargetProduct(null);
+    router.refresh();
     await loadProducts();
   };
 
@@ -190,6 +196,18 @@ export default function InventoryLedgerPage() {
               className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full sm:w-72 shadow-sm rounded-none"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
+            className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-widest border-2 transition-all whitespace-nowrap rounded-none flex items-center gap-2 ${
+              showTrash
+                ? "bg-red-600 text-white border-red-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">delete</span>
+            {showTrash ? "Showing Trash" : "View Trash"}
+          </button>
           <Link
             href="/admindashboard/add-product"
             className="bg-primary text-white hover:bg-secondary px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none"
@@ -254,12 +272,13 @@ export default function InventoryLedgerPage() {
                 paginatedProducts.map((p) => {
                   const stockCount = p.stock || 0;
                   const pImage = p.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200";
+                  const isDeleted = !!p.deleted_at;
 
                   return (
-                    <tr key={p.id} className="group border-b border-gray-100 hover:bg-[#fafafa] transition-colors animate-fade-in">
+                    <tr key={p.id} className={`group border-b border-gray-100 hover:bg-[#fafafa] transition-colors animate-fade-in ${isDeleted ? "opacity-50" : ""}`}>
                       <td className="p-6">
                         <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden transition-all ${
-                          stockCount > 0 ? "" : "grayscale opacity-60 border-red-200"
+                          stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"
                         }`}>
                           <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                         </div>
@@ -269,70 +288,98 @@ export default function InventoryLedgerPage() {
                         <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wide">
                           SKU: {p.id || "N/A"} • {p.category || "General"}
                         </p>
+                        {isDeleted && (
+                          <span className="text-red-600 text-[9px] font-black uppercase tracking-widest">TRASHED</span>
+                        )}
                       </td>
                       <td className="p-6 font-headline font-black text-sm">
                         ₹{(p.price || 0).toLocaleString("en-IN")}.00
                       </td>
                       <td className="p-6">
-                        <div className="flex flex-col gap-2.5">
-                          <div className="flex items-center gap-3">
-                            <span className={`px-2.5 py-0.5 ${getStockStatusStyle(stockCount)} text-[8px] font-black uppercase tracking-widest rounded-none`}>
-                              {getStockStatusText(stockCount)}
-                            </span>
-                            <span className="text-xs font-black">Total: <strong className="font-mono">{stockCount}</strong></span>
-                          </div>
-                          
-                          {/* Sizing Stock Modification Sub-grid and Restock Button in Single Line */}
-                          <div className="flex items-center gap-4 flex-wrap max-w-lg mt-1 text-[10px]">
-                            <div className="flex gap-2 flex-wrap">
-                              {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
-                                const currentVal = p.sizeStock?.[size] || 0;
-                                return (
-                                  <div key={size} className="flex items-center border border-gray-200 bg-white shadow-sm p-1 rounded-none select-none">
-                                    <span className="font-black px-1.5 border-r border-gray-100">{size}</span>
-                                    <button
-                                      onClick={() => handleInlineAdjust(p.id, size, -1)}
-                                      className="px-1 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
-                                    <button
-                                      onClick={() => handleInlineAdjust(p.id, size, 1)}
-                                      className="px-1 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                );
-                              })}
+                        {!isDeleted ? (
+                          <div className="flex flex-col gap-2.5">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-2.5 py-0.5 ${getStockStatusStyle(stockCount)} text-[8px] font-black uppercase tracking-widest rounded-none`}>
+                                {getStockStatusText(stockCount)}
+                              </span>
+                              <span className="text-xs font-black">Total: <strong className="font-mono">{stockCount}</strong></span>
                             </div>
 
-                            <button
-                              onClick={() => handleRestockClick(p)}
-                              className="bg-secondary hover:bg-[#0a0a0a] text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-md select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
-                            >
-                              Restock
-                            </button>
+                            {/* Sizing Stock Modification Sub-grid and Restock Button in Single Line */}
+                            <div className="flex items-center gap-4 flex-wrap max-w-lg mt-1 text-[10px]">
+                              <div className="flex gap-2 flex-wrap">
+                                {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
+                                  const currentVal = p.sizeStock?.[size] || 0;
+                                  return (
+                                    <div key={size} className="flex items-center border border-gray-200 bg-white shadow-sm p-1 rounded-none select-none">
+                                      <span className="font-black px-1.5 border-r border-gray-100">{size}</span>
+                                      <button
+                                        onClick={() => handleInlineAdjust(p.id, size, -1)}
+                                        className="px-1 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
+                                      <button
+                                        onClick={() => handleInlineAdjust(p.id, size, 1)}
+                                        className="px-1 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <button
+                                onClick={() => handleRestockClick(p)}
+                                className="bg-secondary hover:bg-[#0a0a0a] text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-md select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
+                              >
+                                Restock
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">—</span>
+                        )}
                       </td>
                       <td className="p-6 text-right">
                         <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/admindashboard/add-product?edit=${p.id}`}
-                            className="p-2 text-primary hover:bg-[#fed488]/20 hover:text-secondary transition-colors inline-block rounded-none border border-transparent hover:border-secondary/10"
-                            title="Edit"
-                          >
-                            <span className="material-symbols-outlined text-lg flex items-center justify-center">edit</span>
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteProduct(p)}
-                            className="p-2 text-red-500 hover:bg-red-50 transition-colors inline-block rounded-none border border-transparent bg-transparent cursor-pointer"
-                            title="Delete"
-                          >
-                            <span className="material-symbols-outlined text-lg flex items-center justify-center">delete</span>
-                          </button>
+                          {isDeleted ? (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const result = await restoreProductAction(p.id);
+                                if (result.success) {
+                                  router.refresh();
+                                  const r = await getProductsAction({ trashedOnly: showTrash });
+                                  if (r.success) setProducts(r.products || []);
+                                } else {
+                                  triggerToast(result.error || "Failed to restore");
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
+                            >
+                              Restore
+                            </button>
+                          ) : (
+                            <>
+                              <Link
+                                href={`/admindashboard/add-product?edit=${p.id}`}
+                                className="p-2 text-primary hover:bg-[#fed488]/20 hover:text-secondary transition-colors inline-block rounded-none border border-transparent hover:border-secondary/10"
+                                title="Edit"
+                              >
+                                <span className="material-symbols-outlined text-lg flex items-center justify-center">edit</span>
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteProduct(p)}
+                                className="p-2 text-red-500 hover:bg-red-50 transition-colors inline-block rounded-none border border-transparent bg-transparent cursor-pointer"
+                                title="Delete"
+                              >
+                                <span className="material-symbols-outlined text-lg flex items-center justify-center">delete</span>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -353,12 +400,13 @@ export default function InventoryLedgerPage() {
             paginatedProducts.map((p) => {
               const stockCount = p.stock || 0;
               const pImage = p.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200";
+              const isDeleted = !!p.deleted_at;
 
               return (
-                <div key={p.id} className="p-6 hover:bg-[#fafafa] transition-colors flex flex-col gap-4 animate-fade-in">
+                <div key={p.id} className={`p-6 hover:bg-[#fafafa] transition-colors flex flex-col gap-4 animate-fade-in ${isDeleted ? "opacity-50" : ""}`}>
                   <div className="flex gap-4">
                     <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden shrink-0 transition-all ${
-                      stockCount > 0 ? "" : "grayscale opacity-60 border-red-200"
+                      stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"
                     }`}>
                       <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                     </div>
@@ -370,66 +418,92 @@ export default function InventoryLedgerPage() {
                       <p className="font-headline font-black text-sm mt-1 text-secondary">
                         ₹{(p.price || 0).toLocaleString("en-IN")}.00
                       </p>
+                      {isDeleted && (
+                        <span className="text-red-600 text-[9px] font-black uppercase tracking-widest">TRASHED</span>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Stock and Inline Adjustments */}
-                  <div className="space-y-3 pt-2 border-t border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <span className={`px-2.5 py-0.5 ${getStockStatusStyle(stockCount)} text-[8px] font-black uppercase tracking-widest rounded-none`}>
-                        {getStockStatusText(stockCount)}
-                      </span>
-                      <span className="text-xs font-black">Total Stock: <strong className="font-mono">{stockCount}</strong></span>
-                    </div>
 
-                    <div className="flex gap-1.5 flex-wrap text-[10px]">
-                      {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
-                        const currentVal = p.sizeStock?.[size] || 0;
-                        return (
-                          <div key={size} className="flex items-center border border-gray-200 bg-white p-1 rounded-none select-none flex-1 justify-between min-w-[50px]">
-                            <span className="font-black px-1 border-r border-gray-100">{size}</span>
-                            <button
-                              onClick={() => handleInlineAdjust(p.id, size, -1)}
-                              className="px-0.5 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                            >
-                              -
-                            </button>
-                            <span className="font-mono px-0.5 min-w-[10px] text-center font-bold">{currentVal}</span>
-                            <button
-                              onClick={() => handleInlineAdjust(p.id, size, 1)}
-                              className="px-0.5 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
-                        );
-                      })}
+                  {/* Stock and Inline Adjustments — hidden for trashed products */}
+                  {!isDeleted && (
+                    <div className="space-y-3 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <span className={`px-2.5 py-0.5 ${getStockStatusStyle(stockCount)} text-[8px] font-black uppercase tracking-widest rounded-none`}>
+                          {getStockStatusText(stockCount)}
+                        </span>
+                        <span className="text-xs font-black">Total Stock: <strong className="font-mono">{stockCount}</strong></span>
+                      </div>
+
+                      <div className="flex gap-1.5 flex-wrap text-[10px]">
+                        {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
+                          const currentVal = p.sizeStock?.[size] || 0;
+                          return (
+                            <div key={size} className="flex items-center border border-gray-200 bg-white p-1 rounded-none select-none flex-1 justify-between min-w-[50px]">
+                              <span className="font-black px-1 border-r border-gray-100">{size}</span>
+                              <button
+                                onClick={() => handleInlineAdjust(p.id, size, -1)}
+                                className="px-0.5 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                              >
+                                -
+                              </button>
+                              <span className="font-mono px-0.5 min-w-[10px] text-center font-bold">{currentVal}</span>
+                              <button
+                                onClick={() => handleInlineAdjust(p.id, size, 1)}
+                                className="px-0.5 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                              >
+                                +
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                    <button
-                      onClick={() => handleRestockClick(p)}
-                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-secondary text-white border border-transparent px-4 py-2 cursor-pointer shadow-sm font-bold rounded-none active:scale-95 whitespace-nowrap"
-                    >
-                      <span className="material-symbols-outlined text-sm">inventory</span>
-                      Restock
-                    </button>
-                    <Link
-                      href={`/admindashboard/add-product?edit=${p.id}`}
-                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary border border-gray-200 px-3 py-1.5 font-bold"
-                    >
-                      <span className="material-symbols-outlined text-sm">edit</span>
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteProduct(p)}
-                      className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 border border-red-200 px-3 py-1.5 bg-transparent cursor-pointer font-bold"
-                    >
-                      <span className="material-symbols-outlined text-sm">delete</span>
-                      Delete
-                    </button>
+                    {isDeleted ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const result = await restoreProductAction(p.id);
+                          if (result.success) {
+                            router.refresh();
+                            const r = await getProductsAction({ trashedOnly: showTrash });
+                            if (r.success) setProducts(r.products || []);
+                          } else {
+                            triggerToast(result.error || "Failed to restore");
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleRestockClick(p)}
+                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-secondary text-white border border-transparent px-4 py-2 cursor-pointer shadow-sm font-bold rounded-none active:scale-95 whitespace-nowrap"
+                        >
+                          <span className="material-symbols-outlined text-sm">inventory</span>
+                          Restock
+                        </button>
+                        <Link
+                          href={`/admindashboard/add-product?edit=${p.id}`}
+                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary border border-gray-200 px-3 py-1.5 font-bold"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteProduct(p)}
+                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-red-500 border border-red-200 px-3 py-1.5 bg-transparent cursor-pointer font-bold"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               );

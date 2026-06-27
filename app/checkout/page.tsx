@@ -40,6 +40,21 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
   const [codAllowed, setCodAllowed] = useState(true);
   const [codReason, setCodReason] = useState("");
+  const [globalCodEnabled, setGlobalCodEnabled] = useState(() => {
+    return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
+  });
+
+  // Load global COD flag on mount
+  useEffect(() => {
+    import("@/app/actions/admin-settings").then(({ getSettingAction }) => {
+      getSettingAction("flags").then((res) => {
+        if (res.success && res.value) {
+          const enabled = res.value.cod_enabled ?? true;
+          setGlobalCodEnabled(enabled);
+        }
+      });
+    });
+  }, []);
 
   // Zustand Store Connection
   const {
@@ -151,6 +166,14 @@ export default function CheckoutPage() {
   // Evaluate COD Eligibility dynamically
   useEffect(() => {
     if (isHydrated) {
+      if (!globalCodEnabled) {
+        setCodAllowed(false);
+        setCodReason("Cash on Delivery is currently disabled.");
+        if (paymentMethod === "cod") {
+          setPaymentMethod("online");
+        }
+        return;
+      }
       if (selectedAddress) {
         import("@/lib/codRules").then(({ evaluateCodRules }) => {
           const res = evaluateCodRules({
@@ -172,7 +195,7 @@ export default function CheckoutPage() {
         }
       }
     }
-  }, [isHydrated, selectedAddress, finalPayable, user, paymentMethod]);
+  }, [isHydrated, selectedAddress, finalPayable, user, paymentMethod, globalCodEnabled]);
 
   // Coupon Code Validation
   const handleApplyCoupon = async () => {
@@ -788,23 +811,25 @@ export default function CheckoutPage() {
                       </label>
 
                       {/* Cash on Delivery Option */}
-                      <label className={`flex items-center gap-3 border p-4 transition-all ${!codAllowed ? "opacity-50 cursor-not-allowed bg-neutral-100/10" : "cursor-pointer"} ${paymentMethod === "cod" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="cod"
-                          disabled={!codAllowed}
-                          checked={paymentMethod === "cod"}
-                          onChange={() => setPaymentMethod("cod")}
-                          className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
-                        />
-                        <div className="flex flex-col text-left">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Cash on Delivery (COD)</span>
-                          <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">
-                            {codAllowed ? "Pay cash at your doorstep" : `COD Unavailable: ${codReason}`}
-                          </span>
-                        </div>
-                      </label>
+                      {globalCodEnabled && (
+                        <label className={`flex items-center gap-3 border p-4 transition-all ${!codAllowed ? "opacity-50 cursor-not-allowed bg-neutral-100/10" : "cursor-pointer"} ${paymentMethod === "cod" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="cod"
+                            disabled={!codAllowed}
+                            checked={paymentMethod === "cod"}
+                            onChange={() => setPaymentMethod("cod")}
+                            className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
+                          />
+                          <div className="flex flex-col text-left">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Cash on Delivery (COD)</span>
+                            <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">
+                              {codAllowed ? "Pay cash at your doorstep" : `COD Unavailable: ${codReason}`}
+                            </span>
+                          </div>
+                        </label>
+                      )}
                     </div>
                   </div>
 

@@ -5,7 +5,6 @@ import { Coupon } from "@/lib/registry";
 import { getCouponsAction } from "@/app/actions/admin-reads";
 import { saveCouponAction, deleteCouponAction } from "@/app/actions/admin-coupons";
 
-
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -14,6 +13,14 @@ export default function CouponsLedgerPage() {
   const [cpnCode, setCpnCode] = useState("");
   const [cpnValue, setCpnValue] = useState(0);
   const [cpnType, setCpnType] = useState<"percent" | "flat">("percent");
+
+  // Edit Coupon Form
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editValue, setEditValue] = useState(0);
+  const [editType, setEditType] = useState<"percent" | "flat">("percent");
+  const [editActive, setEditActive] = useState(true);
 
   // Delete Confirmation State
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -89,6 +96,54 @@ export default function CouponsLedgerPage() {
     await loadCoupons();
   };
 
+  const handleOpenEditModal = (c: Coupon) => {
+    setEditingCoupon(c);
+    setEditCode(c.code);
+    setEditValue(c.discount);
+    setEditType(c.type);
+    setEditActive(c.active);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEditCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCoupon) return;
+    const code = editCode.trim().toUpperCase();
+    if (!code) {
+      triggerToast("Please enter a coupon code");
+      return;
+    }
+    if (editValue <= 0) {
+      triggerToast("Please enter a valid discount value");
+      return;
+    }
+
+    const existing = await getCouponsAction();
+    if (existing.success) {
+      const exists = (existing.coupons || []).some((c) => c.id !== editingCoupon.id && c.code.toUpperCase() === code);
+      if (exists) {
+        triggerToast("Coupon code already exists");
+        return;
+      }
+    }
+
+    const res = await saveCouponAction({
+      id: editingCoupon.id,
+      code,
+      discount: editValue,
+      type: editType,
+      active: editActive,
+    });
+    if (!res.success) {
+      triggerToast(res.error || "Failed to update coupon");
+      return;
+    }
+    setEditModalOpen(false);
+    setEditingCoupon(null);
+    triggerToast("Coupon updated successfully");
+    await loadCoupons();
+  };
+
   const handleDeleteCoupon = (c: Coupon) => {
     setDeleteTargetId(c.id);
     setDeleteTargetCode(c.code);
@@ -119,7 +174,7 @@ export default function CouponsLedgerPage() {
       <header className="flex justify-between items-center mb-16">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
-            <span>Admin Panel</span>
+            <span>Admin Portal</span>
             <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
             <span className="text-[#0a0a0a] italic">Promotions</span>
           </nav>
@@ -174,17 +229,27 @@ export default function CouponsLedgerPage() {
                       {c.type}
                     </td>
                     <td className="px-8 py-6">
-                      <span className="px-3 py-1 bg-green-50 text-green-700 text-[9px] font-black uppercase tracking-widest rounded-none border border-green-200/50">
-                        Active
+                      <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-none border ${c.active ? "bg-green-50 text-green-700 border-green-200/50" : "bg-gray-50 text-gray-500 border-gray-200/50"}`}>
+                        {c.active ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <button
-                        onClick={() => handleDeleteCoupon(c)}
-                        className="material-symbols-outlined text-gray-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-1 transition-colors flex items-center justify-center inline-block ml-auto"
-                      >
-                        delete
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => handleOpenEditModal(c)}
+                          className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer p-1 transition-colors flex items-center justify-center"
+                          title="Edit Coupon"
+                        >
+                          edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCoupon(c)}
+                          className="material-symbols-outlined text-gray-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-1 transition-colors flex items-center justify-center"
+                          title="Delete Coupon"
+                        >
+                          delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -263,6 +328,87 @@ export default function CouponsLedgerPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Coupon Modal */}
+      {editModalOpen && editingCoupon && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md p-10 border border-gray-200 rounded-none text-left">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-headline font-black tracking-tighter uppercase">Edit Coupon</h3>
+              <button
+                onClick={() => {
+                  setEditModalOpen(false);
+                  setEditingCoupon(null);
+                }}
+                className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer flex items-center justify-center"
+              >
+                close
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditCoupon} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Coupon Code
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 uppercase font-bold tracking-widest text-sm py-3 px-4 rounded-none"
+                  placeholder="e.g. HERITAGE20"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Discount Value
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    value={editValue || ""}
+                    onChange={(e) => setEditValue(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                    placeholder="20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Type</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value as any)}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                  >
+                    <option value="percent">Percentage (%)</option>
+                    <option value="flat">Flat Amount (₹)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  id="edit-active-flag"
+                  type="checkbox"
+                  checked={editActive}
+                  onChange={(e) => setEditActive(e.target.checked)}
+                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+                />
+                <label htmlFor="edit-active-flag" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                  Coupon Active
+                </label>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-primary text-white py-4 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all rounded-none cursor-pointer border-none font-bold mt-4"
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteTargetId && (
         <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">

@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const couponSchema = z
   .object({
+    id: z.string().optional(),
     code: z
       .string()
       .min(1, "Code is required")
@@ -39,7 +40,7 @@ export async function saveCouponAction(
 
   try {
     const newCoupon: Coupon = {
-      id: "CPN-" + Math.floor(Math.random() * 9000 + 1000),
+      id: data.id || "CPN-" + Math.floor(Math.random() * 9000 + 1000),
       code: data.code,
       discount: data.discount,
       type: data.type,

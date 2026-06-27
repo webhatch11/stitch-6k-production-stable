@@ -744,6 +744,46 @@ export const db = {
       throw error;
     }
   },
+  
+  async getSetting(key: string): Promise<any> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    const cacheKey = `settings:${key}`;
+    const cached = await CacheService.get<any>(cacheKey);
+    if (cached) {
+      if (key === "flags") {
+        (globalThis as any).codEnabled = cached.cod_enabled;
+      }
+      return cached;
+    }
+    
+    if (!isSupabaseConfigured || !supabase) return null;
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+    
+    if (error || !data) return null;
+    if (key === "flags" && data.value) {
+      (globalThis as any).codEnabled = data.value.cod_enabled;
+    }
+    await CacheService.set(cacheKey, data.value, 600);
+    return data.value;
+  },
+
+  async saveSetting(key: string, value: any): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({ key, value, updated_at: new Date().toISOString() });
+    if (error) return false;
+    if (key === "flags" && value) {
+      (globalThis as any).codEnabled = value.cod_enabled;
+    }
+    await CacheService.del(`settings:${key}`);
+    return true;
+  },
 
   async validateCoupon(code: string, cartTotal: number): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
     const { supabase, isSupabaseConfigured } = loadService();

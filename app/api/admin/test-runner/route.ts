@@ -47,6 +47,8 @@ export async function POST(req: NextRequest) {
       mod = await import("@/app/actions/admin-coupons");
     } else if (actionName.startsWith("customer:")) {
       mod = await import("@/app/actions/admin-customers");
+    } else if (actionName.startsWith("settings:")) {
+      mod = await import("@/app/actions/admin-settings");
     } else {
       return NextResponse.json(
         { error: "Unknown action namespace" }, 
@@ -57,8 +59,10 @@ export async function POST(req: NextRequest) {
     const actionFnName = actionName.split(":")[1];
     const fn = mod[actionFnName];
     if (typeof fn !== "function") {
+      const keys = Object.keys(mod);
+      console.log(`[Test Runner] actionFnName ${actionFnName} not found in mod keys:`, keys);
       return NextResponse.json(
-        { error: `Action ${actionFnName} not found` },
+        { error: `Action ${actionFnName} not found. Available keys: ${keys.join(", ")}` },
         { status: 400 }
       );
     }

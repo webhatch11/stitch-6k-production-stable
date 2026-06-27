@@ -13,6 +13,13 @@ export default function OrdersLedgerPage() {
   const [currentFilter, setCurrentFilter] = useState<"all" | "acquiring" | "manifested" | "returns" | "archived">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const handleFilterChange = (filter: "all" | "acquiring" | "manifested" | "returns" | "archived") => {
+    setCurrentFilter(filter);
+    setCurrentPage(1);
+  };
 
   // Toast notifications
   const [toastText, setToastText] = useState("");
@@ -48,6 +55,7 @@ export default function OrdersLedgerPage() {
   // Reset selected IDs when filter or search changes
   useEffect(() => {
     setSelectedOrderIds([]);
+    setCurrentPage(1);
   }, [currentFilter, searchQuery]);
 
   const loadOrders = async () => {
@@ -61,7 +69,7 @@ export default function OrdersLedgerPage() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedOrderIds(filteredOrders.map((o) => o.id));
+      setSelectedOrderIds(paginatedOrders.map((o) => o.id));
     } else {
       setSelectedOrderIds([]);
     }
@@ -135,6 +143,12 @@ export default function OrdersLedgerPage() {
     return true;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   return (
     <div className="p-8 lg:p-16">
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
@@ -201,7 +215,7 @@ export default function OrdersLedgerPage() {
             {(["all", "acquiring", "manifested", "returns", "archived"] as const).map((filterKey) => (
               <button
                 key={filterKey}
-                onClick={() => setCurrentFilter(filterKey)}
+                onClick={() => handleFilterChange(filterKey)}
                 className={`text-[10px] font-black uppercase tracking-[0.3em] pb-2 whitespace-nowrap bg-transparent border-t-0 border-x-0 cursor-pointer transition-colors ${
                   currentFilter === filterKey
                     ? "text-[#0a0a0a] border-b-2 border-[#fed488]"
@@ -233,7 +247,7 @@ export default function OrdersLedgerPage() {
                 <th className="px-8 py-6 w-12 text-center">
                   <input
                     type="checkbox"
-                    checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                    checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrderIds.includes(o.id))}
                     onChange={handleSelectAll}
                     className="accent-primary cursor-pointer size-4 align-middle"
                   />
@@ -247,14 +261,14 @@ export default function OrdersLedgerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs">
-              {filteredOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
                     No orders found.
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                paginatedOrders.map((order) => (
                   <tr
                     key={order.id}
                     onClick={() => router.push(`/admindashboard/order-details?orderId=${order.id}`)}
@@ -316,12 +330,12 @@ export default function OrdersLedgerPage() {
 
         {/* Mobile View Stacked Cards */}
         <div className="md:hidden divide-y divide-gray-200">
-          {filteredOrders.length === 0 ? (
+          {paginatedOrders.length === 0 ? (
             <div className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
               No orders found.
             </div>
           ) : (
-            filteredOrders.map((order) => (
+            paginatedOrders.map((order) => (
               <div
                 key={order.id}
                 onClick={() => router.push(`/admindashboard/order-details?orderId=${order.id}`)}
@@ -383,6 +397,30 @@ export default function OrdersLedgerPage() {
           )}
         </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            type="button"
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest border-2 border-gray-300 disabled:opacity-50 cursor-pointer hover:bg-gray-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-600 px-4">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest border-2 border-gray-300 disabled:opacity-50 cursor-pointer hover:bg-gray-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      )}
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">

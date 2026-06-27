@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
     const payload = JSON.parse(rawBody);
     const eventName = payload.event;
 
-    // Typically Razorpay payload sends an `x-razorpay-event-id` header
-    // We will use a combination of event name and payment ID for idempotency if header missing
-    const eventId = req.headers.get("x-razorpay-event-id") || `evt_${payload.payload?.payment?.entity?.id}_${eventName}`;
+    const eventId = req.headers.get("x-razorpay-event-id") || 
+      (eventName && eventName.startsWith("refund.")
+        ? `evt_${payload.payload?.refund?.entity?.id}_${eventName}`
+        : `evt_${payload.payload?.payment?.entity?.id}_${eventName}`);
 
     // 2. Idempotency Check
     if (supabase) {

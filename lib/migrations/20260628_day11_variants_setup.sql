@@ -58,13 +58,13 @@ CREATE POLICY "variants_delete_admin"
 
 -- 8. Backfill — for every product without variants, generate variants from
 --    legacy size_stock_* columns. Color = first entry of product.colors[]
---    if present, else "Default".
+--    if present, else "Atelier Choice".
 INSERT INTO public.product_variants (product_id, size, color, sku, price, stock)
 SELECT
   p.id AS product_id,
   size_data.size AS size,
-  COALESCE(p.colors[1], 'Default') AS color,
-  CONCAT(p.id, '-', size_data.size, '-', COALESCE(p.colors[1], 'DEF')) AS sku,
+  COALESCE(p.colors[1], 'Atelier Choice') AS color,
+  CONCAT(p.id, '-', size_data.size, '-', COALESCE(SUBSTRING(p.colors[1], 1, 3), 'ATL')) AS sku,
   p.base_price AS price,
   size_data.stock AS stock
 FROM public.products p

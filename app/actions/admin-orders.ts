@@ -69,16 +69,14 @@ export async function approvePendingOrderAction(
 }
 
 export async function cancelOrderAndRefundAction(
-  orderId: string
+  orderId: string,
+  reason: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    await requireAdmin();
-  } catch {
-    return { success: false, error: "Unauthorized" };
-  }
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
-    const success = await db.cancelOrderAndRefund(orderId);
+    const success = await db.cancelOrderAndRefund(orderId, reason.trim());
     return { success: !!success };
   } catch (e: any) {
     console.error("[cancelOrderAndRefundAction]", e);
@@ -106,20 +104,34 @@ export async function approveReturnPickupAction(
 
 export async function processReturnRefundAction(
   orderId: string,
-  qualityPassed: boolean
+  qualityPassed: boolean,
+  reason: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    await requireAdmin();
-  } catch {
-    return { success: false, error: "Unauthorized" };
-  }
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
-    const success = await db.processReturnRefund(orderId, qualityPassed);
+    const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
     return { success: !!success };
   } catch (e: any) {
     console.error("[processReturnRefundAction]", e);
     return { success: false, error: e.message || "Process refund failed" };
+  }
+}
+
+export async function issueRefundAction(
+  orderId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
+  try {
+    const success = await db.issueRefund(orderId, reason.trim());
+    return { success: !!success };
+  } catch (e: any) {
+    console.error("[issueRefundAction]", e);
+    return { success: false, error: e.message || "Refund failed" };
   }
 }
 

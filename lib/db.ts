@@ -163,6 +163,12 @@ const mapDbOrderToOrder = (o: any): Order => {
     paymentStatus: o.payment_status || o.paymentStatus || "",
     userId: o.user_id || undefined,
     address_snapshot: o.address_snapshot || null,
+    refund_id: o.refund_id || undefined,
+    refund_amount: o.refund_amount != null ? Number(o.refund_amount) : undefined,
+    refund_status: o.refund_status || undefined,
+    refund_reason: o.refund_reason || undefined,
+    refunded_at: o.refunded_at || undefined,
+    razorpay_payment_id: o.razorpay_payment_id || undefined,
   };
 };
 
@@ -1079,13 +1085,12 @@ export const db = {
     return !error;
   },
 
-  async processReturnRefund(orderId: string, qualityCheckPassed = true): Promise<boolean> {
+  async processReturnRefund(orderId: string, qualityCheckPassed = true, reason?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.processReturnRefund(orderId, qualityCheckPassed);
     }
-    
-    // Fetch the order details
+
     const { data: orderData, error: orderErr } = await supabase
       .from("orders")
       .select("*")
@@ -1094,58 +1099,115 @@ export const db = {
 
     if (orderErr || !orderData) return false;
 
-    // 1. Update order status
+    const walletPaid = Number(orderData.wallet_paid || 0);
+    const gatewayPaid = Number(orderData.gateway_paid || 0);
+    const totalRefundAmount = walletPaid + gatewayPaid;
+    const refundReason = reason || "Return approved by admin";
+
+    // 1. Update order status + store refund metadata
     const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     const { error: orderUpdateErr } = await supabase
       .from("orders")
       .update({
         status: "Returned",
         return_date: returnDate,
-        quality_check_passed: qualityCheckPassed
+        quality_check_passed: qualityCheckPassed,
+        refund_reason: refundReason,
+        refund_amount: totalRefundAmount,
       })
       .eq("id", orderId);
 
     if (orderUpdateErr) return false;
 
-    // 2. If QC Passed, restock product sizes back into inventory
+    // 2. QC passed → restock
     if (qualityCheckPassed && orderData.items && Array.isArray(orderData.items)) {
       const products = await this.getProducts();
       for (const itemName of orderData.items) {
         const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
         if (product) {
-          // Increment stock counts
-          const newStock = (product.stock || 0) + 1;
-          // We can also increment the size details if we know it, or just overall stock
           await supabase
             .from("products")
-            .update({ stock: newStock })
+            .update({ stock: (product.stock || 0) + 1 })
             .eq("id", product.id);
         }
       }
     }
 
-    // 3. Process wallet refund logic
-    const totalAmount = Number(orderData.total);
-    const walletPaid = Number(orderData.wallet_paid || 0);
-    const gatewayPaid = Number(orderData.gateway_paid || 0);
-
+    // 3. Refund routing: wallet vs bank
     if (orderData.refund_option === "wallet") {
-      const refundAmount = gatewayPaid + walletPaid;
-      await this.applyWalletCredit(refundAmount, `Manual Return Credit for Order #${orderId}`, orderId);
-    } else {
-      if (walletPaid > 0) {
-        await this.applyWalletCredit(walletPaid, `Refund of Wallet Portion for Order #${orderId}`, orderId);
+      // Entire amount (gateway + wallet) goes to store wallet — no Razorpay call
+      if (orderData.user_id) {
+        await this.applyWalletCredit(
+          totalRefundAmount,
+          `Return Credit for Order #${orderId}`,
+          orderId,
+          orderData.user_id
+        );
       }
-      const bankRefund = gatewayPaid > 0 ? gatewayPaid : totalAmount - walletPaid;
-      console.log(`[Refund simulation] Refunded ₹${bankRefund} to bank account for Order #${orderId}`);
+      await supabase
+        .from("orders")
+        .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
+        .eq("id", orderId);
+    } else {
+      // Wallet portion → store wallet
+      if (walletPaid > 0 && orderData.user_id) {
+        await this.applyWalletCredit(
+          walletPaid,
+          `Refund of Wallet Portion for Order #${orderId}`,
+          orderId,
+          orderData.user_id
+        );
+      }
+
+      // Gateway portion → Razorpay refund
+      if (gatewayPaid > 0) {
+        const razorpayPaymentId = orderData.razorpay_payment_id;
+
+        if (!razorpayPaymentId) {
+          console.warn(`[Refund] No razorpay_payment_id for order ${orderId}; skipping Razorpay refund.`);
+          await supabase
+            .from("orders")
+            .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
+            .eq("id", orderId);
+        } else {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { razorpay } = require("./razorpay") as typeof import("./razorpay");
+            const refundResult = await razorpay.payments.refund(razorpayPaymentId, {
+              amount: Math.round(gatewayPaid * 100),
+              speed: "normal",
+              notes: { order_id: orderId, reason: refundReason },
+              receipt: `REF-${orderId}-${Date.now()}`,
+            });
+
+            await supabase
+              .from("orders")
+              .update({
+                refund_id: refundResult.id,
+                refund_status: "initiated",
+                refunded_at: new Date().toISOString(),
+              })
+              .eq("id", orderId);
+          } catch (e: any) {
+            console.error(`[Refund] Razorpay refund failed for ${orderId}:`, e.message);
+            await supabase
+              .from("orders")
+              .update({
+                refund_status: "failed",
+                refund_reason: `${refundReason} | Razorpay error: ${e.message}`,
+                refunded_at: new Date().toISOString(),
+              })
+              .eq("id", orderId);
+          }
+        }
+      }
     }
 
     // 4. Revoke earned loyalty points
     const pointsEarned = Number(orderData.points_earned || 0);
     if (pointsEarned > 0) {
       const balance = await this.getLoyaltyPoints();
-      const newBalance = Math.max(0, balance - pointsEarned);
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: Math.max(0, balance - pointsEarned) });
       await supabase.from("loyalty_transactions").insert({
         id: "LTX-" + Date.now(),
         date: returnDate,
@@ -1159,8 +1221,7 @@ export const db = {
     const pointsRedeemed = Number(orderData.points_redeemed || 0);
     if (pointsRedeemed > 0) {
       const balance = await this.getLoyaltyPoints();
-      const newBalance = balance + pointsRedeemed;
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: balance + pointsRedeemed });
       await supabase.from("loyalty_transactions").insert({
         id: "LTX-" + (Date.now() + 1),
         date: returnDate,
@@ -1189,13 +1250,12 @@ export const db = {
     return !error;
   },
 
-  async cancelOrderAndRefund(orderId: string): Promise<boolean> {
+  async cancelOrderAndRefund(orderId: string, reason?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       return RegistryManager.cancelOrderAndRefund(orderId);
     }
-    
-    // Fetch order
+
     const { data: orderData, error: orderErr } = await supabase
       .from("orders")
       .select("*")
@@ -1205,64 +1265,114 @@ export const db = {
     if (orderErr || !orderData) return false;
     if (orderData.status === "Cancelled") return false;
 
-    // 1. Update status
+    const walletPaid = Number(orderData.wallet_paid || 0);
+    const gatewayPaid = Number(orderData.gateway_paid || 0);
+    const totalRefundAmount = walletPaid + gatewayPaid;
+    const refundReason = reason || "Order cancelled by admin";
+    const cancelDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    // 1. Update status + store refund reason + amount
     const { error: updateErr } = await supabase
       .from("orders")
-      .update({ status: "Cancelled" })
+      .update({
+        status: "Cancelled",
+        refund_reason: refundReason,
+        refund_amount: totalRefundAmount,
+      })
       .eq("id", orderId);
 
     if (updateErr) return false;
 
-    // 2. Restock items back into inventory
+    // 2. Restock items
     if (orderData.items && Array.isArray(orderData.items)) {
       const products = await this.getProducts();
       for (const itemName of orderData.items) {
         const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
         if (product) {
-          const newStock = (product.stock || 0) + 1;
           await supabase
             .from("products")
-            .update({ stock: newStock })
+            .update({ stock: (product.stock || 0) + 1 })
             .eq("id", product.id);
         }
       }
     }
 
-    // 3. Process refund: wallet balance & bank refund
-    const walletPaid = Number(orderData.wallet_paid || 0);
-    const gatewayPaid = Number(orderData.gateway_paid || 0);
-
-    if (walletPaid > 0) {
-      await this.applyWalletCredit(walletPaid, `Refund of Wallet Portion for Cancelled Order #${orderId}`, orderId);
+    // 3. Wallet portion → store wallet (NOW PASSING user_id — fixes the silent no-op)
+    if (walletPaid > 0 && orderData.user_id) {
+      await this.applyWalletCredit(
+        walletPaid,
+        `Refund of Wallet Portion for Cancelled Order #${orderId}`,
+        orderId,
+        orderData.user_id
+      );
     }
+
+    // 4. Gateway portion → Razorpay refund
     if (gatewayPaid > 0) {
-      console.log(`[Refund simulation] Refunded ₹${gatewayPaid} to bank account for Cancelled Order #${orderId}`);
+      const razorpayPaymentId = orderData.razorpay_payment_id;
+
+      if (!razorpayPaymentId) {
+        console.warn(`[Refund] No razorpay_payment_id for order ${orderId}; skipping Razorpay refund. Gateway ₹${gatewayPaid} NOT refunded.`);
+        await supabase
+          .from("orders")
+          .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
+          .eq("id", orderId);
+      } else {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { razorpay } = require("./razorpay") as typeof import("./razorpay");
+          const refundResult = await razorpay.payments.refund(razorpayPaymentId, {
+            amount: Math.round(gatewayPaid * 100),
+            speed: "normal",
+            notes: { order_id: orderId, reason: refundReason },
+            receipt: `REF-${orderId}-${Date.now()}`,
+          });
+
+          await supabase
+            .from("orders")
+            .update({
+              refund_id: refundResult.id,
+              refund_status: "initiated",
+              refunded_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+        } catch (e: any) {
+          console.error(`[Refund] Razorpay refund failed for ${orderId}:`, e.message);
+          await supabase
+            .from("orders")
+            .update({
+              refund_status: "failed",
+              refund_reason: `${refundReason} | Razorpay error: ${e.message}`,
+              refunded_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+          // Don't return false — status update + wallet refund already succeeded
+        }
+      }
     }
 
-    // 4. Revoke earned loyalty points
+    // 5. Revoke earned loyalty points
     const pointsEarned = Number(orderData.points_earned || 0);
     if (pointsEarned > 0) {
       const balance = await this.getLoyaltyPoints();
-      const newBalance = Math.max(0, balance - pointsEarned);
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: Math.max(0, balance - pointsEarned) });
       await supabase.from("loyalty_transactions").insert({
         id: "LTX-" + Date.now(),
-        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        date: cancelDate,
         points: pointsEarned,
         type: "debit",
         description: `Revoked for Cancelled Order #${orderId}`,
       });
     }
 
-    // 5. Restore redeemed loyalty points
+    // 6. Restore redeemed loyalty points
     const pointsRedeemed = Number(orderData.points_redeemed || 0);
     if (pointsRedeemed > 0) {
       const balance = await this.getLoyaltyPoints();
-      const newBalance = balance + pointsRedeemed;
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: newBalance });
+      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: balance + pointsRedeemed });
       await supabase.from("loyalty_transactions").insert({
         id: "LTX-" + (Date.now() + 1),
-        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        date: cancelDate,
         points: pointsRedeemed,
         type: "credit",
         description: `Restored for Cancelled Order #${orderId}`,
@@ -1270,6 +1380,90 @@ export const db = {
     }
 
     return true;
+  },
+
+  async issueRefund(orderId: string, reason: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    const { data: orderData, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (error || !orderData) return false;
+    if (orderData.refund_status === "initiated" || orderData.refund_status === "processed") {
+      return false; // Already refunded
+    }
+
+    const gatewayPaid = Number(orderData.gateway_paid || 0);
+    const walletPaid = Number(orderData.wallet_paid || 0);
+    const totalRefund = gatewayPaid + walletPaid;
+
+    // Wallet portion → store wallet
+    if (walletPaid > 0 && orderData.user_id) {
+      await this.applyWalletCredit(
+        walletPaid,
+        `Refund for Order #${orderId}: ${reason}`,
+        orderId,
+        orderData.user_id
+      );
+    }
+
+    // Gateway portion → Razorpay
+    if (gatewayPaid > 0) {
+      const razorpayPaymentId = orderData.razorpay_payment_id;
+
+      if (!razorpayPaymentId) {
+        await supabase.from("orders").update({
+          refund_status: "wallet_only",
+          refund_amount: walletPaid,
+          refund_reason: reason,
+          refunded_at: new Date().toISOString(),
+        }).eq("id", orderId);
+        return true;
+      }
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { razorpay } = require("./razorpay") as typeof import("./razorpay");
+        const refundResult = await razorpay.payments.refund(razorpayPaymentId, {
+          amount: Math.round(gatewayPaid * 100),
+          speed: "normal",
+          notes: { order_id: orderId, reason },
+          receipt: `REF-${orderId}-${Date.now()}`,
+        });
+
+        await supabase.from("orders").update({
+          refund_id: refundResult.id,
+          refund_status: "initiated",
+          refund_amount: totalRefund,
+          refund_reason: reason,
+          refunded_at: new Date().toISOString(),
+        }).eq("id", orderId);
+
+        return true;
+      } catch (e: any) {
+        console.error(`[Refund] Razorpay failed for ${orderId}:`, e.message);
+        await supabase.from("orders").update({
+          refund_status: "failed",
+          refund_amount: walletPaid,
+          refund_reason: `${reason} | Error: ${e.message}`,
+          refunded_at: new Date().toISOString(),
+        }).eq("id", orderId);
+        return false;
+      }
+    } else {
+      // Wallet-only order
+      await supabase.from("orders").update({
+        refund_status: walletPaid > 0 ? "wallet_only" : "processed",
+        refund_amount: walletPaid,
+        refund_reason: reason,
+        refunded_at: new Date().toISOString(),
+      }).eq("id", orderId);
+      return true;
+    }
   },
 
   async approvePendingOrder(orderId: string): Promise<boolean> {

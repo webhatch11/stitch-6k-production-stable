@@ -12,6 +12,7 @@ import {
   approveReturnPickupAction,
   processReturnRefundAction,
   rejectReturnAction,
+  issueRefundAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -24,6 +25,12 @@ function OrderDetailsContent() {
   const [qualityCheck, setQualityCheck] = useState<"passed" | "failed">("passed");
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundActionType, setRefundActionType] = useState<"cancel" | "return" | "issue">("cancel");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundQualityCheck, setRefundQualityCheck] = useState<"passed" | "failed">("passed");
+  const [refundLoading, setRefundLoading] = useState(false);
 
   // Custom Confirmation Dialog States
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -180,7 +187,7 @@ function OrderDetailsContent() {
       "Cancel Order & Refund",
       confirmMsg,
       async () => {
-        const res = await cancelOrderAndRefundAction(order.id);
+        const res = await cancelOrderAndRefundAction(order.id, "Order cancelled by admin");
         if (res.success) {
           triggerToast("Order Cancelled. Refunds & Restocking completed.");
           window.dispatchEvent(new Event("storage"));
@@ -238,7 +245,7 @@ function OrderDetailsContent() {
       "Confirm Receipt & Refund",
       confirmMsg,
       async () => {
-        const res = await processReturnRefundAction(order.id, qualityCheck === "passed");
+        const res = await processReturnRefundAction(order.id, qualityCheck === "passed", order.returnReason || "Return approved by admin");
         if (res.success) {
           triggerToast(
             qualityCheck === "passed"
@@ -273,6 +280,52 @@ function OrderDetailsContent() {
         }
       }
     );
+  };
+
+  const openRefundModal = (type: "cancel" | "return" | "issue") => {
+    setRefundActionType(type);
+    setRefundReason("");
+    setRefundQualityCheck(qualityCheck);
+    setRefundModalOpen(true);
+  };
+
+  const closeRefundModal = () => {
+    setRefundModalOpen(false);
+    setRefundReason("");
+    setRefundLoading(false);
+  };
+
+  const handleRefundSubmit = async () => {
+    if (!refundReason.trim()) {
+      triggerToast("Please enter a refund reason.");
+      return;
+    }
+    setRefundLoading(true);
+    let res: { success: boolean; error?: string };
+    if (refundActionType === "cancel") {
+      res = await cancelOrderAndRefundAction(order.id, refundReason.trim());
+    } else if (refundActionType === "return") {
+      res = await processReturnRefundAction(order.id, refundQualityCheck === "passed", refundReason.trim());
+    } else {
+      res = await issueRefundAction(order.id, refundReason.trim());
+    }
+    setRefundLoading(false);
+    if (res.success) {
+      closeRefundModal();
+      triggerToast(
+        refundActionType === "cancel"
+          ? "Order Cancelled. Refunds & Restocking completed."
+          : refundActionType === "return"
+          ? refundQualityCheck === "passed"
+            ? "Quality Check Passed: Refunded & Stock Restocked"
+            : "Quality Check Failed: Refunded & Stock Unrestocked"
+          : "Refund issued successfully."
+      );
+      window.dispatchEvent(new Event("storage"));
+      await loadOrderDetails();
+    } else {
+      triggerToast(res.error || "Refund action failed.");
+    }
   };
 
   const s = order.status.toLowerCase();
@@ -616,7 +669,7 @@ function OrderDetailsContent() {
                       <span className="material-symbols-outlined text-sm">payments</span> Clear Bank Clearance
                     </button>
                     <button
-                      onClick={handleCancelOrderAndRefund}
+                      onClick={() => openRefundModal("cancel")}
                       className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
                     >
                       Cancel Order
@@ -636,7 +689,7 @@ function OrderDetailsContent() {
                       <span className="material-symbols-outlined text-sm">print</span> Print Invoice &amp; Process
                     </Link>
                     <button
-                      onClick={handleCancelOrderAndRefund}
+                      onClick={() => openRefundModal("cancel")}
                       className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
                     >
                       Cancel Order (Refund)
@@ -656,7 +709,7 @@ function OrderDetailsContent() {
                       <span className="material-symbols-outlined text-sm">local_shipping</span> Ship via Shiprocket
                     </button>
                     <button
-                      onClick={handleCancelOrderAndRefund}
+                      onClick={() => openRefundModal("cancel")}
                       className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
                     >
                       Cancel Order (Stock Issue)
@@ -679,8 +732,18 @@ function OrderDetailsContent() {
                 )}
 
                 {s === "delivered" && (
-                  <div className="p-4 bg-white/5 border border-white/10 text-xs text-green-400 font-bold uppercase tracking-wider text-center">
-                    Delivered successfully.
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-green-400 font-bold uppercase tracking-wider text-center">
+                      Delivered successfully.
+                    </div>
+                    {order.status === "Delivered" && !order.refund_status && (
+                      <button
+                        onClick={() => openRefundModal("issue")}
+                        className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                      >
+                        <span className="material-symbols-outlined text-sm">payments</span> Issue Refund
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -725,7 +788,7 @@ function OrderDetailsContent() {
                   </select>
                 </div>
                 <button
-                  onClick={handleConfirmReceipt}
+                  onClick={() => openRefundModal("return")}
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none mt-2"
                 >
                   Confirm Receipt & Refund
@@ -749,6 +812,48 @@ function OrderDetailsContent() {
           </div>
         </div>
       </div>
+
+      {/* Refund Status Display */}
+      {order.refund_status && (
+        <div className={`mt-12 border p-6 flex items-start gap-4 rounded-none ${
+          order.refund_status === "processed"
+            ? "bg-green-50 border-green-200 text-green-800"
+            : order.refund_status === "initiated"
+            ? "bg-blue-50 border-blue-200 text-blue-800"
+            : order.refund_status === "wallet_only"
+            ? "bg-purple-50 border-purple-200 text-purple-800"
+            : "bg-red-50 border-red-200 text-red-800"
+        }`}>
+          <span className="material-symbols-outlined text-2xl">
+            {order.refund_status === "processed"
+              ? "check_circle"
+              : order.refund_status === "initiated"
+              ? "pending"
+              : order.refund_status === "wallet_only"
+              ? "account_balance_wallet"
+              : "error"}
+          </span>
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-widest mb-2">
+              Refund Status: {order.refund_status.replace(/_/g, " ").toUpperCase()}
+            </h4>
+            {order.refund_amount !== undefined && (
+              <p className="text-xs font-bold">Amount: ₹{order.refund_amount.toLocaleString("en-IN")}</p>
+            )}
+            {order.refund_reason && (
+              <p className="text-xs font-medium mt-1">Reason: {order.refund_reason}</p>
+            )}
+            {order.refund_id && (
+              <p className="text-[10px] font-mono mt-1 opacity-70">Refund ID: {order.refund_id}</p>
+            )}
+            {order.refunded_at && (
+              <p className="text-[10px] mt-1 opacity-70">
+                Processed: {new Date(order.refunded_at).toLocaleString("en-IN")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {rejectModalOpen && (
@@ -782,6 +887,65 @@ function OrderDetailsContent() {
                 className="flex-1 bg-red-600 text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-red-700 transition-colors rounded-none font-bold cursor-pointer border-none"
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Modal */}
+      {refundModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white p-8 max-w-md w-full border border-gray-200 shadow-2xl relative rounded-none text-left">
+            <h3 className="font-headline text-2xl font-black uppercase tracking-tight mb-2 text-primary">
+              {refundActionType === "cancel"
+                ? "Cancel & Refund"
+                : refundActionType === "return"
+                ? "Confirm Receipt & Refund"
+                : "Issue Refund"}
+            </h3>
+            <p className="text-[9px] text-gray-500 mb-6 uppercase tracking-widest font-black">
+              Order #{order.id}
+            </p>
+            {refundActionType === "return" && (
+              <div className="mb-4">
+                <label className="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                  Quality Check Result
+                </label>
+                <select
+                  value={refundQualityCheck}
+                  onChange={(e) => setRefundQualityCheck(e.target.value as "passed" | "failed")}
+                  className="w-full border border-gray-200 focus:border-[#0a0a0a] focus:ring-0 text-xs py-3 px-3 rounded-none bg-[#f9fafb] text-[#111827] mb-2"
+                >
+                  <option value="passed">QC: Passed (Restock Item)</option>
+                  <option value="failed">QC: Failed (Do Not Restock)</option>
+                </select>
+              </div>
+            )}
+            <label className="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">
+              Reason
+            </label>
+            <textarea
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-200 focus:border-[#0a0a0a] focus:ring-0 text-xs py-3 px-3 rounded-none bg-[#f9fafb] text-[#111827] mb-6"
+              placeholder="Enter reason for this refund action..."
+            />
+            <div className="flex gap-4">
+              <button
+                onClick={closeRefundModal}
+                disabled={refundLoading}
+                className="flex-1 border border-gray-200 text-gray-600 py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-gray-50 transition-colors rounded-none bg-transparent cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRefundSubmit}
+                disabled={refundLoading}
+                className="flex-1 bg-primary text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-secondary transition-colors rounded-none cursor-pointer border-none disabled:opacity-50"
+              >
+                {refundLoading ? "Processing..." : "Confirm"}
               </button>
             </div>
           </div>

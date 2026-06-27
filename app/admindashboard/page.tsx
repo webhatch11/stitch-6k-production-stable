@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleApproveReturn = async (orderId: string) => {
-    const res = await processReturnRefundAction(orderId, true);
+    const res = await processReturnRefundAction(orderId, true, "Return approved by admin");
     if (res.success) {
       triggerToast(`Return Refund Processed for #${orderId}`);
       await loadAdminData();

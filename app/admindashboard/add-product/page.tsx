@@ -250,8 +250,8 @@ function AddProductContent() {
           } else {
             setVariants(SIZE_OPTIONS.map(size => ({
               size,
-              color: p.colors?.[0] || "Default",
-              sku: `${p.id || "PROD"}-${size}-${(p.colors?.[0] || "DEF").slice(0, 3).toUpperCase()}`,
+              color: p.colors?.[0] || "Atelier Choice",
+              sku: `${p.id || "PROD"}-${size}-${(p.colors?.[0] || "ATL").slice(0, 3).toUpperCase()}`,
               price: p.basePrice || 0,
               stock: 0,
             })));

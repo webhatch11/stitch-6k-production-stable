@@ -91,6 +91,12 @@ export interface Order {
   paymentStatus?: string;
   userId?: string;
   address_snapshot?: any;
+  refund_id?: string;
+  refund_amount?: number;
+  refund_status?: string;
+  refund_reason?: string;
+  refunded_at?: string;
+  razorpay_payment_id?: string;
 }
 
 export interface OrderStatusHistory {

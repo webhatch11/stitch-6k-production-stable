@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { useCartStore } from "@/stores/cartStore";
@@ -151,7 +152,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
               <div className="flex gap-4">
                 {toastItem.image && (
                   <div className="w-12 h-16 bg-[#faf9f8] border border-outline-variant/15 p-0.5 flex-shrink-0 relative">
-                    <Image src={toastItem.image} className="object-cover" alt="Product Thumbnail" fill sizes="48px" />
+                    <ProductImage src={toastItem.image} className="object-cover" alt="Product Thumbnail" fill sizes="48px" />
                   </div>
                 )}
                 <div className="flex-1 flex flex-col justify-center">
@@ -220,9 +221,9 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                     }`}
                   >
                     <div className="w-full h-full relative">
-                      <Image 
-                        className="object-cover" 
-                        src={src} 
+                      <ProductImage
+                        className="object-cover"
+                        src={src}
                         alt={`${product.title} view ${idx + 1}`}
                         fill
                         sizes="100px"
@@ -236,7 +237,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
               <div className="col-span-12 md:col-span-10">
                 <div className="aspect-[4/5] bg-surface-container-low border border-outline-variant/10 gallery-zoom-container relative overflow-hidden">
                   {activeImg && (
-                    <Image
+                    <ProductImage
                       className={`object-cover transition-all duration-300 ${
                         imgAnimating ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
                       }`}
@@ -677,7 +678,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   <div key={rec.id} className="group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
                     <Link href={`/product/${rec.slug}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10">
                       <div className="absolute inset-0">
-                        <Image
+                        <ProductImage
                           className="object-cover transition-all duration-[1000ms] group-hover:scale-105"
                           src={primaryImg}
                           alt={rec.title}
@@ -686,7 +687,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                         />
                       </div>
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1200ms] scale-[1.05] group-hover:scale-100">
-                        <Image
+                        <ProductImage
                           className="object-cover"
                           src={secondaryImg}
                           alt={`${rec.title} Detail`}

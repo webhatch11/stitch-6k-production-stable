@@ -5,7 +5,88 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { saveProductAction } from "@/app/actions/admin-products";
 import { getProductsAction } from "@/app/actions/admin-reads";
 import CloudinaryUploadWidget, { type CloudinaryUploadHandle } from "@/app/admindashboard/CloudinaryUploadWidget";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  closestCenter,
+} from "@dnd-kit/core";
 
+
+// ---------------------------------------------------------------------------
+// Drag-and-drop helpers (hooks can't be called inside .map)
+// ---------------------------------------------------------------------------
+
+interface DraggableImageProps {
+  slotIdx: number;
+  url: string;
+}
+
+function DraggableImage({ slotIdx, url }: DraggableImageProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `slot-${slotIdx}`,
+    data: { slotIdx },
+  });
+
+  const style: React.CSSProperties = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 50,
+        opacity: isDragging ? 0.4 : 1,
+        cursor: isDragging ? "grabbing" : "grab",
+      }
+    : { cursor: "grab" };
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      ref={setNodeRef}
+      style={style}
+      src={url}
+      alt={`Slot ${slotIdx + 1}`}
+      className="w-full h-full object-cover select-none"
+      {...attributes}
+      {...listeners}
+      draggable={false}
+    />
+  );
+}
+
+interface DroppableSlotProps {
+  slotIdx: number;
+  children: React.ReactNode;
+  isFilled: boolean;
+  isPrimary: boolean;
+}
+
+function DroppableSlot({ slotIdx, children, isFilled, isPrimary }: DroppableSlotProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `drop-${slotIdx}`,
+    data: { slotIdx },
+  });
+
+  const baseRing = isPrimary && isFilled
+    ? "border-[#fed488] shadow-md"
+    : "border-gray-200";
+
+  const hoverRing = isOver ? "ring-2 ring-blue-400 ring-offset-2" : "";
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`aspect-square border-2 relative group overflow-hidden bg-gray-50 transition-all ${baseRing} ${hoverRing}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 function AddProductContent() {
   const router = useRouter();
@@ -164,6 +245,34 @@ function AddProductContent() {
   };
 
   const finalPrice = calculateFinalPrice();
+
+  // Drag-and-drop swap handler
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const sourceIdx = active.data?.current?.slotIdx as number | undefined;
+    const targetIdx = over.data?.current?.slotIdx as number | undefined;
+
+    if (typeof sourceIdx !== "number" || typeof targetIdx !== "number") return;
+    if (sourceIdx === targetIdx) return;
+
+    setSelectedImages((prev) => {
+      const next = [...prev];
+      while (next.length < 4) next.push("");
+      const tmp = next[sourceIdx];
+      next[sourceIdx] = next[targetIdx];
+      next[targetIdx] = tmp;
+      return next;
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   // Submit and Save
   const handleSaveProduct = async () => {
@@ -701,89 +810,87 @@ function AddProductContent() {
             </div>
 
             <div className="lg:col-span-8">
-              <div className="grid grid-cols-2 gap-3 max-w-md">
-                {[0, 1, 2, 3].map((slotIdx) => {
-                  const url = selectedImages[slotIdx] || "";
-                  const isPrimary = slotIdx === 0;
-                  const isFilled = url.length > 0;
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                  {[0, 1, 2, 3].map((slotIdx) => {
+                    const url = selectedImages[slotIdx] || "";
+                    const isPrimary = slotIdx === 0;
+                    const isFilled = url.length > 0;
 
-                  const openForSlot = () => {
-                    pendingSlotRef.current = slotIdx;
-                    cloudinaryRef.current?.open();
-                  };
+                    const openForSlot = () => {
+                      pendingSlotRef.current = slotIdx;
+                      cloudinaryRef.current?.open();
+                    };
 
-                  return (
-                    <div
-                      key={slotIdx}
-                      className={`aspect-square border-2 relative group overflow-hidden bg-gray-50 transition-all ${
-                        isPrimary && isFilled
-                          ? "border-[#fed488] shadow-md"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      {/* Slot label */}
-                      <div
-                        className={`absolute top-2 left-2 z-20 px-2 py-1 text-[8px] font-black uppercase tracking-widest ${
-                          isPrimary
-                            ? "bg-[#fed488] text-[#775a19]"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
+                    return (
+                      <DroppableSlot
+                        key={slotIdx}
+                        slotIdx={slotIdx}
+                        isFilled={isFilled}
+                        isPrimary={isPrimary}
                       >
-                        {isPrimary ? "★ Primary Cover" : `Image ${slotIdx + 1}`}
-                      </div>
+                        {/* Slot label */}
+                        <div
+                          className={`absolute top-2 left-2 z-30 px-2 py-1 text-[8px] font-black uppercase tracking-widest pointer-events-none ${
+                            isPrimary
+                              ? "bg-[#fed488] text-[#775a19]"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {isPrimary ? "★ Primary Cover" : `Image ${slotIdx + 1}`}
+                        </div>
 
-                      {isFilled ? (
-                        <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt={`Slot ${slotIdx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+                        {isFilled ? (
+                          <>
+                            <DraggableImage slotIdx={slotIdx} url={url} />
 
-                          {/* Overlay buttons on hover */}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={openForSlot}
-                              className="px-4 py-2 bg-white text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#fed488] transition-colors border-none cursor-pointer"
-                            >
-                              Replace
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedImages((prev) => {
+                            {/* Hover overlay — pointer-events-none so drags pass through;
+                                buttons restore pointer-events-auto individually */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-20 pointer-events-none">
+                              <button
+                                type="button"
+                                onClick={openForSlot}
+                                className="px-4 py-2 bg-white text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#fed488] transition-colors border-none cursor-pointer pointer-events-auto"
+                              >
+                                Replace
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImages((prev) => {
                                   const next = [...prev];
                                   while (next.length < 4) next.push("");
                                   next[slotIdx] = "";
                                   return next;
-                                });
-                              }}
-                              className="px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-none cursor-pointer"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={openForSlot}
-                          className="w-full h-full flex flex-col items-center justify-center gap-2 bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-2xl text-gray-400">
-                            add_photo_alternate
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
-                            Click to upload
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                                })}
+                                className="px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-none cursor-pointer pointer-events-auto"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={openForSlot}
+                            className="w-full h-full flex flex-col items-center justify-center gap-2 bg-transparent border-none cursor-pointer hover:bg-gray-100 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-2xl text-gray-400">
+                              add_photo_alternate
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                              Click to upload
+                            </span>
+                          </button>
+                        )}
+                      </DroppableSlot>
+                    );
+                  })}
+                </div>
+              </DndContext>
             </div>
           </div>
         </form>

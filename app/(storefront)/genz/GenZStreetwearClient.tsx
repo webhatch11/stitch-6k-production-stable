@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import ProductImage from "@/components/ProductImage";
 import { Product } from "@/lib/registry";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
@@ -358,7 +359,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                         className="block relative aspect-[3/4] overflow-hidden bg-neutral-900 border border-white/5 rounded-xl select-none"
                       >
                         {/* Primary Image */}
-                        <Image
+                        <ProductImage
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-108"
                           src={product.image || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800"}
                           alt={product.title}
@@ -367,7 +368,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                         />
 
                         {/* Secondary Image on Hover */}
-                        <Image
+                        <ProductImage
                           className="absolute inset-0 w-full h-full object-cover transition-all duration-[1200ms] ease-out scale-[1.08] opacity-0 group-hover:opacity-100 group-hover:scale-100"
                           src={secondaryImg || "https://images.unsplash.com/photo-1503342394128-c104d54dba01?auto=format&fit=crop&q=80&w=800"}
                           alt={`${product.title} Detail`}
@@ -457,7 +458,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
               {recentStore.recentItems.map((item) => (
                 <div key={item.id} className="group border border-white/5 p-2 bg-[#121214] hover:border-[#fed488]/30 rounded-2xl flex flex-col justify-between transition-all duration-300 text-left">
                   <Link href={`/product/${item.slug}`} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-neutral-900 select-none block">
-                    <Image
+                    <ProductImage
                       src={item.image}
                       alt={item.title}
                       fill

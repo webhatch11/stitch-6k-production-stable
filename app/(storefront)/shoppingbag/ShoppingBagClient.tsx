@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { useCartStore } from "@/stores/cartStore";
@@ -138,7 +139,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                       className="flex flex-col md:flex-row gap-8 relative group border-b border-on-surface/5 pb-10"
                     >
                       <div className="w-full md:w-48 aspect-[3/4] bg-surface-container overflow-hidden border border-outline-variant/10 relative">
-                        <Image alt={item.productName} className="object-cover" src={imageSrc} fill sizes="(max-width: 768px) 100vw, 192px" />
+                        <ProductImage alt={item.productName} className="object-cover" src={imageSrc} fill sizes="(max-width: 768px) 100vw, 192px" />
                       </div>
                       <div className="flex-grow flex flex-col justify-between py-2">
                         <div>

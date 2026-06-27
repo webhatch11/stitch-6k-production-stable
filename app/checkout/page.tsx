@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ProductImage from "@/components/ProductImage";
 import {
   processWalletPointsCheckoutAction,
   processCodCheckoutAction,
@@ -867,11 +868,13 @@ export default function CheckoutPage() {
                   <div className="space-y-6 mb-8">
                     {cart.map((item, index) => (
                       <div key={index} className="flex gap-6">
-                        <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10">
-                          <img
-                            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                        <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10 relative">
+                          <ProductImage
+                            className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
                             src={item.image}
                             alt={item.productName}
+                            fill
+                            sizes="80px"
                           />
                         </div>
                         <div className="flex-grow flex flex-col justify-between py-1 text-left">

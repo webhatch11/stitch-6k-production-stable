@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
 import Image from "next/image";
+import ProductImage from "@/components/ProductImage";
 
 interface HeroSlide {
   badge: string;
@@ -1055,7 +1056,7 @@ export default function Home() {
                         isActive ? "w-[180px] md:w-[210px]" : "w-[90px] sm:w-[105px] md:w-[120px]"
                       }`}>
                         {/* Product Image with smooth group hover scale */}
-                        <Image
+                        <ProductImage
                           alt={product.name}
                           className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.12]"
                           src={product.image}
@@ -1247,7 +1248,7 @@ export default function Home() {
                 >
                   {/* Image container */}
                   <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
-                    <Image
+                    <ProductImage
                       src={item.image}
                       alt={item.name}
                       className="w-full h-full object-cover transition-transform duration-[1.2s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"

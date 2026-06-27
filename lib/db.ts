@@ -1119,17 +1119,27 @@ export const db = {
 
     if (orderUpdateErr) return false;
 
-    // 2. QC passed → restock
-    if (qualityCheckPassed && orderData.items && Array.isArray(orderData.items)) {
-      const products = await this.getProducts();
-      for (const itemName of orderData.items) {
-        const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
-        if (product) {
-          await supabase
-            .from("products")
-            .update({ stock: (product.stock || 0) + 1 })
-            .eq("id", product.id);
+    // 2. QC passed → restock variant inventory from cart_items JSONB.
+    if (qualityCheckPassed) {
+      const cartItemsForRestock = orderData.cart_items;
+      if (Array.isArray(cartItemsForRestock) && cartItemsForRestock.length > 0) {
+        for (const item of cartItemsForRestock) {
+          const productId = item.productId || item.product_id;
+          const size = item.size;
+          const color = item.color;
+          const quantity = item.quantity || 1;
+          if (!productId || !size || !color) {
+            console.warn("[Restock] cart item missing fields, skipping:", item);
+            continue;
+          }
+          try {
+            await InventoryService.restoreStockAtomic(productId, size, color, quantity);
+          } catch (e: any) {
+            console.error(`[Restock] failed for ${productId} ${size}/${color}:`, e.message);
+          }
         }
+      } else {
+        console.warn(`[Restock] order ${orderId} has no cart_items JSONB; inventory not restocked`);
       }
     }
 
@@ -1203,32 +1213,25 @@ export const db = {
       }
     }
 
-    // 4. Revoke earned loyalty points
+    // 4. Revoke earned loyalty points (via RPC → profiles.loyalty_points)
     const pointsEarned = Number(orderData.points_earned || 0);
-    if (pointsEarned > 0) {
-      const balance = await this.getLoyaltyPoints();
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: Math.max(0, balance - pointsEarned) });
-      await supabase.from("loyalty_transactions").insert({
-        id: "LTX-" + Date.now(),
-        date: returnDate,
-        points: pointsEarned,
-        type: "debit",
-        description: `Revoked for Returned Order #${orderId}`,
-      });
+    if (pointsEarned > 0 && orderData.user_id) {
+      await this.applyLoyaltyDebit(
+        pointsEarned,
+        "REVOKE-RETURN-" + orderId,
+        orderData.user_id
+      );
     }
 
-    // 5. Restore redeemed loyalty points
+    // 5. Restore redeemed loyalty points (via RPC → profiles.loyalty_points)
     const pointsRedeemed = Number(orderData.points_redeemed || 0);
-    if (pointsRedeemed > 0) {
-      const balance = await this.getLoyaltyPoints();
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: balance + pointsRedeemed });
-      await supabase.from("loyalty_transactions").insert({
-        id: "LTX-" + (Date.now() + 1),
-        date: returnDate,
-        points: pointsRedeemed,
-        type: "credit",
-        description: `Restored for Returned Order #${orderId}`,
-      });
+    if (pointsRedeemed > 0 && orderData.user_id) {
+      await this.applyLoyaltyCredit(
+        pointsRedeemed,
+        `Restored for Returned Order #${orderId}`,
+        "RESTORE-RETURN-" + orderId,
+        orderData.user_id
+      );
     }
 
     return true;
@@ -1283,18 +1286,27 @@ export const db = {
 
     if (updateErr) return false;
 
-    // 2. Restock items
-    if (orderData.items && Array.isArray(orderData.items)) {
-      const products = await this.getProducts();
-      for (const itemName of orderData.items) {
-        const product = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
-        if (product) {
-          await supabase
-            .from("products")
-            .update({ stock: (product.stock || 0) + 1 })
-            .eq("id", product.id);
+    // 2. Restock variant inventory from cart_items JSONB (has productId, size, color, quantity).
+    // Falls back to a warning for legacy orders without cart_items.
+    const cartItemsForRestock = orderData.cart_items;
+    if (Array.isArray(cartItemsForRestock) && cartItemsForRestock.length > 0) {
+      for (const item of cartItemsForRestock) {
+        const productId = item.productId || item.product_id;
+        const size = item.size;
+        const color = item.color;
+        const quantity = item.quantity || 1;
+        if (!productId || !size || !color) {
+          console.warn("[Restock] cart item missing fields, skipping:", item);
+          continue;
+        }
+        try {
+          await InventoryService.restoreStockAtomic(productId, size, color, quantity);
+        } catch (e: any) {
+          console.error(`[Restock] failed for ${productId} ${size}/${color}:`, e.message);
         }
       }
+    } else {
+      console.warn(`[Restock] order ${orderId} has no cart_items JSONB; inventory not restocked`);
     }
 
     // 3. Wallet portion → store wallet (NOW PASSING user_id — fixes the silent no-op)
@@ -1351,32 +1363,25 @@ export const db = {
       }
     }
 
-    // 5. Revoke earned loyalty points
+    // 5. Revoke earned loyalty points (via RPC → profiles.loyalty_points)
     const pointsEarned = Number(orderData.points_earned || 0);
-    if (pointsEarned > 0) {
-      const balance = await this.getLoyaltyPoints();
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: Math.max(0, balance - pointsEarned) });
-      await supabase.from("loyalty_transactions").insert({
-        id: "LTX-" + Date.now(),
-        date: cancelDate,
-        points: pointsEarned,
-        type: "debit",
-        description: `Revoked for Cancelled Order #${orderId}`,
-      });
+    if (pointsEarned > 0 && orderData.user_id) {
+      await this.applyLoyaltyDebit(
+        pointsEarned,
+        "REVOKE-CANCEL-" + orderId,
+        orderData.user_id
+      );
     }
 
-    // 6. Restore redeemed loyalty points
+    // 6. Restore redeemed loyalty points (via RPC → profiles.loyalty_points)
     const pointsRedeemed = Number(orderData.points_redeemed || 0);
-    if (pointsRedeemed > 0) {
-      const balance = await this.getLoyaltyPoints();
-      await supabase.from("account_balances").upsert({ key: "loyalty_points", value: balance + pointsRedeemed });
-      await supabase.from("loyalty_transactions").insert({
-        id: "LTX-" + (Date.now() + 1),
-        date: cancelDate,
-        points: pointsRedeemed,
-        type: "credit",
-        description: `Restored for Cancelled Order #${orderId}`,
-      });
+    if (pointsRedeemed > 0 && orderData.user_id) {
+      await this.applyLoyaltyCredit(
+        pointsRedeemed,
+        `Restored for Cancelled Order #${orderId}`,
+        "RESTORE-CANCEL-" + orderId,
+        orderData.user_id
+      );
     }
 
     return true;
@@ -1393,8 +1398,20 @@ export const db = {
       .maybeSingle();
 
     if (error || !orderData) return false;
-    if (orderData.refund_status === "initiated" || orderData.refund_status === "processed") {
-      return false; // Already refunded
+
+    // Atomic claim: set refund_status = "pending" only when it is currently NULL.
+    // This prevents two concurrent calls (admin double-click, network retry) from
+    // both passing the guard and issuing duplicate Razorpay refunds.
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({ refund_status: "pending" })
+      .eq("id", orderId)
+      .is("refund_status", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimErr || !claimed) {
+      return false; // Another call already claimed, or a refund is already in progress
     }
 
     const gatewayPaid = Number(orderData.gateway_paid || 0);

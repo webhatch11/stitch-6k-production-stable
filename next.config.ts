@@ -19,6 +19,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "*.app.github.dev",
+        "*.preview.app.github.dev",
+        "localhost:3000",
+      ],
+    },
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

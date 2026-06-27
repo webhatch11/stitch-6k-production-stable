@@ -109,6 +109,16 @@ function AddProductContent() {
   const [stockXL, setStockXL] = useState(0);
   const [stockXXL, setStockXXL] = useState(0);
 
+  // Variants — admin manages size × color combinations
+  const SIZE_OPTIONS = ["S", "M", "L", "XL", "XXL"];
+  const [variants, setVariants] = useState<Array<{
+    size: string;
+    color: string;
+    sku: string;
+    price: number;
+    stock: number;
+  }>>([]);
+
   // Artisan Specs
   const [specFabric, setSpecFabric] = useState("");
   const [specFit, setSpecFit] = useState("");
@@ -227,6 +237,25 @@ function AddProductContent() {
           const slotted = [...imgList.slice(0, 4)];
           while (slotted.length < 4) slotted.push("");
           setSelectedImages(slotted);
+
+          // Variants
+          if (p.variants && p.variants.length > 0) {
+            setVariants(p.variants.map((v: any) => ({
+              size: v.size,
+              color: v.color,
+              sku: v.sku || "",
+              price: v.price ?? p.basePrice ?? 0,
+              stock: v.stock ?? 0,
+            })));
+          } else {
+            setVariants(SIZE_OPTIONS.map(size => ({
+              size,
+              color: p.colors?.[0] || "Default",
+              sku: `${p.id || "PROD"}-${size}-${(p.colors?.[0] || "DEF").slice(0, 3).toUpperCase()}`,
+              price: p.basePrice || 0,
+              stock: 0,
+            })));
+          }
         }
       }
     };
@@ -317,6 +346,7 @@ function AddProductContent() {
       isNew: badgeNew,
       isAtelierExclusive: badgeExclusive,
       customBadge: enableCustomBadge ? customBadgeText.trim() : "",
+      variants,
     };
 
     try {
@@ -892,6 +922,137 @@ function AddProductContent() {
                   })}
                 </div>
               </DndContext>
+            </div>
+          </div>
+          {/* Section 06: Variants Matrix */}
+          <div className="border-b border-gray-100 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="lg:col-span-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#775a19] mb-4 block">
+                Section 06
+              </span>
+              <h3 className="font-headline font-black text-xl uppercase tracking-widest text-primary">
+                Variants
+              </h3>
+              <p className="text-xs text-gray-500 mt-4 leading-relaxed font-semibold uppercase tracking-wider italic opacity-85">
+                Define size × color combinations. Each variant has its own SKU,
+                price, and stock count.
+              </p>
+            </div>
+
+            <div className="lg:col-span-8">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-y-2 border-gray-200">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-[9px] font-black uppercase tracking-widest text-gray-600">Size</th>
+                      <th className="px-3 py-2 text-left text-[9px] font-black uppercase tracking-widest text-gray-600">Color</th>
+                      <th className="px-3 py-2 text-left text-[9px] font-black uppercase tracking-widest text-gray-600">SKU</th>
+                      <th className="px-3 py-2 text-left text-[9px] font-black uppercase tracking-widest text-gray-600">Price (₹)</th>
+                      <th className="px-3 py-2 text-left text-[9px] font-black uppercase tracking-widest text-gray-600">Stock</th>
+                      <th className="px-3 py-2 text-right text-[9px] font-black uppercase tracking-widest text-gray-600">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {variants.map((v, idx) => (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="px-3 py-2">
+                          <select
+                            value={v.size}
+                            onChange={(e) => {
+                              const next = [...variants];
+                              next[idx] = { ...next[idx], size: e.target.value };
+                              setVariants(next);
+                            }}
+                            className="border border-gray-300 px-2 py-1 text-xs"
+                          >
+                            {SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={v.color}
+                            onChange={(e) => {
+                              const next = [...variants];
+                              next[idx] = { ...next[idx], color: e.target.value };
+                              setVariants(next);
+                            }}
+                            className="border border-gray-300 px-2 py-1 text-xs w-24"
+                            placeholder="Color"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={v.sku}
+                            onChange={(e) => {
+                              const next = [...variants];
+                              next[idx] = { ...next[idx], sku: e.target.value };
+                              setVariants(next);
+                            }}
+                            className="border border-gray-300 px-2 py-1 text-xs w-32"
+                            placeholder="SKU"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            value={v.price}
+                            onChange={(e) => {
+                              const next = [...variants];
+                              next[idx] = { ...next[idx], price: Number(e.target.value) || 0 };
+                              setVariants(next);
+                            }}
+                            className="border border-gray-300 px-2 py-1 text-xs w-20"
+                            min={0}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            value={v.stock}
+                            onChange={(e) => {
+                              const next = [...variants];
+                              next[idx] = { ...next[idx], stock: Number(e.target.value) || 0 };
+                              setVariants(next);
+                            }}
+                            className="border border-gray-300 px-2 py-1 text-xs w-20"
+                            min={0}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setVariants(variants.filter((_, i) => i !== idx))}
+                            className="px-2 py-1 bg-red-600 text-white text-[9px] font-black uppercase border-none cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setVariants([
+                    ...variants,
+                    {
+                      size: "M",
+                      color: "",
+                      sku: "",
+                      price: basePrice,
+                      stock: 0,
+                    },
+                  ]);
+                }}
+                className="mt-4 px-4 py-2 bg-[#fed488] text-[#775a19] text-[10px] font-black uppercase tracking-widest hover:bg-[#fbb850] transition-colors border-none cursor-pointer"
+              >
+                + Add Variant
+              </button>
             </div>
           </div>
         </form>

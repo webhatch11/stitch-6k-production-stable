@@ -1,4 +1,4 @@
-import { RegistryManager, Product, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
+import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
@@ -81,6 +81,57 @@ const mapDbProductToProduct = (p: any): Product => {
     deleted_at: p.deleted_at || null,
   };
 };
+
+async function attachVariantsToProducts(products: Product[]): Promise<Product[]> {
+  if (products.length === 0) return products;
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) return products;
+
+  const productIds = products.map((p) => p.id);
+  const { data: allVariants } = await supabase
+    .from("product_variants")
+    .select("*")
+    .in("product_id", productIds);
+
+  const variantsByProduct = new Map<string, ProductVariant[]>();
+  for (const v of allVariants || []) {
+    const arr = variantsByProduct.get(v.product_id) || [];
+    arr.push({
+      id: v.id,
+      productId: v.product_id,
+      size: v.size,
+      color: v.color,
+      sku: v.sku,
+      price: Number(v.price),
+      stock: v.stock || 0,
+    });
+    variantsByProduct.set(v.product_id, arr);
+  }
+
+  return products.map((p) => {
+    const variants = variantsByProduct.get(p.id) || [];
+
+    // Derive sizeStock from variants (sum stock across all colors per size)
+    const derivedSizeStock: Record<string, number> = { S: 0, M: 0, L: 0, XL: 0, XXL: 0 };
+    for (const v of variants) {
+      derivedSizeStock[v.size] = (derivedSizeStock[v.size] || 0) + v.stock;
+    }
+
+    // Use derived sizeStock if variants exist; fall back to legacy columns otherwise
+    const finalSizeStock = variants.length > 0 ? derivedSizeStock : p.sizeStock;
+    const totalStock = Object.values(finalSizeStock || {}).reduce(
+      (sum, n) => sum + (n || 0),
+      0
+    );
+
+    return {
+      ...p,
+      sizeStock: finalSizeStock,
+      stock: totalStock,
+      variants,
+    };
+  });
+}
 
 const mapDbOrderToOrder = (o: any): Order => {
   if (!o) return o;
@@ -165,7 +216,8 @@ export const db = {
       console.error("Error fetching products from Supabase:", error);
       return [];
     }
-    const res = (data || []).map(mapDbProductToProduct);
+    const mapped = (data || []).map(mapDbProductToProduct);
+    const res = await attachVariantsToProducts(mapped);
     await CacheService.set(cacheKey, res, 600);
     return res;
   },
@@ -220,6 +272,54 @@ export const db = {
       console.error("Error saving product to Supabase:", error);
       throw error;
     }
+
+    // Upsert variants if provided
+    if (product.variants && product.variants.length > 0) {
+      const productId = dbPayload.id;
+      const uniqueVariantsMap = new Map<string, typeof product.variants[0]>();
+      for (const v of product.variants) {
+        const key = `${v.size}|${v.color}`;
+        uniqueVariantsMap.set(key, v);
+      }
+      const uniqueVariants = Array.from(uniqueVariantsMap.values());
+
+      const variantRows = uniqueVariants.map((v) => ({
+        product_id: productId,
+        size: v.size,
+        color: v.color,
+        sku: v.sku || `${productId}-${v.size}-${v.color.slice(0, 3).toUpperCase()}`,
+        price: v.price ?? product.basePrice ?? product.price ?? 0,
+        stock: v.stock ?? 0,
+      }));
+      const { error: varErr } = await supabase
+        .from("product_variants")
+        .upsert(variantRows, { onConflict: "product_id,size,color" });
+      if (varErr) {
+        console.error("Error upserting product variants:", varErr);
+      }
+    }
+
+    // Delete variants removed from the incoming list
+    if (product.variants !== undefined) {
+      const productId = dbPayload.id;
+      const incomingKeys = new Set(
+        (product.variants || []).map((v) => `${v.size}|${v.color}`)
+      );
+      const { data: existing } = await supabase
+        .from("product_variants")
+        .select("id, size, color")
+        .eq("product_id", productId);
+
+      const toDelete = (existing || []).filter(
+        (e: any) => !incomingKeys.has(`${e.size}|${e.color}`)
+      );
+      if (toDelete.length > 0) {
+        await supabase
+          .from("product_variants")
+          .delete()
+          .in("id", toDelete.map((e: any) => e.id));
+      }
+    }
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -244,8 +344,10 @@ export const db = {
       console.error("Error fetching product by slug from Supabase:", error);
       return undefined;
     }
-    const res = data ? mapDbProductToProduct(data) : undefined;
-    if (res) await CacheService.set(cacheKey, res, 600);
+    const mapped = data ? mapDbProductToProduct(data) : undefined;
+    if (!mapped) return undefined;
+    const [res] = await attachVariantsToProducts([mapped]);
+    await CacheService.set(cacheKey, res, 600);
     return res;
   },
 
@@ -1399,6 +1501,68 @@ export const db = {
     if (isSupabaseConfigured && supabase && sessionId) {
       await supabase.from("inventory_reservations").update({ status: 'cancelled' }).eq("session_id", sessionId);
     }
+  },
+
+  async restockProductVariants(
+    productId: string,
+    addPerVariant: { size: string; color: string; add: number }[]
+  ): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    for (const { size, color, add } of addPerVariant) {
+      if (add <= 0) continue;
+      const { error } = await supabase.rpc("restore_variant_stock", {
+        p_product_id: productId,
+        p_size: size,
+        p_color: color,
+        p_quantity: add,
+      });
+      if (error) {
+        console.error("restockProductVariants error:", error);
+        return false;
+      }
+    }
+
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.delPattern("products:slug:*");
+    return true;
+  },
+
+  async adjustVariantStockBySize(
+    productId: string,
+    size: string,
+    delta: number
+  ): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    const { data: variants, error: fetchErr } = await supabase
+      .from("product_variants")
+      .select("id, color, stock")
+      .eq("product_id", productId)
+      .eq("size", size);
+
+    if (fetchErr || !variants || variants.length === 0) return false;
+
+    // Spread delta evenly across colors; for a single color this is exact
+    for (const v of variants) {
+      const newStock = Math.max(0, v.stock + delta);
+      const { error } = await supabase
+        .from("product_variants")
+        .update({ stock: newStock })
+        .eq("id", v.id);
+      if (error) {
+        console.error("adjustVariantStockBySize error:", error);
+        return false;
+      }
+    }
+
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.delPattern("products:slug:*");
+    return true;
   },
 
   async getOrderStatusHistory(orderId: string): Promise<OrderStatusHistory[]> {

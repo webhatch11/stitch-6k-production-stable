@@ -371,7 +371,14 @@ async function main() {
         basePrice: 1000,
         gstRate: 12,
         discountRate: 0,
-        sizeStock: { S: 5, M: 5, L: 5, XL: 0, XXL: 0 }
+        sizeStock: { S: 5, M: 5, L: 5, XL: 0, XXL: 0 },
+        variants: [
+          { size: "S", color: "Default", sku: `${testProductId}-S-DEF`, price: 1000, stock: 5 },
+          { size: "M", color: "Default", sku: `${testProductId}-M-DEF`, price: 1000, stock: 5 },
+          { size: "L", color: "Default", sku: `${testProductId}-L-DEF`, price: 1000, stock: 5 },
+          { size: "XL", color: "Default", sku: `${testProductId}-XL-DEF`, price: 1000, stock: 0 },
+          { size: "XXL", color: "Default", sku: `${testProductId}-XXL-DEF`, price: 1000, stock: 0 },
+        ],
       });
       assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
 
@@ -382,8 +389,27 @@ async function main() {
         .eq('id', testProductId)
         .single();
       assert(!error && dbProd, `Product ${testProductId} not found in DB`);
-      assert(dbProd.stock === 15, `Expected stock to be 15, got ${dbProd.stock}`);
       assert(dbProd.price === 1120, `Expected price to be 1120 (1000 * 1.12), got ${dbProd.price}`);
+
+      // Verify variants
+      const { data: variants, error: varErr } = await serviceClient
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', testProductId);
+      assert(!varErr && variants, 'Failed to query product_variants');
+      assert(variants.length === 5, `Expected exactly 5 variants, got ${variants.length}`);
+
+      const sVar = variants.find(v => v.size === 'S');
+      const mVar = variants.find(v => v.size === 'M');
+      const lVar = variants.find(v => v.size === 'L');
+      const xlVar = variants.find(v => v.size === 'XL');
+      const xxlVar = variants.find(v => v.size === 'XXL');
+
+      assert(sVar && sVar.stock === 5, 'S variant stock expected 5');
+      assert(mVar && mVar.stock === 5, 'M variant stock expected 5');
+      assert(lVar && lVar.stock === 5, 'L variant stock expected 5');
+      assert(xlVar && xlVar.stock === 0, 'XL variant stock expected 0');
+      assert(xxlVar && xxlVar.stock === 0, 'XXL variant stock expected 0');
     });
     passed++;
 
@@ -405,18 +431,23 @@ async function main() {
       assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
 
       // Verify DB
-      const { data: dbProd, error } = await serviceClient
-        .from('products')
-        .select('*')
-        .eq('id', testProductId)
-        .single();
-      assert(!error && dbProd, 'Product not found in DB');
-      assert(dbProd.size_stock_s === 8, `S stock expected 8, got ${dbProd.size_stock_s}`);
-      assert(dbProd.size_stock_m === 8, `M stock expected 8, got ${dbProd.size_stock_m}`);
-      assert(dbProd.size_stock_l === 8, `L stock expected 8, got ${dbProd.size_stock_l}`);
-      assert(dbProd.size_stock_xl === 3, `XL stock expected 3, got ${dbProd.size_stock_xl}`);
-      assert(dbProd.size_stock_xxl === 3, `XXL stock expected 3, got ${dbProd.size_stock_xxl}`);
-      assert(dbProd.stock === 30, `Total stock expected 30, got ${dbProd.stock}`);
+      const { data: variants, error } = await serviceClient
+        .from('product_variants')
+        .select('size, stock')
+        .eq('product_id', testProductId);
+      assert(!error && variants, 'Failed to query product_variants');
+
+      const sVar = variants.find(v => v.size === 'S');
+      const mVar = variants.find(v => v.size === 'M');
+      const lVar = variants.find(v => v.size === 'L');
+      const xlVar = variants.find(v => v.size === 'XL');
+      const xxlVar = variants.find(v => v.size === 'XXL');
+
+      assert(sVar && sVar.stock === 8, `S stock expected 8, got ${sVar?.stock}`);
+      assert(mVar && mVar.stock === 8, `M stock expected 8, got ${mVar?.stock}`);
+      assert(lVar && lVar.stock === 8, `L stock expected 8, got ${lVar?.stock}`);
+      assert(xlVar && xlVar.stock === 3, `XL stock expected 3, got ${xlVar?.stock}`);
+      assert(xxlVar && xxlVar.stock === 3, `XXL stock expected 3, got ${xxlVar?.stock}`);
     });
     passed++;
 
@@ -439,15 +470,31 @@ async function main() {
       assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
 
       // Verify DB
-      const { data: dbProd, error } = await serviceClient
-        .from('products')
-        .select('*')
-        .eq('id', testProductId)
-        .single();
-      assert(!error && dbProd, 'Product not found in DB');
-      assert(dbProd.size_stock_m === 10, `Expected M stock to be 10, got ${dbProd.size_stock_m}`);
-      assert(dbProd.size_stock_s === 8, `Expected S stock unchanged (8), got ${dbProd.size_stock_s}`);
-      assert(dbProd.stock === 32, `Expected total stock 32, got ${dbProd.stock}`);
+      const { data: mVariant, error } = await serviceClient
+        .from('product_variants')
+        .select('stock')
+        .eq('product_id', testProductId)
+        .eq('size', 'M')
+        .maybeSingle();
+      assert(!error && mVariant, 'Failed to query M variant');
+      assert(mVariant.stock === 10, `Expected M stock to be 10, got ${mVariant.stock}`);
+
+      // Confirm other sizes unchanged (S was 8, L was 8, XL was 3, XXL was 3)
+      const { data: variants, error: varErr } = await serviceClient
+        .from('product_variants')
+        .select('size, stock')
+        .eq('product_id', testProductId);
+      assert(!varErr && variants, 'Failed to query all variants');
+
+      const sVar = variants.find(v => v.size === 'S');
+      const lVar = variants.find(v => v.size === 'L');
+      const xlVar = variants.find(v => v.size === 'XL');
+      const xxlVar = variants.find(v => v.size === 'XXL');
+
+      assert(sVar && sVar.stock === 8, `Expected S stock unchanged (8), got ${sVar?.stock}`);
+      assert(lVar && lVar.stock === 8, `Expected L stock unchanged (8), got ${lVar?.stock}`);
+      assert(xlVar && xlVar.stock === 3, `Expected XL stock unchanged (3), got ${xlVar?.stock}`);
+      assert(xxlVar && xxlVar.stock === 3, `Expected XXL stock unchanged (3), got ${xxlVar?.stock}`);
     });
     passed++;
 
@@ -457,29 +504,30 @@ async function main() {
       assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
 
       // Verify DB
+      const { data: xlVariant, error } = await serviceClient
+        .from('product_variants')
+        .select('stock')
+        .eq('product_id', testProductId)
+        .eq('size', 'XL')
+        .maybeSingle();
+      assert(!error && xlVariant, 'Failed to query XL variant');
+      assert(xlVariant.stock === 0, `Expected XL stock clamped to 0, got ${xlVariant.stock}`);
+    });
+    passed++;
+
+    // TEST 13: deleteProductAction soft-deletes a product
+    await runTest(13, 'deleteProductAction soft-deletes a product', async () => {
+      const res = await invokeAction(adminCookie, 'deleteProductAction', testProductId);
+      assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
+
+      // Verify DB
       const { data: dbProd, error } = await serviceClient
         .from('products')
         .select('*')
         .eq('id', testProductId)
         .single();
       assert(!error && dbProd, 'Product not found in DB');
-      assert(dbProd.size_stock_xl === 0, `Expected XL stock clamped to 0, got ${dbProd.size_stock_xl}`);
-      assert(dbProd.stock === 29, `Expected total stock 29, got ${dbProd.stock}`);
-    });
-    passed++;
-
-    // TEST 13: deleteProductAction removes the product
-    await runTest(13, 'deleteProductAction removes the product', async () => {
-      const res = await invokeAction(adminCookie, 'deleteProductAction', testProductId);
-      assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
-
-      // Verify DB
-      const { data: dbProd } = await serviceClient
-        .from('products')
-        .select('*')
-        .eq('id', testProductId)
-        .maybeSingle();
-      assert(!dbProd, 'Product should be deleted from DB');
+      assert(dbProd.deleted_at !== null, 'Product deleted_at should not be null');
     });
     passed++;
 

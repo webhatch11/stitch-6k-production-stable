@@ -34,6 +34,13 @@ const productSchema = z.object({
   isNew: z.boolean().optional(),
   isAtelierExclusive: z.boolean().optional(),
   customBadge: z.string().optional(),
+  variants: z.array(z.object({
+    size: z.string().min(1),
+    color: z.string().min(1),
+    sku: z.string(),
+    price: z.number().min(0),
+    stock: z.number().int().min(0),
+  })).optional(),
 });
 
 export async function saveProductAction(input: unknown) {
@@ -120,29 +127,33 @@ export async function restockProductAction(
   productId: string,
   addPerSize: number
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await getServerUser();
-  if (!user || user.role !== "admin") {
-    return { success: false, error: "Unauthorized" };
-  }
-  if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
-  if (!Number.isInteger(addPerSize) || addPerSize <= 0) {
-    return { success: false, error: "addPerSize must be a positive integer" };
-  }
   try {
+    await requireAdmin();
+    if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
+    if (!Number.isInteger(addPerSize) || addPerSize <= 0) {
+      return { success: false, error: "addPerSize must be a positive integer" };
+    }
+
     const products = await db.getProducts();
     const product = products.find((p) => p.id === productId);
     if (!product) return { success: false, error: "Product not found" };
-    const s = product.sizeStock || {};
-    const newSizeStock = {
-      S: (s.S || 0) + addPerSize,
-      M: (s.M || 0) + addPerSize,
-      L: (s.L || 0) + addPerSize,
-      XL: (s.XL || 0) + addPerSize,
-      XXL: (s.XXL || 0) + addPerSize,
-    };
-    const newTotal =
-      newSizeStock.S + newSizeStock.M + newSizeStock.L + newSizeStock.XL + newSizeStock.XXL;
-    await db.saveProduct({ ...product, sizeStock: newSizeStock, stock: newTotal });
+
+    const addPerVariant = (product.variants && product.variants.length > 0)
+      ? product.variants.map((v) => ({
+          size: v.size,
+          color: v.color,
+          add: addPerSize,
+        }))
+      : (["S", "M", "L", "XL", "XXL"] as const).map((size) => ({
+          size,
+          color: (product.colors && product.colors[0]) || "Default",
+          add: addPerSize,
+        }));
+
+    const ok = await db.restockProductVariants(productId, addPerVariant);
+    if (!ok) return { success: false, error: "Restock failed" };
+
+    revalidatePath("/admindashboard/inventory");
     return { success: true };
   } catch (e: any) {
     console.error("[restockProductAction]", e);
@@ -155,30 +166,19 @@ export async function adjustProductSizeAction(
   size: "S" | "M" | "L" | "XL" | "XXL",
   diff: number
 ): Promise<{ success: boolean; error?: string }> {
-  const user = await getServerUser();
-  if (!user || user.role !== "admin") {
-    return { success: false, error: "Unauthorized" };
-  }
-  if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
-  const validSizes = ["S", "M", "L", "XL", "XXL"];
-  if (!validSizes.includes(size)) return { success: false, error: "Invalid size" };
-  if (!Number.isInteger(diff) || diff === 0) {
-    return { success: false, error: "diff must be a non-zero integer" };
-  }
   try {
-    const products = await db.getProducts();
-    const product = products.find((p) => p.id === productId);
-    if (!product) return { success: false, error: "Product not found" };
-    const s = product.sizeStock || {};
-    const newVal = Math.max(0, (s[size] || 0) + diff);
-    const newSizeStock = { ...s, [size]: newVal };
-    const newTotal =
-      (newSizeStock.S || 0) +
-      (newSizeStock.M || 0) +
-      (newSizeStock.L || 0) +
-      (newSizeStock.XL || 0) +
-      (newSizeStock.XXL || 0);
-    await db.saveProduct({ ...product, sizeStock: newSizeStock, stock: newTotal });
+    await requireAdmin();
+    if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
+    const validSizes = ["S", "M", "L", "XL", "XXL"];
+    if (!validSizes.includes(size)) return { success: false, error: "Invalid size" };
+    if (!Number.isInteger(diff) || diff === 0) {
+      return { success: false, error: "diff must be a non-zero integer" };
+    }
+
+    const ok = await db.adjustVariantStockBySize(productId, size, diff);
+    if (!ok) return { success: false, error: "Adjust failed" };
+
+    revalidatePath("/admindashboard/inventory");
     return { success: true };
   } catch (e: any) {
     console.error("[adjustProductSizeAction]", e);

@@ -1,4 +1,14 @@
 
+export interface ProductVariant {
+  id?: string;
+  productId?: string;
+  size: string;
+  color: string;
+  sku: string;
+  price: number;
+  stock: number;
+}
+
 export interface Product {
   id: string;
   slug?: string;
@@ -47,6 +57,8 @@ export interface Product {
     comment: string;
   }[];
   isGenz?: boolean;
+  deleted_at?: string | null;
+  variants?: ProductVariant[];
 }
 
 

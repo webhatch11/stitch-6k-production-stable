@@ -180,10 +180,13 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
     discount: Number(c.discount),
     type: c.type,
     active: c.active,
-    expiryDate: c.expiry_date || c.expiryDate,
-    minCartValue: c.min_cart_value !== undefined ? Number(c.min_cart_value) : (c.minCartValue !== undefined ? Number(c.minCartValue) : undefined),
-    maxUsage: c.max_usage !== undefined ? Number(c.max_usage) : (c.maxUsage !== undefined ? Number(c.maxUsage) : undefined),
-    usageCount: c.usage_count !== undefined ? Number(c.usage_count) : (c.usageCount !== undefined ? Number(c.usageCount) : undefined),
+    expiryDate: c.expiry_date || c.expiryDate || null,
+    minCartValue: (c.min_cart_value !== null && c.min_cart_value !== undefined) ? Number(c.min_cart_value) : ((c.minCartValue !== null && c.minCartValue !== undefined) ? Number(c.minCartValue) : null),
+    maxUsage: (c.max_usage !== null && c.max_usage !== undefined) ? Number(c.max_usage) : ((c.maxUsage !== null && c.maxUsage !== undefined) ? Number(c.maxUsage) : null),
+    usageCount: (c.usage_count !== null && c.usage_count !== undefined) ? Number(c.usage_count) : ((c.usageCount !== null && c.usageCount !== undefined) ? Number(c.usageCount) : 0),
+    min_cart_value: (c.min_cart_value !== null && c.min_cart_value !== undefined) ? Number(c.min_cart_value) : ((c.minCartValue !== null && c.minCartValue !== undefined) ? Number(c.minCartValue) : null),
+    max_usage: (c.max_usage !== null && c.max_usage !== undefined) ? Number(c.max_usage) : ((c.maxUsage !== null && c.maxUsage !== undefined) ? Number(c.maxUsage) : null),
+    usage_count: (c.usage_count !== null && c.usage_count !== undefined) ? Number(c.usage_count) : ((c.usageCount !== null && c.usageCount !== undefined) ? Number(c.usageCount) : 0),
   };
 };
 
@@ -716,13 +719,9 @@ export const db = {
       type: coupon.type || "percent",
       active: coupon.active !== undefined ? coupon.active : true,
       expiry_date: coupon.expiryDate,
-      expiryDate: coupon.expiryDate,
       min_cart_value: coupon.minCartValue,
-      minCartValue: coupon.minCartValue,
       max_usage: coupon.maxUsage,
-      maxUsage: coupon.maxUsage,
       usage_count: coupon.usageCount,
-      usageCount: coupon.usageCount,
     };
 
     const { error } = await supabase.from("coupons").upsert(dbPayload);
@@ -812,10 +811,10 @@ export const db = {
     if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
       return { valid: false, error: "Coupon has expired." };
     }
-    if (coupon.minCartValue !== undefined && cartTotal < coupon.minCartValue) {
+    if (coupon.minCartValue !== undefined && coupon.minCartValue !== null && cartTotal < coupon.minCartValue) {
       return { valid: false, error: `Minimum cart value of ₹${coupon.minCartValue} required.` };
     }
-    if (coupon.maxUsage !== undefined && coupon.usageCount !== undefined && coupon.usageCount >= coupon.maxUsage) {
+    if (coupon.maxUsage !== undefined && coupon.maxUsage !== null && coupon.usageCount !== undefined && coupon.usageCount !== null && coupon.usageCount >= coupon.maxUsage) {
       return { valid: false, error: "Coupon usage limit has been reached." };
     }
 

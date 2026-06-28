@@ -16,6 +16,9 @@ const couponSchema = z
     discount: z.number().positive("Discount must be positive"),
     type: z.enum(["percent", "flat"]),
     active: z.boolean().default(true),
+    min_cart_value: z.number().min(0).optional().default(0),
+    max_usage: z.number().int().min(0).optional().nullable(),
+    expiry_date: z.string().optional().nullable(),  // ISO date string
   })
   .refine((data) => data.type !== "percent" || data.discount <= 100, {
     message: "Percentage discount must be between 0 and 100",
@@ -45,6 +48,9 @@ export async function saveCouponAction(
       discount: data.discount,
       type: data.type,
       active: data.active,
+      minCartValue: data.min_cart_value,
+      maxUsage: data.max_usage,
+      expiryDate: data.expiry_date,
     };
     await db.saveCoupon(newCoupon);
     return { success: true };

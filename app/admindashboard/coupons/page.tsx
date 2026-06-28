@@ -13,6 +13,9 @@ export default function CouponsLedgerPage() {
   const [cpnCode, setCpnCode] = useState("");
   const [cpnValue, setCpnValue] = useState(0);
   const [cpnType, setCpnType] = useState<"percent" | "flat">("percent");
+  const [cpnMinCartValue, setCpnMinCartValue] = useState(0);
+  const [cpnMaxUsage, setCpnMaxUsage] = useState<string>("");
+  const [cpnExpiryDate, setCpnExpiryDate] = useState<string>("");
 
   // Edit Coupon Form
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -21,6 +24,9 @@ export default function CouponsLedgerPage() {
   const [editValue, setEditValue] = useState(0);
   const [editType, setEditType] = useState<"percent" | "flat">("percent");
   const [editActive, setEditActive] = useState(true);
+  const [editMinCartValue, setEditMinCartValue] = useState(0);
+  const [editMaxUsage, setEditMaxUsage] = useState<string>("");
+  const [editExpiryDate, setEditExpiryDate] = useState<string>("");
 
   // Delete Confirmation State
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -73,6 +79,15 @@ export default function CouponsLedgerPage() {
       triggerToast("Please enter a valid discount value");
       return;
     }
+    if (cpnMinCartValue < 0) {
+      triggerToast("Minimum cart value must be at least 0");
+      return;
+    }
+    const maxUsageNum = cpnMaxUsage !== "" ? Number(cpnMaxUsage) : null;
+    if (maxUsageNum !== null && (isNaN(maxUsageNum) || maxUsageNum < 0)) {
+      triggerToast("Max uses must be at least 0");
+      return;
+    }
 
     const existing = await getCouponsAction();
     if (existing.success) {
@@ -83,7 +98,15 @@ export default function CouponsLedgerPage() {
       }
     }
 
-    const res = await saveCouponAction({ code, discount: cpnValue, type: cpnType, active: true });
+    const res = await saveCouponAction({
+      code,
+      discount: cpnValue,
+      type: cpnType,
+      active: true,
+      min_cart_value: cpnMinCartValue,
+      max_usage: maxUsageNum,
+      expiry_date: cpnExpiryDate || null,
+    });
     if (!res.success) {
       triggerToast(res.error || "Failed to create coupon");
       return;
@@ -92,6 +115,9 @@ export default function CouponsLedgerPage() {
     setCpnCode("");
     setCpnValue(0);
     setCpnType("percent");
+    setCpnMinCartValue(0);
+    setCpnMaxUsage("");
+    setCpnExpiryDate("");
     triggerToast("Coupon code created successfully");
     await loadCoupons();
   };
@@ -102,6 +128,9 @@ export default function CouponsLedgerPage() {
     setEditValue(c.discount);
     setEditType(c.type);
     setEditActive(c.active);
+    setEditMinCartValue(c.minCartValue ?? 0);
+    setEditMaxUsage(c.maxUsage != null ? String(c.maxUsage) : "");
+    setEditExpiryDate(c.expiryDate ? c.expiryDate.split("T")[0] : "");
     setEditModalOpen(true);
   };
 
@@ -115,6 +144,15 @@ export default function CouponsLedgerPage() {
     }
     if (editValue <= 0) {
       triggerToast("Please enter a valid discount value");
+      return;
+    }
+    if (editMinCartValue < 0) {
+      triggerToast("Minimum cart value must be at least 0");
+      return;
+    }
+    const maxUsageNum = editMaxUsage !== "" ? Number(editMaxUsage) : null;
+    if (maxUsageNum !== null && (isNaN(maxUsageNum) || maxUsageNum < 0)) {
+      triggerToast("Max uses must be at least 0");
       return;
     }
 
@@ -133,6 +171,9 @@ export default function CouponsLedgerPage() {
       discount: editValue,
       type: editType,
       active: editActive,
+      min_cart_value: editMinCartValue,
+      max_usage: maxUsageNum,
+      expiry_date: editExpiryDate || null,
     });
     if (!res.success) {
       triggerToast(res.error || "Failed to update coupon");
@@ -140,6 +181,9 @@ export default function CouponsLedgerPage() {
     }
     setEditModalOpen(false);
     setEditingCoupon(null);
+    setEditMinCartValue(0);
+    setEditMaxUsage("");
+    setEditExpiryDate("");
     triggerToast("Coupon updated successfully");
     await loadCoupons();
   };
@@ -205,6 +249,7 @@ export default function CouponsLedgerPage() {
                 <th className="px-8 py-6">Code</th>
                 <th className="px-8 py-6">Discount</th>
                 <th className="px-8 py-6">Type</th>
+                <th className="px-8 py-6">Uses</th>
                 <th className="px-8 py-6">Status</th>
                 <th className="px-8 py-6 text-right">Actions</th>
               </tr>
@@ -212,7 +257,7 @@ export default function CouponsLedgerPage() {
             <tbody className="divide-y divide-gray-200 text-xs">
               {coupons.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-xs text-gray-400 italic">
+                  <td colSpan={6} className="px-8 py-12 text-center text-xs text-gray-400 italic">
                     No active coupon codes defined.
                   </td>
                 </tr>
@@ -227,6 +272,9 @@ export default function CouponsLedgerPage() {
                     </td>
                     <td className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
                       {c.type}
+                    </td>
+                    <td className="px-8 py-6 font-bold text-sm">
+                      {c.usageCount || 0}{c.maxUsage ? ` / ${c.maxUsage}` : ""}
                     </td>
                     <td className="px-8 py-6">
                       <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-none border ${c.active ? "bg-green-50 text-green-700 border-green-200/50" : "bg-gray-50 text-gray-500 border-gray-200/50"}`}>
@@ -271,6 +319,9 @@ export default function CouponsLedgerPage() {
                   setCpnCode("");
                   setCpnValue(0);
                   setCpnType("percent");
+                  setCpnMinCartValue(0);
+                  setCpnMaxUsage("");
+                  setCpnExpiryDate("");
                 }}
                 className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer flex items-center justify-center"
               >
@@ -318,6 +369,45 @@ export default function CouponsLedgerPage() {
                   </select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Min cart value (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={cpnMinCartValue}
+                  onChange={(e) => setCpnMinCartValue(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                  placeholder="0"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Max uses (blank = unlimited)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={cpnMaxUsage}
+                    onChange={(e) => setCpnMaxUsage(e.target.value)}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                    placeholder="e.g. 100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Expiry date
+                  </label>
+                  <input
+                    type="date"
+                    value={cpnExpiryDate}
+                    onChange={(e) => setCpnExpiryDate(e.target.value)}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-xs py-3 px-4 rounded-none"
+                  />
+                </div>
+              </div>
               <button
                 type="submit"
                 className="w-full bg-primary text-white py-4 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all rounded-none cursor-pointer border-none font-bold mt-4"
@@ -339,6 +429,9 @@ export default function CouponsLedgerPage() {
                 onClick={() => {
                   setEditModalOpen(false);
                   setEditingCoupon(null);
+                  setEditMinCartValue(0);
+                  setEditMaxUsage("");
+                  setEditExpiryDate("");
                 }}
                 className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer flex items-center justify-center"
               >
@@ -384,6 +477,45 @@ export default function CouponsLedgerPage() {
                     <option value="percent">Percentage (%)</option>
                     <option value="flat">Flat Amount (₹)</option>
                   </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Min cart value (₹)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editMinCartValue}
+                  onChange={(e) => setEditMinCartValue(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                  placeholder="0"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Max uses (blank = unlimited)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editMaxUsage}
+                    onChange={(e) => setEditMaxUsage(e.target.value)}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                    placeholder="e.g. 100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Expiry date
+                  </label>
+                  <input
+                    type="date"
+                    value={editExpiryDate}
+                    onChange={(e) => setEditExpiryDate(e.target.value)}
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-xs py-3 px-4 rounded-none"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">

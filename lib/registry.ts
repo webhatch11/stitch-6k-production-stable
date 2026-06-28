@@ -114,10 +114,13 @@ export interface Coupon {
   discount: number;
   type: "percent" | "flat";
   active: boolean;
-  expiryDate?: string;
-  minCartValue?: number;
-  maxUsage?: number;
-  usageCount?: number;
+  expiryDate?: string | null;
+  minCartValue?: number | null;
+  maxUsage?: number | null;
+  usageCount?: number | null;
+  usage_count?: number | null;
+  max_usage?: number | null;
+  min_cart_value?: number | null;
 }
 
 export interface WalletTransaction {
@@ -1182,13 +1185,26 @@ export const RegistryManager = {
   saveCoupon(coupon: Partial<Coupon>) {
     if (!isBrowser()) return;
     const coupons = this.getCoupons();
-    coupons.unshift({
-      id: "CPN-" + Date.now(),
+    const existingIdx = coupon.id ? coupons.findIndex((c) => c.id === coupon.id) : -1;
+    const payload: Coupon = {
+      id: coupon.id || "CPN-" + Date.now(),
       code: (coupon.code || "CODE").toUpperCase(),
       discount: coupon.discount || 10,
       type: coupon.type || "percent",
-      active: true,
-    });
+      active: coupon.active !== undefined ? coupon.active : true,
+      expiryDate: coupon.expiryDate !== undefined ? coupon.expiryDate : null,
+      minCartValue: coupon.minCartValue !== undefined ? coupon.minCartValue : 0,
+      maxUsage: coupon.maxUsage !== undefined ? coupon.maxUsage : null,
+      usageCount: coupon.usageCount !== undefined ? coupon.usageCount : 0,
+    };
+    if (existingIdx > -1) {
+      if (coupon.usageCount === undefined) {
+        payload.usageCount = coupons[existingIdx].usageCount || 0;
+      }
+      coupons[existingIdx] = payload;
+    } else {
+      coupons.unshift(payload);
+    }
     localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
   },
 
@@ -1211,10 +1227,10 @@ export const RegistryManager = {
     if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
       return { valid: false, error: "Coupon has expired." };
     }
-    if (coupon.minCartValue !== undefined && cartTotal < coupon.minCartValue) {
+    if (coupon.minCartValue !== undefined && coupon.minCartValue !== null && cartTotal < coupon.minCartValue) {
       return { valid: false, error: `Minimum cart value of ₹${coupon.minCartValue} required.` };
     }
-    if (coupon.maxUsage !== undefined && coupon.usageCount !== undefined && coupon.usageCount >= coupon.maxUsage) {
+    if (coupon.maxUsage !== undefined && coupon.maxUsage !== null && coupon.usageCount !== undefined && coupon.usageCount !== null && coupon.usageCount >= coupon.maxUsage) {
       return { valid: false, error: "Coupon usage limit has been reached." };
     }
     return { valid: true, coupon };

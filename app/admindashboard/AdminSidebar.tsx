@@ -52,6 +52,11 @@ export default function AdminSidebar({ user, children }: AdminSidebarProps) {
       label: "Coupons",
       icon: "confirmation_number",
     },
+    {
+      href: "/admindashboard/settings",
+      label: "Settings",
+      icon: "settings",
+    },
   ];
 
   const isActive = (link: (typeof navLinks)[0]) => {

@@ -28,6 +28,11 @@ export default function AdminSidebar({ user, children }: AdminSidebarProps) {
       icon: "inventory_2",
     },
     {
+      href: "/admindashboard/best-sellers",
+      label: "Best-Sellers",
+      icon: "insights",
+    },
+    {
       href: "/admindashboard/orders",
       label: "Orders",
       icon: "shopping_basket",

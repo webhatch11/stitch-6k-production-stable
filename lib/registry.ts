@@ -97,6 +97,8 @@ export interface Order {
   refund_reason?: string;
   refunded_at?: string;
   razorpay_payment_id?: string;
+  created_at?: string;
+  createdAt?: string;
 }
 
 export interface OrderStatusHistory {
@@ -1159,6 +1161,18 @@ export const RegistryManager = {
       qualityCheckPassed: order.qualityCheckPassed !== undefined ? order.qualityCheckPassed : (oldOrder ? oldOrder.qualityCheckPassed : undefined),
       shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (oldOrder ? oldOrder.shiprocketId : undefined),
       idempotencyKey: order.idempotencyKey || order.id,
+      cartItems: order.cartItems !== undefined ? order.cartItems : (oldOrder ? oldOrder.cartItems : []),
+      paymentStatus: order.paymentStatus !== undefined ? order.paymentStatus : (oldOrder ? oldOrder.paymentStatus : ""),
+      userId: order.userId !== undefined ? order.userId : (oldOrder ? oldOrder.userId : undefined),
+      address_snapshot: order.address_snapshot !== undefined ? order.address_snapshot : (oldOrder ? oldOrder.address_snapshot : null),
+      refund_id: order.refund_id !== undefined ? order.refund_id : (oldOrder ? oldOrder.refund_id : undefined),
+      refund_amount: order.refund_amount !== undefined ? order.refund_amount : (oldOrder ? oldOrder.refund_amount : undefined),
+      refund_status: order.refund_status !== undefined ? order.refund_status : (oldOrder ? oldOrder.refund_status : undefined),
+      refund_reason: order.refund_reason !== undefined ? order.refund_reason : (oldOrder ? oldOrder.refund_reason : undefined),
+      refunded_at: order.refunded_at !== undefined ? order.refunded_at : (oldOrder ? oldOrder.refunded_at : undefined),
+      razorpay_payment_id: order.razorpay_payment_id !== undefined ? order.razorpay_payment_id : (oldOrder ? oldOrder.razorpay_payment_id : undefined),
+      created_at: order.created_at !== undefined ? order.created_at : (oldOrder ? oldOrder.created_at : new Date().toISOString()),
+      createdAt: order.createdAt !== undefined ? order.createdAt : (oldOrder ? oldOrder.createdAt : new Date().toISOString()),
     };
 
     if (existingIndex !== -1) {

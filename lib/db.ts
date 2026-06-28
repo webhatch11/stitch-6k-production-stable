@@ -169,6 +169,8 @@ const mapDbOrderToOrder = (o: any): Order => {
     refund_reason: o.refund_reason || undefined,
     refunded_at: o.refunded_at || undefined,
     razorpay_payment_id: o.razorpay_payment_id || undefined,
+    created_at: o.created_at || undefined,
+    createdAt: o.created_at || undefined,
   };
 };
 

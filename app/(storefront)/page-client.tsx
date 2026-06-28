@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
 import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
+import { Product } from "@/lib/registry";
+import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
 
 interface HeroSlide {
   badge: string;
@@ -341,12 +343,66 @@ const shirtCategories: ShirtCategoryItem[] = [
   }
 ];
 
-export default function HomeClient({ hero, business }: { hero: any; business: any }) {
+export default function HomeClient({
+  hero,
+  business,
+  marquee,
+  offerBox,
+  newArrivals,
+  exclusives,
+  bestsellers,
+}: {
+  hero: any;
+  business: any;
+  marquee: any;
+  offerBox: any;
+  newArrivals: Product[];
+  exclusives: Product[];
+  bestsellers: Product[];
+}) {
   const pathname = usePathname();
   const addToCartStore = useCartStore((state) => state.addToCart);
+
+  // Map database products to the layout formats
+  const activeNewArrivals: FavoriteProduct[] = newArrivals && newArrivals.length > 0
+    ? newArrivals.map((p) => ({
+        id: p.id,
+        name: p.title,
+        category: p.category,
+        price: `₹${p.price.toLocaleString("en-IN")}`,
+        tag: p.customBadge || (p.isNew ? "NEW" : ""),
+        link: `/product/${p.slug}`,
+        image: p.image || "/assets/model_black_shirt.png",
+        verticalText: p.title.toUpperCase(),
+      }))
+    : favoriteProducts;
+
+  const activeBestsellers: FavoriteStyleItem[] = bestsellers && bestsellers.length > 0
+    ? bestsellers.map((p) => ({
+        id: p.id,
+        name: p.title,
+        price: `₹${p.price.toLocaleString("en-IN")}`,
+        image: p.image || "/assets/folded_white_shirt.png",
+        badge: p.customBadge || (p.bestseller ? "Bestseller" : (p.isNew ? "New" : "")),
+        colors: p.colors || [],
+        slug: p.slug,
+      }))
+    : favoriteStyles;
+
+  const activeExclusives: FavoriteStyleItem[] = exclusives && exclusives.length > 0
+    ? exclusives.map((p) => ({
+        id: p.id,
+        name: p.title,
+        price: `₹${p.price.toLocaleString("en-IN")}`,
+        image: p.image || "/assets/folded_white_shirt.png",
+        badge: p.customBadge || "Exclusive",
+        colors: p.colors || [],
+        slug: p.slug,
+      }))
+    : [];
   
   // Favorite products active index state for 3D Coverflow slider
-  const [activeFavIndex, setActiveFavIndex] = useState(2);
+  const [activeFavIndex, setActiveFavIndex] = useState(Math.max(0, Math.min(2, activeNewArrivals.length - 1)));
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
   const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
   const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
@@ -366,10 +422,10 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
 
     if (Math.abs(deltaX) > minSwipeDistance) {
       if (deltaX > 0) {
-        setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+        setActiveFavIndex((prev) => (prev + 1) % activeNewArrivals.length);
         setSelectedQuickShopIndex(null);
       } else {
-        setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
+        setActiveFavIndex((prev) => (prev - 1 + activeNewArrivals.length) % activeNewArrivals.length);
         setSelectedQuickShopIndex(null);
       }
     }
@@ -646,11 +702,11 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
     if (selectedQuickShopIndex !== null || isCoverflowHovered) return;
 
     const timer = setInterval(() => {
-      setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+      setActiveFavIndex((prev) => (prev + 1) % activeNewArrivals.length);
     }, 5000); // Auto-scroll every 5 seconds
 
     return () => clearInterval(timer);
-  }, [selectedQuickShopIndex, isCoverflowHovered]);
+  }, [selectedQuickShopIndex, isCoverflowHovered, activeNewArrivals.length]);
 
   // Sync cart count and scroll states removed because handled by shared layout/navbar
 
@@ -848,104 +904,92 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
         </section>
 
         {/* Large Infinite Announcement Marquee */}
-        <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-4.5 text-[11px] font-black uppercase tracking-[0.25em] relative z-20 border-y border-white/5">
-          <div className="flex animate-marquee whitespace-nowrap">
-            <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
-              <span>FREE DELIVERY ACROSS INDIA</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>100% PREMIUM COTTON & LINEN</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>EASY 7-DAY RETURNS</span>
-            </div>
-            <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
-              <span>FREE DELIVERY ACROSS INDIA</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>100% PREMIUM COTTON & LINEN</span>
-              <span className="text-secondary-fixed-dim font-extrabold">•</span>
-              <span>EASY 7-DAY RETURNS</span>
-            </div>
-          </div>
-        </div>
+        <AnnouncementMarquee marquee={marquee} isHomepage={true} />
 
         {/* Section 2: Promotional Spotlight */}
-        <section className="bg-surface-container-low py-16 md:py-24 px-4 md:px-8 lg:px-12 relative overflow-hidden group">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-            className="max-w-4xl mx-auto w-full relative min-h-[280px] lg:min-h-[320px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
-          >
-            {/* Background Image with slow zoom-scale */}
-            <Image
-              alt="Elegant dark silk fabric texture"
-              className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.2] group-hover:scale-105 transition-transform duration-[3000ms] ease-out select-none pointer-events-none"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBt_dM_PwNyCwIwT-O1Hdc00MIZ22eGAUgYi9vEfWdoVc132M9C6iGLoFpcH8jO3Ef-tMj5hHNCSqM6luyueIIuCAzB2muFZoy5zrcS6-J6xi7bbBWJq9Vyy44Q5AaYLfV6B6xsYzHw0ZkNcVDrBXiQK17gSFXF9x3nD3Q9pNhJWSjTd_zcb6fo_VxbX_1BNBczo3rMeCVhL6lBg88mr66F5-9-dmZp16Hwth9jmqvFTgyCzd5dvpwfsUpu5d-js0dRPMLDm1UPQmA"
-              fill
-              sizes="100vw"
-            />
-            
-            {/* Double-Gold Framed Card */}
-            <div className="relative z-10 w-full max-w-lg mx-6 p-6 lg:p-10 border-4 border-double border-secondary/30 bg-black/60 backdrop-blur-md text-center flex flex-col items-center gap-4 shadow-2xl transition-all duration-500 hover:border-secondary/50">
-              {/* Limited offer header */}
-              <span className="text-secondary text-[9px] font-black uppercase tracking-[0.4em]">
-                Limited Time Offer
-              </span>
-
-              {/* Mixed Typography Header */}
-              <div className="flex flex-col items-center">
-                <span className="font-serif italic text-secondary text-xl lg:text-3xl tracking-wide lowercase leading-none">
-                  our new
-                </span>
-                <h2 className="text-white font-headline text-2xl lg:text-4xl font-extrabold tracking-[0.25em] uppercase mt-2 leading-none">
-                  S E A S O N
-                </h2>
-              </div>
-
-              {/* Subtitle */}
-              <p className="text-gray-400 font-label text-[9px] uppercase tracking-[0.2em] max-w-sm leading-relaxed mt-1">
-                Elevate your wardrobe with the atelier linen collection. Get 10% off with promo code.
-              </p>
+        {offerBox?.enabled && (
+          <section className="bg-surface-container-low py-16 md:py-24 px-4 md:px-8 lg:px-12 relative overflow-hidden group">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+              className="max-w-4xl mx-auto w-full relative min-h-[280px] lg:min-h-[320px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
+            >
+              {/* Background Image with slow zoom-scale */}
+              <img
+                alt="Elegant dark silk fabric texture"
+                className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.2] group-hover:scale-105 transition-transform duration-[3000ms] ease-out select-none pointer-events-none"
+                src={offerBox?.bg_image_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBt_dM_PwNyCwIwT-O1Hdc00MIZ22eGAUgYi9vEfWdoVc132M9C6iGLoFpcH8jO3Ef-tMj5hHNCSqM6luyueIIuCAzB2muFZoy5zrcS6-J6xi7bbBWJq9Vyy44Q5AaYLfV6B6xsYzHw0ZkNcVDrBXiQK17gSFXF9x3nD3Q9pNhJWSjTd_zcb6fo_VxbX_1BNBczo3rMeCVhL6lBg88mr66F5-9-dmZp16Hwth9jmqvFTgyCzd5dvpwfsUpu5d-js0dRPMLDm1UPQmA"}
+                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0 }}
+              />
               
-              {/* Stitched Atelier Tag (Interactive Coupon) */}
-              <div className="relative group/tag mt-1">
-                {/* Circular thread hole on the left side of the tag */}
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-black border border-secondary/30 shadow-inner z-10"></div>
-                
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText("FESTIVE24");
-                    // Trigger a custom toast notification on the client side
-                    const toast = document.createElement("div");
-                    toast.className = "fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 rounded-none animate-fade-in";
-                    toast.innerText = "COUPON FESTIVE24 COPIED TO CLIPBOARD!";
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 2500);
-                  }}
-                  className="pl-7 pr-5 py-2.5 bg-white/5 border border-dashed border-secondary/55 hover:bg-white/10 hover:border-secondary text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer select-all rounded-none"
-                  title="Click to copy coupon code tag"
-                >
-                  <span className="text-[#fed488] font-black">FESTIVE24</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 group-hover/tag:text-[#fed488] transition-colors"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                </button>
-              </div>
+              {/* Double-Gold Framed Card */}
+              <div className="relative z-10 w-full max-w-lg mx-6 p-6 lg:p-10 border-4 border-double border-secondary/30 bg-black/60 backdrop-blur-md text-center flex flex-col items-center gap-4 shadow-2xl transition-all duration-500 hover:border-secondary/50">
+                {/* Limited offer header */}
+                {offerBox?.label && (
+                  <span className="text-secondary text-[9px] font-black uppercase tracking-[0.4em]">
+                    {offerBox.label}
+                  </span>
+                )}
 
-              {/* Minimalist Button */}
-              <div className="mt-2">
-                <Link
-                  href="/shopallshirts"
-                  className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-8 py-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
-                >
-                  Shop The Collection
-                </Link>
+                {/* Mixed Typography Header */}
+                <div className="flex flex-col items-center">
+                  <span className="font-serif italic text-secondary text-xl lg:text-3xl tracking-wide lowercase leading-none">
+                    our new
+                  </span>
+                  <h2 className="text-white font-headline text-2xl lg:text-4xl font-extrabold tracking-[0.25em] uppercase mt-2 leading-none">
+                    {offerBox?.heading || "S E A S O N"}
+                  </h2>
+                </div>
+
+                {/* Subtitle */}
+                {offerBox?.body && (
+                  <p className="text-gray-400 font-label text-[9px] uppercase tracking-[0.2em] max-w-sm leading-relaxed mt-1">
+                    {offerBox.body}
+                  </p>
+                )}
+
+                {/* Stitched Atelier Tag (Interactive Coupon) */}
+                {offerBox?.coupon_code && (
+                  <div className="relative group/tag mt-1">
+                    {/* Circular thread hole on the left side of the tag */}
+                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-black border border-secondary/30 shadow-inner z-10"></div>
+                    
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(offerBox.coupon_code);
+                        // Trigger a custom toast notification on the client side
+                        const toast = document.createElement("div");
+                        toast.className = "fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 rounded-none animate-fade-in";
+                        toast.innerText = `COUPON ${offerBox.coupon_code} COPIED TO CLIPBOARD!`;
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 2500);
+                      }}
+                      className="pl-7 pr-5 py-2.5 bg-white/5 border border-dashed border-secondary/55 hover:bg-white/10 hover:border-secondary text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer select-all rounded-none"
+                      title="Click to copy coupon code tag"
+                    >
+                      <span className="text-[#fed488] font-black">{offerBox.coupon_code}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 group-hover/tag:text-[#fed488] transition-colors"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Minimalist Button */}
+                {offerBox?.cta_text && (
+                  <div className="mt-2">
+                    <Link
+                      href={offerBox.cta_url || "/shopallshirts"}
+                      className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-8 py-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
+                    >
+                      {offerBox.cta_text}
+                    </Link>
+                  </div>
+                )}
               </div>
-            </div>
-          </motion.div>
-        </section>
+            </motion.div>
+          </section>
+        )}
 
         {/* Section 3: Best Sellers / Featured Collection */}
         <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-black border-y border-white/5 scroll-mt-24 relative overflow-hidden bg-[radial-gradient(circle_at_center,rgba(119,90,25,0.04)_0%,rgba(0,0,0,0)_70%)]">
@@ -1008,7 +1052,7 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
               <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 w-full flex justify-between px-2 md:px-10 z-40 pointer-events-none">
                 <button
                   onClick={() => {
-                    setActiveFavIndex((prev) => (prev - 1 + favoriteProducts.length) % favoriteProducts.length);
+                    setActiveFavIndex((prev) => (prev - 1 + activeNewArrivals.length) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
                   className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
@@ -1018,7 +1062,7 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
                 </button>
                 <button
                   onClick={() => {
-                    setActiveFavIndex((prev) => (prev + 1) % favoriteProducts.length);
+                    setActiveFavIndex((prev) => (prev + 1) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
                   className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
@@ -1034,8 +1078,8 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
                 onTouchEnd={handleTouchEnd}
                 className="relative w-full max-w-5xl h-[320px] md:h-[410px] flex justify-center items-center overflow-hidden [perspective:1200px] [transform-style:preserve-3d]"
               >
-                {favoriteProducts.map((product, i) => {
-                  const n = favoriteProducts.length;
+                {activeNewArrivals.map((product, i) => {
+                  const n = activeNewArrivals.length;
                   let offset = i - activeFavIndex;
                   if (offset > n / 2) {
                     offset -= n;
@@ -1084,7 +1128,7 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
                       <div className={`h-full relative overflow-hidden transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
                         isActive ? "w-[180px] md:w-[210px]" : "w-[90px] sm:w-[105px] md:w-[120px]"
                       }`}>
-                        {/* Product Image with smooth group hover scale */}
+                      {/* Product Image with smooth group hover scale */}
                         <ProductImage
                           alt={product.name}
                           className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none transition-transform duration-[2.5s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.12]"
@@ -1214,7 +1258,7 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
 
               {/* Dot Indicators (. . — . .) */}
               <div className="flex gap-2.5 mt-8 z-35 select-none items-center">
-                {favoriteProducts.map((_, i) => {
+                {activeNewArrivals.map((_, i) => {
                   const isActive = i === activeFavIndex;
                   return (
                     <button
@@ -1269,7 +1313,7 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
               transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 md:gap-x-6 lg:gap-x-8 gap-y-8 md:gap-y-12"
             >
-              {favoriteStyles.map((item) => (
+              {activeBestsellers.map((item) => (
                 <Link 
                   href={`/product/${item.slug}`} 
                   key={item.id} 
@@ -1331,6 +1375,92 @@ export default function HomeClient({ hero, business }: { hero: any; business: an
             </div>
           </div>
         </section>
+
+        {/* Section 3.6: Atelier Exclusives */}
+        {activeExclusives.length > 0 && (
+          <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-neutral-950 text-white relative overflow-hidden border-t border-white/5 scroll-mt-24">
+            <div className="max-w-[1400px] mx-auto">
+              {/* Header Block */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
+                className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-16"
+              >
+                <div>
+                  <p className="text-secondary font-label text-xs uppercase tracking-[0.4em] mb-3">
+                    Premium Selections
+                  </p>
+                  <h2 className="font-headline text-3xl lg:text-4xl font-black text-white uppercase tracking-tight">
+                    Atelier Exclusives
+                  </h2>
+                </div>
+                <p className="text-neutral-400 text-xs md:text-sm max-w-sm text-left lg:text-right leading-relaxed font-medium">
+                  Bespoke masterpieces constructed from our finest and rarest looms, reserved for those who value absolute exclusivity.
+                </p>
+              </motion.div>
+
+              {/* Products Grid */}
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 md:gap-x-6 lg:gap-x-8 gap-y-8 md:gap-y-12"
+              >
+                {activeExclusives.map((item) => (
+                  <Link 
+                    href={`/product/${item.slug}`} 
+                    key={item.id} 
+                    className="group flex flex-col cursor-pointer transition-all duration-300 active:scale-[0.98] select-none"
+                  >
+                    {/* Image container */}
+                    <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-neutral-900 border border-white/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(255,255,255,0.02)]">
+                      <ProductImage
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover transition-transform duration-[1.2s] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+                        draggable={false}
+                        fill
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                      />
+                      
+                      {/* Badge */}
+                      <div className="absolute top-4 left-4 bg-secondary text-black border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
+                        {item.badge}
+                      </div>
+
+                      {/* Color Dots Indicator */}
+                      <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-white/5 shadow-sm">
+                        {item.colors.map((color, cIdx) => (
+                          <span
+                            key={cIdx}
+                            className="w-2 md:w-2.5 h-2 md:h-2.5 rounded-full border border-white/10"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Text details below the image */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4 mb-1">
+                      <h3 className="font-sans font-bold text-white text-xs md:text-sm text-left leading-tight group-hover:text-secondary transition-colors duration-300">
+                        {item.name}
+                      </h3>
+                      <span className="font-sans font-black text-secondary text-xs md:text-sm whitespace-nowrap">
+                        {item.price}
+                      </span>
+                    </div>
+                    <p className="font-sans text-[9px] md:text-[10px] text-neutral-500 font-bold uppercase tracking-wider text-left">
+                      MRP inclusive of all taxes
+                    </p>
+                  </Link>
+                ))}
+              </motion.div>
+            </div>
+          </section>
+        )}
 
         {/* Section 4: Category Showcase */}
         <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-on-surface relative overflow-hidden">

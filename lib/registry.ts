@@ -59,6 +59,7 @@ export interface Product {
   isGenz?: boolean;
   deleted_at?: string | null;
   variants?: ProductVariant[];
+  display_sections?: string[];
 }
 
 

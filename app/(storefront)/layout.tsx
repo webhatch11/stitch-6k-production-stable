@@ -12,9 +12,10 @@ export default async function StorefrontLayout({
   children: React.ReactNode;
 }) {
   const business = await db.getSetting("business");
+  const marquee = await db.getSetting("marquee");
   return (
     <div className="flex flex-col min-h-screen">
-      <AnnouncementMarquee />
+      <AnnouncementMarquee marquee={marquee} />
       <Navbar />
       <div className="flex-grow">{children}</div>
       <Footer business={business} />

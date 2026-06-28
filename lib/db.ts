@@ -79,6 +79,7 @@ const mapDbProductToProduct = (p: any): Product => {
     ratings: p.ratings ? Number(p.ratings) : undefined,
     reviews: p.reviews || [],
     deleted_at: p.deleted_at || null,
+    display_sections: p.display_sections || [],
   };
 };
 
@@ -194,20 +195,27 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
 
 export const db = {
   // --- Products ---
-  async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean }): Promise<Product[]> {
+  async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<Product[]> {
     const { supabase, isSupabaseConfigured } = loadService();
-    const cacheKey = options?.trashedOnly
+    let cacheKey = options?.trashedOnly
       ? "products:list:trashed"
       : options?.includeDeleted
         ? "products:list:all"
         : "products:list";
+    if (options?.display_section) {
+      cacheKey += `:section:${options.display_section}`;
+    }
     const cached = await CacheService.get<Product[]>(cacheKey);
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
       const res = await RegistryManager.getProducts();
-      await CacheService.set(cacheKey, res, 600);
-      return res;
+      // If we need to filter in mock/offline mode:
+      const filteredRes = options?.display_section
+        ? res.filter(p => p.display_sections?.includes(options.display_section!))
+        : res;
+      await CacheService.set(cacheKey, filteredRes, 600);
+      return filteredRes;
     }
 
     let query = supabase
@@ -219,6 +227,10 @@ export const db = {
       query = query.not("deleted_at", "is", null);
     } else if (!options?.includeDeleted) {
       query = query.is("deleted_at", null);
+    }
+
+    if (options?.display_section) {
+      query = query.filter("display_sections", "cs", `["${options.display_section}"]`);
     }
 
     const { data, error } = await query;
@@ -236,9 +248,7 @@ export const db = {
   async saveProduct(product: Partial<Product>): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate caches
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
-    await CacheService.del("products:list:trashed");
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
@@ -276,6 +286,7 @@ export const db = {
       material: product.material || "",
       colors: product.colors || [],
       ratings: product.ratings || 5.0,
+      display_sections: product.display_sections || [],
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);

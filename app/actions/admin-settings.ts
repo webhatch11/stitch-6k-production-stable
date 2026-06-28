@@ -27,7 +27,23 @@ const flagsSchema = z.object({
   returns_window_days: z.number().int().min(0).max(60),
 });
 
-export async function getSettingAction(key: "hero" | "business" | "flags") {
+const marqueeSchema = z.object({
+  items: z.array(z.string().max(120)).min(1).max(10),
+  enabled: z.boolean(),
+});
+
+const offerBoxSchema = z.object({
+  enabled: z.boolean(),
+  label: z.string().max(200).optional().default(""),
+  heading: z.string().max(200).optional().default(""),
+  body: z.string().max(200).optional().default(""),
+  coupon_code: z.string().max(200).optional().default(""),
+  cta_text: z.string().max(200).optional().default(""),
+  cta_url: z.string().max(200).optional().default(""),
+  bg_image_url: z.string().max(200).optional().default(""),
+});
+
+export async function getSettingAction(key: "hero" | "business" | "flags" | "marquee" | "offer_box") {
   // No requireAdmin — these are public reads via cached layer
   try {
     const value = await db.getSetting(key);
@@ -67,3 +83,24 @@ export async function saveFlagsAction(input: any) {
   revalidatePath("/checkout");
   return { success: true };
 }
+
+export async function saveMarqueeAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = marqueeSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("marquee", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function saveOfferBoxAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = offerBoxSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("offer_box", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+

@@ -8,6 +8,8 @@ import {
   saveHeroAction,
   saveBusinessAction,
   saveFlagsAction,
+  saveMarqueeAction,
+  saveOfferBoxAction,
 } from "@/app/actions/admin-settings";
 
 export default function SettingsDashboardPage() {
@@ -35,6 +37,24 @@ export default function SettingsDashboardPage() {
   const [flagCodEnabled, setFlagCodEnabled] = useState(true);
   const [flagReturnsDays, setFlagReturnsDays] = useState(7);
 
+  // States for Marquee Settings
+  const [marqueeEnabled, setMarqueeEnabled] = useState(true);
+  const [marqueeItems, setMarqueeItems] = useState<string[]>([]);
+  const [newMarqueeItem, setNewMarqueeItem] = useState("");
+
+  // States for Offer Box Settings
+  const [offerEnabled, setOfferEnabled] = useState(true);
+  const [offerLabel, setOfferLabel] = useState("");
+  const [offerHeading, setOfferHeading] = useState("");
+  const [offerBody, setOfferBody] = useState("");
+  const [offerCouponCode, setOfferCouponCode] = useState("");
+  const [offerCtaText, setOfferCtaText] = useState("");
+  const [offerCtaUrl, setOfferCtaUrl] = useState("");
+  const [offerBgImageUrl, setOfferBgImageUrl] = useState("");
+
+  // Upload target ("hero" or "offer")
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | null>(null);
+
   // Loading & Toast States
   const [loading, setLoading] = useState(true);
   const [toastText, setToastText] = useState("");
@@ -55,10 +75,12 @@ export default function SettingsDashboardPage() {
   const loadAllSettings = async () => {
     try {
       setLoading(true);
-      const [heroRes, bizRes, flagsRes] = await Promise.all([
+      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
         getSettingAction("flags"),
+        getSettingAction("marquee"),
+        getSettingAction("offer_box"),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -81,6 +103,22 @@ export default function SettingsDashboardPage() {
       if (flagsRes.success && flagsRes.value) {
         setFlagCodEnabled(flagsRes.value.cod_enabled ?? true);
         setFlagReturnsDays(flagsRes.value.returns_window_days ?? 7);
+      }
+
+      if (marqueeRes.success && marqueeRes.value) {
+        setMarqueeEnabled(marqueeRes.value.enabled ?? true);
+        setMarqueeItems(marqueeRes.value.items || []);
+      }
+
+      if (offerRes.success && offerRes.value) {
+        setOfferEnabled(offerRes.value.enabled ?? true);
+        setOfferLabel(offerRes.value.label || "");
+        setOfferHeading(offerRes.value.heading || "");
+        setOfferBody(offerRes.value.body || "");
+        setOfferCouponCode(offerRes.value.coupon_code || "");
+        setOfferCtaText(offerRes.value.cta_text || "");
+        setOfferCtaUrl(offerRes.value.cta_url || "");
+        setOfferBgImageUrl(offerRes.value.bg_image_url || "");
       }
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
@@ -141,6 +179,60 @@ export default function SettingsDashboardPage() {
     }
   };
 
+  const handleSaveMarquee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (marqueeItems.length === 0) {
+      triggerToast("Must have at least 1 marquee item");
+      return;
+    }
+    const payload = {
+      enabled: marqueeEnabled,
+      items: marqueeItems,
+    };
+    const res = await saveMarqueeAction(payload);
+    if (res.success) {
+      triggerToast("Marquee settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update marquee settings");
+    }
+  };
+
+  const handleSaveOfferBox = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      enabled: offerEnabled,
+      label: offerLabel,
+      heading: offerHeading,
+      body: offerBody,
+      coupon_code: offerCouponCode,
+      cta_text: offerCtaText,
+      cta_url: offerCtaUrl,
+      bg_image_url: offerBgImageUrl,
+    };
+    const res = await saveOfferBoxAction(payload);
+    if (res.success) {
+      triggerToast("Offer Box settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update offer box settings");
+    }
+  };
+
+  const addMarqueeItem = () => {
+    if (!newMarqueeItem.trim()) return;
+    if (marqueeItems.length >= 10) {
+      triggerToast("Maximum 10 items allowed");
+      return;
+    }
+    setMarqueeItems([...marqueeItems, newMarqueeItem.trim()]);
+    setNewMarqueeItem("");
+  };
+
+  const removeMarqueeItem = (index: number) => {
+    setMarqueeItems(marqueeItems.filter((_, i) => i !== index));
+  };
+
   if (loading) {
     return (
       <div className="p-8 lg:p-16 text-center text-xs font-black uppercase tracking-widest text-gray-500">
@@ -162,7 +254,11 @@ export default function SettingsDashboardPage() {
       <CloudinaryUploadWidget
         ref={cloudinaryRef}
         onUpload={(newUrl) => {
-          setHeroImage(newUrl);
+          if (uploadTarget === "hero") {
+            setHeroImage(newUrl);
+          } else if (uploadTarget === "offer") {
+            setOfferBgImageUrl(newUrl);
+          }
         }}
       />
 
@@ -202,7 +298,10 @@ export default function SettingsDashboardPage() {
                   <div className="flex gap-4">
                     <button
                       type="button"
-                      onClick={() => cloudinaryRef.current?.open()}
+                      onClick={() => {
+                        setUploadTarget("hero");
+                        cloudinaryRef.current?.open();
+                      }}
                       className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer"
                     >
                       Change Image
@@ -219,7 +318,10 @@ export default function SettingsDashboardPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => cloudinaryRef.current?.open()}
+                  onClick={() => {
+                    setUploadTarget("hero");
+                    cloudinaryRef.current?.open();
+                  }}
                   className="w-full max-w-md border border-dashed border-gray-300 py-12 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb]"
                 >
                   <span className="material-symbols-outlined text-3xl block mb-2 opacity-50">cloud_upload</span>
@@ -446,6 +548,243 @@ export default function SettingsDashboardPage() {
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
               >
                 Save Feature Flags
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Section 4: Marquee Settings */}
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+              Announcement Marquee Editor
+            </h3>
+          </div>
+          <form onSubmit={handleSaveMarquee} className="p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <input
+                id="marquee-enabled"
+                type="checkbox"
+                checked={marqueeEnabled}
+                onChange={(e) => setMarqueeEnabled(e.target.checked)}
+                className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+              />
+              <label htmlFor="marquee-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                Enable Announcement Marquee
+              </label>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Marquee Text Segments (Min 1, Max 10)
+              </label>
+              
+              <div className="space-y-2">
+                {marqueeItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-neutral-50 border border-gray-200 p-2.5">
+                    <span className="text-xs font-bold text-gray-700 flex-1">{item}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeMarqueeItem(idx)}
+                      className="text-red-500 hover:text-red-700 text-xs uppercase font-black tracking-widest"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {marqueeItems.length < 10 && (
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    maxLength={120}
+                    value={newMarqueeItem}
+                    onChange={(e) => setNewMarqueeItem(e.target.value)}
+                    placeholder="Enter new marquee text segment..."
+                    className="flex-1 border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addMarqueeItem}
+                    className="bg-neutral-800 hover:bg-neutral-900 text-white px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-none"
+                  >
+                    Add Item
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Marquee Settings
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Section 5: Offer Box Settings */}
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+              Homepage Offer Box Editor
+            </h3>
+          </div>
+          <form onSubmit={handleSaveOfferBox} className="p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <input
+                id="offer-enabled"
+                type="checkbox"
+                checked={offerEnabled}
+                onChange={(e) => setOfferEnabled(e.target.checked)}
+                className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+              />
+              <label htmlFor="offer-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                Enable Offer Box Section
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Label
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerLabel}
+                  onChange={(e) => setOfferLabel(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="Limited Time Offer"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Heading
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerHeading}
+                  onChange={(e) => setOfferHeading(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="S E A S O N"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Body / Subtitle Text
+              </label>
+              <textarea
+                maxLength={200}
+                value={offerBody}
+                onChange={(e) => setOfferBody(e.target.value)}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none h-20 resize-none"
+                placeholder="Elevate your wardrobe with the atelier linen collection..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Coupon Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCouponCode}
+                  onChange={(e) => setOfferCouponCode(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="FESTIVE24"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA Button Text
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCtaText}
+                  onChange={(e) => setOfferCtaText(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="Shop The Collection"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA Button URL
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCtaUrl}
+                  onChange={(e) => setOfferCtaUrl(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="/shopallshirts"
+                />
+              </div>
+            </div>
+
+            {/* Cloudinary Upload for Offer Box Background */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Offer Box Background Image (Optional)
+              </label>
+              {offerBgImageUrl ? (
+                <div className="space-y-4">
+                  <div className="relative w-full max-w-md h-36 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    <img src={offerBgImageUrl} alt="Offer Box preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadTarget("offer");
+                        cloudinaryRef.current?.open();
+                      }}
+                      className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer"
+                    >
+                      Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOfferBgImageUrl("")}
+                      className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadTarget("offer");
+                    cloudinaryRef.current?.open();
+                  }}
+                  className="w-full max-w-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb]"
+                >
+                  <span className="material-symbols-outlined text-2xl block mb-2 opacity-50">cloud_upload</span>
+                  Upload Custom Background Image (Cloudinary)
+                </button>
+              )}
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Offer Box Settings
               </button>
             </div>
           </form>

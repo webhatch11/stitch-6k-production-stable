@@ -3,32 +3,74 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 
-export default function AnnouncementMarquee() {
+interface AnnouncementMarqueeProps {
+  marquee?: {
+    enabled: boolean;
+    items: string[];
+  };
+  isHomepage?: boolean;
+}
+
+export default function AnnouncementMarquee({ marquee, isHomepage = false }: AnnouncementMarqueeProps) {
   const pathname = usePathname();
-  if (pathname === "/") return null;
+
+  // If isHomepage is false, but we are on the homepage, don't show the global/header one.
+  if (!isHomepage && pathname === "/") return null;
+
+  // If no settings are passed, or it is disabled, don't show it.
+  if (!marquee || !marquee.enabled || !marquee.items || marquee.items.length === 0) {
+    return null;
+  }
+
+  const items = marquee.items;
+
+  if (isHomepage) {
+    return (
+      <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-4.5 text-[11px] font-black uppercase tracking-[0.25em] relative z-20 border-y border-white/5">
+        <div className="flex animate-marquee whitespace-nowrap">
+          <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
+            {items.map((item, idx) => (
+              <React.Fragment key={idx}>
+                <span>{item}</span>
+                {idx < items.length - 1 && (
+                  <span className="text-secondary-fixed-dim font-extrabold">•</span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
+            {items.map((item, idx) => (
+              <React.Fragment key={idx}>
+                <span>{item}</span>
+                {idx < items.length - 1 && (
+                  <span className="text-secondary-fixed-dim font-extrabold">•</span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
+    <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] relative z-[60]">
       <div className="flex animate-marquee whitespace-nowrap">
         <div className="flex shrink-0 items-center gap-12 px-6">
-          <span>FREE DELIVERY ACROSS INDIA</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>100% PREMIUM COTTON & LINEN</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>EASY 7-DAY RETURNS</span>
-          <span className="text-secondary-fixed-dim">•</span>
+          {items.map((item, idx) => (
+            <React.Fragment key={idx}>
+              <span>{item}</span>
+              <span className="text-secondary-fixed-dim">•</span>
+            </React.Fragment>
+          ))}
         </div>
         <div className="flex shrink-0 items-center gap-12 px-6">
-          <span>FREE DELIVERY ACROSS INDIA</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>100% PREMIUM COTTON & LINEN</span>
-          <span className="text-secondary-fixed-dim">•</span>
-          <span>EASY 7-DAY RETURNS</span>
-          <span className="text-secondary-fixed-dim">•</span>
+          {items.map((item, idx) => (
+            <React.Fragment key={idx}>
+              <span>{item}</span>
+              <span className="text-secondary-fixed-dim">•</span>
+            </React.Fragment>
+          ))}
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import {
   LoyaltyTransaction,
 } from "@/lib/registry";
 
-export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean }): Promise<{
+export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<{
   success: boolean;
   products?: Product[];
   error?: string;

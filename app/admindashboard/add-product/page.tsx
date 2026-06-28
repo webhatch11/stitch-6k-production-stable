@@ -131,6 +131,7 @@ function AddProductContent() {
   const [badgeExclusive, setBadgeExclusive] = useState(false);
   const [enableCustomBadge, setEnableCustomBadge] = useState(false);
   const [customBadgeText, setCustomBadgeText] = useState("");
+  const [displaySections, setDisplaySections] = useState<string[]>([]);
 
   // Pricing & Commercial
   const [basePrice, setBasePrice] = useState(0);
@@ -216,6 +217,7 @@ function AddProductContent() {
           // Highlights & Badging
           setBadgeNew(p.isNew !== undefined ? !!p.isNew : true);
           setBadgeExclusive(!!p.isAtelierExclusive);
+          setDisplaySections(p.display_sections || []);
           if (p.customBadge) {
             setEnableCustomBadge(true);
             setCustomBadgeText(p.customBadge);
@@ -347,6 +349,7 @@ function AddProductContent() {
       isAtelierExclusive: badgeExclusive,
       customBadge: enableCustomBadge ? customBadgeText.trim() : "",
       variants,
+      display_sections: displaySections,
     };
 
     try {
@@ -742,6 +745,93 @@ function AddProductContent() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 03.5: Display Sections */}
+          <div className="border-b border-gray-100 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="lg:col-span-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#775a19] mb-4 block">
+                Section 03.5
+              </span>
+              <h3 className="font-headline font-black text-xl uppercase tracking-widest text-primary">Display Sections</h3>
+              <p className="text-xs text-gray-500 mt-4 leading-relaxed font-semibold uppercase tracking-wider italic opacity-85">
+                Select where this product will be displayed on the homepage.
+              </p>
+            </div>
+            <div className="lg:col-span-8 space-y-6">
+              <div className="bg-[#fafafa] p-8 border border-gray-200 space-y-6">
+                
+                <div className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    id="sectionNewArrivals"
+                    checked={displaySections.includes("new_arrivals")}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...displaySections, "new_arrivals"]
+                        : displaySections.filter(s => s !== "new_arrivals");
+                      setDisplaySections(updated);
+                    }}
+                    className="w-5 h-5 text-primary border-gray-300 focus:ring-0 rounded-none cursor-pointer mt-1"
+                  />
+                  <div>
+                    <label htmlFor="sectionNewArrivals" className="font-headline font-black text-xs uppercase tracking-widest cursor-pointer block mb-1">
+                      New Arrivals Section
+                    </label>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                      Show this product in the "New Arrivals" Coverflow slider on the homepage.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 pt-6 border-t border-dashed border-gray-200">
+                  <input
+                    type="checkbox"
+                    id="sectionAtelierExclusives"
+                    checked={displaySections.includes("atelier_exclusives")}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...displaySections, "atelier_exclusives"]
+                        : displaySections.filter(s => s !== "atelier_exclusives");
+                      setDisplaySections(updated);
+                    }}
+                    className="w-5 h-5 text-primary border-gray-300 focus:ring-0 rounded-none cursor-pointer mt-1"
+                  />
+                  <div>
+                    <label htmlFor="sectionAtelierExclusives" className="font-headline font-black text-xs uppercase tracking-widest cursor-pointer block mb-1">
+                      Atelier Exclusives Section
+                    </label>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                      Show this product in the "Atelier Exclusives" grid/section on the homepage.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 pt-6 border-t border-dashed border-gray-200">
+                  <input
+                    type="checkbox"
+                    id="sectionBestsellers"
+                    checked={displaySections.includes("bestsellers")}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...displaySections, "bestsellers"]
+                        : displaySections.filter(s => s !== "bestsellers");
+                      setDisplaySections(updated);
+                    }}
+                    className="w-5 h-5 text-primary border-gray-300 focus:ring-0 rounded-none cursor-pointer mt-1"
+                  />
+                  <div>
+                    <label htmlFor="sectionBestsellers" className="font-headline font-black text-xs uppercase tracking-widest cursor-pointer block mb-1">
+                      Bestsellers Section
+                    </label>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                      Show this product in the "Bestsellers" grid/section on the homepage.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

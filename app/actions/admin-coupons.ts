@@ -81,3 +81,45 @@ export async function deleteCouponAction(
     return { success: false, error: e.message || "Delete failed" };
   }
 }
+
+export async function getCouponDiscountTotalAction(): Promise<{
+  success: boolean;
+  total?: number;
+  perCoupon?: Record<string, number>;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  
+  try {
+    const { supabaseService, isServiceClientConfigured } = await import("@/lib/supabase-service");
+    if (!isServiceClientConfigured || !supabaseService) {
+      return { success: false, error: "Supabase not configured" };
+    }
+    
+    const { data, error } = await supabaseService
+      .from("orders")
+      .select("coupon_code, coupon_discount")
+      .not("coupon_code", "is", null);
+    
+    if (error) return { success: false, error: error.message };
+    
+    let total = 0;
+    const perCoupon: Record<string, number> = {};
+    
+    for (const row of data || []) {
+      const code = row.coupon_code;
+      const discount = Number(row.coupon_discount || 0);
+      if (!code) continue;
+      total += discount;
+      perCoupon[code] = (perCoupon[code] || 0) + discount;
+    }
+    
+    return { success: true, total, perCoupon };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}

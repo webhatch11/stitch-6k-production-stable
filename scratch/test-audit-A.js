@@ -158,7 +158,9 @@ async function invokeAction(cookies, actionName, ...args) {
   }
 
   let prefixedActionName = actionName;
-  if (actionName.startsWith('get')) {
+  if (actionName === 'getCouponDiscountTotalAction') {
+    prefixedActionName = 'coupon:' + actionName;
+  } else if (actionName.startsWith('get')) {
     prefixedActionName = 'read:' + actionName;
   } else if (actionName.includes('Coupon')) {
     prefixedActionName = 'coupon:' + actionName;
@@ -199,7 +201,7 @@ async function main() {
 
   const ts = Date.now();
   let passed = 0;
-  const total = 6;
+  const total = 7;
 
   const adminEmail = `admin-audit-a-${ts}@example.com`;
   const password = 'TestPass123!';
@@ -368,6 +370,49 @@ async function main() {
       // Check that entries have a usage_count field (or usageCount)
       for (const c of res.coupons) {
         assert(c.usageCount !== undefined || c.usage_count !== undefined, `Coupon ${c.code} is missing usageCount / usage_count`);
+      }
+    });
+    passed++;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 7: getCouponDiscountTotalAction aggregates coupon discounts correctly
+    // ─────────────────────────────────────────────────────────────────────────
+    await runTest(7, 'getCouponDiscountTotalAction aggregates coupon discounts', async () => {
+      const testCode = `AUDIT-A-T7-CODE-${ts}`.toUpperCase();
+      const orderId = `AUDIT-A-ORD-${ts}`;
+      
+      // Insert a dummy order with coupon discount directly
+      const { data: order, error: orderErr } = await serviceClient
+        .from('orders')
+        .insert({
+          id: orderId,
+          customer: `customer-audit-a-t7-${ts}`,
+          date: new Date().toLocaleDateString("en-IN"),
+          total: 1000,
+          original_total: 1000,
+          gateway_paid: 1000,
+          wallet_paid: 0,
+          items: [],
+          status: 'Paid',
+          coupon_code: testCode,
+          coupon_discount: 250
+        })
+        .select()
+        .single();
+      assert(!orderErr && order, `Failed to create dummy order: ${orderErr?.message}`);
+      
+      try {
+        const res = await invokeAction(adminCookie, 'getCouponDiscountTotalAction');
+        assert(res.success === true, `Expected success=true, got: ${JSON.stringify(res)}`);
+        assert(res.total >= 250, `Expected total discount to be at least 250, got: ${res.total}`);
+        assert(res.perCoupon[testCode] === 250, `Expected perCoupon[${testCode}] to be 250, got: ${res.perCoupon[testCode]}`);
+      } finally {
+        // Delete dummy order
+        const { error: delOrderErr } = await serviceClient
+          .from('orders')
+          .delete()
+          .eq('id', order.id);
+        if (delOrderErr) console.warn('  Error deleting dummy order:', delOrderErr.message);
       }
     });
     passed++;

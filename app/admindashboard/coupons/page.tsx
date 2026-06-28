@@ -3,11 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { Coupon } from "@/lib/registry";
 import { getCouponsAction } from "@/app/actions/admin-reads";
-import { saveCouponAction, deleteCouponAction } from "@/app/actions/admin-coupons";
+import { saveCouponAction, deleteCouponAction, getCouponDiscountTotalAction } from "@/app/actions/admin-coupons";
 
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
+
+  // Coupon discount totals
+  const [couponDiscountTotal, setCouponDiscountTotal] = useState(0);
+  const [couponDiscountPerCode, setCouponDiscountPerCode] = useState<Record<string, number>>({});
+
+  const fetchDiscountTotal = async () => {
+    const res = await getCouponDiscountTotalAction();
+    if (res.success) {
+      setCouponDiscountTotal(res.total || 0);
+      setCouponDiscountPerCode(res.perCoupon || {});
+    }
+  };
 
   // New Coupon Form
   const [cpnCode, setCpnCode] = useState("");
@@ -66,6 +78,7 @@ export default function CouponsLedgerPage() {
       return;
     }
     setCoupons(res.coupons || []);
+    fetchDiscountTotal();
   };
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
@@ -234,6 +247,45 @@ export default function CouponsLedgerPage() {
           Create Coupon
         </button>
       </header>
+
+      {/* Coupon Metrics Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Total Coupons</p>
+          <div>
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-[#0a0a0a]">
+              {coupons.length}
+            </h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Active Coupons</p>
+          <div>
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-[#0a0a0a]">
+              {coupons.filter(c => c.active).length}
+            </h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Total Uses</p>
+          <div>
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-[#0a0a0a]">
+              {coupons.reduce((sum, c) => sum + (c.usageCount || 0), 0)}
+            </h3>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
+          <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Discount Given (₹)</p>
+          <div>
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-[#0a0a0a]">
+              ₹{couponDiscountTotal.toLocaleString("en-IN")}.00
+            </h3>
+          </div>
+        </div>
+      </section>
 
       {/* Coupons log list */}
       <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">

@@ -154,3 +154,18 @@ export async function rejectReturnAction(
     return { success: false, error: e.message || "Reject return failed" };
   }
 }
+
+export async function getOrderEventsAction(orderId: string): Promise<{
+  success: boolean;
+  events?: any[];
+  error?: string;
+}> {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  try {
+    const events = await db.getOrderEvents(orderId);
+    return { success: true, events };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}

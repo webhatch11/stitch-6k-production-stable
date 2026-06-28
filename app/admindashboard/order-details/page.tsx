@@ -13,6 +13,7 @@ import {
   processReturnRefundAction,
   rejectReturnAction,
   issueRefundAction,
+  getOrderEventsAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -25,6 +26,17 @@ function OrderDetailsContent() {
   const [qualityCheck, setQualityCheck] = useState<"passed" | "failed">("passed");
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Timeline events state
+  const [orderEvents, setOrderEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+
+  const loadEvents = async (oId: string) => {
+    setEventsLoading(true);
+    const res = await getOrderEventsAction(oId);
+    if (res.success) setOrderEvents(res.events || []);
+    setEventsLoading(false);
+  };
 
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [refundActionType, setRefundActionType] = useState<"cancel" | "return" | "issue">("cancel");
@@ -74,13 +86,19 @@ function OrderDetailsContent() {
 
   const loadOrderDetails = async () => {
     const ordersRes = await getOrdersAction();
+    let currentOrder = null;
     if (ordersRes.success) {
       const list = ordersRes.orders || [];
       const matched = list.find((o) => o.id === orderId) || (list.length > 0 ? list[0] : null);
       setOrder(matched ?? null);
+      currentOrder = matched ?? null;
     }
     const prodsRes = await getProductsAction();
     if (prodsRes.success) setProducts(prodsRes.products || []);
+
+    if (currentOrder) {
+      loadEvents((currentOrder as any).id);
+    }
   };
 
   if (!order) {
@@ -620,6 +638,43 @@ function OrderDetailsContent() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Activity Timeline */}
+          <div className="p-8 border border-gray-200 bg-white">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary mb-6">
+              Activity Timeline
+            </h3>
+            {eventsLoading ? (
+              <p className="text-xs text-gray-400 italic">Loading events…</p>
+            ) : orderEvents.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">No events recorded.</p>
+            ) : (
+              <ol className="relative border-l-2 border-gray-200 pl-6 space-y-6">
+                {orderEvents.map((ev) => (
+                  <li key={ev.id} className="relative">
+                    <span className="absolute -left-[31px] top-1 w-3 h-3 bg-primary border-2 border-white rounded-full" />
+                    <div className="text-[9px] font-black uppercase tracking-widest text-gray-500">
+                      {new Date(ev.created_at).toLocaleString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div className="text-sm font-bold text-primary mt-1">
+                      {ev.description}
+                    </div>
+                    {ev.actor && (
+                      <div className="text-[10px] text-gray-400 mt-1 italic">
+                        by {ev.actor}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </div>
 

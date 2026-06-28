@@ -116,6 +116,71 @@ export default function OrdersLedgerPage() {
     return "bg-gray-400 text-white";
   };
 
+  const handleExportCSV = () => {
+    if (filteredOrders.length === 0) {
+      triggerToast("No orders to export");
+      return;
+    }
+    
+    const headers = [
+      "Order ID",
+      "Date",
+      "Customer Name",
+      "Customer Email",
+      "Status",
+      "Payment Status",
+      "Total (₹)",
+      "Coupon Code",
+      "Coupon Discount (₹)",
+      "Wallet Paid (₹)",
+      "Gateway Paid (₹)",
+      "Items",
+      "Refund Status",
+      "Razorpay Order ID",
+    ];
+    
+    const rows = filteredOrders.map((o) => [
+      o.id,
+      o.date,
+      o.customer || "",
+      o.customerEmail || "",
+      o.status,
+      o.paymentStatus || "",
+      o.total,
+      o.couponCode || "",
+      o.couponDiscount || 0,
+      o.walletPaid || 0,
+      o.gatewayPaid || 0,
+      (o.items || []).join("; "),
+      o.refund_status || "",
+      o.razorpay_order_id || "",
+    ]);
+    
+    // CSV escape: wrap in quotes if contains comma, quote, or newline
+    const escapeCsv = (val: any) => {
+      const s = String(val ?? "");
+      if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    
+    const csv = [
+      headers.map(escapeCsv).join(","),
+      ...rows.map((row) => row.map(escapeCsv).join(",")),
+    ].join("\n");
+    
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    triggerToast(`Exported ${rows.length} orders to CSV`);
+  };
+
   // Filter orders based on status tab and search query
   const filteredOrders = orders.filter((o) => {
     // Search filter
@@ -176,6 +241,13 @@ export default function OrdersLedgerPage() {
               className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full sm:w-72 shadow-sm rounded-none"
             />
           </div>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="px-6 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer"
+          >
+            Export CSV
+          </button>
         </div>
       </header>
 

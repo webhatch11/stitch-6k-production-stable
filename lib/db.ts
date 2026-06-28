@@ -1856,25 +1856,24 @@ export const db = {
       return RegistryManager.addOrderStatusHistory(orderId, status, updatedBy, metadata);
     }
     const entry = {
-      id: "OSH-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
       order_id: orderId,
       status,
       updated_by: updatedBy || "system",
       metadata: metadata || {},
       created_at: new Date().toISOString()
     };
-    const { error } = await supabase.from("order_status_history").insert(entry);
+    const { data, error } = await supabase.from("order_status_history").insert(entry).select().single();
     if (error) {
       console.error("Error inserting order status history:", error);
       throw error;
     }
     return {
-      id: entry.id,
-      order_id: entry.order_id,
-      status: entry.status,
-      updated_by: entry.updated_by,
-      metadata: entry.metadata,
-      created_at: entry.created_at
+      id: data.id,
+      order_id: data.order_id,
+      status: data.status,
+      updated_by: data.updated_by,
+      metadata: data.metadata,
+      created_at: data.created_at
     };
   },
 
@@ -2232,35 +2231,96 @@ export const db = {
     }
     const { error } = await supabase.from("order_events").insert({
       order_id: orderId,
-      event: event
+      event: event,
+      created_at: new Date().toISOString()
     });
     if (error) {
       console.error("Error creating order event:", error);
     }
   },
 
-  async getOrderEvents(orderId: string): Promise<any[]> {
+  async getOrderEvents(orderId: string): Promise<Array<{
+    id: string;
+    type: string;        // "status_change" | "payment" | "refund" | "shipment"
+    description: string; // human-readable
+    actor?: string;      // email or system name
+    payload?: any;       // optional details
+    created_at: string;
+  }>> {
     const { supabase, isSupabaseConfigured } = loadService();
+
+    let dbEvents: any[] = [];
+    let dbHistory: any[] = [];
+
     if (!isSupabaseConfigured || !supabase) {
       if (typeof window !== "undefined") {
         try {
-          return JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
+          dbEvents = JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
         } catch (e) {
-          return [];
+          dbEvents = [];
         }
+        dbHistory = RegistryManager.getOrderStatusHistory(orderId);
       }
-      return [];
+    } else {
+      const [eventsRes, historyRes] = await Promise.all([
+        supabase
+          .from("order_events")
+          .select("*")
+          .eq("order_id", orderId),
+        supabase
+          .from("order_status_history")
+          .select("*")
+          .eq("order_id", orderId)
+      ]);
+
+      if (eventsRes.error) {
+        console.error("Error fetching order events:", eventsRes.error);
+      } else {
+        dbEvents = eventsRes.data || [];
+      }
+
+      if (historyRes.error) {
+        console.error("Error fetching order status history:", historyRes.error);
+      } else {
+        dbHistory = historyRes.data || [];
+      }
     }
-    const { data, error } = await supabase
-      .from("order_events")
-      .select("*")
-      .eq("order_id", orderId)
-      .order("created_at", { ascending: true });
-    if (error) {
-      console.error("Error fetching order events:", error);
-      return [];
+
+    const merged: Array<{
+      id: string;
+      type: string;
+      description: string;
+      actor?: string;
+      payload?: any;
+      created_at: string;
+    }> = [];
+
+    for (const ev of dbEvents) {
+      const evDesc = ev.event || ev.description || "";
+      const evDescLower = evDesc.toLowerCase();
+      merged.push({
+        id: ev.id || "EVT-" + Math.random().toString(36).substr(2, 9),
+        type: evDescLower.includes("refund") ? "refund" :
+              evDescLower.includes("shipment") || evDescLower.includes("awb") ? "shipment" :
+              evDescLower.includes("payment") ? "payment" : "event",
+        description: evDesc,
+        actor: "System",
+        created_at: ev.created_at
+      });
     }
-    return data || [];
+
+    for (const h of dbHistory) {
+      merged.push({
+        id: h.id,
+        type: "status_change",
+        description: `Order status changed to ${h.status}`,
+        actor: h.updated_by || "system",
+        payload: h.metadata || {},
+        created_at: h.created_at
+      });
+    }
+
+    return merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   },
 
   async releaseReservation(sessionId: string): Promise<void> {

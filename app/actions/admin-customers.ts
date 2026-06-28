@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
+import { z } from "zod";
 
 export async function adjustCustomerBalanceAction(
   email: string,
@@ -63,3 +64,101 @@ export async function adjustCustomerBalanceAction(
     return { success: false, error: e.message || "Adjustment failed" };
   }
 }
+
+// ── Block/Unblock Actions ────────────────────────────────────────────────────
+
+const blockSchema = z.object({
+  userId: z.string().uuid("Invalid user ID"),
+  reason: z.string().min(1, "Reason is required").max(500, "Reason too long"),
+});
+
+export async function blockCustomerAction(
+  userId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parse = blockSchema.safeParse({ userId, reason });
+  if (!parse.success) {
+    const issues: any[] = (parse.error as any).issues ?? (parse.error as any).errors ?? [];
+    return { success: false, error: issues[0]?.message || "Invalid input" };
+  }
+
+  try {
+    const { supabaseService, isServiceClientConfigured } = await import("@/lib/supabase-service");
+    if (!isServiceClientConfigured || !supabaseService) {
+      // Mock mode: just return success (block state not persisted without DB)
+      console.warn("[blockCustomerAction] No Supabase configured — mock mode.");
+      return { success: true };
+    }
+
+    const { error } = await supabaseService
+      .from("profiles")
+      .update({
+        is_blocked: true,
+        blocked_at: new Date().toISOString(),
+        blocked_reason: parse.data.reason,
+      })
+      .eq("id", parse.data.userId);
+
+    if (error) {
+      console.error("[blockCustomerAction] DB error:", error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error("[blockCustomerAction]", e);
+    return { success: false, error: e.message || "Failed to block customer" };
+  }
+}
+
+const unblockSchema = z.object({
+  userId: z.string().uuid("Invalid user ID"),
+});
+
+export async function unblockCustomerAction(
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const parse = unblockSchema.safeParse({ userId });
+  if (!parse.success) {
+    const issues: any[] = (parse.error as any).issues ?? (parse.error as any).errors ?? [];
+    return { success: false, error: issues[0]?.message || "Invalid input" };
+  }
+
+  try {
+    const { supabaseService, isServiceClientConfigured } = await import("@/lib/supabase-service");
+    if (!isServiceClientConfigured || !supabaseService) {
+      console.warn("[unblockCustomerAction] No Supabase configured — mock mode.");
+      return { success: true };
+    }
+
+    const { error } = await supabaseService
+      .from("profiles")
+      .update({
+        is_blocked: false,
+        blocked_at: null,
+        blocked_reason: null,
+      })
+      .eq("id", parse.data.userId);
+
+    if (error) {
+      console.error("[unblockCustomerAction] DB error:", error);
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error("[unblockCustomerAction]", e);
+    return { success: false, error: e.message || "Failed to unblock customer" };
+  }
+}
+

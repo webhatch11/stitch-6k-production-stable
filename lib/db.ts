@@ -1956,11 +1956,16 @@ export const db = {
       return {
         name: p.name,
         email: p.email,
+        phone: p.phone ?? "",
         wallet_balance: Number(p.wallet_balance || 0),
         loyalty_points: Number(p.loyalty_points || 0),
         ltv,
         order_count: userOrders.length,
-        id: p.id
+        id: p.id,
+        joined: p.created_at ?? "",
+        is_blocked: p.is_blocked ?? false,
+        blocked_at: p.blocked_at ?? null,
+        blocked_reason: p.blocked_reason ?? null,
       };
     });
   },

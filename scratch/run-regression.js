@@ -11,6 +11,7 @@ const suites = [
   'scratch/test-day13.js',
   'scratch/test-audit-A.js',
   'scratch/test-audit-B.js',
+  'scratch/test-audit-C.js',
   'scratch/test-audit-D.js',
   'scratch/test-issue-8.js',
 ];

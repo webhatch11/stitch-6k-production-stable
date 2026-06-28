@@ -4,15 +4,21 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Order } from "@/lib/registry";
 import { getCustomersAction, getOrdersAction } from "@/app/actions/admin-reads";
-import { adjustCustomerBalanceAction } from "@/app/actions/admin-customers";
+import { adjustCustomerBalanceAction, blockCustomerAction, unblockCustomerAction } from "@/app/actions/admin-customers";
 
 interface CustomerData {
   name: string;
   email: string;
+  phone?: string;
   wallet_balance: number;
   loyalty_points: number;
   ltv: number;
   order_count: number;
+  id?: string;
+  joined?: string;
+  is_blocked?: boolean;
+  blocked_at?: string | null;
+  blocked_reason?: string | null;
 }
 
 interface PageProps {
@@ -35,6 +41,11 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
   const [loyaltyAmount, setLoyaltyAmount] = useState("");
   const [loyaltyDesc, setLoyaltyDesc] = useState("Admin Manual Adjustment");
   const [loyaltyType, setLoyaltyType] = useState<"credit" | "debit">("credit");
+
+  // Block modal
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
+  const [blockLoading, setBlockLoading] = useState(false);
 
   // Toast
   const [toastText, setToastText] = useState("");
@@ -101,7 +112,6 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
 
     const finalAmount = walletType === "credit" ? amountVal : -amountVal;
     
-    // Check if debit exceeds current balance
     if (walletType === "debit" && customer && customer.wallet_balance < amountVal) {
       triggerToast("Insufficient wallet credits for this debit");
       return;
@@ -129,7 +139,6 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
 
     const finalPoints = loyaltyType === "credit" ? pointsVal : -pointsVal;
 
-    // Check if debit exceeds current balance
     if (loyaltyType === "debit" && customer && customer.loyalty_points < pointsVal) {
       triggerToast("Insufficient loyalty points for this debit");
       return;
@@ -144,6 +153,44 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
       await loadDossier();
     } else {
       triggerToast(res.error || "Failed to adjust loyalty points.");
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!customer?.id) {
+      triggerToast("Cannot block: no user ID available (Supabase required)");
+      return;
+    }
+    if (!blockReason.trim()) {
+      triggerToast("Please enter a reason for blocking");
+      return;
+    }
+    setBlockLoading(true);
+    const res = await blockCustomerAction(customer.id, blockReason.trim());
+    setBlockLoading(false);
+    if (res.success) {
+      setShowBlockModal(false);
+      setBlockReason("");
+      triggerToast("Customer blocked successfully");
+      await loadDossier();
+    } else {
+      triggerToast(res.error || "Failed to block customer");
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!customer?.id) {
+      triggerToast("Cannot unblock: no user ID available (Supabase required)");
+      return;
+    }
+    setBlockLoading(true);
+    const res = await unblockCustomerAction(customer.id);
+    setBlockLoading(false);
+    if (res.success) {
+      triggerToast("Customer unblocked successfully");
+      await loadDossier();
+    } else {
+      triggerToast(res.error || "Failed to unblock customer");
     }
   };
 
@@ -179,6 +226,47 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Block Modal */}
+      {showBlockModal && (
+        <div className="fixed inset-0 z-[900] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md p-8 shadow-2xl border border-gray-200">
+            <h3 className="font-headline text-lg font-black uppercase tracking-tight text-[#0a0a0a] mb-2">
+              Block Customer
+            </h3>
+            <p className="text-xs text-gray-500 mb-6">
+              This will prevent <strong>{customer.email}</strong> from placing new orders. You can unblock at any time.
+            </p>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              Reason for blocking *
+            </label>
+            <textarea
+              id="block-reason-input"
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Repeated fraudulent orders, chargeback abuse..."
+              className="w-full border border-gray-200 p-3 text-xs text-[#0a0a0a] outline-none focus:border-[#0a0a0a] resize-none mb-6"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowBlockModal(false); setBlockReason(""); }}
+                className="flex-1 border border-gray-200 py-3 text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] hover:bg-gray-50 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                id="confirm-block-btn"
+                onClick={handleBlock}
+                disabled={blockLoading || !blockReason.trim()}
+                className="flex-1 bg-red-600 text-white py-3 text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {blockLoading ? "Blocking..." : "Block Customer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-16">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
@@ -200,6 +288,30 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
             </h2>
           </div>
         </div>
+
+        {/* Block/Unblock action buttons */}
+        <div className="flex items-center gap-3">
+          {customer.is_blocked ? (
+            <button
+              id="unblock-customer-btn"
+              onClick={handleUnblock}
+              disabled={blockLoading}
+              className="flex items-center gap-2 border border-green-600 text-green-700 px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-green-600 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-sm">lock_open</span>
+              Unblock Customer
+            </button>
+          ) : (
+            <button
+              id="block-customer-btn"
+              onClick={() => setShowBlockModal(true)}
+              className="flex items-center gap-2 border border-red-300 text-red-600 px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">block</span>
+              Block Customer
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -207,17 +319,42 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
         <div className="lg:col-span-5 space-y-8">
           {/* Client summary card */}
           <div className="bg-white border border-gray-200 p-8 shadow-sm rounded-none">
-            <div className="flex items-center gap-6 mb-8">
+            <div className="flex items-center gap-6 mb-6">
               <div className="size-16 bg-[#0a0a0a] text-white flex items-center justify-center font-headline font-black text-2xl border border-white/10">
                 {customer.name ? customer.name.charAt(0).toUpperCase() : "?"}
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="font-headline font-black text-2xl uppercase tracking-tight text-[#0a0a0a]">
                   {customer.name}
                 </h3>
                 <p className="text-xs text-gray-400 font-bold tracking-wider mt-1">{customer.email}</p>
+                {/* Status badge */}
+                <span className={`inline-block mt-2 text-[9px] font-black uppercase tracking-widest px-2 py-1 border ${
+                  customer.is_blocked
+                    ? "bg-red-50 border-red-200 text-red-700"
+                    : "bg-green-50 border-green-200 text-green-700"
+                }`}>
+                  {customer.is_blocked ? "Blocked" : "Active"}
+                </span>
               </div>
             </div>
+
+            {/* Block info panel */}
+            {customer.is_blocked && (
+              <div className="bg-red-50 border border-red-200 p-4 mb-6 rounded-none">
+                <p className="text-[9px] font-black uppercase tracking-widest text-red-600 mb-1">Account Blocked</p>
+                {customer.blocked_reason && (
+                  <p className="text-xs text-red-700 font-semibold mt-1">{customer.blocked_reason}</p>
+                )}
+                {customer.blocked_at && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    Blocked on: {new Date(customer.blocked_at).toLocaleDateString("en-IN", {
+                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4 border-t border-b border-gray-100 py-6 my-6">
               <div>

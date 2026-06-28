@@ -30,12 +30,28 @@ export async function POST(req: NextRequest) {
 
     const payload = parsed.data;
 
+    // 0. Check if user is blocked
+    if (payload.userId && supabase) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_blocked")
+        .eq("id", payload.userId)
+        .maybeSingle();
+      if (profile?.is_blocked) {
+        return NextResponse.json(
+          { success: false, error: "Account is blocked. Contact support." },
+          { status: 403 }
+        );
+      }
+    }
+
     // 1. Verify totals, apply discounts, check stock, and get strict checkoutState
     const verification = await verifyAndPrepareGatewayCheckoutAction(payload);
     
     if (!verification.success || !verification.checkoutState) {
       return NextResponse.json({ success: false, error: verification.error }, { status: 400 });
     }
+
 
     const { checkoutState } = verification;
 

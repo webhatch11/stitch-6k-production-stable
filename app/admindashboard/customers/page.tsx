@@ -3,14 +3,18 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getCustomersAction } from "@/app/actions/admin-reads";
+import { generateCustomerCsv } from "@/lib/customer-csv";
 
 interface CustomerData {
   name: string;
   email: string;
+  phone?: string;
   wallet_balance: number;
   loyalty_points: number;
   ltv: number;
   order_count: number;
+  joined?: string;
+  is_blocked?: boolean;
 }
 
 export default function CustomersManagementPage() {
@@ -48,6 +52,28 @@ export default function CustomersManagementPage() {
   const totalWalletLiability = customers.reduce((sum, c) => sum + c.wallet_balance, 0);
   const totalLoyaltyPoints = customers.reduce((sum, c) => sum + c.loyalty_points, 0);
 
+  const exportCsv = () => {
+    const csv = generateCustomerCsv(filteredCustomers.map((c) => ({
+      name: c.name,
+      email: c.email,
+      phone: c.phone,
+      order_count: c.order_count,
+      ltv: c.ltv,
+      wallet_balance: c.wallet_balance,
+      loyalty_points: c.loyalty_points,
+      joined: c.joined,
+      is_blocked: c.is_blocked,
+    })));
+    const today = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `customers_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-8 lg:p-16">
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-16">
@@ -62,6 +88,15 @@ export default function CustomersManagementPage() {
           </h2>
         </div>
         <div className="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-4 lg:pb-0 font-bold">
+          <button
+            onClick={exportCsv}
+            id="customers-export-csv-btn"
+            disabled={filteredCustomers.length === 0}
+            className="flex items-center gap-2 border border-gray-200 px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-gray-900 hover:text-white transition-all shadow-sm bg-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Export CSV
+          </button>
           <button
             onClick={loadCustomers}
             className="border border-gray-200 px-6 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-all shadow-sm bg-white cursor-pointer"
@@ -139,6 +174,7 @@ export default function CustomersManagementPage() {
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Lifetime LTV</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Wallet Credits</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Loyalty Balance</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
               </tr>
             </thead>
@@ -183,6 +219,15 @@ export default function CustomersManagementPage() {
                     <td className="p-6">
                       <span className="text-xs font-headline font-bold text-gray-700">
                         {customer.loyalty_points} pts
+                      </span>
+                    </td>
+                    <td className="p-6">
+                      <span className={`inline-block text-[9px] font-black uppercase tracking-widest px-2 py-1 border ${
+                        customer.is_blocked
+                          ? "bg-red-50 border-red-200 text-red-700"
+                          : "bg-green-50 border-green-200 text-green-700"
+                      }`}>
+                        {customer.is_blocked ? "Blocked" : "Active"}
                       </span>
                     </td>
                     <td className="p-6 text-right">

@@ -14,6 +14,7 @@ const suites = [
   'scratch/test-audit-C.js',
   'scratch/test-audit-D.js',
   'scratch/test-issue-8.js',
+  'scratch/test-lp-1.js',
 ];
 
 const BASE_URL = 'http://localhost:3000';

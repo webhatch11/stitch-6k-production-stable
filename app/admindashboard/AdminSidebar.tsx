@@ -168,6 +168,7 @@ export default function AdminSidebar({ user, children }: AdminSidebarProps) {
           </div>
           <button
             onClick={handleLogout}
+            suppressHydrationWarning
             className="flex items-center justify-center gap-2 w-full py-3 bg-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-red-600/80 hover:text-white transition-all border-none cursor-pointer"
           >
             Sign Out <span className="material-symbols-outlined text-sm">logout</span>

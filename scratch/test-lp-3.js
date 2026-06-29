@@ -180,7 +180,7 @@ function buildAuthCookieHeader(session) {
 
 // Track active phases to filter tests
 // Change to [1,2,3,4,5,6,7,8] as phases are completed
-const ENABLED_TESTS = [1, 2, 3, 4, 5];
+const ENABLED_TESTS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 let originalMarquee = null;
 let originalOfferBox = null;
@@ -345,6 +345,97 @@ async function main() {
       }).catch((err) => { console.error('Test 5 catch:', err.message); return false; })) passed++;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 6: saveHeroAction validations & slides array persistence
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(6)) {
+      if (await runTest(6, 'saveHeroAction validations & slides array persistence', async () => {
+        const testHero = {
+          headline: 'TEST MAIN HEADLINE',
+          subheadline: 'TEST MAIN SUBTITLE',
+          cta_text: 'TEST MAIN CTA',
+          cta_url: '/main-cta',
+          image_url: '/assets/pure_motion_6k.png',
+          slides: [
+            { headline: 'SLIDE 1 HEADLINE', subheadline: 'SLIDE 1 SUBTITLE', cta_text: 'SLIDE 1 CTA', cta_url: '/slide1', image_url: '/assets/pure_motion_6k.png' },
+            { headline: 'SLIDE 2 HEADLINE', subheadline: 'SLIDE 2 SUBTITLE', cta_text: 'SLIDE 2 CTA', cta_url: '/slide2', image_url: '/assets/pure_motion_6k.png' }
+          ]
+        };
+        await invokeAction(adminCookie, 'settings:saveHeroAction', [testHero]);
+
+        const freshValue = await db.getSetting('hero');
+        assert(freshValue && freshValue.headline === 'TEST MAIN HEADLINE', 'Main headline mismatch');
+        assert(freshValue.slides && freshValue.slides.length === 2, 'Slides array length mismatch');
+        assert(freshValue.slides[0].headline === 'SLIDE 1 HEADLINE', 'Slide 1 headline mismatch');
+        console.log('  ✓ Hero setting slides array successfully saved and verified in DB');
+      }).catch((err) => { console.error('Test 6 catch:', err.message); return false; })) passed++;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 7: public submitReviewAction inserts review with approved=false
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(7)) {
+      if (await runTest(7, 'public submitReviewAction inserts review with approved=false', async () => {
+        const testReview = {
+          name: 'TEST PUBLIC REVIEWER',
+          location: 'TEST CITY',
+          rating: 4,
+          comment: 'TEST REVIEW COMMENT 1'
+        };
+        await invokeAction(adminCookie, 'public_review:submitReviewAction', [testReview]);
+
+        const reviewsRes = await invokeAction(adminCookie, 'settings:getReviewsAction', []);
+        assert(reviewsRes.success && Array.isArray(reviewsRes.value), 'getReviewsAction returned error or invalid list');
+
+        const submitted = reviewsRes.value.find((r) => r.comment === 'TEST REVIEW COMMENT 1');
+        assert(submitted, 'Submitted review not found in DB');
+        assert(submitted.approved === false, 'Review should be pending (approved=false) by default');
+        console.log('  ✓ Public review successfully submitted and verified as pending in DB');
+      }).catch((err) => { console.error('Test 7 catch:', err.message); return false; })) passed++;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 8: admin actions moderates reviews (approve, reject, update)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(8)) {
+      if (await runTest(8, 'admin actions moderate reviews (approve, reject, update)', async () => {
+        const testReview = {
+          name: 'TEST PUBLIC MOD REVIEW',
+          location: 'TEST CITY',
+          rating: 5,
+          comment: 'TEST REVIEW FOR MODERATION'
+        };
+        await invokeAction(adminCookie, 'public_review:submitReviewAction', [testReview]);
+
+        let reviewsRes = await invokeAction(adminCookie, 'settings:getReviewsAction', []);
+        let target = reviewsRes.value.find((r) => r.comment === 'TEST REVIEW FOR MODERATION');
+        assert(target, 'Moderation review not found');
+        const reviewId = target.id;
+
+        // 1. Approve review
+        await invokeAction(adminCookie, 'settings:approveReviewAction', [reviewId]);
+        reviewsRes = await invokeAction(adminCookie, 'settings:getReviewsAction', []);
+        target = reviewsRes.value.find((r) => r.id === reviewId);
+        assert(target && target.approved === true, 'Review was not approved');
+        console.log('  ✓ Successfully approved review');
+
+        // 2. Update review
+        await invokeAction(adminCookie, 'settings:updateReviewAction', [reviewId, 'TEST REVIEW COMMENT 2 MODIFIED']);
+        reviewsRes = await invokeAction(adminCookie, 'settings:getReviewsAction', []);
+        target = reviewsRes.value.find((r) => r.id === reviewId);
+        assert(target && target.comment === 'TEST REVIEW COMMENT 2 MODIFIED', 'Review comment not updated');
+        console.log('  ✓ Successfully updated review comment');
+
+        // 3. Reject/Delete review
+        await invokeAction(adminCookie, 'settings:rejectReviewAction', [reviewId]);
+        reviewsRes = await invokeAction(adminCookie, 'settings:getReviewsAction', []);
+        target = reviewsRes.value.find((r) => r.id === reviewId);
+        assert(!target, 'Review not deleted after reject');
+        console.log('  ✓ Successfully rejected/deleted review');
+      }).catch((err) => { console.error('Test 8 catch:', err.message); return false; })) passed++;
+    }
+
+
 
   } finally {
     console.log('\n[CLEANUP] Restoring original landing settings...');
@@ -384,6 +475,9 @@ async function main() {
       } else {
         await serviceClient.from('site_settings').delete().eq('key', 'reviews');
       }
+
+      // Delete any test reviews
+      await serviceClient.from('reviews').delete().ilike('comment', '%TEST REVIEW%');
 
       // Invalidate Redis caches
       await db.saveProduct({ id: 'dummy' });

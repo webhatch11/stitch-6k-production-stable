@@ -12,6 +12,10 @@ import {
   saveOfferBoxAction,
   saveTrustBadgesAction,
   saveCategoriesAction,
+  getReviewsAction,
+  approveReviewAction,
+  rejectReviewAction,
+  updateReviewAction,
 } from "@/app/actions/admin-settings";
 
 export default function SettingsDashboardPage() {
@@ -26,6 +30,9 @@ export default function SettingsDashboardPage() {
   const [heroSubheadline, setHeroSubheadline] = useState("");
   const [heroCtaText, setHeroCtaText] = useState("");
   const [heroCtaUrl, setHeroCtaUrl] = useState("");
+  const [heroSlides, setHeroSlides] = useState<{ image_url: string; headline: string; subheadline: string; cta_text: string; cta_url: string }[]>([]);
+  const [activeUploadHeroSlideIndex, setActiveUploadHeroSlideIndex] = useState<number | null>(null);
+
 
   // States for Business Settings
   const [bizPhone, setBizPhone] = useState("");
@@ -55,8 +62,9 @@ export default function SettingsDashboardPage() {
   const [offerBgImageUrl, setOfferBgImageUrl] = useState("");
 
   // Upload target
-  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | "category" | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | "category" | "hero_slide" | null>(null);
   const [activeUploadCategoryIndex, setActiveUploadCategoryIndex] = useState<number | null>(null);
+
 
   // Tab control state
   const [activeTab, setActiveTab] = useState<"hero" | "business" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
@@ -68,6 +76,12 @@ export default function SettingsDashboardPage() {
   // States for Categories
   const [categoriesEnabled, setCategoriesEnabled] = useState(true);
   const [categoriesItems, setCategoriesItems] = useState<{ title: string; subtitle: string; image_url: string; theme: "navy" | "crimson" | "linen" | "charcoal" | "cream"; cta_url: string }[]>([]);
+
+  // States for Reviews
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [editingCommentMap, setEditingCommentMap] = useState<{ [id: string]: string }>({});
+  const [activeReviewsTab, setActiveReviewsTab] = useState<"pending" | "approved">("pending");
+
 
   // Loading & Toast States
   const [loading, setLoading] = useState(true);
@@ -105,7 +119,9 @@ export default function SettingsDashboardPage() {
         setHeroSubheadline(heroRes.value.subheadline || "");
         setHeroCtaText(heroRes.value.cta_text || "");
         setHeroCtaUrl(heroRes.value.cta_url || "");
+        setHeroSlides(heroRes.value.slides || []);
       }
+
 
       if (bizRes.success && bizRes.value) {
         setBizPhone(bizRes.value.phone || "");
@@ -161,8 +177,10 @@ export default function SettingsDashboardPage() {
       subheadline: heroSubheadline,
       cta_text: heroCtaText,
       cta_url: heroCtaUrl,
+      slides: heroSlides,
     };
     const res = await saveHeroAction(payload);
+
     if (res.success) {
       triggerToast("Hero settings updated successfully");
       router.refresh();
@@ -275,6 +293,61 @@ export default function SettingsDashboardPage() {
     }
   };
 
+  const loadReviews = async () => {
+    const res = await getReviewsAction();
+    if (res.success && res.value) {
+      setReviewsList(res.value);
+      // Initialize edit comments map
+      const editMap: { [id: string]: string } = {};
+      res.value.forEach((r: any) => {
+        editMap[r.id] = r.comment;
+      });
+      setEditingCommentMap(editMap);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "reviews") {
+      loadReviews();
+    }
+  }, [activeTab]);
+
+  const handleApproveReview = async (id: string) => {
+    const res = await approveReviewAction(id);
+    if (res.success) {
+      triggerToast("Review approved successfully");
+      loadReviews();
+    } else {
+      triggerToast(res.error || "Failed to approve review");
+    }
+  };
+
+  const handleRejectReview = async (id: string) => {
+    const res = await rejectReviewAction(id);
+    if (res.success) {
+      triggerToast("Review rejected/deleted successfully");
+      loadReviews();
+    } else {
+      triggerToast(res.error || "Failed to reject review");
+    }
+  };
+
+  const handleUpdateReviewComment = async (id: string) => {
+    const comment = editingCommentMap[id] || "";
+    if (!comment.trim()) {
+      triggerToast("Comment cannot be empty");
+      return;
+    }
+    const res = await updateReviewAction(id, comment);
+    if (res.success) {
+      triggerToast("Review updated successfully");
+      loadReviews();
+    } else {
+      triggerToast(res.error || "Failed to update review");
+    }
+  };
+
+
 
   const addMarqueeItem = () => {
     if (!newMarqueeItem.trim()) return;
@@ -319,7 +392,12 @@ export default function SettingsDashboardPage() {
             const newItems = [...categoriesItems];
             newItems[activeUploadCategoryIndex].image_url = newUrl;
             setCategoriesItems(newItems);
+          } else if (uploadTarget === "hero_slide" && activeUploadHeroSlideIndex !== null) {
+            const newSlides = [...heroSlides];
+            newSlides[activeUploadHeroSlideIndex].image_url = newUrl;
+            setHeroSlides(newSlides);
           }
+
         }}
       />
 
@@ -482,7 +560,210 @@ export default function SettingsDashboardPage() {
               </div>
             </div>
 
+            {/* Carousel Slides Section */}
+            <div className="border-t border-gray-200 pt-8 space-y-6">
+              <h4 className="font-headline font-black text-xs uppercase tracking-[0.2em] text-[#0a0a0a]">
+                Carousel Slides (Optional)
+              </h4>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest opacity-80">
+                If slides are specified, the storefront will render a sliding carousel instead of a single hero image.
+              </p>
+
+              <div className="space-y-6">
+                {heroSlides.map((slide, idx) => (
+                  <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                      <span className="text-xs font-black uppercase tracking-widest text-primary">
+                        Slide #{idx + 1}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            const newSlides = [...heroSlides];
+                            const temp = newSlides[idx];
+                            newSlides[idx] = newSlides[idx - 1];
+                            newSlides[idx - 1] = temp;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === heroSlides.length - 1}
+                          onClick={() => {
+                            const newSlides = [...heroSlides];
+                            const temp = newSlides[idx];
+                            newSlides[idx] = newSlides[idx + 1];
+                            newSlides[idx + 1] = temp;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHeroSlides(heroSlides.filter((_, i) => i !== idx));
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[10px] uppercase font-black tracking-widest"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          Headline (Max 120)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={120}
+                          value={slide.headline}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].headline = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="PREDEFINING LUXURY"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          Subheadline (Max 300)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={300}
+                          value={slide.subheadline}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].subheadline = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="Heritage craftsmanship meets street style."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          CTA Button Text (Max 40)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={40}
+                          value={slide.cta_text}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].cta_text = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="Shop Collection"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          CTA Link URL (Max 200)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={200}
+                          value={slide.cta_url}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].cta_url = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="/shopallshirts"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+                          Slide Background Image
+                        </label>
+                        {slide.image_url ? (
+                          <div className="flex items-center gap-3">
+                            <img src={slide.image_url} className="w-16 h-10 object-cover border border-gray-200" alt="Slide preview" />
+                            <div className="flex flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUploadTarget("hero_slide");
+                                  setActiveUploadHeroSlideIndex(idx);
+                                  cloudinaryRef.current?.open();
+                                }}
+                                className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                              >
+                                Change
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSlides = [...heroSlides];
+                                  newSlides[idx].image_url = "";
+                                  setHeroSlides(newSlides);
+                                }}
+                                className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:underline bg-transparent border-none p-0 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setUploadTarget("hero_slide");
+                              setActiveUploadHeroSlideIndex(idx);
+                              cloudinaryRef.current?.open();
+                            }}
+                            className="border border-dashed border-gray-300 px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
+                          >
+                            Upload Image
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {heroSlides.length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHeroSlides([
+                      ...heroSlides,
+                      { image_url: "", headline: "New Slide", subheadline: "Description...", cta_text: "Shop Now", cta_url: "/shopallshirts" },
+                    ]);
+                  }}
+                  className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
+                >
+                  + Add Slide Card
+                </button>
+              )}
+            </div>
+
             <div className="pt-4">
+
               <button
                 type="submit"
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
@@ -642,6 +923,7 @@ export default function SettingsDashboardPage() {
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
               >
                 Save Feature Flags
+              </button>
             </div>
           </form>
         </section>
@@ -717,6 +999,7 @@ export default function SettingsDashboardPage() {
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
               >
                 Save Marquee Settings
+              </button>
             </div>
           </form>
         </section>
@@ -1285,6 +1568,147 @@ export default function SettingsDashboardPage() {
                 </button>
               </div>
             </form>
+          </section>
+        )}
+
+        {/* Section 8: Reviews Moderator */}
+        {activeTab === "reviews" && (
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                  Review Moderation Portal
+                </h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                  Approve, reject, or correct customer reviews before they show on the storefront.
+                </p>
+              </div>
+
+              {/* Sub-tabs for Pending / Approved */}
+              <div className="flex border border-gray-200 rounded-none overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setActiveReviewsTab("pending")}
+                  className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none ${
+                    activeReviewsTab === "pending"
+                      ? "bg-primary text-white font-bold"
+                      : "bg-white text-gray-600 hover:bg-neutral-50"
+                  }`}
+                >
+                  Pending ({reviewsList.filter((r) => !r.approved).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveReviewsTab("approved")}
+                  className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none ${
+                    activeReviewsTab === "approved"
+                      ? "bg-primary text-white font-bold"
+                      : "bg-white text-gray-600 hover:bg-neutral-50"
+                  }`}
+                >
+                  Approved ({reviewsList.filter((r) => r.approved).length})
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-6">
+              {reviewsList.filter((r) => activeReviewsTab === "approved" ? r.approved : !r.approved).length === 0 ? (
+                <div className="text-center py-12 text-xs font-black uppercase tracking-widest text-gray-400">
+                  No {activeReviewsTab} reviews found.
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {reviewsList
+                    .filter((r) => activeReviewsTab === "approved" ? r.approved : !r.approved)
+                    .map((review) => {
+                      const initial = review.name ? review.name.charAt(0).toUpperCase() : "?";
+                      return (
+                        <div key={review.id} className="py-6 first:pt-0 last:pb-0 flex flex-col md:flex-row gap-6 items-start">
+                          {/* User avatar/initial and header */}
+                          <div className="flex items-center gap-4 w-full md:w-1/4">
+                            <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-primary border border-gray-200 text-xs shrink-0 select-none">
+                              {initial}
+                            </div>
+                            <div className="overflow-hidden">
+                              <h4 className="text-xs font-black uppercase tracking-widest text-[#0a0a0a] truncate">
+                                {review.name}
+                              </h4>
+                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest truncate mt-0.5">
+                                {review.location}
+                              </p>
+                              {/* Stars */}
+                              <div className="flex gap-0.5 mt-1 text-[#fed488]">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <span key={i} className="material-symbols-outlined text-sm font-bold">
+                                    {i < review.rating ? "star" : "star_outline"}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Comment Content */}
+                          <div className="flex-1 w-full space-y-3">
+                            {activeReviewsTab === "pending" ? (
+                              <textarea
+                                value={editingCommentMap[review.id] || ""}
+                                onChange={(e) => {
+                                  setEditingCommentMap({
+                                    ...editingCommentMap,
+                                    [review.id]: e.target.value,
+                                  });
+                                }}
+                                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none h-20 resize-none"
+                              />
+                            ) : (
+                              <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                                "{review.comment}"
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex md:flex-col gap-2 w-full md:w-auto md:items-end justify-end self-stretch shrink-0">
+                            {activeReviewsTab === "pending" ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveReview(review.id)}
+                                  className="bg-primary text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-secondary transition-all rounded-none cursor-pointer border-none shrink-0"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateReviewComment(review.id)}
+                                  className="border border-gray-200 text-[#0a0a0a] px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer shrink-0"
+                                >
+                                  Update Comment
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectReview(review.id)}
+                                  className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer shrink-0"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleRejectReview(review.id)}
+                                className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer shrink-0"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
           </section>
         )}
       </div>

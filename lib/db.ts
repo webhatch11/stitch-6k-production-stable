@@ -2498,4 +2498,44 @@ export const db = {
       return { success: false, status: 'RETRYING', error: e.message };
     }
   },
+
+  async submitReview(review: { name: string; location: string; rating: number; comment: string }) {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase.from("reviews").insert([review]);
+    return !error;
+  },
+
+  async getReviews(filter?: { approved?: boolean }) {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    let q = supabase.from("reviews").select("*").order("created_at", { ascending: false });
+    if (filter && typeof filter.approved === "boolean") {
+      q = q.eq("approved", filter.approved);
+    }
+    const { data } = await q;
+    return data || [];
+  },
+
+  async updateReviewStatus(id: string, approved: boolean) {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase.from("reviews").update({ approved }).eq("id", id);
+    return !error;
+  },
+
+  async deleteReview(id: string) {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase.from("reviews").delete().eq("id", id);
+    return !error;
+  },
+
+  async updateReview(id: string, review: { comment: string }) {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase.from("reviews").update(review).eq("id", id);
+    return !error;
+  },
 };
+

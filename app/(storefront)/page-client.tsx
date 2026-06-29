@@ -9,6 +9,8 @@ import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
 import { Product } from "@/lib/registry";
 import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
+import { submitReviewAction } from "@/app/actions/public-reviews";
+
 
 interface HeroSlide {
   badge: string;
@@ -350,6 +352,7 @@ export default function HomeClient({
   offerBox,
   trustBadges,
   categories,
+  approvedReviews,
   newArrivals,
   exclusives,
   bestsellers,
@@ -360,6 +363,7 @@ export default function HomeClient({
   offerBox: any;
   trustBadges: any;
   categories: any;
+  approvedReviews: any[] | undefined;
   newArrivals: Product[];
   exclusives: Product[];
   bestsellers: Product[];
@@ -508,6 +512,31 @@ export default function HomeClient({
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [heroTransitioning, setHeroTransitioning] = useState(false);
 
+  const activeSlides = (hero?.slides && hero.slides.length > 0)
+    ? hero.slides.map((s: any) => ({
+        bgImage: s.image_url,
+        title: s.headline,
+        desc: s.subheadline,
+        ctaText: s.cta_text,
+        ctaLink: s.cta_url
+      }))
+    : (hero?.image_url ? [
+        {
+          bgImage: hero.image_url,
+          title: hero.headline,
+          desc: hero.subheadline,
+          ctaText: hero.cta_text,
+          ctaLink: hero.cta_url
+        }
+      ] : heroSlides.map((s: any) => ({
+        bgImage: s.bgImage,
+        title: s.title,
+        desc: s.desc,
+        ctaText: "Shop Collection",
+        ctaLink: s.ctaLink
+      })));
+
+
   // Helper to show premium toast notification
   const showAtelierToast = (message: string) => {
     let toast = document.getElementById("prototype-toast");
@@ -565,88 +594,101 @@ export default function HomeClient({
     avatar: string;
   }
 
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: "rev-1",
-      name: "Aditya Verma",
-      location: "Bengaluru, India",
-      rating: 5,
-      comment: "I've tried countless luxury shirt brands, but nothing compares to the breathability and structure of 6K's linen-cotton looms. The summer fit is tailored to perfection—every wear feels like bespoke luxury.",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-2",
-      name: "Priya Deshmukh",
-      location: "Mumbai, India",
-      rating: 5,
-      comment: "Mumbai's humidity is brutal, but 6K's ultra-breathable shirts are an absolute lifesaver. The craftsmanship from their South Indian workshops is immaculate, and the tailored fit keeps me looking sharp all day.",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-3",
-      name: "Sophia Mitchell",
-      location: "London, UK",
-      rating: 5,
-      comment: "As a menswear enthusiast, I appreciate the premium long-staple cotton and the clean hand-rolled collars. The signature gold embroidery on 6K shirts is a beautiful, subtle touch. They've quickly become my go-to.",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-4",
-      name: "Karan Malhotra",
-      location: "New Delhi, India",
-      rating: 5,
-      comment: "From the mother-of-pearl buttons to the signature gold branding, the attention to detail is mind-blowing. These aren't just shirts; they are pieces of textile art. Outstanding product!",
-      avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-5",
-      name: "Aisha Khan",
-      location: "New York, USA",
-      rating: 5,
-      comment: "I never knew cotton-linen could feel this soft yet look so formal! The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price. The gold embroidery adds a very premium vibe.",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-6",
-      name: "Mia Lawrence",
-      location: "Toronto, Canada",
-      rating: 5,
-      comment: "I ordered the signature black shirt. The deep rich dye is stunning and hasn't faded after multiple washes. The fabric feels substantial, luxury-grade, and gets softer with every wash.",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-7",
-      name: "Emily Sanders",
-      location: "Sydney, Australia",
-      rating: 5,
-      comment: "The linen weave is exceptionally fine, perfect for the Australian summer. The stitching quality matches international standards, and the packaging was incredibly premium. Highly recommend!",
-      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-8",
-      name: "Vikram Nair",
-      location: "Kochi, India",
-      rating: 5,
-      comment: "The absolute gold standard for shirts in India. The collar has the perfect structure and doesn't warp after a wash. I've replaced my entire wardrobe with 6K shirts now.",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-9",
-      name: "Olivia Richardson",
-      location: "Los Angeles, USA",
-      rating: 5,
-      comment: "The fabric feels like a warm breeze! Extremely lightweight yet durable, and the tailored silhouette sits beautifully. The unboxing experience was absolutely premium.",
-      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80"
-    },
-    {
-      id: "rev-10",
-      name: "Rahul Sen",
-      location: "Kolkata, India",
-      rating: 5,
-      comment: "The South Indian loom heritage shines through. Every thread feels like a tribute to master weaving, and the fit is incredibly modern. Hands down the best shirts in my collection.",
-      avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=150&h=150&q=80"
+  const [reviews, setReviews] = useState<Review[]>(() => {
+    if (approvedReviews && approvedReviews.length > 0) {
+      return approvedReviews.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        location: r.location,
+        rating: r.rating,
+        comment: r.comment,
+        avatar: r.name ? r.name.charAt(0).toUpperCase() : "R"
+      }));
     }
-  ]);
+    return [
+      {
+        id: "rev-1",
+        name: "Aditya Verma",
+        location: "Bengaluru, India",
+        rating: 5,
+        comment: "I've tried countless luxury shirt brands, but nothing compares to the breathability and structure of 6K's linen-cotton looms. The summer fit is tailored to perfection—every wear feels like bespoke luxury.",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-2",
+        name: "Priya Deshmukh",
+        location: "Mumbai, India",
+        rating: 5,
+        comment: "Mumbai's humidity is brutal, but 6K's ultra-breathable shirts are an absolute lifesaver. The craftsmanship from their South Indian workshops is immaculate, and the tailored fit keeps me looking sharp all day.",
+        avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-3",
+        name: "Sophia Mitchell",
+        location: "London, UK",
+        rating: 5,
+        comment: "As a menswear enthusiast, I appreciate the premium long-staple cotton and the clean hand-rolled collars. The signature gold embroidery on 6K shirts is a beautiful, subtle touch. They've quickly become my go-to.",
+        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-4",
+        name: "Karan Malhotra",
+        location: "New Delhi, India",
+        rating: 5,
+        comment: "From the mother-of-pearl buttons to the signature gold branding, the attention to detail is mind-blowing. These aren't just shirts; they are pieces of textile art. Outstanding product!",
+        avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-5",
+        name: "Aisha Khan",
+        location: "New York, USA",
+        rating: 5,
+        comment: "I never knew cotton-linen could feel this soft yet look so formal! The fit is immaculate, easily competing with Savile Row tailors but at a much fairer price. The gold embroidery adds a very premium vibe.",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-6",
+        name: "Mia Lawrence",
+        location: "Toronto, Canada",
+        rating: 5,
+        comment: "I ordered the signature black shirt. The deep rich dye is stunning and hasn't faded after multiple washes. The fabric feels substantial, luxury-grade, and gets softer with every wash.",
+        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-7",
+        name: "Emily Sanders",
+        location: "Sydney, Australia",
+        rating: 5,
+        comment: "The linen weave is exceptionally fine, perfect for the Australian summer. The stitching quality matches international standards, and the packaging was incredibly premium. Highly recommend!",
+        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-8",
+        name: "Vikram Nair",
+        location: "Kochi, India",
+        rating: 5,
+        comment: "The absolute gold standard for shirts in India. The collar has the perfect structure and doesn't warp after a wash. I've replaced my entire wardrobe with 6K shirts now.",
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-9",
+        name: "Olivia Richardson",
+        location: "Los Angeles, USA",
+        rating: 5,
+        comment: "The fabric feels like a warm breeze! Extremely lightweight yet durable, and the tailored silhouette sits beautifully. The unboxing experience was absolutely premium.",
+        avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80"
+      },
+      {
+        id: "rev-10",
+        name: "Rahul Sen",
+        location: "Kolkata, India",
+        rating: 5,
+        comment: "The South Indian loom heritage shines through. Every thread feels like a tribute to master weaving, and the fit is incredibly modern. Hands down the best shirts in my collection.",
+        avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=150&h=150&q=80"
+      }
+    ];
+  });
+
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRating, setNewRating] = useState(5);
@@ -657,40 +699,38 @@ export default function HomeClient({
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newLocation.trim() || !newComment.trim()) return;
 
     setSubmittingReview(true);
-    setTimeout(() => {
-      const getInitials = (n: string) => {
-        const parts = n.trim().split(" ");
-        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-        return n.slice(0, 2).toUpperCase();
-      };
-
-      const newRev: Review = {
-        id: "rev-" + Date.now(),
+    try {
+      const res = await submitReviewAction({
         name: newName,
         location: newLocation,
         rating: newRating,
         comment: newComment,
-        avatar: getInitials(newName)
-      };
+      });
 
-      setReviews([newRev, ...reviews]);
-      setNewName("");
-      setNewLocation("");
-      setNewComment("");
-      setNewRating(5);
+      if (res.success) {
+        setNewName("");
+        setNewLocation("");
+        setNewComment("");
+        setNewRating(5);
+        setShowAddForm(false);
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3500);
+      } else {
+        alert(res.error || "Failed to submit review");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Submission failed: " + err.message);
+    } finally {
       setSubmittingReview(false);
-      setShowAddForm(false);
-
-      // Trigger visual toast
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3500);
-    }, 1000);
+    }
   };
+
 
   const firstRowReviews = reviews.filter((_, i) => i % 2 === 0);
   const secondRowReviews = reviews.filter((_, i) => i % 2 !== 0);
@@ -721,8 +761,9 @@ export default function HomeClient({
     if (!isAutoPlay) return;
 
     const interval = setInterval(() => {
-      handleSlideChange((currentHeroSlide + 1) % heroSlides.length);
+      handleSlideChange((currentHeroSlide + 1) % activeSlides.length);
     }, 8000);
+
 
     return () => clearInterval(interval);
   }, [currentHeroSlide, isAutoPlay]);
@@ -781,9 +822,13 @@ export default function HomeClient({
     // Step-by-step cross-fade for text elements
     setTimeout(() => {
       setCurrentHeroSlide(index);
-      setTempSlideData(heroSlides[index]);
+      if (activeSlides && activeSlides[index]) {
+        // Just in case it's ever used
+        setTempSlideData(activeSlides[index] as any);
+      }
       setHeroTransitioning(false);
     }, 300);
+
   };
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -887,28 +932,18 @@ export default function HomeClient({
         <section className="relative min-h-[55svh] md:min-h-[70svh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-on-surface py-16 md:py-20 lg:py-0">
           {/* Layered Backgrounds for Cross-Fade */}
           <div className="absolute inset-0 z-0 select-none pointer-events-none">
-            {hero?.image_url ? (
-              <ProductImage
-                src={hero.image_url}
-                alt="Custom Hero Background"
-                fill
-                className="object-cover"
-                priority
-              />
-            ) : (
-              heroSlides.map((slide, i) => (
-                <div
-                  key={`bg-${i}`}
-                  className={`absolute inset-0 bg-cover bg-center transition-all duration-[8000ms] ease-out ${
-                    i === currentHeroSlide ? "opacity-100 scale-105" : "opacity-0 scale-100 pointer-events-none"
-                  }`}
-                  style={{
-                    backgroundImage: `url('${slide.bgImage}')`,
-                    filter: "none",
-                  }}
-                ></div>
-              ))
-            )}
+            {activeSlides.map((slide: any, i: number) => (
+              <div
+                key={`bg-${i}`}
+                className={`absolute inset-0 bg-cover bg-center transition-all duration-[8000ms] ease-out ${
+                  i === currentHeroSlide ? "opacity-100 scale-105" : "opacity-0 scale-100 pointer-events-none"
+                }`}
+                style={{
+                  backgroundImage: `url('${slide.bgImage}')`,
+                  filter: "none",
+                }}
+              ></div>
+            ))}
 
             {/* Ambient Organic glow gradient */}
             <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
@@ -919,39 +954,40 @@ export default function HomeClient({
 
           {/* Hero Content Text Overlay */}
           <div className="relative z-20 max-w-4xl mx-auto px-6 text-center text-white flex flex-col items-center gap-4 animate-premium-text">
-            <h1 className="text-4xl md:text-7xl font-headline font-black tracking-[0.25em] uppercase leading-tight mb-2">
-              {hero?.headline || "PREDEFINING LUXURY"}
+            <h1 className="text-4xl md:text-7xl font-headline font-black tracking-[0.25em] uppercase leading-tight mb-2 whitespace-pre-line">
+              {activeSlides[currentHeroSlide]?.title || "PREDEFINING LUXURY"}
             </h1>
-            {hero?.subheadline && (
+            {activeSlides[currentHeroSlide]?.desc && (
               <p className="text-xs md:text-sm max-w-xl opacity-80 uppercase tracking-[0.3em] leading-relaxed mb-6">
-                {hero.subheadline}
+                {activeSlides[currentHeroSlide].desc}
               </p>
             )}
             <Link
-              href={hero?.cta_url || "/shopallshirts"}
+              href={activeSlides[currentHeroSlide]?.ctaLink || "/shopallshirts"}
               className="px-10 py-4 bg-white text-black text-[9px] font-black uppercase tracking-[0.25em] hover:bg-[#fed488] transition-all duration-300 shadow-xl hover:shadow-[0_0_20px_rgba(254,212,136,0.4)] rounded-none"
             >
-              {hero?.cta_text || "Shop Collection"}
+              {activeSlides[currentHeroSlide]?.ctaText || "Shop Collection"}
             </Link>
           </div>
 
           {/* Interactive Slide Dots on the Right */}
-          {!hero?.image_url && (
+          {activeSlides.length > 1 && (
             <div className="absolute right-6 md:right-16 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-3.5">
-            {heroSlides.map((_, i) => (
-              <button
-                key={`dot-${i}`}
-                onClick={() => handleSlideChange(i, true)}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-500 cursor-pointer ${
-                  i === currentHeroSlide 
-                    ? "bg-[#fed488] scale-130 shadow-[0_0_12px_rgba(254,212,136,0.6)]" 
-                    : "bg-white/35 hover:bg-white/70"
-                }`}
-                title={`View Slide ${i + 1}`}
-              ></button>
-            ))}
-          </div>
+              {activeSlides.map((_: any, i: number) => (
+                <button
+                  key={`dot-${i}`}
+                  onClick={() => handleSlideChange(i, true)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-500 cursor-pointer ${
+                    i === currentHeroSlide 
+                      ? "bg-[#fed488] scale-130 shadow-[0_0_12px_rgba(254,212,136,0.6)]" 
+                      : "bg-white/35 hover:bg-white/70"
+                  }`}
+                  title={`View Slide ${i + 1}`}
+                ></button>
+              ))}
+            </div>
           )}
+
 
           {/* Animated Scroll Down Indicator */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 select-none pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
@@ -1665,7 +1701,7 @@ export default function HomeClient({
               {/* Bottom Interactive Thumbnail Cards */}
               <div className="relative z-10 w-full mt-auto pt-6 border-t border-white/5">
                 <div className="flex justify-start md:justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 px-4 md:px-0 scrollbar-none [-webkit-overflow-scrolling:touch]">
-                  {activeCategories.map((item, idx) => {
+                  {activeCategories.map((item: any, idx: number) => {
                     const isActive = idx === safeCategoryIndex;
 
                     return (

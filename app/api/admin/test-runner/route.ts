@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       mod = await import("@/app/actions/admin-customers");
     } else if (actionName.startsWith("settings:")) {
       mod = await import("@/app/actions/admin-settings");
+    } else if (actionName.startsWith("public_review:")) {
+      mod = await import("@/app/actions/public-reviews");
     } else {
       return NextResponse.json(
         { error: "Unknown action namespace" }, 

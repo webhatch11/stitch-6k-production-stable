@@ -5,13 +5,23 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+const heroSlideSchema = z.object({
+  image_url: z.string().min(1).max(300),
+  headline: z.string().min(1).max(120),
+  subheadline: z.string().max(300).optional().default(""),
+  cta_text: z.string().min(1).max(40),
+  cta_url: z.string().min(1).max(200),
+});
+
 const heroSchema = z.object({
   image_url: z.string().optional().default(""),
   headline: z.string().min(1).max(120),
   subheadline: z.string().max(300).optional().default(""),
   cta_text: z.string().min(1).max(40),
   cta_url: z.string().min(1).max(200),
+  slides: z.array(heroSlideSchema).max(6).optional().default([]),
 });
+
 
 const businessSchema = z.object({
   phone: z.string().max(20).optional().default(""),
@@ -147,5 +157,54 @@ export async function saveCategoriesAction(input: any) {
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+export async function getReviewsAction(approved?: boolean) {
+  try {
+    const items = await db.getReviews(typeof approved === "boolean" ? { approved } : undefined);
+    return { success: true, value: items };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function approveReviewAction(id: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  const ok = await db.updateReviewStatus(id, true);
+  if (!ok) return { success: false, error: "Failed to approve review" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function rejectReviewAction(id: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  const ok = await db.deleteReview(id);
+  if (!ok) return { success: false, error: "Failed to delete review" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function updateReviewAction(id: string, comment: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!comment || comment.trim().length === 0) {
+    return { success: false, error: "Comment cannot be empty" };
+  }
+  const ok = await db.updateReview(id, { comment });
+  if (!ok) return { success: false, error: "Failed to update review" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
 
 

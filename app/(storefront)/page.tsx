@@ -10,6 +10,7 @@ export default async function Home() {
   const offerBox = await db.getSetting("offer_box");
   const trustBadges = await db.getSetting("trust_badges");
   const categories = await db.getSetting("categories");
+  const approvedReviews = await db.getReviews({ approved: true });
 
   const newArrivals = await db.getProducts({ display_section: "new_arrivals" });
   const exclusives = await db.getProducts({ display_section: "atelier_exclusives" });
@@ -23,9 +24,11 @@ export default async function Home() {
       offerBox={offerBox}
       trustBadges={trustBadges}
       categories={categories}
+      approvedReviews={approvedReviews}
       newArrivals={newArrivals}
       exclusives={exclusives}
       bestsellers={bestsellers}
     />
   );
 }
+

@@ -126,7 +126,7 @@ export const InventoryService = {
     let products: any[];
     const { supabase, isSupabaseConfigured } = loadService();
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from("products").select("*");
+      const { data, error } = await supabase.from("products").select("*").is("deleted_at", null);
       if (error) {
         console.error("Error fetching products in validateStock from Supabase:", error);
         products = [];
@@ -176,10 +176,14 @@ export const InventoryService = {
 
       // Filter from preloaded variants
       const productVariants = allVariants.filter((v) => v.productId === product.id);
-      const variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase()) || 
-                      productVariants.find((v) => v.size === size); // Fallback to size only if color match isn't exact
+      const variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase());
 
-      const availableStock = variant ? variant.stock : (product.sizeStock?.[size] || 0);
+      if (!variant) {
+        errors.push(`Variant not found: ${product.id} ${size}/${color}`);
+        continue;
+      }
+
+      const availableStock = variant.stock;
       availableStockMap[key] = availableStock;
 
       if (availableStock < item.quantity) {
@@ -258,7 +262,8 @@ export const InventoryService = {
     productId: string,
     size: "S" | "M" | "L" | "XL" | "XXL",
     color: string,
-    quantity: number
+    quantity: number,
+    orderId?: string
   ): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
@@ -295,30 +300,6 @@ export const InventoryService = {
 
     if (error) {
       console.error("Error executing atomic stock deduction:", error);
-      // Fallback update
-      const { data: vData } = await supabase
-        .from("product_variants")
-        .select("id, stock")
-        .eq("product_id", productId)
-        .eq("size", size)
-        .eq("color", color)
-        .maybeSingle();
-
-      if (vData && vData.stock >= quantity) {
-        await supabase
-          .from("product_variants")
-          .update({ stock: vData.stock - quantity })
-          .eq("id", vData.id);
-        
-        // Log Audit
-        await supabase.from("inventory_audit_logs").insert({
-          variant_id: vData.id,
-          quantity_changed: -quantity,
-          type: "deduction",
-          reason: "Checkout order deduction (fallback)",
-        });
-        return true;
-      }
       return false;
     }
 

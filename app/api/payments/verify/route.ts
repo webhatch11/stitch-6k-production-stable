@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { z } from "zod";
+import { razorpay } from "@/lib/razorpay";
 
 const verifySchema = z.object({
   razorpay_payment_id: z.string().min(1),
@@ -116,10 +117,42 @@ export async function POST(req: NextRequest) {
     // Inventory and ledger discrepancies are reconciled by ops.
 
     // a. Deduct inventory stock
+    let deductSuccess = false;
     try {
-      await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+      deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
     } catch (e) {
       console.error("[verify] deductStock failed:", e);
+    }
+
+    if (!deductSuccess) {
+      console.error(`[verify] DEDUCT FAILED post-payment for ${dbOrder.id}`);
+      // Mark as DEDUCTION_FAILED
+      await supabase.from("orders").update({
+        status: "DEDUCTION_FAILED",
+        payment_status: "FAILED"
+      }).eq("id", dbOrder.id);
+
+      console.warn(`[ADMIN ALERT] Inventory deduction failed for order ${dbOrder.id}. Auto-refunding...`);
+
+      // Auto-refund the customer
+      try {
+        await razorpay.payments.refund(razorpay_payment_id, {
+          amount: dbOrder.total * 100,
+          notes: { reason: "Inventory unavailable after payment" },
+        });
+        // Mark order
+        await supabase.from("orders").update({
+          status: "Refunded (Out of Stock)",
+          refund_status: "initiated",
+          refund_reason: "Inventory deduction failed post-payment",
+        }).eq("id", dbOrder.id);
+      } catch (e: any) {
+        console.error(`[verify] AUTO-REFUND FAILED, MANUAL INTERVENTION:`, e.message);
+        // Send alert
+        console.warn(`[ADMIN ALERT] Razorpay auto-refund failed for order ${dbOrder.id}: ${e.message}`);
+      }
+
+      return NextResponse.json({ success: false, error: "Inventory deduction failed" }, { status: 400 });
     }
 
     // b. Increment coupon usage

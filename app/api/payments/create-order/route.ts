@@ -87,6 +87,10 @@ export async function POST(req: NextRequest) {
       amount: Math.round(checkoutState.finalPayable * 100), // amount in paise
       currency: "INR",
       receipt: sequentialOrderId,
+      notes: { internal_order_id: sequentialOrderId },
+      // 14 minutes from now (in seconds, Unix timestamp)
+      // Reservation expires at 15min; Razorpay timeout 1 min earlier
+      expire_by: Math.floor(Date.now() / 1000) + (14 * 60),
     };
 
     const rzpOrder = await razorpay.orders.create(options);

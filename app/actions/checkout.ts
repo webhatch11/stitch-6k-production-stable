@@ -184,6 +184,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     pointsEarned: Math.floor(verifiedNetTotal / 10),
     status: "Paid via Wallet",
     items: cart.map((item) => item.productName),
+    cartItems: cart,
     address_snapshot: addressSnapshot,
   };
 
@@ -501,6 +502,7 @@ export async function processCodCheckoutAction(payload: {
     pointsEarned: Math.floor(verifiedNetTotal / 10),
     status: "Order Placed",
     items: cart.map((item) => item.productName),
+    cartItems: cart,
     address_snapshot: addressSnapshot,
   };
 

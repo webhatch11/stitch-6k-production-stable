@@ -35,6 +35,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (actionName === "db:deductStock") {
+      const { db } = await import("@/lib/db");
+      const [items, sessionId] = args;
+      const result = await db.deductStock(items, sessionId);
+      return NextResponse.json({ success: result });
+    }
+
+    if (actionName === "inventory:validateStock") {
+      const { InventoryService } = await import("@/lib/services/inventory");
+      const [items] = args;
+      const result = await InventoryService.validateStock(items);
+      return NextResponse.json(result);
+    }
+
     // Import the action module dynamically based on prefix
     let mod: any;
     if (actionName.startsWith("read:")) {
@@ -51,6 +65,8 @@ export async function POST(req: NextRequest) {
       mod = await import("@/app/actions/admin-settings");
     } else if (actionName.startsWith("public_review:")) {
       mod = await import("@/app/actions/public-reviews");
+    } else if (actionName.startsWith("checkout:")) {
+      mod = await import("@/app/actions/checkout");
     } else {
       return NextResponse.json(
         { error: "Unknown action namespace" }, 

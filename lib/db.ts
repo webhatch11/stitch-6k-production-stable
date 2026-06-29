@@ -1732,21 +1732,54 @@ export const db = {
     return { success: true };
   },
 
-  async deductStock(items: any[], sessionId?: string): Promise<void> {
+  async logDeductionFailure(productId: string, size: string, color: string, quantity: number, orderId?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn(`[logDeductionFailure] Supabase not configured. Skip db logging for ${productId} ${size}/${color}`);
+      return;
+    }
+    try {
+      const { error } = await supabase.from("deduction_failures").insert({
+        product_id: productId,
+        size,
+        color,
+        quantity,
+        order_id: orderId,
+        failed_at: new Date().toISOString()
+      });
+      if (error) {
+        console.error("Failed to insert into deduction_failures:", error);
+      }
+    } catch (e: any) {
+      console.error("deduction_failures table does not exist or write failed:", e.message);
+    }
+  },
+
+  async deductStock(items: any[], sessionId?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     const products = await this.getProducts();
     for (const item of items) {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
-      if (product) {
-        const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
-        const color = item.color || "Atelier Choice";
-        const qty = item.quantity || 1;
-        await InventoryService.deductStockAtomic(product.id, size, color, qty);
+      if (!product) {
+        console.error(`[deductStock] FAILED: Product "${item.productName}" not found in database.`);
+        return false;
+      }
+      const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
+      const color = item.color || "Atelier Choice";
+      const qty = item.quantity || 1;
+      const success = await InventoryService.deductStockAtomic(
+        product.id, size, color, qty, sessionId
+      );
+      if (!success) {
+        console.error(`[deductStock] FAILED for ${product.id} ${size}/${color}, order=${sessionId}`);
+        await this.logDeductionFailure?.(product.id, size, color, qty, sessionId);
+        return false;
       }
     }
     if (isSupabaseConfigured && supabase && sessionId) {
       await supabase.from("inventory_reservations").update({ status: 'fulfilled' }).eq("session_id", sessionId);
     }
+    return true;
   },
 
   async restoreStock(items: any[], sessionId?: string): Promise<void> {

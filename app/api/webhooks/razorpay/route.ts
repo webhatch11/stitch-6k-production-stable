@@ -120,10 +120,16 @@ export async function POST(req: NextRequest) {
               // customer's payment is captured and reverting risks a second charge.
 
               // a. Deduct inventory stock
+              let deductSuccess = false;
               try {
-                await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+                deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
               } catch (e) {
                 console.error("[webhook] deductStock failed:", e);
+              }
+              if (!deductSuccess) {
+                console.error(`[webhook] DEDUCT FAILED post-payment for order ${dbOrder.id}`);
+                console.warn(`[ADMIN ALERT] Webhook inventory deduction failed for order ${dbOrder.id}`);
+                // do not change status
               }
 
               // b. Increment coupon usage

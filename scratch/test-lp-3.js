@@ -180,7 +180,7 @@ function buildAuthCookieHeader(session) {
 
 // Track active phases to filter tests
 // Change to [1,2,3,4,5,6,7,8] as phases are completed
-const ENABLED_TESTS = [1, 2];
+const ENABLED_TESTS = [1, 2, 3, 4, 5];
 
 let originalMarquee = null;
 let originalOfferBox = null;
@@ -275,8 +275,76 @@ async function main() {
         assert(!html.includes('HIDDEN BADGE</h4>') && !html.includes('HIDDEN DESC</p>'), 'Disabled trust badge should not render on homepage');
         console.log('  ✓ Disabled trust badges section hidden on storefront');
       }).catch((err) => { console.error('Test 2 catch:', err.message); return false; })) passed++;
-
     }
+
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 3: saveCategoriesAction requires admin + persists
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(3)) {
+      if (await runTest(3, 'saveCategoriesAction validations & database save', async () => {
+        const testCategories = {
+          enabled: true,
+          items: [
+            { title: 'TEST CATEGORY 1', subtitle: 'TEST SUBTITLE 1', image_url: '/assets/folded_crimson_shirt.png', theme: 'navy', cta_url: '/cta-1' },
+            { title: 'TEST CATEGORY 2', subtitle: 'TEST SUBTITLE 2', image_url: '/assets/folded_olive_shirt.png', theme: 'crimson', cta_url: '/cta-2' }
+          ]
+        };
+        await invokeAction(adminCookie, 'settings:saveCategoriesAction', [testCategories]);
+
+        const freshValue = await db.getSetting('categories');
+
+        assert(freshValue && freshValue.enabled === true, 'Categories should be enabled');
+        assert(freshValue.items.length === 2, 'Categories length should be 2');
+        assert(freshValue.items[0].title === 'TEST CATEGORY 1', 'Title mismatch');
+        console.log('  ✓ Categories successfully saved and verified in DB');
+      }).catch((err) => { console.error('Test 3 catch:', err.message); return false; })) passed++;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 4: saveCategoriesAction rejects invalid theme value
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(4)) {
+      if (await runTest(4, 'saveCategoriesAction rejects invalid theme value', async () => {
+        const testCategories = {
+          enabled: true,
+          items: [
+            { title: 'BAD CATEGORY', subtitle: 'BAD SUBTITLE', image_url: '/assets/folded_crimson_shirt.png', theme: 'invalid-theme-value', cta_url: '/cta-1' }
+          ]
+        };
+        let failed = false;
+        try {
+          await invokeAction(adminCookie, 'settings:saveCategoriesAction', [testCategories]);
+        } catch (err) {
+          failed = true;
+          console.log('  ✓ Correctly rejected invalid theme enum value with error:', err.message);
+        }
+        assert(failed, 'Action should have rejected invalid theme enum value');
+      }).catch((err) => { console.error('Test 4 catch:', err.message); return false; })) passed++;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 5: Categories items render on homepage
+    // ─────────────────────────────────────────────────────────────────────────
+    if (ENABLED_TESTS.includes(5)) {
+      if (await runTest(5, 'Categories items render on homepage when set', async () => {
+        const testCategories = {
+          enabled: true,
+          items: [
+            { title: 'RENDERED CATEGORY CARD', subtitle: 'RENDERED SUBTITLE', image_url: '/assets/folded_crimson_shirt.png', theme: 'linen', cta_url: '/cta-render' }
+          ]
+        };
+        await invokeAction(adminCookie, 'settings:saveCategoriesAction', [testCategories]);
+
+        const res = await fetch(`${BASE_URL}/`, { signal: AbortSignal.timeout(45000) });
+        assert(res.ok, `Homepage returned HTTP ${res.status}`);
+        const html = await res.text();
+
+        assert(html.includes('RENDERED CATEGORY CARD') || html.includes('RENDERED CATEGORY CARD'.toUpperCase()), 'Categories should render on homepage');
+        console.log('  ✓ Categories successfully rendered on storefront');
+      }).catch((err) => { console.error('Test 5 catch:', err.message); return false; })) passed++;
+    }
+
 
   } finally {
     console.log('\n[CLEANUP] Restoring original landing settings...');

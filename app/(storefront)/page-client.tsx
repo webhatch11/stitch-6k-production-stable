@@ -349,6 +349,7 @@ export default function HomeClient({
   marquee,
   offerBox,
   trustBadges,
+  categories,
   newArrivals,
   exclusives,
   bestsellers,
@@ -358,6 +359,7 @@ export default function HomeClient({
   marquee: any;
   offerBox: any;
   trustBadges: any;
+  categories: any;
   newArrivals: Product[];
   exclusives: Product[];
   bestsellers: Product[];
@@ -406,6 +408,61 @@ export default function HomeClient({
   // Favorite products active index state for 3D Coverflow slider
   const [activeFavIndex, setActiveFavIndex] = useState(Math.max(0, Math.min(2, activeNewArrivals.length - 1)));
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+
+  const THEME_MAP = {
+    navy: {
+      cardBg: "from-[#1d3557] to-[#0f1d30]",
+      activeBg: "linear-gradient(to bottom, #0f1d30, #1d3557, #0b1421)",
+      glowColor: "rgba(29, 53, 87, 0.6)",
+      textColor: "text-blue-100/70"
+    },
+    crimson: {
+      cardBg: "from-[#5e1914] to-[#2d0b09]",
+      activeBg: "linear-gradient(to bottom, #2d0b09, #5e1914, #1f0706)",
+      glowColor: "rgba(94, 25, 20, 0.6)",
+      textColor: "text-red-100/70"
+    },
+    linen: {
+      cardBg: "from-[#133c30] to-[#091e18]",
+      activeBg: "linear-gradient(to bottom, #091e18, #133c30, #05110d)",
+      glowColor: "rgba(19, 60, 48, 0.6)",
+      textColor: "text-emerald-100/70"
+    },
+    charcoal: {
+      cardBg: "from-[#374151] to-[#111827]",
+      activeBg: "linear-gradient(to bottom, #111827, #374151, #0b0f19)",
+      glowColor: "rgba(55, 65, 81, 0.6)",
+      textColor: "text-gray-200/70"
+    },
+    cream: {
+      cardBg: "from-[#2c1d3f] to-[#160e20]",
+      activeBg: "linear-gradient(to bottom, #160e20, #2c1d3f, #0e0914)",
+      glowColor: "rgba(44, 29, 63, 0.6)",
+      textColor: "text-purple-100/70"
+    }
+  };
+
+  const activeCategories = (categories?.enabled && categories?.items?.length > 0)
+    ? categories.items.map((item: any, idx: number) => {
+        const themeInfo = THEME_MAP[item.theme as keyof typeof THEME_MAP] || THEME_MAP.navy;
+        return {
+          id: `cat-db-${idx}`,
+          name: item.title,
+          title: item.title.toUpperCase(),
+          subtitle: item.subtitle,
+          badge: item.title.toUpperCase(),
+          image: item.image_url,
+          thumbnail: item.image_url,
+          cta_url: item.cta_url || "/shopallshirts",
+          cardBg: themeInfo.cardBg,
+          activeBg: themeInfo.activeBg,
+          glowColor: themeInfo.glowColor,
+          textColor: themeInfo.textColor
+        };
+      })
+    : shirtCategories;
+
+  const safeCategoryIndex = Math.max(0, Math.min(activeCategoryIndex, activeCategories.length - 1));
   const [selectedQuickShopIndex, setSelectedQuickShopIndex] = useState<number | null>(null);
   const [isCoverflowHovered, setIsCoverflowHovered] = useState(false);
 
@@ -1496,14 +1553,14 @@ export default function HomeClient({
               transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
               className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[380px] md:min-h-[460px] lg:min-h-[540px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
               style={{
-                background: shirtCategories[activeCategoryIndex].activeBg
+                background: activeCategories[safeCategoryIndex].activeBg
               }}
             >
               {/* Dynamic Animated Background Images */}
               <div className="absolute inset-0 z-0">
                 <AnimatePresence initial={false}>
                   <motion.div
-                    key={activeCategoryIndex}
+                    key={safeCategoryIndex}
                     initial={{ opacity: 0, scale: 1.02 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
@@ -1511,8 +1568,8 @@ export default function HomeClient({
                     className="absolute inset-0 w-full h-full"
                   >
                     <Image
-                      src={shirtCategories[activeCategoryIndex].image}
-                      alt={shirtCategories[activeCategoryIndex].name}
+                      src={activeCategories[safeCategoryIndex].image}
+                      alt={activeCategories[safeCategoryIndex].name}
                       className="w-full h-full object-cover object-center"
                       draggable={false}
                       fill
@@ -1524,7 +1581,7 @@ export default function HomeClient({
                     {/* Ambient Theme Color Overlay */}
                     <div 
                       className="absolute inset-0 mix-blend-color opacity-35 pointer-events-none"
-                      style={{ backgroundColor: shirtCategories[activeCategoryIndex].glowColor }}
+                      style={{ backgroundColor: activeCategories[safeCategoryIndex].glowColor }}
                     />
                   </motion.div>
                 </AnimatePresence>
@@ -1534,7 +1591,7 @@ export default function HomeClient({
               <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto px-4 pointer-events-none select-none">
                 {/* Brand Logo Monogram */}
                 <motion.div
-                  key={`crest-${activeCategoryIndex}`}
+                  key={`crest-${safeCategoryIndex}`}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 0.95, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
@@ -1553,17 +1610,17 @@ export default function HomeClient({
                 {/* Split title layout mimicking PSYCHO / — THREE — */}
                 <div className="overflow-hidden flex flex-col items-center">
                   <motion.h3
-                    key={`title-main-${activeCategoryIndex}`}
+                    key={`title-main-${safeCategoryIndex}`}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
                     className="font-headline text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-[0.25em] uppercase leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]"
                   >
-                    {shirtCategories[activeCategoryIndex].title.split(" ")[0]}
+                    {activeCategories[safeCategoryIndex].title.split(" ")[0]}
                   </motion.h3>
 
                   <motion.div
-                    key={`title-sub-${activeCategoryIndex}`}
+                    key={`title-sub-${safeCategoryIndex}`}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 0.9, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
@@ -1571,7 +1628,7 @@ export default function HomeClient({
                   >
                     <span className="h-[1px] w-8 md:w-16 bg-white/30"></span>
                     <span className="font-label text-[10px] md:text-xs text-white uppercase tracking-[0.5em] font-bold">
-                      {shirtCategories[activeCategoryIndex].title.split(" ")[1] || "SERIES"}
+                      {activeCategories[safeCategoryIndex].title.split(" ")[1] || "SERIES"}
                     </span>
                     <span className="h-[1px] w-8 md:w-16 bg-white/30"></span>
                   </motion.div>
@@ -1579,28 +1636,28 @@ export default function HomeClient({
 
                 {/* Subtitle / Description Text */}
                 <motion.p
-                  key={`subtitle-${activeCategoryIndex}`}
+                  key={`subtitle-${safeCategoryIndex}`}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 0.8, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
-                  className={`text-[10px] md:text-xs max-w-[280px] md:max-w-sm mt-3 md:mt-5 leading-relaxed font-semibold uppercase tracking-[0.15em] ${shirtCategories[activeCategoryIndex].textColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]`}
+                  className={`text-[10px] md:text-xs max-w-[280px] md:max-w-sm mt-3 md:mt-5 leading-relaxed font-semibold uppercase tracking-[0.15em] ${activeCategories[safeCategoryIndex].textColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]`}
                 >
-                  {shirtCategories[activeCategoryIndex].subtitle}
+                  {activeCategories[safeCategoryIndex].subtitle}
                 </motion.p>
 
                 {/* Floating Capsule Badge representing active category */}
                 <motion.div
-                  key={`badge-${activeCategoryIndex}`}
+                  key={`badge-${safeCategoryIndex}`}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.45 }}
                   className="mt-5 md:mt-8 pointer-events-auto animate-pulse-slow"
                 >
                   <Link
-                    href="/shopallshirts"
+                    href={activeCategories[safeCategoryIndex].cta_url || "/shopallshirts"}
                     className="inline-block bg-black/40 hover:bg-neutral-950/80 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black tracking-[0.3em] uppercase text-white px-7 py-2.5 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
                   >
-                    {shirtCategories[activeCategoryIndex].badge}
+                    {activeCategories[safeCategoryIndex].badge}
                   </Link>
                 </motion.div>
               </div>
@@ -1608,8 +1665,9 @@ export default function HomeClient({
               {/* Bottom Interactive Thumbnail Cards */}
               <div className="relative z-10 w-full mt-auto pt-6 border-t border-white/5">
                 <div className="flex justify-start md:justify-center items-center gap-3 md:gap-6 max-w-4xl mx-auto overflow-x-auto pb-2 px-4 md:px-0 scrollbar-none [-webkit-overflow-scrolling:touch]">
-                  {shirtCategories.map((item, idx) => {
-                    const isActive = idx === activeCategoryIndex;
+                  {activeCategories.map((item, idx) => {
+                    const isActive = idx === safeCategoryIndex;
+
                     return (
                       <button
                         key={item.id}

@@ -11,6 +11,7 @@ import {
   saveMarqueeAction,
   saveOfferBoxAction,
   saveTrustBadgesAction,
+  saveCategoriesAction,
 } from "@/app/actions/admin-settings";
 
 export default function SettingsDashboardPage() {
@@ -53,8 +54,9 @@ export default function SettingsDashboardPage() {
   const [offerCtaUrl, setOfferCtaUrl] = useState("");
   const [offerBgImageUrl, setOfferBgImageUrl] = useState("");
 
-  // Upload target ("hero" or "offer")
-  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | null>(null);
+  // Upload target
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | "category" | null>(null);
+  const [activeUploadCategoryIndex, setActiveUploadCategoryIndex] = useState<number | null>(null);
 
   // Tab control state
   const [activeTab, setActiveTab] = useState<"hero" | "business" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
@@ -62,6 +64,10 @@ export default function SettingsDashboardPage() {
   // States for Trust Badges
   const [trustBadgesEnabled, setTrustBadgesEnabled] = useState(true);
   const [trustBadgesItems, setTrustBadgesItems] = useState<{ icon: string; title: string; description: string }[]>([]);
+
+  // States for Categories
+  const [categoriesEnabled, setCategoriesEnabled] = useState(true);
+  const [categoriesItems, setCategoriesItems] = useState<{ title: string; subtitle: string; image_url: string; theme: "navy" | "crimson" | "linen" | "charcoal" | "cream"; cta_url: string }[]>([]);
 
   // Loading & Toast States
   const [loading, setLoading] = useState(true);
@@ -83,13 +89,14 @@ export default function SettingsDashboardPage() {
   const loadAllSettings = async () => {
     try {
       setLoading(true);
-      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes] = await Promise.all([
+      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
         getSettingAction("flags"),
         getSettingAction("marquee"),
         getSettingAction("offer_box"),
         getSettingAction("trust_badges"),
+        getSettingAction("categories"),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -133,6 +140,11 @@ export default function SettingsDashboardPage() {
       if (trustRes.success && trustRes.value) {
         setTrustBadgesEnabled(trustRes.value.enabled ?? true);
         setTrustBadgesItems(trustRes.value.items || []);
+      }
+
+      if (categoriesRes.success && categoriesRes.value) {
+        setCategoriesEnabled(categoriesRes.value.enabled ?? true);
+        setCategoriesItems(categoriesRes.value.items || []);
       }
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
@@ -248,6 +260,22 @@ export default function SettingsDashboardPage() {
     }
   };
 
+  const handleSaveCategories = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      enabled: categoriesEnabled,
+      items: categoriesItems,
+    };
+    const res = await saveCategoriesAction(payload);
+    if (res.success) {
+      triggerToast("Categories settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update categories settings");
+    }
+  };
+
+
   const addMarqueeItem = () => {
     if (!newMarqueeItem.trim()) return;
     if (marqueeItems.length >= 10) {
@@ -287,9 +315,14 @@ export default function SettingsDashboardPage() {
             setHeroImage(newUrl);
           } else if (uploadTarget === "offer") {
             setOfferBgImageUrl(newUrl);
+          } else if (uploadTarget === "category" && activeUploadCategoryIndex !== null) {
+            const newItems = [...categoriesItems];
+            newItems[activeUploadCategoryIndex].image_url = newUrl;
+            setCategoriesItems(newItems);
           }
         }}
       />
+
 
       <header className="mb-16">
         <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
@@ -1014,6 +1047,241 @@ export default function SettingsDashboardPage() {
                   className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
                 >
                   Save Trust Badges
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {/* Section 7: Categories Settings */}
+        {activeTab === "categories" && (
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Categories Section Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveCategories} className="p-8 space-y-6">
+              <div className="flex items-center gap-3">
+                <input
+                  id="categories-enabled"
+                  type="checkbox"
+                  checked={categoriesEnabled}
+                  onChange={(e) => setCategoriesEnabled(e.target.checked)}
+                  className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+                />
+                <label htmlFor="categories-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                  Enable Categories Section
+                </label>
+              </div>
+
+              <div className="space-y-6">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Category Items (Max 8)
+                </label>
+
+                <div className="space-y-6">
+                  {categoriesItems.map((item, idx) => (
+                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                        <span className="text-xs font-black uppercase tracking-widest text-primary">
+                          Category #{idx + 1}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const newItems = [...categoriesItems];
+                              const temp = newItems[idx];
+                              newItems[idx] = newItems[idx - 1];
+                              newItems[idx - 1] = temp;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            Up
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === categoriesItems.length - 1}
+                            onClick={() => {
+                              const newItems = [...categoriesItems];
+                              const temp = newItems[idx];
+                              newItems[idx] = newItems[idx + 1];
+                              newItems[idx + 1] = temp;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            Down
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategoriesItems(categoriesItems.filter((_, i) => i !== idx));
+                            }}
+                            className="text-red-500 hover:text-red-700 text-[10px] uppercase font-black tracking-widest"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Title / Name (Max 50)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={50}
+                            value={item.title}
+                            onChange={(e) => {
+                              const newItems = [...categoriesItems];
+                              newItems[idx].title = e.target.value;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="Belgian Linen"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Subtitle / Description (Max 150)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={150}
+                            value={item.subtitle}
+                            onChange={(e) => {
+                              const newItems = [...categoriesItems];
+                              newItems[idx].subtitle = e.target.value;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="Pure flax linen shirts for breathable luxury"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            CTA Link URL
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={200}
+                            value={item.cta_url}
+                            onChange={(e) => {
+                              const newItems = [...categoriesItems];
+                              newItems[idx].cta_url = e.target.value;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="/shopallshirts"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Theme Style Preset
+                          </label>
+                          <select
+                            value={item.theme}
+                            onChange={(e) => {
+                              const newItems = [...categoriesItems];
+                              newItems[idx].theme = e.target.value as any;
+                              setCategoriesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none bg-white font-bold"
+                          >
+                            <option value="navy">Classic Navy</option>
+                            <option value="crimson">Crimson Red</option>
+                            <option value="linen">Sage Linen</option>
+                            <option value="charcoal">Charcoal Grey</option>
+                            <option value="cream">Cream Purple</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+                            Category Image
+                          </label>
+                          {item.image_url ? (
+                            <div className="flex items-center gap-3">
+                              <img src={item.image_url} className="w-12 h-16 object-cover border border-gray-200" alt="Category thumbnail" />
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUploadTarget("category");
+                                    setActiveUploadCategoryIndex(idx);
+                                    cloudinaryRef.current?.open();
+                                  }}
+                                  className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                                >
+                                  Change
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newItems = [...categoriesItems];
+                                    newItems[idx].image_url = "";
+                                    setCategoriesItems(newItems);
+                                  }}
+                                  className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:underline bg-transparent border-none p-0 cursor-pointer"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUploadTarget("category");
+                                setActiveUploadCategoryIndex(idx);
+                                cloudinaryRef.current?.open();
+                              }}
+                              className="border border-dashed border-gray-300 px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
+                            >
+                              Upload Image
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {categoriesItems.length < 8 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategoriesItems([
+                        ...categoriesItems,
+                        { title: "New Category", subtitle: "Description...", image_url: "", theme: "navy", cta_url: "/shopallshirts" },
+                      ]);
+                    }}
+                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
+                  >
+                    + Add Category Card
+                  </button>
+                )}
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+                >
+                  Save Category Settings
                 </button>
               </div>
             </form>

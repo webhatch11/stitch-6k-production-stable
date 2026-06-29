@@ -125,3 +125,27 @@ export async function saveTrustBadgesAction(input: any) {
   return { success: true };
 }
 
+const categoryItemSchema = z.object({
+  title: z.string().min(1).max(50),
+  subtitle: z.string().min(1).max(150),
+  image_url: z.string().min(1).max(300),
+  theme: z.enum(["navy", "crimson", "linen", "charcoal", "cream"]),
+  cta_url: z.string().max(200).optional().default(""),
+});
+
+const categoriesSchema = z.object({
+  enabled: z.boolean(),
+  items: z.array(categoryItemSchema).max(8),
+});
+
+export async function saveCategoriesAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = categoriesSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("categories", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+

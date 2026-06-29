@@ -393,7 +393,7 @@ export default function HomeClient({
         image: p.image || "/assets/folded_white_shirt.png",
         badge: p.customBadge || (p.bestseller ? "Bestseller" : (p.isNew ? "New" : "")),
         colors: p.colors || [],
-        slug: p.slug,
+        slug: p.slug || "",
       }))
     : favoriteStyles;
 
@@ -405,7 +405,7 @@ export default function HomeClient({
         image: p.image || "/assets/folded_white_shirt.png",
         badge: p.customBadge || "Exclusive",
         colors: p.colors || [],
-        slug: p.slug,
+        slug: p.slug || "",
       }))
     : [];
   

@@ -139,7 +139,7 @@ export default function OrdersLedgerPage() {
       "Razorpay Order ID",
     ];
     
-    const rows = filteredOrders.map((o) => [
+    const rows = filteredOrders.map((o: any) => [
       o.id,
       o.date,
       o.customer || "",

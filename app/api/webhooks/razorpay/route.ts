@@ -268,6 +268,11 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: true });
         }
         
+        if (!supabase) {
+          console.error("[Webhook refund] supabase client is null");
+          return NextResponse.json({ ok: true });
+        }
+        
         const newStatus = refund.status === "processed" ? "processed" : "failed";
         
         // Find the order by refund_id (uses the partial index from Day 12C)

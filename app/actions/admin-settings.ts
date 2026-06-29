@@ -43,7 +43,7 @@ const offerBoxSchema = z.object({
   bg_image_url: z.string().max(200).optional().default(""),
 });
 
-export async function getSettingAction(key: "hero" | "business" | "flags" | "marquee" | "offer_box") {
+export async function getSettingAction(key: "hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "hero_slides" | "categories" | "reviews") {
   // No requireAdmin — these are public reads via cached layer
   try {
     const value = await db.getSetting(key);
@@ -99,6 +99,27 @@ export async function saveOfferBoxAction(input: any) {
   const parsed = offerBoxSchema.safeParse(input);
   if (!parsed.success) return { success: false, error: parsed.error.message };
   const ok = await db.saveSetting("offer_box", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+const trustBadgeItemSchema = z.object({
+  icon: z.string().max(40),
+  title: z.string().max(30),
+  description: z.string().max(80),
+});
+
+const trustBadgesSchema = z.object({
+  enabled: z.boolean(),
+  items: z.array(trustBadgeItemSchema).max(6),
+});
+
+export async function saveTrustBadgesAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = trustBadgesSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("trust_badges", parsed.data);
   if (!ok) return { success: false, error: "Save failed" };
   revalidatePath("/", "layout");
   return { success: true };

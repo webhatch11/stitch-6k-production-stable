@@ -8,6 +8,7 @@ export default async function Home() {
   const business = await db.getSetting("business");
   const marquee = await db.getSetting("marquee");
   const offerBox = await db.getSetting("offer_box");
+  const trustBadges = await db.getSetting("trust_badges");
 
   const newArrivals = await db.getProducts({ display_section: "new_arrivals" });
   const exclusives = await db.getProducts({ display_section: "atelier_exclusives" });
@@ -19,6 +20,7 @@ export default async function Home() {
       business={business}
       marquee={marquee}
       offerBox={offerBox}
+      trustBadges={trustBadges}
       newArrivals={newArrivals}
       exclusives={exclusives}
       bestsellers={bestsellers}

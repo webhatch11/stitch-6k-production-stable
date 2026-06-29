@@ -10,6 +10,7 @@ import {
   saveFlagsAction,
   saveMarqueeAction,
   saveOfferBoxAction,
+  saveTrustBadgesAction,
 } from "@/app/actions/admin-settings";
 
 export default function SettingsDashboardPage() {
@@ -55,6 +56,13 @@ export default function SettingsDashboardPage() {
   // Upload target ("hero" or "offer")
   const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | null>(null);
 
+  // Tab control state
+  const [activeTab, setActiveTab] = useState<"hero" | "business" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
+
+  // States for Trust Badges
+  const [trustBadgesEnabled, setTrustBadgesEnabled] = useState(true);
+  const [trustBadgesItems, setTrustBadgesItems] = useState<{ icon: string; title: string; description: string }[]>([]);
+
   // Loading & Toast States
   const [loading, setLoading] = useState(true);
   const [toastText, setToastText] = useState("");
@@ -75,12 +83,13 @@ export default function SettingsDashboardPage() {
   const loadAllSettings = async () => {
     try {
       setLoading(true);
-      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes] = await Promise.all([
+      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
         getSettingAction("flags"),
         getSettingAction("marquee"),
         getSettingAction("offer_box"),
+        getSettingAction("trust_badges"),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -119,6 +128,11 @@ export default function SettingsDashboardPage() {
         setOfferCtaText(offerRes.value.cta_text || "");
         setOfferCtaUrl(offerRes.value.cta_url || "");
         setOfferBgImageUrl(offerRes.value.bg_image_url || "");
+      }
+
+      if (trustRes.success && trustRes.value) {
+        setTrustBadgesEnabled(trustRes.value.enabled ?? true);
+        setTrustBadgesItems(trustRes.value.items || []);
       }
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
@@ -219,6 +233,21 @@ export default function SettingsDashboardPage() {
     }
   };
 
+  const handleSaveTrustBadges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      enabled: trustBadgesEnabled,
+      items: trustBadgesItems,
+    };
+    const res = await saveTrustBadgesAction(payload);
+    if (res.success) {
+      triggerToast("Trust Badges updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update trust badges");
+    }
+  };
+
   const addMarqueeItem = () => {
     if (!newMarqueeItem.trim()) return;
     if (marqueeItems.length >= 10) {
@@ -276,15 +305,44 @@ export default function SettingsDashboardPage() {
         </p>
       </header>
 
+      {/* Tabs navigation */}
+      <div className="flex border-b border-gray-200 gap-6 overflow-x-auto pb-px mb-12 scrollbar-none">
+        {[
+          { id: "hero", label: "Hero Settings" },
+          { id: "business", label: "Business Info" },
+          { id: "marquee", label: "Marquee" },
+          { id: "offer_box", label: "Offer Box" },
+          { id: "trust_badges", label: "Trust Badges" },
+          { id: "categories", label: "Categories" },
+          { id: "reviews", label: "Reviews" },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="space-y-16">
         {/* Section 1: Hero Settings */}
-        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
-          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
-            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
-              Homepage Hero Editor
-            </h3>
-          </div>
-          <form onSubmit={handleSaveHero} className="p-8 space-y-6">
+        {activeTab === "hero" && (
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Homepage Hero Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveHero} className="p-8 space-y-6">
             {/* Cloudinary Upload */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
@@ -401,8 +459,11 @@ export default function SettingsDashboardPage() {
             </div>
           </form>
         </section>
+        )}
 
         {/* Section 2: Business Info */}
+        {activeTab === "business" && (
+        <>
         <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
@@ -548,12 +609,14 @@ export default function SettingsDashboardPage() {
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
               >
                 Save Feature Flags
-              </button>
             </div>
           </form>
         </section>
+        </>
+        )}
 
         {/* Section 4: Marquee Settings */}
+        {activeTab === "marquee" && (
         <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
@@ -621,12 +684,13 @@ export default function SettingsDashboardPage() {
                 className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
               >
                 Save Marquee Settings
-              </button>
             </div>
           </form>
         </section>
+        )}
 
         {/* Section 5: Offer Box Settings */}
+        {activeTab === "offer_box" && (
         <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
@@ -789,6 +853,172 @@ export default function SettingsDashboardPage() {
             </div>
           </form>
         </section>
+        )}
+
+        {/* Section 6: Trust Badges Settings */}
+        {activeTab === "trust_badges" && (
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Trust Badges Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveTrustBadges} className="p-8 space-y-6">
+              <div className="flex items-center gap-3">
+                <input
+                  id="trust-enabled"
+                  type="checkbox"
+                  checked={trustBadgesEnabled}
+                  onChange={(e) => setTrustBadgesEnabled(e.target.checked)}
+                  className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+                />
+                <label htmlFor="trust-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                  Enable Trust Badges Section
+                </label>
+              </div>
+
+              <div className="space-y-6">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Trust Badge Items (Max 6)
+                </label>
+
+                <div className="space-y-4">
+                  {trustBadgesItems.map((item, idx) => (
+                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                        <span className="text-xs font-black uppercase tracking-widest text-primary">
+                          Badge #{idx + 1}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const newItems = [...trustBadgesItems];
+                              const temp = newItems[idx];
+                              newItems[idx] = newItems[idx - 1];
+                              newItems[idx - 1] = temp;
+                              setTrustBadgesItems(newItems);
+                            }}
+                            className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            Up
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === trustBadgesItems.length - 1}
+                            onClick={() => {
+                              const newItems = [...trustBadgesItems];
+                              const temp = newItems[idx];
+                              newItems[idx] = newItems[idx + 1];
+                              newItems[idx + 1] = temp;
+                              setTrustBadgesItems(newItems);
+                            }}
+                            className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            Down
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTrustBadgesItems(trustBadgesItems.filter((_, i) => i !== idx));
+                            }}
+                            className="text-red-500 hover:text-red-700 text-[10px] uppercase font-black tracking-widest"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Icon Name (Material Symbols)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={40}
+                            value={item.icon}
+                            onChange={(e) => {
+                              const newItems = [...trustBadgesItems];
+                              newItems[idx].icon = e.target.value;
+                              setTrustBadgesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="flag, shield, local_shipping..."
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Title (Max 30)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={30}
+                            value={item.title}
+                            onChange={(e) => {
+                              const newItems = [...trustBadgesItems];
+                              newItems[idx].title = e.target.value;
+                              setTrustBadgesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="Made in India"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                            Description (Max 80)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={80}
+                            value={item.description}
+                            onChange={(e) => {
+                              const newItems = [...trustBadgesItems];
+                              newItems[idx].description = e.target.value;
+                              setTrustBadgesItems(newItems);
+                            }}
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                            placeholder="Crafted in Tamil Nadu"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {trustBadgesItems.length < 6 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrustBadgesItems([
+                        ...trustBadgesItems,
+                        { icon: "verified", title: "New Badge", description: "Details..." },
+                      ]);
+                    }}
+                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
+                  >
+                    + Add Trust Badge
+                  </button>
+                )}
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+                >
+                  Save Trust Badges
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
       </div>
     </div>
   );

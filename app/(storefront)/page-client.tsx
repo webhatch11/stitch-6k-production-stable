@@ -348,6 +348,7 @@ export default function HomeClient({
   business,
   marquee,
   offerBox,
+  trustBadges,
   newArrivals,
   exclusives,
   bestsellers,
@@ -356,6 +357,7 @@ export default function HomeClient({
   business: any;
   marquee: any;
   offerBox: any;
+  trustBadges: any;
   newArrivals: Product[];
   exclusives: Product[];
   bestsellers: Product[];
@@ -1664,103 +1666,152 @@ export default function HomeClient({
         </section>
 
         {/* Section 5: Trust Section */}
-        <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
-          <div className="max-w-[1400px] mx-auto">
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.15
+        {((trustBadges === undefined || trustBadges === null) || (trustBadges?.enabled)) && (
+          <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
+            <div className="max-w-[1400px] mx-auto">
+              <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: {
+                      staggerChildren: 0.15
+                    }
                   }
-                }
-              }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center"
-            >
-              {/* Point 1: Made In India */}
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 30 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
                 }}
-                className="flex flex-col items-center group cursor-default"
+                className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center"
               >
-                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                  <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-handshake-shake"
-                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                  >
-                    handshake
-                  </span>
-                </div>
-                <div className="px-4">
-                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                    MADE IN INDIA
-                  </h4>
-                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                    Ethically crafted by master tailors using age-old Indian garment-making techniques.
-                  </p>
-                </div>
-              </motion.div>
+                {(trustBadges?.items && trustBadges.items.length > 0) ? (
+                  trustBadges.items.map((badge: any, i: number) => {
+                    const getIconName = (icon: string) => {
+                      const name = icon.toLowerCase();
+                      if (name === 'truck') return 'local_shipping';
+                      if (name === 'package') return 'package_2';
+                      return name;
+                    };
+                    const getIconAnimationClass = (icon: string) => {
+                      const name = icon.toLowerCase();
+                      if (name.includes('handshake') || name.includes('flag')) return 'animate-handshake-shake';
+                      if (name.includes('package') || name.includes('shield')) return 'animate-package-bounce';
+                      if (name.includes('shipping') || name.includes('truck')) return 'animate-shipping-slide';
+                      return 'hover:scale-110';
+                    };
+                    return (
+                      <motion.div
+                        key={i}
+                        variants={{
+                          hidden: { opacity: 0, y: 30 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                        }}
+                        className="flex flex-col items-center group cursor-default"
+                      >
+                        <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                          <span
+                            className={`material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 ${getIconAnimationClass(badge.icon)}`}
+                            style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                          >
+                            {getIconName(badge.icon)}
+                          </span>
+                        </div>
+                        <div className="px-4">
+                          <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                            {badge.title}
+                          </h4>
+                          <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                            {badge.description}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                ) : (
+                  <>
+                    {/* Point 1: Made In India */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 30 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                      }}
+                      className="flex flex-col items-center group cursor-default"
+                    >
+                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                        <span
+                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-handshake-shake"
+                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                        >
+                          handshake
+                        </span>
+                      </div>
+                      <div className="px-4">
+                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                          MADE IN INDIA
+                        </h4>
+                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                          Ethically crafted by master tailors using age-old Indian garment-making techniques.
+                        </p>
+                      </div>
+                    </motion.div>
 
-              {/* Point 2: Premium Fabric */}
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 30 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
-                }}
-                className="flex flex-col items-center group cursor-default"
-              >
-                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                  <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-package-bounce"
-                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                  >
-                    package_2
-                  </span>
-                </div>
-                <div className="px-4">
-                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                    PREMIUM FABRIC
-                  </h4>
-                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                    Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
-                  </p>
-                </div>
-              </motion.div>
+                    {/* Point 2: Premium Fabric */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 30 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                      }}
+                      className="flex flex-col items-center group cursor-default"
+                    >
+                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                        <span
+                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-package-bounce"
+                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                        >
+                          package_2
+                        </span>
+                      </div>
+                      <div className="px-4">
+                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                          PREMIUM FABRIC
+                        </h4>
+                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                          Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
+                        </p>
+                      </div>
+                    </motion.div>
 
-              {/* Point 3: Fast Delivery */}
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 30 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
-                }}
-                className="flex flex-col items-center group cursor-default"
-              >
-                <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                  <span
-                    className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-shipping-slide"
-                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                  >
-                    local_shipping
-                  </span>
-                </div>
-                <div className="px-4">
-                  <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                    FAST DELIVERY
-                  </h4>
-                  <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                    Express shipping across India. Your heritage piece arrives at your doorstep in 48 hours.
-                  </p>
-                </div>
+                    {/* Point 3: Fast Delivery */}
+                    <motion.div
+                      variants={{
+                        hidden: { opacity: 0, y: 30 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                      }}
+                      className="flex flex-col items-center group cursor-default"
+                    >
+                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
+                        <span
+                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-shipping-slide"
+                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                        >
+                          local_shipping
+                        </span>
+                      </div>
+                      <div className="px-4">
+                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
+                          FAST DELIVERY
+                        </h4>
+                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
+                          Express shipping across India. Your heritage piece arrives at your doorstep in 48 hours.
+                        </p>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
               </motion.div>
-            </motion.div>
-          </div>
-        </section>
+            </div>
+          </section>
+        )}
 
         {/* Section 6: Social Proof (Global Reach) */}
         <section className="py-16 md:py-24 bg-[#F9FAFB] relative overflow-hidden px-4 md:px-8 lg:px-12">

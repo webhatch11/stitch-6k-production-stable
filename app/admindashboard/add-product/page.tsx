@@ -832,6 +832,29 @@ function AddProductContent() {
                   </div>
                 </div>
 
+                <div className="flex items-start gap-4 pt-6 border-t border-dashed border-gray-200">
+                  <input
+                    type="checkbox"
+                    id="sectionGenz"
+                    checked={displaySections.includes("genz")}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...displaySections, "genz"]
+                        : displaySections.filter(s => s !== "genz");
+                      setDisplaySections(updated);
+                    }}
+                    className="w-5 h-5 text-primary border-gray-300 focus:ring-0 rounded-none cursor-pointer mt-1"
+                  />
+                  <div>
+                    <label htmlFor="sectionGenz" className="font-headline font-black text-xs uppercase tracking-widest cursor-pointer block mb-1">
+                      Show on Gen Z page
+                    </label>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                      Show this product in the "Gen Z Streetwear" section on the storefront.
+                    </p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

@@ -194,7 +194,7 @@ async function main() {
 
   await ensureServer();
 
-  const total = 5;
+  const total = 6;
   let passed = 0;
   const ts = Date.now();
   const adminEmail = `admin-lp2-${ts}@example.com`;
@@ -390,6 +390,56 @@ async function main() {
       }
 
       console.log('  ✓ Display sections verified successfully on the homepage');
+    }).catch(() => false)) passed++;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TEST 6: Product tagged with "genz" appears on /genz page filter
+    // ─────────────────────────────────────────────────────────────────────────
+    if (await runTest(6, 'Product tagged with "genz" appears on /genz page filter', async () => {
+      // 1. Create a dummy test product or select an existing one
+      const { data: plist } = await serviceClient.from('products').select('*').limit(1);
+      assert(plist && plist.length > 0, 'No products found to run TEST 6');
+      const testProd = plist[0];
+
+      // Save original display_sections for restoration
+      if (!originalDisplaySections.some(p => p.id === testProd.id)) {
+        originalDisplaySections.push({ id: testProd.id, display_sections: testProd.display_sections || [] });
+      }
+
+      // 2. Save it with display_sections: ["genz"] using the server action
+      const payload = {
+        id: testProd.id,
+        title: testProd.title,
+        basePrice: testProd.price,
+        gstRate: testProd.gst_rate || 0,
+        discountRate: testProd.discount_rate || 0,
+        description: testProd.description || 'Test description',
+        category: testProd.category || 'Cotton',
+        image: testProd.image || 'https://lh3.googleusercontent.com/aida-public/test.jpg',
+        images: testProd.gallery || [],
+        sizeStock: testProd.size_stock || { S: 10, M: 10, L: 10, XL: 10, XXL: 10 },
+        specFabric: testProd.spec_fabric || '',
+        specFit: testProd.spec_fit || '',
+        specCollar: testProd.spec_collar || '',
+        specSleeve: testProd.spec_sleeve || '',
+        specCare: testProd.spec_care || '',
+        isNew: testProd.is_new ?? true,
+        isAtelierExclusive: testProd.is_atelier_exclusive ?? false,
+        customBadge: testProd.custom_badge || '',
+        display_sections: ['genz'],
+        variants: [],
+      };
+
+      await invokeAction(adminCookie, 'product:saveProductAction', [payload]);
+
+      // 3. Query products by display_section filter
+      const filtered = await db.getProducts({ display_section: 'genz' });
+      const found = filtered.find(p => p.id === testProd.id);
+      assert(found !== undefined, 'Product with genz display_section should be found');
+      assert(found.display_sections.includes('genz'), 'Product display_sections should include genz');
+
+      console.log('  ✓ Product successfully saved with genz display_section');
+      console.log('  ✓ db.getProducts genz filter works correctly');
     }).catch(() => false)) passed++;
 
   } finally {

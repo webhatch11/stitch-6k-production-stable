@@ -93,7 +93,21 @@ export async function POST(req: NextRequest) {
       expire_by: Math.floor(Date.now() / 1000) + (14 * 60),
     };
 
-    const rzpOrder = await razorpay.orders.create(options);
+    let rzpOrder;
+    try {
+      rzpOrder = await razorpay.orders.create(options);
+    } catch (e: any) {
+      const errMsg = e.message || JSON.stringify(e) || "";
+      if (errMsg.includes("expire_by")) {
+        console.warn("[Razorpay] expire_by rejected by Razorpay gateway API. Retrying without expire_by...");
+        const fallbackOptions = { ...options };
+        delete (fallbackOptions as any).expire_by;
+        rzpOrder = await razorpay.orders.create(fallbackOptions);
+      } else {
+        console.error("Razorpay order creation error:", e);
+        throw e;
+      }
+    }
 
     if (!rzpOrder || !rzpOrder.id) {
       return NextResponse.json({ success: false, error: "Failed to generate Razorpay order." }, { status: 500 });

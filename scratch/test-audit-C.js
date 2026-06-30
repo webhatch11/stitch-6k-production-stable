@@ -493,12 +493,7 @@ async function main() {
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log(`║  Results: ${passed}/${total} passed${' '.repeat(47 - String(passed).length - String(total).length)}║`);
   console.log('╚══════════════════════════════════════════════════════════╝\n');
-
-  if (passed < total) {
-    const failMsg = `FATAL ERROR: Only ${passed}/${total} tests passed.`;
-    console.error(failMsg);
-    process.exit(1);
-  }
+  process.exit(passed === total ? 0 : 1);
 }
 
 main().catch(err => {

@@ -42,6 +42,10 @@ export async function processWalletPointsCheckoutAction(payload: {
     userId,
   } = payload;
 
+  if (!addressId) {
+    return { success: false, error: "Delivery address is required" };
+  }
+
   // 0. Resolve and snapshot delivery address
   let addressSnapshot: any = null;
   if (addressId && userId) {
@@ -242,6 +246,10 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     userId,
   } = payload;
 
+  if (!addressId) {
+    return { success: false, error: "Delivery address is required" };
+  }
+
   // 0. Resolve and snapshot delivery address
   let addressSnapshot: any = null;
   if (addressId && userId) {
@@ -353,6 +361,10 @@ export async function processCodCheckoutAction(payload: {
     userId,
     pincode,
   } = payload;
+
+  if (!addressId) {
+    return { success: false, error: "Delivery address is required" };
+  }
 
   // 0. Resolve and snapshot delivery address
   let addressSnapshot: any = null;
@@ -565,5 +577,17 @@ export async function verifyStockAction(cart: any[]) {
   } catch (err: any) {
     return { success: false, message: err.message || "Failed to verify stock" };
   }
+}
+
+export async function devTestApplyWalletCreditAction(amount: number, desc: string, orderId: string, userId: string) {
+  if (process.env.NODE_ENV === "production") return { success: false, error: "Dev only" };
+  await db.applyWalletCredit(amount, desc, orderId, userId);
+  return { success: true };
+}
+
+export async function devTestApplyLoyaltyCreditAction(points: number, desc: string, orderId: string, userId: string) {
+  if (process.env.NODE_ENV === "production") return { success: false, error: "Dev only" };
+  await db.applyLoyaltyCredit(points, desc, orderId, userId);
+  return { success: true };
 }
 

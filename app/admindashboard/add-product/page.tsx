@@ -255,7 +255,7 @@ function AddProductContent() {
               color: p.colors?.[0] || "Atelier Choice",
               sku: `${p.id || "PROD"}-${size}-${(p.colors?.[0] || "ATL").slice(0, 3).toUpperCase()}`,
               price: p.basePrice || 0,
-              stock: 0,
+              stock: sizeStock[size as keyof typeof sizeStock] || 0,
             })));
           }
         }

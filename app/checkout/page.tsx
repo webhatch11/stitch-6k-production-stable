@@ -256,7 +256,12 @@ export default function CheckoutPage() {
     } else if (currentStep === 2) {
       handleGoToStep(3);
     } else if (currentStep === 3) {
-      const customerName = selectedAddress?.name || "Guest";
+      if (!selectedAddress) {
+        triggerToast("Please select a delivery address before confirming payment.");
+        setCurrentStep(1); // send them back to address selection
+        return;
+      }
+      const customerName = selectedAddress.name || "Guest";
 
       // Verify stock before any checkout actions
       const stockCheck = await verifyStockAction(cart);

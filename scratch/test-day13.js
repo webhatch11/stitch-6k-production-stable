@@ -475,7 +475,7 @@ async function main() {
     console.log('╔══════════════════════════════════════════════════════════╗');
     console.log(`║  Results: ${passed}/9 passed                                     ║`);
     console.log('╚══════════════════════════════════════════════════════════╝');
-
+    process.exit(passed === 9 ? 0 : 1);
   } catch (err) {
     console.error('\nTest failed with error:', err);
     if (adminUserId) await serviceClient.auth.admin.deleteUser(adminUserId).catch(() => {});

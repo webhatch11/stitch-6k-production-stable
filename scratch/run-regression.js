@@ -13,8 +13,11 @@ const suites = [
   'scratch/test-audit-B.js',
   'scratch/test-audit-C.js',
   'scratch/test-audit-D.js',
-  'scratch/test-issue-8.js',
   'scratch/test-lp-1.js',
+  'scratch/test-lp-2.js',
+  'scratch/test-lp-3.js',
+  'scratch/test-inv-hardening.js',
+  'scratch/test-functional-audit.js',
 ];
 
 const BASE_URL = 'http://localhost:3000';

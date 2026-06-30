@@ -51,6 +51,10 @@ export const CacheService = {
       }
     }
 
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return null;
+    }
+
     // 2. Try Redis if available
     if (redisClient && isRedisAvailable) {
       try {
@@ -75,6 +79,10 @@ export const CacheService = {
     // Save to memory cache fallback
     memoryCache.set(key, { value, expiresAt });
 
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return;
+    }
+
     // Save to Redis
     if (redisClient && isRedisAvailable) {
       try {
@@ -90,6 +98,10 @@ export const CacheService = {
    */
   async del(key: string): Promise<void> {
     memoryCache.delete(key);
+
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return;
+    }
 
     if (redisClient && isRedisAvailable) {
       try {
@@ -112,6 +124,10 @@ export const CacheService = {
       }
     }
 
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return;
+    }
+
     if (redisClient && isRedisAvailable) {
       try {
         const keys = await redisClient.keys(pattern);
@@ -128,6 +144,9 @@ export const CacheService = {
    * Simple health check returns true if Redis is active.
    */
   async healthCheck(): Promise<boolean> {
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return false;
+    }
     if (!redisClient) return false;
     try {
       const ping = await redisClient.ping();

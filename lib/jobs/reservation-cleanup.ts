@@ -84,7 +84,7 @@ export const reservationCleanupWorker = new Worker(
       }
     }
   },
-  { connection }
+  { connection: connection as any }
 );
 
 reservationCleanupWorker.on("completed", (job) => {

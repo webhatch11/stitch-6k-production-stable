@@ -125,7 +125,7 @@ export const shipmentRetryWorker = new Worker(
           const nextDelay = RETRY_DELAYS[attemptsMade];
           console.log(`[Shipment Retry Worker] Scheduling next retry in ${nextDelay / (60 * 1000)} minutes.`);
 
-          const retryQueue = new Queue("shipment-retry", { connection });
+          const retryQueue = new Queue("shipment-retry", { connection: connection as any });
           await retryQueue.add("retry_shipment", { orderId }, { delay: nextDelay });
           await retryQueue.close();
 
@@ -146,5 +146,5 @@ export const shipmentRetryWorker = new Worker(
       }
     }
   },
-  { connection }
+  { connection: connection as any }
 );

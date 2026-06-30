@@ -151,7 +151,7 @@ export const shipmentSyncWorker = connection
           }
         }
       },
-      { connection }
+      { connection: connection as any }
     )
   : null;
 

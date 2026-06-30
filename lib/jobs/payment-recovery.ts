@@ -95,7 +95,7 @@ export const paymentRecoveryWorker = new Worker(
         .lt("created_at", twentyFourHoursAgo);
     }
   },
-  { connection }
+  { connection: connection as any }
 );
 
 paymentRecoveryWorker.on("completed", (job) => {

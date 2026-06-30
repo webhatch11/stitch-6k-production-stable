@@ -977,7 +977,7 @@ export const db = {
     await supabase.rpc("wallet_atomic_credit", {
       p_user_id: uid,
       p_amount: amount,
-      p_idempotency_key: "CREDIT-" + orderId + "-" + Date.now(),
+      p_idempotency_key: "WALLET-CREDIT-" + orderId,
       p_desc: description || `Refund for Order #${orderId}`
     });
   },
@@ -1086,7 +1086,7 @@ export const db = {
     await supabase.rpc("loyalty_atomic_credit", {
       p_user_id: uid,
       p_points: points,
-      p_idempotency_key: "CREDIT-" + orderId + "-" + Date.now(),
+      p_idempotency_key: "LOYALTY-CREDIT-" + orderId,
       p_desc: description || `Refund for Order #${orderId}`
     });
   },
@@ -2453,8 +2453,16 @@ export const db = {
         // Queue retry via BullMQ
         try {
           const { Queue } = await import("bullmq");
-          const connection = new (await import("ioredis")).default(process.env.REDIS_URL || "redis://localhost:6379");
-          const retryQueue = new Queue("shipment-retry", { connection });
+          const redisUrlStr = process.env.REDIS_URL || "redis://localhost:6379";
+          const redisUrl = new URL(redisUrlStr);
+          const connectionOptions = {
+            host: redisUrl.hostname,
+            port: Number(redisUrl.port) || 6379,
+            password: redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined,
+            tls: redisUrl.protocol === "rediss:" ? {} : undefined,
+            maxRetriesPerRequest: null,
+          };
+          const retryQueue = new Queue("shipment-retry", { connection: connectionOptions });
           await retryQueue.add("retry_shipment", { orderId }, { delay: 5 * 60 * 1000 }); // initial 5 mins delay
           await retryQueue.close();
         } catch (queueErr) {
@@ -2520,8 +2528,16 @@ export const db = {
       // Queue retry via BullMQ
       try {
         const { Queue } = await import("bullmq");
-        const connection = new (await import("ioredis")).default(process.env.REDIS_URL || "redis://localhost:6379");
-        const retryQueue = new Queue("shipment-retry", { connection });
+        const redisUrlStr = process.env.REDIS_URL || "redis://localhost:6379";
+        const redisUrl = new URL(redisUrlStr);
+        const connectionOptions = {
+          host: redisUrl.hostname,
+          port: Number(redisUrl.port) || 6379,
+          password: redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined,
+          tls: redisUrl.protocol === "rediss:" ? {} : undefined,
+          maxRetriesPerRequest: null,
+        };
+        const retryQueue = new Queue("shipment-retry", { connection: connectionOptions });
         await retryQueue.add("retry_shipment", { orderId }, { delay: 5 * 60 * 1000 });
         await retryQueue.close();
       } catch (queueErr) {

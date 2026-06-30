@@ -21,7 +21,7 @@ export async function initJobs() {
     });
 
     // 1. Initialize Shipment Sync repeatable job
-    const shipmentQueue = new Queue("shipment-sync", { connection });
+    const shipmentQueue = new Queue("shipment-sync", { connection: connection as any });
     
     // Clear old repeatable jobs to avoid duplicates
     const repeatableJobs = await shipmentQueue.getRepeatableJobs();
@@ -44,7 +44,7 @@ export async function initJobs() {
     console.log("✓ Scheduled repeatable shipment-sync job (every 30m)");
 
     // 2. Initialize Reservation Cleanup repeatable job
-    const cleanupQueue = new Queue("reservation-cleanup", { connection });
+    const cleanupQueue = new Queue("reservation-cleanup", { connection: connection as any });
     const cleanupRepeatables = await cleanupQueue.getRepeatableJobs();
     for (const job of cleanupRepeatables) {
       await cleanupQueue.removeRepeatableByKey(job.key);

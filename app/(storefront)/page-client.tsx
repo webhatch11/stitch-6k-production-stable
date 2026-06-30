@@ -1558,6 +1558,7 @@ export default function HomeClient({
         )}
 
         {/* Section 4: Category Showcase */}
+        {categories?.enabled !== false && (
         <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-on-surface relative overflow-hidden">
           <div className="max-w-[1400px] mx-auto">
             {/* Header Block */}
@@ -1758,6 +1759,7 @@ export default function HomeClient({
             </motion.div>
           </div>
         </section>
+        )}
 
         {/* Section 5: Trust Section */}
         {((trustBadges === undefined || trustBadges === null) || (trustBadges?.enabled)) && (

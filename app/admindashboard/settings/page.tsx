@@ -67,7 +67,7 @@ export default function SettingsDashboardPage() {
 
 
   // Tab control state
-  const [activeTab, setActiveTab] = useState<"hero" | "business" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
+  const [activeTab, setActiveTab] = useState<"hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
 
   // States for Trust Badges
   const [trustBadgesEnabled, setTrustBadgesEnabled] = useState(true);
@@ -421,6 +421,7 @@ export default function SettingsDashboardPage() {
         {[
           { id: "hero", label: "Hero Settings" },
           { id: "business", label: "Business Info" },
+          { id: "flags", label: "Feature Flags" },
           { id: "marquee", label: "Marquee" },
           { id: "offer_box", label: "Offer Box" },
           { id: "trust_badges", label: "Trust Badges" },
@@ -777,7 +778,6 @@ export default function SettingsDashboardPage() {
 
         {/* Section 2: Business Info */}
         {activeTab === "business" && (
-        <>
         <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
@@ -879,8 +879,10 @@ export default function SettingsDashboardPage() {
             </div>
           </form>
         </section>
+        )}
 
         {/* Section 3: Feature Flags */}
+        {activeTab === "flags" && (
         <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
@@ -927,7 +929,6 @@ export default function SettingsDashboardPage() {
             </div>
           </form>
         </section>
-        </>
         )}
 
         {/* Section 4: Marquee Settings */}

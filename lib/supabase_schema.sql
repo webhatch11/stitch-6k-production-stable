@@ -780,4 +780,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ---------------------------------------------------------------------------
+-- 15. Schema Migrations (Additions for variant stock management)
+-- ---------------------------------------------------------------------------
 
+ALTER TABLE public.product_variants 
+ADD COLUMN IF NOT EXISTS reserved_stock INTEGER 
+NOT NULL DEFAULT 0 CHECK (reserved_stock >= 0);
+
+ALTER TABLE public.product_variants
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();

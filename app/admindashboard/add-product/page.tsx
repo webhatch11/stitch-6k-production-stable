@@ -148,6 +148,7 @@ function AddProductContent() {
 
   // Success Modal State
   const [successModalText, setSuccessModalText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Toast notifications
   const [toastText, setToastText] = useState("");
@@ -307,6 +308,7 @@ function AddProductContent() {
 
   // Submit and Save
   const handleSaveProduct = async () => {
+    if (isSubmitting) return;
     if (!title.trim()) {
       triggerToast("Please enter a product title");
       return;
@@ -352,6 +354,7 @@ function AddProductContent() {
       display_sections: displaySections,
     };
 
+    setIsSubmitting(true);
     try {
       if (!editProductId) {
         const listRes = await getProductsAction();
@@ -359,12 +362,14 @@ function AddProductContent() {
         const exists = list.some((prod) => prod.id === finalSKU);
         if (exists) {
           triggerToast("SKU already exists. Please choose a unique SKU reference.");
+          setIsSubmitting(false);
           return;
         }
       }
       const result = await saveProductAction(input);
       if (!result.success) {
         triggerToast(result.error || "Failed to save product");
+        setIsSubmitting(false);
         return;
       }
       router.refresh();
@@ -372,6 +377,8 @@ function AddProductContent() {
     } catch (e: any) {
       console.error(e);
       triggerToast("Failed to save product details");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -420,9 +427,12 @@ function AddProductContent() {
           <button
             onClick={handleSaveProduct}
             type="button"
-            className="flex-1 lg:flex-none bg-primary text-white px-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+            disabled={isSubmitting}
+            className={`flex-1 lg:flex-none bg-primary text-white px-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold ${
+              isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            {editProductId ? "Update Product" : "Save Product"}
+            {isSubmitting ? "Saving..." : (editProductId ? "Update Product" : "Save Product")}
           </button>
         </div>
       </header>

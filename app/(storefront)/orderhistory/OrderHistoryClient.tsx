@@ -509,9 +509,9 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                 </div>
                 <div>
                   <span className="text-neutral-400 font-bold block mb-1">Return To:</span>
-                  <span className="font-extrabold text-neutral-800">Stitch 6K Warehouse</span>
+                  <span className="font-extrabold text-neutral-800">JRT TEXTILES (6K Brand)</span>
                   <span className="block mt-0.5 text-neutral-600 font-medium">Returns Processing Unit</span>
-                  <span className="block text-neutral-600 font-medium">Tiruppur District, TN, 641604</span>
+                  <span className="block text-neutral-600 font-medium">Thillai Nagar, Tiruchirappalli - 620018, Tamil Nadu</span>
                 </div>
               </div>
 

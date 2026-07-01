@@ -13,7 +13,7 @@ export default function AboutPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">Heritage Craftsmanship</h3>
           <p>
-            Stitch 6K was founded with a single mission: to bridge the gap between ancient handloom weaving heritage and contemporary streetwear aesthetic. Every piece is designed and meticulously crafted in our Tiruppur facilities, honoring generations of craftsmanship.
+            Stitch 6K was founded with a single mission: to bridge the gap between ancient handloom weaving heritage and contemporary streetwear aesthetic. Every piece is designed and meticulously crafted in our Tiruchirappalli facilities, honoring generations of craftsmanship.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">

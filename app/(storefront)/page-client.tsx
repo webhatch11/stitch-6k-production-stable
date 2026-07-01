@@ -236,7 +236,7 @@ const favoriteStyles: FavoriteStyleItem[] = [
   },
   {
     id: "fav-style-6",
-    name: "Varanasi Crimson Linen",
+    name: "Atelier Crimson Linen",
     price: "₹5,999",
     image: "/assets/folded_crimson_shirt.png",
     badge: "Bestseller",
@@ -911,8 +911,8 @@ export default function HomeClient({
                 <span className="shimmer-text">6K Designer Shirts</span>
               </h1>
               <div className="h-[1.5px] bg-gradient-to-r from-transparent via-[#fed488]/80 to-transparent mx-auto opacity-0 animate-gold-line"></div>
-              <p className="text-[9px] font-black tracking-[0.5em] text-[#fed488]/60 uppercase opacity-0 animate-premium-subtext">
-                Predefining Luxury
+              <p className="text-[9px] font-black tracking-[0.3em] text-[#fed488]/60 uppercase opacity-0 animate-premium-subtext">
+                Be Original. Be 6K. Wear the Standard.
               </p>
             </div>
           </div>
@@ -954,6 +954,9 @@ export default function HomeClient({
 
           {/* Hero Content Text Overlay */}
           <div className="relative z-20 max-w-4xl mx-auto px-6 text-center text-white flex flex-col items-center gap-4 animate-premium-text">
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#fed488] mb-2 block">
+              Be Original. Be 6K. Wear the Standard.
+            </span>
             <h1 className="text-4xl md:text-7xl font-headline font-black tracking-[0.25em] uppercase leading-tight mb-2 whitespace-pre-line">
               {activeSlides[currentHeroSlide]?.title || "PREDEFINING LUXURY"}
             </h1>
@@ -1898,7 +1901,7 @@ export default function HomeClient({
                           FAST DELIVERY
                         </h4>
                         <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                          Express shipping across India. Your heritage piece arrives at your doorstep in 48 hours.
+                          Express shipping across India. Your heritage piece arrives at your doorstep in 3-7 business days.
                         </p>
                       </div>
                     </motion.div>

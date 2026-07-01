@@ -74,11 +74,11 @@ export default function InvoiceClient({
           <div>
             <div className="flex items-center gap-3 mb-6">
               <div className="size-8 bg-black text-white flex items-center justify-center font-headline font-black text-xs">6K</div>
-              <span className="font-headline text-xl font-black tracking-tighter uppercase">6K Designer Shirts</span>
+              <span className="font-headline text-xl font-black tracking-tighter uppercase">JRT TEXTILES (6K Brand)</span>
             </div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
-              Flat 102, Sector 4<br />
-              Varanasi, UP 221001<br />
+              1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar<br />
+              Tiruchirappalli – 620018, Tamil Nadu<br />
               India
             </p>
           </div>

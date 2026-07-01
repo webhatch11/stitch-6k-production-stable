@@ -13,19 +13,19 @@ export default function ContactPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">Atelier Concierge</h3>
           <p>
-            Email: support@stitch6k.com
+            Email: 6kthebrand@gmail.com
             <br />
-            Concierge Line: +91 6000 6000 (Available 24/7)
+            Phone: +91 93636 93004 (Mon–Sat 10AM–7PM IST)
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">Workshop Location</h3>
           <p>
-            The Stitch 6K Workshop
+            JRT TEXTILES (6K Brand)
             <br />
-            Tiruppur Textile District
+            1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar
             <br />
-            Tamil Nadu, India 641604
+            Tiruchirappalli – 620018, Tamil Nadu
           </p>
         </section>
       </div>

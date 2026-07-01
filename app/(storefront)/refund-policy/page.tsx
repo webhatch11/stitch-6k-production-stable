@@ -19,7 +19,7 @@ export default function RefundPolicyPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">2. Processing Time</h3>
           <p>
-            Once our Quality Check team verifies the returned items at our facility, refunds are processed back to the original payment source within 5-7 business days. Alternatively, refunds can be immediately credited to your local wallet balance.
+            Once our Quality Check team verifies the returned items at our facility, the refund timeline is as follows: Approval 24-72hrs, Processing 3-5 business days, Bank settlement 5-10 business days (Total ~7-14 business days). Alternatively, refunds can be immediately credited to your local wallet balance.
           </p>
         </section>
       </div>

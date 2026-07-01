@@ -228,7 +228,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     milestones.push({
       title: "Workshop Dispatch",
       dateStr: formatTimelineDate(orderDate, 1, "08:30 AM"),
-      desc: "Package dispatched from Varanasi Workshop in custom luxury packing and handed to Shiprocket courier partner.",
+      desc: "Package dispatched from JRT TEXTILES (6K Brand), Tiruchirappalli in custom luxury packing and handed to Shiprocket courier partner.",
       icon: "local_shipping",
       active: isShipped || isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });
@@ -277,7 +277,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
       milestones.push({
         title: "Return Shipment Dispatched",
         dateStr: formatTimelineDate(new Date(), 0, "03:45 PM"),
-        desc: "Reverse logistics partner agent has collected the package. Transit sorting to Varanasi Workshop in progress.",
+        desc: "Reverse logistics partner agent has collected the package. Transit sorting to JRT TEXTILES (6K Brand), Tiruchirappalli in progress.",
         icon: "local_shipping",
         active: true,
         isReturn: true,

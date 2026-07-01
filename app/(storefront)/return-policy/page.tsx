@@ -27,7 +27,7 @@ export default function ReturnPolicyPage() {
           <p>
             Upon arrival at the workshop and passing quality inspections:
             <br />- Refund to Store Wallet is processed instantly.
-            <br />- Refund to Bank Account takes 3-5 business days.
+            <br />- Refund to Bank Account: Approval 24-72hrs, Processing 3-5 business days, Bank settlement 5-10 business days (Total ~7-14 business days).
           </p>
         </section>
       </div>

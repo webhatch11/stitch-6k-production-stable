@@ -13,7 +13,7 @@ export default function TermsPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">1. Atelier Manufacture</h3>
           <p>
-            Stitch 6K Heritage offers high-end handloomed custom products manufactured inside our Tiruppur textile facilities. Minor weaving variations are a signature hallmark of natural cotton and linen fibers.
+            Stitch 6K Heritage offers high-end handloomed custom products manufactured inside our Tiruchirappalli textile facilities. Minor weaving variations are a signature hallmark of natural cotton and linen fibers.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">

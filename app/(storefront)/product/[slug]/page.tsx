@@ -61,7 +61,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     "sku": product.id,
     "offers": {
       "@type": "Offer",
-      "url": `https://stitch6k.com/product/${product.slug}`,
+      "url": `https://6kthebrand.com/product/${product.slug}`,
       "priceCurrency": "INR",
       "price": product.price,
       "itemCondition": "https://schema.org/NewCondition",

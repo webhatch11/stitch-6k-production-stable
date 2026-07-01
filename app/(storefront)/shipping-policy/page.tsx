@@ -13,13 +13,13 @@ export default function ShippingPolicyPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">1. Dispatch Timeline</h3>
           <p>
-            Each shirt is handcrafted in South India Textils District. Handloom products undergo strict quality checks before packing. Please allow 24-48 hours for dispatch confirmation via SMS and WhatsApp dispatches.
+            Each shirt is handcrafted in South India Textils District. Handloom products undergo strict quality checks before packing. Please allow 2-3 business days for dispatch confirmation via SMS and WhatsApp dispatches.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">2. Courier Partners</h3>
           <p>
-            We integrate with Shiprocket Premium Logistics. Insured express delivery is standard for all domestic shipments across India. Deliveries usually arrive within 3-5 business days.
+            We integrate with Shiprocket Premium Logistics. Insured express delivery is standard for all domestic shipments across India. Deliveries usually arrive within 3-7 business days.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">

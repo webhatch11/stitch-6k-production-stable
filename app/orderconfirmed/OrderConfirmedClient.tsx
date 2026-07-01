@@ -14,7 +14,7 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
   const orderId = lastOrder ? lastOrder.id : "STK-2026-000001";
   const customer = lastOrder ? lastOrder.customer : "Valued Client";
   const total = lastOrder ? lastOrder.total : 14500;
-  const items = lastOrder ? lastOrder.items : ["Signature Linen Shirt"];
+  const items = lastOrder ? lastOrder.items : ["Your Order"];
 
   return (
     <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
@@ -121,7 +121,7 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
                   </div>
                 </div>
                 <div className="flex gap-8">
-                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">2 Days</span>
+                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">2-3 Business Days</span>
                   <div>
                     <h4 className="font-headline font-black text-lg uppercase tracking-tight">Logistics Despatch</h4>
                     <p className="text-xs text-outline leading-relaxed font-medium mt-1">Order packaged securely in luxury design box. Assigned to Shiprocket express delivery partner.</p>

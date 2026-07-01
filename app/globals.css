@@ -6,7 +6,7 @@
   --background: #faf9f8;
   --foreground: #1a1c1c;
 
-  /* Custom palette matching Varanasi Noir theme */
+  /* Custom palette matching Atelier Noir theme */
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f4f3f2;
   --color-primary-fixed: #e5e2e1;
@@ -56,7 +56,7 @@
 }
 
 @theme {
-  /* Override defaults with Varanasi Noir configurations */
+  /* Override defaults with Atelier Noir configurations */
   --color-surface-container-lowest: var(--color-surface-container-lowest);
   --color-surface-container-low: var(--color-surface-container-low);
   --color-primary-fixed: var(--color-primary-fixed);

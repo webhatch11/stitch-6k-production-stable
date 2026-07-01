@@ -107,15 +107,8 @@ export default function CheckoutPage() {
     let savedCart: CartItem[] = [...cartItems];
 
     if (savedCart.length === 0) {
-      // Default to mock item if cart is empty
-      savedCart = [
-        {
-          productName: "Signature Linen Shirt",
-          price: 14500,
-          size: "XL",
-          image: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5SFi3n0_AFFxHNg48C_fmzDxMDB7eA3s2kAeA71DAaBm_ATzhe2R_GfrrGwBIzNX3HKK4zEZgSEKQs5Jvxrk6bhNpgfmLBVvjOdG8fDRwO9JeDcL3gTu_iZVQeh4Cp4bleSO3fyprCS-iR5dGwVCtL3L-GXML1kNAv12-CiEUcxHyqNVGLWcWfVDiYn16_qqZYjq9Mjmkm13lf9HnjyMGgyG_lw2ftpstJS9uD-remW6L54WASBxhwTAIs26DeWfrrDO5P_Da5-4",
-        },
-      ];
+      router.push("/shopallshirts");
+      return;
     }
     setCart(savedCart);
 
@@ -453,7 +446,7 @@ export default function CheckoutPage() {
             },
             prefill: {
               name: customerName,
-              email: user?.email || "guest@stitch6k.com",
+              email: user?.email || "guest@6kthebrand.com",
               contact: selectedAddress?.phone || ""
             },
             theme: {
@@ -852,7 +845,7 @@ export default function CheckoutPage() {
                       </p>
                       <p>
                         <span className="text-outline">Contact:</span>{" "}
-                        <span className="font-bold text-on-surface">{selectedAddress?.phone}</span> | <span className="text-on-surface">{user?.email || "guest@stitch6k.com"}</span>
+                        <span className="font-bold text-on-surface">{selectedAddress?.phone}</span> | <span className="text-on-surface">{user?.email || "guest@6kthebrand.com"}</span>
                       </p>
                     </div>
                   </div>
@@ -1070,9 +1063,9 @@ export default function CheckoutPage() {
               <p className="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4">
                 <span className="material-symbols-outlined text-secondary mt-1">location_on</span>
                 <span>
-                  The Stitch 6K Workshop<br />
-                  Tiruppur Textile District<br />
-                  Tamil Nadu, India 641604<br />
+                  JRT TEXTILES (6K Brand)<br />
+                  1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar<br />
+                  Tiruchirappalli – 620018, Tamil Nadu<br />
                   <span className="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
                 </span>
               </p>

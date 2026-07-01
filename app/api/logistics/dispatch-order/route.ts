@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     const shiprocketPayload = {
       order_id: order.id,
       order_date: new Date().toISOString().split("T")[0],
-      pickup_location: "Varanasi Workshop",
+      pickup_location: "JRT TEXTILES (6K Brand), Tiruchirappalli",
       billing_customer_name: shippingAddress.name.split(" ")[0] || "Customer",
       billing_last_name: shippingAddress.name.split(" ").slice(1).join(" ") || "Atelier",
       billing_address: shippingAddress.address_line_1,

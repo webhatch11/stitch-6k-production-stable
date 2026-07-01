@@ -80,9 +80,7 @@ export default function Footer({ business }: FooterProps) {
             <p className="text-[10px] font-light uppercase tracking-widest text-white/80 leading-loose flex items-start gap-4 mb-5">
               <span className="material-symbols-outlined text-secondary mt-1">location_on</span>
               <span>
-                The Stitch 6K Workshop
-                <br />
-                {address || "Tiruppur Textile District, Tamil Nadu, India 641604"}
+                {address || "JRT TEXTILES (6K Brand), 1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar, Tiruchirappalli – 620018, Tamil Nadu"}
                 <br />
                 <span className="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
               </span>

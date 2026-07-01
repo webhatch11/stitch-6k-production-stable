@@ -190,7 +190,16 @@ export default function InventoryLedgerPage() {
   };
 
   return (
-    <div className="p-8 lg:p-16">
+    <div className="p-8 lg:p-16 relative">
+      <style>{`
+        @keyframes pulse-gold {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(186,117,23,0.6); }
+          50% { box-shadow: 0 0 0 6px rgba(186,117,23,0); }
+        }
+        .pulse-gold-btn {
+          animation: pulse-gold 1.6s ease-in-out infinite;
+        }
+      `}</style>
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">
@@ -363,9 +372,18 @@ export default function InventoryLedgerPage() {
                                     </div>
                                     <button
                                       onClick={() => handleRestockClick(p, size)}
-                                      className="bg-secondary hover:bg-[#0a0a0a] text-white px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-sm select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
+                                      disabled={isSubmitting || isAdjusting}
+                                      title={`Restock ${size}`}
+                                      className={`flex items-center justify-center cursor-pointer select-none transition-all duration-300 border-none active:scale-90 disabled:opacity-30 disabled:pointer-events-none ${
+                                        currentVal <= 2 && !isSubmitting && !isAdjusting ? "pulse-gold-btn" : ""
+                                      }`}
+                                      style={
+                                        currentVal > 2
+                                          ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "26px", height: "26px", borderRadius: "50%" }
+                                          : { backgroundColor: "#BA7517", color: "#ffffff", width: "26px", height: "26px", borderRadius: "50%" }
+                                      }
                                     >
-                                      Restock
+                                      <span className="material-symbols-outlined text-xs select-none">sync</span>
                                     </button>
                                   </div>
                                 );
@@ -494,11 +512,20 @@ export default function InventoryLedgerPage() {
                                   </button>
                                 </div>
                               </div>
-                              <button
+                               <button
                                 onClick={() => handleRestockClick(p, size)}
-                                className="bg-secondary hover:bg-[#0a0a0a] text-white px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-sm select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
+                                disabled={isSubmitting || isAdjusting}
+                                title={`Restock ${size}`}
+                                className={`flex items-center justify-center cursor-pointer select-none transition-all duration-300 border-none active:scale-90 disabled:opacity-30 disabled:pointer-events-none ${
+                                  currentVal <= 2 && !isSubmitting && !isAdjusting ? "pulse-gold-btn" : ""
+                                }`}
+                                style={
+                                  currentVal > 2
+                                    ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "26px", height: "26px", borderRadius: "50%" }
+                                    : { backgroundColor: "#BA7517", color: "#ffffff", width: "26px", height: "26px", borderRadius: "50%" }
+                                }
                               >
-                                Restock
+                                <span className="material-symbols-outlined text-xs select-none">sync</span>
                               </button>
                             </div>
                           );
@@ -597,7 +624,7 @@ export default function InventoryLedgerPage() {
 
       {/* Custom UI Modals */}
       {modalType && (
-        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="absolute inset-0 z-[2000] min-h-[400px] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
             {modalType === "delete" && (
               <>
@@ -633,54 +660,80 @@ export default function InventoryLedgerPage() {
               const inputQty = parseInt(restockQty) || 0;
               const resultingStock = currentStock + (inputQty >= 0 ? inputQty : 0);
 
+              const current = currentStock;
+              const addQty = inputQty >= 0 ? inputQty : 0;
+              const maxScale = Math.max(current + addQty, current * 2, 10);
+              const currentWidth = (current / maxScale) * 100 + "%";
+              const addWidth = (addQty / maxScale) * 100 + "%";
+
               return (
                 <>
-                  <div className="mx-auto w-12 h-12 rounded-full border border-[#775a19]/20 bg-[#775a19]/5 flex items-center justify-center text-secondary">
-                    <span className="material-symbols-outlined text-xl">inventory</span>
+                  <div className="space-y-1.5 text-center">
+                    <h3 className="text-[15px] font-medium tracking-wide text-primary uppercase">Restock variant</h3>
+                    <p className="text-[12px] text-gray-400 lowercase tracking-wide italic">Adjust incoming stock for this size only</p>
                   </div>
-                  <div className="space-y-4 text-left">
-                    <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary text-center">Restock Variant</h3>
-                    
-                    {modalError && (
-                      <div className="bg-red-50 text-red-600 border border-red-100 p-2.5 text-[9px] font-bold uppercase tracking-wider text-center">
-                        {modalError}
-                      </div>
-                    )}
 
-                    <div className="space-y-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                      <div>
-                        Product: <span className="text-[#0a0a0a] font-black">{targetProduct.title}</span>
-                      </div>
-                      <div>
-                        Variant Size: <span className="text-secondary font-black">{selectedSize}</span>
-                      </div>
-                      <div>
-                        Current Stock: <span className="text-[#0a0a0a] font-black font-mono">{currentStock}</span>
-                      </div>
+                  {modalError && (
+                    <div className="bg-red-50 text-red-600 border border-red-100 p-2 text-[10px] font-bold uppercase tracking-wider text-center">
+                      {modalError}
                     </div>
+                  )}
 
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">Add Quantity</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={restockQty}
-                        onChange={(e) => {
-                          setRestockQty(e.target.value);
-                          setModalError("");
-                        }}
-                        disabled={isSubmitting}
-                        className="w-full text-center bg-white border border-gray-200 p-2.5 text-sm font-black outline-none focus:border-secondary rounded-none"
-                        autoFocus
+                  {/* Meta chips row */}
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Product: {targetProduct.title}
+                    </span>
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Size: {selectedSize}
+                    </span>
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Current: {currentStock}
+                    </span>
+                  </div>
+
+                  {/* Stock progress visualizer */}
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex justify-between text-[11px] text-gray-400 font-bold uppercase tracking-widest">
+                      <span>Current stock</span>
+                      <span>After restock</span>
+                    </div>
+                    <div className="w-full h-2 rounded-[6px] bg-[#faf9f8] border border-gray-100 flex overflow-hidden">
+                      <div
+                        className="h-full bg-gray-300"
+                        style={{ width: currentWidth, transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                      />
+                      <div
+                        className="h-full"
+                        style={{ backgroundColor: "#BA7517", width: addWidth, transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
                       />
                     </div>
-
-                    <div className="bg-[#fafafa] p-2.5 border border-gray-100 flex justify-between items-center text-[10px]">
-                      <span className="font-black uppercase tracking-widest text-gray-500">Resulting Stock:</span>
-                      <span className="font-mono font-black text-secondary text-xs">{resultingStock}</span>
-                    </div>
                   </div>
-                  
+
+                  {/* Quantity input row */}
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-[13px] font-bold text-gray-600 uppercase tracking-wide">Add quantity</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={restockQty}
+                      onChange={(e) => {
+                        setRestockQty(e.target.value);
+                        setModalError("");
+                      }}
+                      disabled={isSubmitting}
+                      className="w-[80px] text-center bg-white border border-gray-200 p-1.5 text-xs font-black outline-none focus:border-secondary rounded-none"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Resulting stock display */}
+                  <div className="flex justify-between items-center p-3 border border-[#e8d08a] bg-[#faf5e8]">
+                    <span className="text-[12px] font-bold tracking-wider text-[#7a5c00] uppercase">Resulting stock</span>
+                    <span className="text-[18px] font-bold text-[#4a3500] font-mono">{resultingStock}</span>
+                  </div>
+
+                  {/* Action buttons */}
                   <div className="flex gap-3 pt-2">
                     <button
                       type="button"
@@ -696,6 +749,7 @@ export default function InventoryLedgerPage() {
                     </button>
                     <button
                       type="button"
+                      disabled={isSubmitting}
                       onClick={async () => {
                         if (isSubmitting) return;
                         setModalError("");
@@ -719,7 +773,7 @@ export default function InventoryLedgerPage() {
                                 [selectedSize]: currentStock + qty
                               } as any;
                               const newTotalStock = Object.values(newSizeStock).reduce((sum: number, val: any) => sum + (val || 0), 0) as number;
-                              
+
                               updatedProducts[productIndex] = {
                                 ...targetProduct,
                                 sizeStock: newSizeStock,
@@ -740,10 +794,17 @@ export default function InventoryLedgerPage() {
                           setIsSubmitting(false);
                         }
                       }}
-                      disabled={isSubmitting}
-                      className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      className="flex-[2] bg-[#BA7517] text-white hover:bg-[#a6620f] text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      style={{ backgroundColor: "#BA7517" }}
                     >
-                      {isSubmitting ? "Restocking..." : "Confirm"}
+                      {isSubmitting ? (
+                        <>
+                          <span className="animate-spin border-2 border-white border-t-transparent rounded-full size-3 inline-block" />
+                          Restocking…
+                        </>
+                      ) : (
+                        "Confirm restock"
+                      )}
                     </button>
                   </div>
                 </>

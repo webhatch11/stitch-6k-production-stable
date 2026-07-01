@@ -217,7 +217,12 @@ export default function Footer({ business }: FooterProps) {
               </li>
               <li>
                 <Link href="/refund-policy" className="hover:text-white transition-colors">
-                  Refund &amp; Cancellation Policy
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellation-policy" className="hover:text-white transition-colors">
+                  Cancellation Policy
                 </Link>
               </li>
               <li>

@@ -27,6 +27,7 @@ interface CartItem {
   price: number;
   size: string;
   image: string;
+  color?: string;
 }
 
 export default function CheckoutPage() {
@@ -793,9 +794,11 @@ export default function CheckoutPage() {
                     <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Select Payment Option</h4>
                     
                     {/* COD Notice Banner */}
-                    <div className="bg-[#faf5e8] border border-[#e8d08a] p-4 text-[10px] uppercase tracking-wider font-semibold text-[#7a5c00] leading-relaxed">
-                      Prepaid Orders Only — Cash on Delivery (COD) is not available. All payments are securely processed through Razorpay, and orders are shipped via trusted courier partners powered by Shiprocket after successful payment confirmation.
-                    </div>
+                    {!codAllowed && (
+                      <div className="bg-[#faf5e8] border border-[#e8d08a] p-4 text-[10px] uppercase tracking-wider font-semibold text-[#7a5c00] leading-relaxed">
+                        Prepaid Orders Only — Cash on Delivery (COD) is not available. All payments are securely processed through Razorpay, and orders are shipped via trusted courier partners powered by Shiprocket after successful payment confirmation.
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-4">
                       {/* Online Payment Option */}
@@ -910,7 +913,7 @@ export default function CheckoutPage() {
                           <div>
                             <h4 className="font-headline font-bold uppercase text-xs tracking-wide text-on-surface">{item.productName}</h4>
                             <p className="text-[8px] uppercase tracking-[0.15em] text-outline mt-1 font-bold">
-                              Size: {item.size} | Color: Atelier Choice
+                              Size: {item.size} | Color: {item.color || "Default"}
                             </p>
                           </div>
                           <span className="font-headline font-black text-sm text-[#fed488]">
@@ -1093,7 +1096,8 @@ export default function CheckoutPage() {
                 <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link href="/payment-policy" className="hover:text-white transition-colors">Payment Policy</Link></li>
                 <li><Link href="/shipping-policy" className="hover:text-white transition-colors">Shipping &amp; Delivery Policy</Link></li>
-                <li><Link href="/refund-policy" className="hover:text-white transition-colors">Refund &amp; Cancellation Policy</Link></li>
+                <li><Link href="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
+                <li><Link href="/cancellation-policy" className="hover:text-white transition-colors">Cancellation Policy</Link></li>
                 <li><Link href="/return-policy" className="hover:text-white transition-colors">Return &amp; Exchange Policy</Link></li>
               </ul>
             </div>

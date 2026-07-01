@@ -241,7 +241,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                     <span className="material-symbols-outlined text-secondary">info</span>
                     <p className="text-xs leading-relaxed font-medium">
                       Members get <span className="text-secondary font-bold">FREE SHIPPING</span> and exclusive access to the
-                      Heritage Collection. <a className="underline" href="#">Join Now</a>.
+                      Heritage Collection. <Link className="underline" href="/about">Join Now</Link>.
                     </p>
                   </div>
                   <div className="flex justify-center gap-4 opacity-40 grayscale">

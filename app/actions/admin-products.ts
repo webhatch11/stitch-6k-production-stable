@@ -124,32 +124,38 @@ export async function restoreProductAction(id: string) {
   }
 }
 
-export async function restockProductAction(
+export async function restockVariantAction(
   productId: string,
-  addPerSize: number
+  size: "S" | "M" | "L" | "XL" | "XXL",
+  quantity: number
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdmin();
     if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
-    if (!Number.isInteger(addPerSize) || addPerSize <= 0) {
-      return { success: false, error: "addPerSize must be a positive integer" };
+    const validSizes = ["S", "M", "L", "XL", "XXL"];
+    if (!validSizes.includes(size)) return { success: false, error: "Invalid size" };
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return { success: false, error: "quantity must be a positive integer" };
     }
 
     const products = await db.getProducts();
     const product = products.find((p) => p.id === productId);
     if (!product) return { success: false, error: "Product not found" };
 
-    const addPerVariant = (product.variants && product.variants.length > 0)
-      ? product.variants.map((v) => ({
-          size: v.size,
+    // Find the colors of variants matching the target size
+    const matchingVariants = product.variants?.filter((v) => v.size === size);
+
+    const addPerVariant = (matchingVariants && matchingVariants.length > 0)
+      ? matchingVariants.map((v) => ({
+          size,
           color: v.color,
-          add: addPerSize,
+          add: quantity,
         }))
-      : (["S", "M", "L", "XL", "XXL"] as const).map((size) => ({
+      : [{
           size,
           color: (product.colors && product.colors[0]) || "Default",
-          add: addPerSize,
-        }));
+          add: quantity,
+        }];
 
     const ok = await db.restockProductVariants(productId, addPerVariant);
     if (!ok) return { success: false, error: "Restock failed" };
@@ -157,7 +163,7 @@ export async function restockProductAction(
     revalidatePath("/admindashboard/inventory");
     return { success: true };
   } catch (e: any) {
-    console.error("[restockProductAction]", e);
+    console.error("[restockVariantAction]", e);
     return { success: false, error: e.message || "Restock failed" };
   }
 }

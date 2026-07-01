@@ -1808,15 +1808,70 @@ export const db = {
 
     for (const { size, color, add } of addPerVariant) {
       if (add <= 0) continue;
-      const { error } = await supabase.rpc("restore_variant_stock", {
-        p_product_id: productId,
-        p_size: size,
-        p_color: color,
-        p_quantity: add,
-      });
-      if (error) {
-        console.error("restockProductVariants error:", error);
-        return false;
+
+      // Check if variant exists in product_variants
+      const { data: variants, error: fetchErr } = await supabase
+        .from("product_variants")
+        .select("id")
+        .eq("product_id", productId)
+        .eq("size", size)
+        .eq("color", color);
+
+      if (!fetchErr && variants && variants.length > 0) {
+        // Variant exists, use the RPC function
+        const { error } = await supabase.rpc("restore_variant_stock", {
+          p_product_id: productId,
+          p_size: size,
+          p_color: color,
+          p_quantity: add,
+        });
+        if (error) {
+          console.error("restockProductVariants error:", error);
+          return false;
+        }
+      } else {
+        // Fallback: update legacy column on products table
+        const columnName = "size_stock_" + size.toLowerCase();
+        const { data: productData, error: prodFetchErr } = await supabase
+          .from("products")
+          .select(columnName)
+          .eq("id", productId)
+          .single();
+
+        if (prodFetchErr || !productData) {
+          console.error("restockProductVariants product fallback fetch error:", prodFetchErr);
+          return false;
+        }
+
+        const currentStock = (productData as any)[columnName] || 0;
+        const { error: prodUpdateErr } = await supabase
+          .from("products")
+          .update({ [columnName]: currentStock + add })
+          .eq("id", productId);
+
+        if (prodUpdateErr) {
+          console.error("restockProductVariants product fallback update error:", prodUpdateErr);
+          return false;
+        }
+
+        // Recalculate total product stock
+        const { data: updatedProd } = await supabase
+          .from("products")
+          .select("size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl")
+          .eq("id", productId)
+          .single();
+
+        if (updatedProd) {
+          const newTotalStock = (updatedProd.size_stock_s || 0) +
+                                (updatedProd.size_stock_m || 0) +
+                                (updatedProd.size_stock_l || 0) +
+                                (updatedProd.size_stock_xl || 0) +
+                                (updatedProd.size_stock_xxl || 0);
+          await supabase
+            .from("products")
+            .update({ stock: newTotalStock })
+            .eq("id", productId);
+        }
       }
     }
 
@@ -1840,18 +1895,64 @@ export const db = {
       .eq("product_id", productId)
       .eq("size", size);
 
-    if (fetchErr || !variants || variants.length === 0) return false;
+    if (fetchErr) return false;
 
-    // Spread delta evenly across colors; for a single color this is exact
-    for (const v of variants) {
-      const newStock = Math.max(0, v.stock + delta);
-      const { error } = await supabase
-        .from("product_variants")
-        .update({ stock: newStock })
-        .eq("id", v.id);
-      if (error) {
-        console.error("adjustVariantStockBySize error:", error);
+    if (variants && variants.length > 0) {
+      // Spread delta evenly across colors; for a single color this is exact
+      for (const v of variants) {
+        const newStock = Math.max(0, v.stock + delta);
+        const { error } = await supabase
+          .from("product_variants")
+          .update({ stock: newStock })
+          .eq("id", v.id);
+        if (error) {
+          console.error("adjustVariantStockBySize error:", error);
+          return false;
+        }
+      }
+    } else {
+      // Fallback: update legacy column on products table
+      const columnName = "size_stock_" + size.toLowerCase();
+      const { data: productData, error: prodFetchErr } = await supabase
+        .from("products")
+        .select(columnName)
+        .eq("id", productId)
+        .single();
+
+      if (prodFetchErr || !productData) {
+        console.error("adjustVariantStockBySize product fallback fetch error:", prodFetchErr);
         return false;
+      }
+
+      const currentStock = (productData as any)[columnName] || 0;
+      const newStock = Math.max(0, currentStock + delta);
+      const { error: prodUpdateErr } = await supabase
+        .from("products")
+        .update({ [columnName]: newStock })
+        .eq("id", productId);
+
+      if (prodUpdateErr) {
+        console.error("adjustVariantStockBySize product fallback update error:", prodUpdateErr);
+        return false;
+      }
+
+      // Recalculate total product stock
+      const { data: updatedProd } = await supabase
+        .from("products")
+        .select("size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl")
+        .eq("id", productId)
+        .single();
+
+      if (updatedProd) {
+        const newTotalStock = (updatedProd.size_stock_s || 0) +
+                              (updatedProd.size_stock_m || 0) +
+                              (updatedProd.size_stock_l || 0) +
+                              (updatedProd.size_stock_xl || 0) +
+                              (updatedProd.size_stock_xxl || 0);
+        await supabase
+          .from("products")
+          .update({ stock: newTotalStock })
+          .eq("id", productId);
       }
     }
 

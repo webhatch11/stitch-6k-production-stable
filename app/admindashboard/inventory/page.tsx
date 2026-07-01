@@ -8,7 +8,7 @@ import { getProductsAction } from "@/app/actions/admin-reads";
 import {
   deleteProductAction,
   restoreProductAction,
-  restockProductAction,
+  restockVariantAction,
   adjustProductSizeAction,
 } from "@/app/actions/admin-products";
 
@@ -25,6 +25,10 @@ export default function InventoryLedgerPage() {
   const [modalType, setModalType] = useState<"delete" | "restock" | null>(null);
   const [targetProduct, setTargetProduct] = useState<Product | null>(null);
   const [restockQty, setRestockQty] = useState("10");
+  const [selectedSize, setSelectedSize] = useState<"S" | "M" | "L" | "XL" | "XXL" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [adjusting, setAdjusting] = useState<Record<string, boolean>>({});
 
   // Toast Alerts
   const [toastText, setToastText] = useState("");
@@ -83,41 +87,67 @@ export default function InventoryLedgerPage() {
   };
 
   const handleInlineAdjust = async (productId: string, size: "S" | "M" | "L" | "XL" | "XXL", diff: number) => {
-    const res = await adjustProductSizeAction(productId, size, diff);
-    if (!res.success) {
-      triggerToast(res.error || "Failed to save stock changes");
-      return;
+    const adjustKey = `${productId}-${size}`;
+    if (adjusting[adjustKey]) return; // Prevent double-clicks
+
+    // Find the product and the current value
+    const productIndex = products.findIndex(p => p.id === productId);
+    if (productIndex === -1) return;
+
+    const originalProducts = [...products];
+    const targetProd = originalProducts[productIndex];
+    const currentVal = targetProd.sizeStock?.[size] || 0;
+
+    // Check if decrementing below 0
+    if (diff < 0 && currentVal <= 0) return;
+
+    // Optimistic UI Update: update the product size stock and total stock
+    const newSizeStock = {
+      ...targetProd.sizeStock,
+      [size]: Math.max(0, currentVal + diff)
+    } as any;
+
+    const newTotalStock = Object.values(newSizeStock).reduce((sum: number, val: any) => sum + (val || 0), 0) as number;
+
+    const updatedProducts = [...products];
+    updatedProducts[productIndex] = {
+      ...targetProd,
+      sizeStock: newSizeStock,
+      stock: newTotalStock
+    };
+
+    // Apply optimistic state
+    setProducts(updatedProducts);
+    setAdjusting(prev => ({ ...prev, [adjustKey]: true }));
+
+    try {
+      const res = await adjustProductSizeAction(productId, size, diff);
+      if (!res.success) {
+        // Rollback optimistic update
+        setProducts(originalProducts);
+        triggerToast(res.error || "Failed to save stock changes");
+      } else {
+        window.dispatchEvent(new Event("storage"));
+        await loadProducts();
+        triggerToast(`Adjusted size ${size} stock`);
+      }
+    } catch (err: any) {
+      setProducts(originalProducts);
+      triggerToast(err.message || "Failed to save stock changes");
+    } finally {
+      setAdjusting(prev => {
+        const next = { ...prev };
+        delete next[adjustKey];
+        return next;
+      });
     }
-    window.dispatchEvent(new Event("storage"));
-    await loadProducts();
-    triggerToast(`Adjusted size ${size} stock`);
   };
 
-  const handleRestockClick = (p: Product) => {
+  const handleRestockClick = (p: Product, size: "S" | "M" | "L" | "XL" | "XXL") => {
     setTargetProduct(p);
+    setSelectedSize(size);
     setRestockQty("10");
     setModalType("restock");
-  };
-
-  const confirmRestockProduct = async () => {
-    if (!targetProduct) return;
-    const qty = parseInt(restockQty);
-    if (isNaN(qty) || qty <= 0) {
-      triggerToast("Please enter a valid positive number.");
-      return;
-    }
-    const res = await restockProductAction(targetProduct.id, qty);
-    if (!res.success) {
-      triggerToast(res.error || "Failed to save restock details");
-      setModalType(null);
-      setTargetProduct(null);
-      return;
-    }
-    window.dispatchEvent(new Event("storage"));
-    await loadProducts();
-    triggerToast(`Restocked +${qty} units to all sizes of ${targetProduct.title}`);
-    setModalType(null);
-    setTargetProduct(null);
   };
 
   // Filter products based on search keyword and active status tab
@@ -160,7 +190,16 @@ export default function InventoryLedgerPage() {
   };
 
   return (
-    <div className="p-8 lg:p-16">
+    <div className="p-8 lg:p-16 relative">
+      <style>{`
+        @keyframes pulse-gold {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(186,117,23,0.6); }
+          50% { box-shadow: 0 0 0 6px rgba(186,117,23,0); }
+        }
+        .pulse-gold-btn {
+          animation: pulse-gold 1.6s ease-in-out infinite;
+        }
+      `}</style>
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">
@@ -303,40 +342,52 @@ export default function InventoryLedgerPage() {
                                 {getStockStatusText(stockCount)}
                               </span>
                               <span className="text-xs font-black">Total: <strong className="font-mono">{stockCount}</strong></span>
-                            </div>
-
-                            {/* Sizing Stock Modification Sub-grid and Restock Button in Single Line */}
-                            <div className="flex items-center gap-4 flex-wrap max-w-lg mt-1 text-[10px]">
-                              <div className="flex gap-2 flex-wrap">
-                                {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
-                                  const currentVal = p.sizeStock?.[size] || 0;
-                                  return (
-                                    <div key={size} className="flex items-center border border-gray-200 bg-white shadow-sm p-1 rounded-none select-none">
-                                      <span className="font-black px-1.5 border-r border-gray-100">{size}</span>
-                                      <button
-                                        onClick={() => handleInlineAdjust(p.id, size, -1)}
-                                        className="px-1 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                      >
-                                        -
-                                      </button>
-                                      <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
-                                      <button
-                                        onClick={() => handleInlineAdjust(p.id, size, 1)}
-                                        className="px-1 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                                      >
-                                        +
-                                      </button>
+                            </div>                            {/* Per-size row list layout */}
+                            <div className="flex flex-col gap-2 mt-2.5 max-w-md">
+                              {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
+                                const currentVal = p.sizeStock?.[size] || 0;
+                                const adjustKey = `${p.id}-${size}`;
+                                const isAdjusting = adjusting[adjustKey];
+                                return (
+                                  <div key={size} className="flex items-center justify-between border border-gray-200/60 bg-[#fafafa]/30 p-1.5 rounded-none select-none text-[10px]">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-black px-2 py-0.5 bg-[#f0f0f0] text-primary rounded-none min-w-[28px] text-center">{size}</span>
+                                      <div className="flex items-center border border-gray-200 bg-white p-0.5 rounded-none">
+                                        <button
+                                          onClick={() => handleInlineAdjust(p.id, size, -1)}
+                                          disabled={currentVal <= 0 || isAdjusting}
+                                          className="px-1.5 text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="font-mono px-2 min-w-[16px] text-center font-bold">{currentVal}</span>
+                                        <button
+                                          onClick={() => handleInlineAdjust(p.id, size, 1)}
+                                          disabled={isAdjusting}
+                                          className="px-1.5 text-gray-500 hover:text-green-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-
-                              <button
-                                onClick={() => handleRestockClick(p)}
-                                className="bg-secondary hover:bg-[#0a0a0a] text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all duration-300 border-none cursor-pointer shadow-md select-none rounded-none active:scale-95 whitespace-nowrap font-bold"
-                              >
-                                Restock
-                              </button>
+                                    <button
+                                      onClick={() => handleRestockClick(p, size)}
+                                      disabled={isSubmitting || isAdjusting}
+                                      title={`Restock ${size}`}
+                                      className={`flex items-center justify-center cursor-pointer select-none transition-all duration-300 border-none active:scale-90 disabled:opacity-30 disabled:pointer-events-none ${
+                                        currentVal <= 2 && !isSubmitting && !isAdjusting ? "pulse-gold-btn" : ""
+                                      }`}
+                                      style={
+                                        currentVal > 2
+                                          ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "26px", height: "26px", borderRadius: "50%" }
+                                          : { backgroundColor: "#BA7517", color: "#ffffff", width: "26px", height: "26px", borderRadius: "50%" }
+                                      }
+                                    >
+                                      <span className="material-symbols-outlined text-xs select-none">sync</span>
+                                    </button>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ) : (
@@ -434,24 +485,47 @@ export default function InventoryLedgerPage() {
                         <span className="text-xs font-black">Total Stock: <strong className="font-mono">{stockCount}</strong></span>
                       </div>
 
-                      <div className="flex gap-1.5 flex-wrap text-[10px]">
+                      <div className="flex flex-col gap-2 mt-1 max-w-md">
                         {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
                           const currentVal = p.sizeStock?.[size] || 0;
+                          const adjustKey = `${p.id}-${size}`;
+                          const isAdjusting = adjusting[adjustKey];
                           return (
-                            <div key={size} className="flex items-center border border-gray-200 bg-white p-1 rounded-none select-none flex-1 justify-between min-w-[50px]">
-                              <span className="font-black px-1 border-r border-gray-100">{size}</span>
-                              <button
-                                onClick={() => handleInlineAdjust(p.id, size, -1)}
-                                className="px-0.5 text-gray-500 hover:text-red-600 bg-transparent border-none cursor-pointer text-xs font-bold"
+                            <div key={size} className="flex items-center justify-between border border-gray-200/60 bg-[#fafafa]/30 p-1.5 rounded-none select-none text-[10px]">
+                              <div className="flex items-center gap-2">
+                                <span className="font-black px-2 py-0.5 bg-[#f0f0f0] text-primary rounded-none min-w-[28px] text-center">{size}</span>
+                                <div className="flex items-center border border-gray-200 bg-white p-0.5 rounded-none">
+                                  <button
+                                    onClick={() => handleInlineAdjust(p.id, size, -1)}
+                                    disabled={currentVal <= 0 || isAdjusting}
+                                    className="px-1.5 text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="font-mono px-2 min-w-[16px] text-center font-bold">{currentVal}</span>
+                                  <button
+                                    onClick={() => handleInlineAdjust(p.id, size, 1)}
+                                    disabled={isAdjusting}
+                                    className="px-1.5 text-gray-500 hover:text-green-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                               <button
+                                onClick={() => handleRestockClick(p, size)}
+                                disabled={isSubmitting || isAdjusting}
+                                title={`Restock ${size}`}
+                                className={`flex items-center justify-center cursor-pointer select-none transition-all duration-300 border-none active:scale-90 disabled:opacity-30 disabled:pointer-events-none ${
+                                  currentVal <= 2 && !isSubmitting && !isAdjusting ? "pulse-gold-btn" : ""
+                                }`}
+                                style={
+                                  currentVal > 2
+                                    ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "26px", height: "26px", borderRadius: "50%" }
+                                    : { backgroundColor: "#BA7517", color: "#ffffff", width: "26px", height: "26px", borderRadius: "50%" }
+                                }
                               >
-                                -
-                              </button>
-                              <span className="font-mono px-0.5 min-w-[10px] text-center font-bold">{currentVal}</span>
-                              <button
-                                onClick={() => handleInlineAdjust(p.id, size, 1)}
-                                className="px-0.5 text-gray-500 hover:text-green-600 bg-transparent border-none cursor-pointer text-xs font-bold"
-                              >
-                                +
+                                <span className="material-symbols-outlined text-xs select-none">sync</span>
                               </button>
                             </div>
                           );
@@ -481,13 +555,6 @@ export default function InventoryLedgerPage() {
                       </button>
                     ) : (
                       <>
-                        <button
-                          onClick={() => handleRestockClick(p)}
-                          className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest bg-secondary text-white border border-transparent px-4 py-2 cursor-pointer shadow-sm font-bold rounded-none active:scale-95 whitespace-nowrap"
-                        >
-                          <span className="material-symbols-outlined text-sm">inventory</span>
-                          Restock
-                        </button>
                         <Link
                           href={`/admindashboard/add-product?edit=${p.id}`}
                           className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary border border-gray-200 px-3 py-1.5 font-bold"
@@ -557,7 +624,7 @@ export default function InventoryLedgerPage() {
 
       {/* Custom UI Modals */}
       {modalType && (
-        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="absolute inset-0 z-[2000] min-h-[400px] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
             {modalType === "delete" && (
               <>
@@ -588,45 +655,161 @@ export default function InventoryLedgerPage() {
                 </div>
               </>
             )}
+            {modalType === "restock" && targetProduct && selectedSize && (() => {
+              const currentStock = targetProduct.sizeStock?.[selectedSize] || 0;
+              const inputQty = parseInt(restockQty) || 0;
+              const resultingStock = currentStock + (inputQty >= 0 ? inputQty : 0);
 
-            {modalType === "restock" && (
-              <>
-                <div className="mx-auto w-12 h-12 rounded-full border border-[#775a19]/20 bg-[#775a19]/5 flex items-center justify-center text-secondary">
-                  <span className="material-symbols-outlined text-xl">inventory</span>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Restock Item</h3>
-                  <p className="text-[9px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
-                    Enter restock quantity to add to all sizes for: <br />
-                    <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span>
-                  </p>
-                  <input
-                    type="number"
-                    min="1"
-                    value={restockQty}
-                    onChange={(e) => setRestockQty(e.target.value)}
-                    className="w-full text-center bg-white border border-gray-200 p-3 text-sm font-black outline-none focus:border-secondary rounded-none"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setModalType(null)}
-                    className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={confirmRestockProduct}
-                    className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold"
-                  >
-                    Add Stock
-                  </button>
-                </div>
-              </>
-            )}
+              const current = currentStock;
+              const addQty = inputQty >= 0 ? inputQty : 0;
+              const maxScale = Math.max(current + addQty, current * 2, 10);
+              const currentWidth = (current / maxScale) * 100 + "%";
+              const addWidth = (addQty / maxScale) * 100 + "%";
+
+              return (
+                <>
+                  <div className="space-y-1.5 text-center">
+                    <h3 className="text-[15px] font-medium tracking-wide text-primary uppercase">Restock variant</h3>
+                    <p className="text-[12px] text-gray-400 lowercase tracking-wide italic">Adjust incoming stock for this size only</p>
+                  </div>
+
+                  {modalError && (
+                    <div className="bg-red-50 text-red-600 border border-red-100 p-2 text-[10px] font-bold uppercase tracking-wider text-center">
+                      {modalError}
+                    </div>
+                  )}
+
+                  {/* Meta chips row */}
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Product: {targetProduct.title}
+                    </span>
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Size: {selectedSize}
+                    </span>
+                    <span className="bg-[#faf9f8] border border-[#d1c5b4]/50 rounded-[6px] px-2.5 py-1 text-[12px] font-bold text-gray-600">
+                      Current: {currentStock}
+                    </span>
+                  </div>
+
+                  {/* Stock progress visualizer */}
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex justify-between text-[11px] text-gray-400 font-bold uppercase tracking-widest">
+                      <span>Current stock</span>
+                      <span>After restock</span>
+                    </div>
+                    <div className="w-full h-2 rounded-[6px] bg-[#faf9f8] border border-gray-100 flex overflow-hidden">
+                      <div
+                        className="h-full bg-gray-300"
+                        style={{ width: currentWidth, transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                      />
+                      <div
+                        className="h-full"
+                        style={{ backgroundColor: "#BA7517", width: addWidth, transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quantity input row */}
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-[13px] font-bold text-gray-600 uppercase tracking-wide">Add quantity</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={restockQty}
+                      onChange={(e) => {
+                        setRestockQty(e.target.value);
+                        setModalError("");
+                      }}
+                      disabled={isSubmitting}
+                      className="w-[80px] text-center bg-white border border-gray-200 p-1.5 text-xs font-black outline-none focus:border-secondary rounded-none"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Resulting stock display */}
+                  <div className="flex justify-between items-center p-3 border border-[#e8d08a] bg-[#faf5e8]">
+                    <span className="text-[12px] font-bold tracking-wider text-[#7a5c00] uppercase">Resulting stock</span>
+                    <span className="text-[18px] font-bold text-[#4a3500] font-mono">{resultingStock}</span>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalType(null);
+                        setSelectedSize(null);
+                        setModalError("");
+                      }}
+                      disabled={isSubmitting}
+                      className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={async () => {
+                        if (isSubmitting) return;
+                        setModalError("");
+                        const qty = parseInt(restockQty);
+                        if (isNaN(qty) || qty <= 0) {
+                          setModalError("Please enter a valid positive number.");
+                          return;
+                        }
+                        setIsSubmitting(true);
+                        try {
+                          const res = await restockVariantAction(targetProduct.id, selectedSize, qty);
+                          if (!res.success) {
+                            setModalError(res.error || "Restock failed");
+                          } else {
+                            // Update local state directly for responsive feedback
+                            const productIndex = products.findIndex(p => p.id === targetProduct.id);
+                            if (productIndex !== -1) {
+                              const updatedProducts = [...products];
+                              const newSizeStock = {
+                                ...targetProduct.sizeStock,
+                                [selectedSize]: currentStock + qty
+                              } as any;
+                              const newTotalStock = Object.values(newSizeStock).reduce((sum: number, val: any) => sum + (val || 0), 0) as number;
+
+                              updatedProducts[productIndex] = {
+                                ...targetProduct,
+                                sizeStock: newSizeStock,
+                                stock: newTotalStock
+                              };
+                              setProducts(updatedProducts);
+                            }
+                            window.dispatchEvent(new Event("storage"));
+                            await loadProducts();
+                            triggerToast(`Restocked +${qty} units to size ${selectedSize}`);
+                            setModalType(null);
+                            setTargetProduct(null);
+                            setSelectedSize(null);
+                          }
+                        } catch (err: any) {
+                          setModalError(err.message || "An unexpected error occurred");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className="flex-[2] bg-[#BA7517] text-white hover:bg-[#a6620f] text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      style={{ backgroundColor: "#BA7517" }}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="animate-spin border-2 border-white border-t-transparent rounded-full size-3 inline-block" />
+                          Restocking…
+                        </>
+                      ) : (
+                        "Confirm restock"
+                      )}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

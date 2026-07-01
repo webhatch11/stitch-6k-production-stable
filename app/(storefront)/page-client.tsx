@@ -123,6 +123,7 @@ interface FavoriteProduct {
   link: string;
   image: string;
   verticalText: string;
+  colors?: string[];
 }
 
 const favoriteProducts: FavoriteProduct[] = [
@@ -382,6 +383,7 @@ export default function HomeClient({
         link: `/product/${p.slug}`,
         image: p.image || "/assets/model_black_shirt.png",
         verticalText: p.title.toUpperCase(),
+        colors: p.colors || [],
       }))
     : favoriteProducts;
 
@@ -555,14 +557,16 @@ export default function HomeClient({
   };
 
   // Helper to add product to Zustand cart
-  const handleAddToBag = (productName: string, priceStr: string, image: string, size: string) => {
+  const handleAddToBag = (productName: string, priceStr: string, image: string, size: string, productId: string, colors?: string[]) => {
     try {
       const priceVal = parseInt(priceStr.replace(/[^0-9]/g, ""));
       addToCartStore({
+        productId: productId,
         productName: productName,
         price: priceVal,
         size: size,
-        image: image
+        image: image,
+        color: colors?.[0] || "Default",
       }, 1);
       
       // Close size selector
@@ -1338,7 +1342,7 @@ export default function HomeClient({
                                   key={size}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleAddToBag(product.name, product.price, product.image, size);
+                                    handleAddToBag(product.name, product.price, product.image, size, product.id, product.colors);
                                   }}
                                   className="w-8 h-8 md:w-10 md:h-10 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
                                 >

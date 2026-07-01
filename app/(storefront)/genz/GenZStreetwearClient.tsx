@@ -119,10 +119,12 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
 
   const handleAddToCart = (product: Product, size: string) => {
     addToCartStore({
+      productId: product.id,
       productName: product.title,
       price: product.price,
       size: size,
       image: product.image,
+      color: product.colors?.[0] || "Default",
     }, 1);
 
     showToast(`Size ${size} added to bag`);

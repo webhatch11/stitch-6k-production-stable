@@ -331,6 +331,31 @@ function AddProductContent() {
 
     const primaryImage = productImages[0];
 
+    // Auto-generate variants for new products if UI was bypassed and state is empty
+    const sizeStockMap: Record<string, number> = {
+      S: stockS,
+      M: stockM,
+      L: stockL,
+      XL: stockXL,
+      XXL: stockXXL,
+    };
+
+    const parentSkuForVariants = finalSKU && finalSKU.trim() ? finalSKU.trim() : `${Date.now()}`;
+
+    const autoVariants = ["S", "M", "L", "XL", "XXL"]
+      .filter((size) => sizeStockMap[size] > 0)
+      .map((size) => ({
+        size,
+        color: "Default",
+        sku: `${parentSkuForVariants}-${size}`,
+        price: basePrice,
+        stock: sizeStockMap[size],
+      }));
+
+    const finalVariants = editProductId
+      ? variants
+      : (variants.length > 0 ? variants : autoVariants);
+
     const input = {
       id: finalSKU,
       title: title.trim(),
@@ -350,7 +375,7 @@ function AddProductContent() {
       isNew: badgeNew,
       isAtelierExclusive: badgeExclusive,
       customBadge: enableCustomBadge ? customBadgeText.trim() : "",
-      variants,
+      variants: finalVariants,
       display_sections: displaySections,
     };
 

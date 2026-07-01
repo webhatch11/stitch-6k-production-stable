@@ -176,7 +176,12 @@ export const InventoryService = {
 
       // Filter from preloaded variants
       const productVariants = allVariants.filter((v) => v.productId === product.id);
-      const variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase());
+      let variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase());
+
+      if (!variant) {
+        // Fallback: try finding first available variant for that size
+        variant = productVariants.find((v) => v.size === size);
+      }
 
       if (!variant) {
         errors.push(`Variant not found: ${product.id} ${size}/${color}`);

@@ -3,6 +3,10 @@ import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
 
+const DEFAULT_PICKUP_LOCATION = 
+  process.env.SHIPROCKET_PICKUP_LOCATION || 
+  "Primary Warehouse";
+
 // Lazy-loaded service client. The supabase-service module is server-only
 // (it carries SUPABASE_SERVICE_ROLE_KEY and has a browser-throw guard).
 // We import it dynamically inside a server-only branch so it never enters
@@ -1690,7 +1694,7 @@ export const db = {
     const formatted = items.map((item) => ({
       productName: item.productName,
       size: item.size || "M",
-      color: item.color || "Atelier Choice",
+      color: item.color || "Default",
       quantity: item.quantity || 1,
     }));
     const result = await InventoryService.validateStock(formatted);
@@ -1765,7 +1769,7 @@ export const db = {
         return false;
       }
       const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
-      const color = item.color || "Atelier Choice";
+      const color = item.color || "Default";
       const qty = item.quantity || 1;
       const success = await InventoryService.deductStockAtomic(
         product.id, size, color, qty, sessionId
@@ -1789,7 +1793,7 @@ export const db = {
       const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
       if (product) {
         const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
-        const color = item.color || "Atelier Choice";
+        const color = item.color || "Default";
         const qty = item.quantity || 1;
         await InventoryService.restoreStockAtomic(product.id, size, color, qty);
       }
@@ -2527,7 +2531,7 @@ export const db = {
       const shiprocketPayload = {
         order_id: order.id,
         order_date: new Date().toISOString().split("T")[0],
-        pickup_location: "Varanasi Workshop",
+        pickup_location: DEFAULT_PICKUP_LOCATION,
         billing_customer_name: shippingAddress.name.split(" ")[0] || "Customer",
         billing_last_name: shippingAddress.name.split(" ").slice(1).join(" ") || "Atelier",
         billing_address: shippingAddress.address_line_1,

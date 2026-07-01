@@ -3,6 +3,10 @@ import { db } from "../../lib/db";
 import { shiprocket } from "../../lib/shiprocket";
 import IORedis from "ioredis";
 
+const DEFAULT_PICKUP_LOCATION = 
+  process.env.SHIPROCKET_PICKUP_LOCATION || 
+  "Primary Warehouse";
+
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
 });
@@ -66,7 +70,7 @@ export const shipmentRetryWorker = new Worker(
         const shiprocketPayload = {
           order_id: order.id,
           order_date: new Date().toISOString().split("T")[0],
-          pickup_location: "Varanasi Workshop",
+          pickup_location: DEFAULT_PICKUP_LOCATION,
           billing_customer_name: shippingAddress.name.split(" ")[0] || "Customer",
           billing_last_name: shippingAddress.name.split(" ").slice(1).join(" ") || "Atelier",
           billing_address: shippingAddress.address_line_1,

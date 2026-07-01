@@ -9,7 +9,7 @@ const SERVICEABLE_PINCODE_PREFIXES = [
   "110", // Delhi
   "600", // Chennai
   "700", // Kolkata
-  "221", // Varanasi Workshop
+  "620", // Tiruchirappalli Workshop
   "500", // Hyderabad
   "380", // Ahmedabad
   "411", // Pune

@@ -72,7 +72,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
       if (product.colors && product.colors.length > 0) {
         setSelectedColor(product.colors[0]);
       } else {
-        setSelectedColor("Atelier Choice");
+        setSelectedColor("Default");
       }
 
       // Track as recently viewed
@@ -111,7 +111,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
       price: product.price,
       size: selectedSize,
       image: activeImg || product.image,
-      color: selectedColor || "Atelier Choice",
+      color: selectedColor || "Default",
     }, quantity);
 
     // Trigger cart badge bounce micro-animation

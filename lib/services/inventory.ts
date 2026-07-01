@@ -34,7 +34,7 @@ export const InventoryService = {
       const product = products.find((p) => p.id === productId);
       if (!product) return [];
 
-      const colors = product.colors && product.colors.length > 0 ? product.colors : ["Atelier Choice"];
+      const colors = product.colors && product.colors.length > 0 ? product.colors : ["Default"];
       const variants: ProductVariant[] = [];
 
       colors.forEach((color) => {
@@ -171,7 +171,7 @@ export const InventoryService = {
       }
 
       const size = item.size as "S" | "M" | "L" | "XL" | "XXL";
-      const color = item.color || "Atelier Choice";
+      const color = item.color || "Default";
       const key = `${product.id}-${size}-${color}`;
 
       // Filter from preloaded variants

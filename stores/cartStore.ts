@@ -42,7 +42,7 @@ export const useCartStore = create<CartState>()(
               !(
                 item.productName === productName &&
                 item.size === size &&
-                (item.color || "Atelier Choice") === (color || "Atelier Choice")
+                (item.color || "Default") === (color || "Default")
               )
           ),
         }));
@@ -54,7 +54,7 @@ export const useCartStore = create<CartState>()(
             (item) =>
               item.productName === productName &&
               item.size === size &&
-              (item.color || "Atelier Choice") === (color || "Atelier Choice")
+              (item.color || "Default") === (color || "Default")
           );
           if (idx === -1) return {};
           const newItems = [...state.cartItems];
@@ -69,7 +69,7 @@ export const useCartStore = create<CartState>()(
           (item) =>
             item.productName === productName &&
             item.size === size &&
-            (item.color || "Atelier Choice") === (color || "Atelier Choice")
+            (item.color || "Default") === (color || "Default")
         ).length;
 
         if (currentQty >= maxStock) {
@@ -80,7 +80,7 @@ export const useCartStore = create<CartState>()(
           (item) =>
             item.productName === productName &&
             item.size === size &&
-            (item.color || "Atelier Choice") === (color || "Atelier Choice")
+            (item.color || "Default") === (color || "Default")
         );
 
         if (!templateItem) return false;

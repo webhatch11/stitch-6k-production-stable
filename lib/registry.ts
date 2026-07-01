@@ -192,19 +192,19 @@ export interface TrackingLog {
   created_at: string;
 }
 
-const PRODUCTS_KEY = "registry_products";
-const ORDERS_KEY = "registry_orders";
-const COUPONS_KEY = "registry_coupons";
-const VERSION_KEY = "registry_version";
-const WALLET_BALANCE_KEY = "registry_wallet_balance";
-const WALLET_TX_KEY = "registry_wallet_transactions";
-const LOYALTY_POINTS_KEY = "registry_loyalty_points";
-const LOYALTY_TX_KEY = "registry_loyalty_transactions";
-const ADDRESSES_KEY = "registry_addresses";
-const ORDER_STATUS_HISTORY_KEY = "registry_order_status_history";
-const SHIPMENTS_KEY = "registry_shipments";
-const SHIPMENT_EVENTS_KEY = "registry_shipment_events";
-const TRACKING_LOGS_KEY = "registry_tracking_logs";
+const PRODUCTS_KEY = "fallback_products";
+const ORDERS_KEY = "fallback_orders";
+const COUPONS_KEY = "fallback_coupons";
+const VERSION_KEY = "fallback_version";
+const WALLET_BALANCE_KEY = "fallback_wallet_balance";
+const WALLET_TX_KEY = "fallback_wallet_transactions";
+const LOYALTY_POINTS_KEY = "fallback_loyalty_points";
+const LOYALTY_TX_KEY = "fallback_loyalty_transactions";
+const ADDRESSES_KEY = "fallback_addresses";
+const ORDER_STATUS_HISTORY_KEY = "fallback_order_status_history";
+const SHIPMENTS_KEY = "fallback_shipments";
+const SHIPMENT_EVENTS_KEY = "fallback_shipment_events";
+const TRACKING_LOGS_KEY = "fallback_tracking_logs";
 const CURRENT_VERSION = "5.7_logistics";
 
 const isBrowser = () => typeof window !== "undefined";

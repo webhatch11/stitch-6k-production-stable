@@ -46,7 +46,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
   const groupedItems = React.useMemo(() => {
     const groups: { [key: string]: GroupedCartItem } = {};
     cartItems.forEach((item) => {
-      const key = `${item.productName}_${item.size || "M"}_${item.color || "Atelier Choice"}`;
+      const key = `${item.productName}_${item.size || "M"}_${item.color || "Default"}`;
       if (!groups[key]) {
         groups[key] = {
           productName: item.productName,
@@ -54,7 +54,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
           size: item.size || "M",
           image: item.image,
           quantity: 0,
-          color: item.color || "Atelier Choice",
+          color: item.color || "Default",
         };
       }
       groups[key].quantity += 1;
@@ -80,16 +80,16 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
       price: item.price,
       size: item.size,
       image: item.image,
-      color: item.color || "Atelier Choice",
+      color: item.color || "Default",
     }, 1);
   };
 
   const handleDecrement = (item: GroupedCartItem) => {
-    useCartStore.getState().decrementQuantity(item.productName, item.size, item.color || "Atelier Choice");
+    useCartStore.getState().decrementQuantity(item.productName, item.size, item.color || "Default");
   };
 
   const handleRemove = (item: GroupedCartItem) => {
-    useCartStore.getState().removeFromCart(item.productName, item.size, item.color || "Atelier Choice");
+    useCartStore.getState().removeFromCart(item.productName, item.size, item.color || "Default");
   };
 
   return (
@@ -135,7 +135,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
 
                   return (
                     <div
-                      key={`${item.productName}_${item.size}_${item.color || "Atelier Choice"}`}
+                      key={`${item.productName}_${item.size}_${item.color || "Default"}`}
                       className="flex flex-col md:flex-row gap-8 relative group border-b border-on-surface/5 pb-10"
                     >
                       <div className="w-full md:w-48 aspect-[3/4] bg-surface-container overflow-hidden border border-outline-variant/10 relative">
@@ -149,7 +149,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                           </div>
                           <div className="space-y-1 text-sm text-outline font-medium uppercase tracking-wider mb-4">
                             <p>Size: {item.size}</p>
-                            <p>Color: {item.color || "Atelier Choice"}</p>
+                            <p>Color: {item.color || "Default"}</p>
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-6">

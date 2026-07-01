@@ -191,8 +191,8 @@ export default function Footer({ business }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
-                  Terms &amp; Conditions
+                <Link href="/contact" className="hover:text-white transition-colors">
+                  Contact Us
                 </Link>
               </li>
               <li>
@@ -201,18 +201,28 @@ export default function Footer({ business }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/refund-policy" className="hover:text-white transition-colors">
-                  Refund Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/cancellation-policy" className="hover:text-white transition-colors">
-                  Cancellation Policy
+                <Link href="/terms" className="hover:text-white transition-colors">
+                  Terms &amp; Conditions
                 </Link>
               </li>
               <li>
                 <Link href="/shipping-policy" className="hover:text-white transition-colors">
-                  Shipping Policy
+                  Shipping &amp; Delivery Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/payment-policy" className="hover:text-white transition-colors">
+                  Payment Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/refund-policy" className="hover:text-white transition-colors">
+                  Refund &amp; Cancellation Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/return-policy" className="hover:text-white transition-colors">
+                  Return &amp; Exchange Policy
                 </Link>
               </li>
             </ul>

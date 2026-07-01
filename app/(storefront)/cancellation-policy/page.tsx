@@ -11,15 +11,23 @@ export default function CancellationPolicyPage() {
       </h1>
       <div className="space-y-8 text-sm text-outline leading-relaxed uppercase tracking-wider font-semibold">
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
-          <h3 className="text-on-surface font-black text-lg mb-4">1. Order Cancellations</h3>
+          <h3 className="text-on-surface font-black text-lg mb-4">1. Cancellation Window</h3>
           <p>
-            You can request to cancel your order within 6 hours of payment, or before the shipment is handed over to our courier partner (whichever happens first). Once a Shiprocket AWB number has been assigned and dispatch is active, cancellations are no longer permitted.
+            You can request to cancel your order at any time <strong>before dispatch only</strong>. Once the package has been handed over to our courier partners (powered by Shiprocket) and a tracking number is generated, the order cannot be cancelled.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
-          <h3 className="text-on-surface font-black text-lg mb-4">2. Releasing Reservations</h3>
+          <h3 className="text-on-surface font-black text-lg mb-4">2. Refund Following Cancellation</h3>
           <p>
-            If you cancel an order that was paid using wallet credits or loyalty points, the balance will be refunded to your profile immediately. Unpaid order reservations are automatically cleared after 15 minutes of inactivity.
+            If a cancellation request is submitted successfully before dispatch, the refund will be processed and returned to your original payment method (via Razorpay) within <strong>7–14 business days</strong> (Approval: 24–72 Hours, Bank Processing: 5–10 Business Days).
+          </p>
+        </section>
+        <section className="bg-surface-container-low p-8 border border-outline-variant/10">
+          <h3 className="text-on-surface font-black text-lg mb-4">3. Contact for Cancellations</h3>
+          <p>
+            To request a cancellation, please email us immediately with your order details at:
+            <br />Email: 6kthebrand@gmail.com
+            <br />Phone: +91 93636 93004
           </p>
         </section>
       </div>

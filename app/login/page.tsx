@@ -107,11 +107,13 @@ export default function LoginPage() {
 
     try {
       if (isSupabaseConfigured && supabase) {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
             data: { full_name: name },
-            shouldCreateUser: true
+            shouldCreateUser: true,
+            emailRedirectTo: `${origin}/auth/callback`
           }
         });
         if (error) throw error;
@@ -208,11 +210,13 @@ export default function LoginPage() {
 
     try {
       if (isSupabaseConfigured && supabase) {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
             data: { full_name: name },
-            shouldCreateUser: true
+            shouldCreateUser: true,
+            emailRedirectTo: `${origin}/auth/callback`
           }
         });
         if (error) throw error;

@@ -29,6 +29,7 @@ CREATE POLICY "products_select_public"
 -- Admin-only policy to read all products including soft-deleted
 -- (for the Trash view in admin panel). This is in addition to the
 -- public policy; admin's request matches both.
+DROP POLICY IF EXISTS "products_select_admin_all" ON public.products;
 CREATE POLICY "products_select_admin_all"
   ON public.products
   FOR SELECT TO authenticated

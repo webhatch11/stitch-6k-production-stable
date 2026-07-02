@@ -26,11 +26,12 @@ export default function SettingsDashboardPage() {
 
   // States for Hero Settings
   const [heroImage, setHeroImage] = useState("");
+  const [heroHeadline, setHeroHeadline] = useState("");
+  const [heroSubheadline, setHeroSubheadline] = useState("");
   const [heroCtaText, setHeroCtaText] = useState("");
   const [heroCtaUrl, setHeroCtaUrl] = useState("");
-  const [carouselSlides, setCarouselSlides] = useState<string[]>([]);
+  const [heroSlides, setHeroSlides] = useState<{ image_url: string; headline: string; subheadline: string; cta_text: string; cta_url: string }[]>([]);
   const [activeUploadHeroSlideIndex, setActiveUploadHeroSlideIndex] = useState<number | null>(null);
-  const [uploadOptions, setUploadOptions] = useState<any>({});
 
 
   // States for Business Settings
@@ -114,9 +115,11 @@ export default function SettingsDashboardPage() {
 
       if (heroRes.success && heroRes.value) {
         setHeroImage(heroRes.value.image_url || "");
+        setHeroHeadline(heroRes.value.headline || "");
+        setHeroSubheadline(heroRes.value.subheadline || "");
         setHeroCtaText(heroRes.value.cta_text || "");
         setHeroCtaUrl(heroRes.value.cta_url || "");
-        setCarouselSlides(heroRes.value.carousel_slides || []);
+        setHeroSlides(heroRes.value.slides || []);
       }
 
 
@@ -170,9 +173,11 @@ export default function SettingsDashboardPage() {
     e.preventDefault();
     const payload = {
       image_url: heroImage,
+      headline: heroHeadline,
+      subheadline: heroSubheadline,
       cta_text: heroCtaText,
       cta_url: heroCtaUrl,
-      carousel_slides: carouselSlides,
+      slides: heroSlides,
     };
     const res = await saveHeroAction(payload);
 
@@ -378,7 +383,6 @@ export default function SettingsDashboardPage() {
       {/* Cloudinary Widget */}
       <CloudinaryUploadWidget
         ref={cloudinaryRef}
-        options={uploadOptions}
         onUpload={(newUrl) => {
           if (uploadTarget === "hero") {
             setHeroImage(newUrl);
@@ -389,10 +393,11 @@ export default function SettingsDashboardPage() {
             newItems[activeUploadCategoryIndex].image_url = newUrl;
             setCategoriesItems(newItems);
           } else if (uploadTarget === "hero_slide" && activeUploadHeroSlideIndex !== null) {
-            const newSlides = [...carouselSlides];
-            newSlides[activeUploadHeroSlideIndex] = newUrl;
-            setCarouselSlides(newSlides.filter(Boolean));
+            const newSlides = [...heroSlides];
+            newSlides[activeUploadHeroSlideIndex].image_url = newUrl;
+            setHeroSlides(newSlides);
           }
+
         }}
       />
 
@@ -443,605 +448,746 @@ export default function SettingsDashboardPage() {
       <div className="space-y-16">
         {/* Section 1: Hero Settings */}
         {activeTab === "hero" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
-              Homepage Hero Editor
-            </span>
-            <form onSubmit={handleSaveHero} className="space-y-6">
-              {/* Cloudinary Upload */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Hero Background Image
-                </label>
-                {heroImage ? (
-                  <div className="space-y-4">
-                    <div className="relative w-full max-w-md h-48 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md">
-                      <img src={heroImage} alt="Hero preview" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUploadTarget("hero");
-                          setUploadOptions({
-                            maxFileSize: 5000000,
-                            minImageWidth: 1920,
-                            minImageHeight: 1080,
-                            clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-                            showPoweredBy: false,
-                            cropping: false,
-                          });
-                          cloudinaryRef.current?.open();
-                        }}
-                        className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-md cursor-pointer"
-                      >
-                        Change Image
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setHeroImage("")}
-                        className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-md cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </div>
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Homepage Hero Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveHero} className="p-8 space-y-6">
+            {/* Cloudinary Upload */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Hero Background Image
+              </label>
+              {heroImage ? (
+                <div className="space-y-4">
+                  <div className="relative w-full max-w-md h-48 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    <img src={heroImage} alt="Hero preview" className="w-full h-full object-cover" />
                   </div>
-                ) : (
-                  <div>
+                  <div className="flex gap-4">
                     <button
                       type="button"
                       onClick={() => {
                         setUploadTarget("hero");
-                        setUploadOptions({
-                          maxFileSize: 5000000,
-                          minImageWidth: 1920,
-                          minImageHeight: 1080,
-                          clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-                          showPoweredBy: false,
-                          cropping: false,
-                        });
                         cloudinaryRef.current?.open();
                       }}
-                      className="w-full max-w-md border border-dashed border-gray-300 py-12 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb] rounded-md"
+                      className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-3xl block mb-2 opacity-50">cloud_upload</span>
-                      Upload Custom Hero Image (Cloudinary)
+                      Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHeroImage("")}
+                      className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer"
+                    >
+                      Remove
                     </button>
                   </div>
-                )}
-
-                {/* Upload details chips */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Max 5 MB</span>
-                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">JPG / PNG / WebP</span>
-                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Min 1920 × 1080px</span>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadTarget("hero");
+                    cloudinaryRef.current?.open();
+                  }}
+                  className="w-full max-w-md border border-dashed border-gray-300 py-12 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb]"
+                >
+                  <span className="material-symbols-outlined text-3xl block mb-2 opacity-50">cloud_upload</span>
+                  Upload Custom Hero Image (Cloudinary)
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Headline
+              </label>
+              <input
+                required
+                type="text"
+                maxLength={120}
+                value={heroHeadline}
+                onChange={(e) => setHeroHeadline(e.target.value)}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                placeholder="PREDEFINING LUXURY"
+              />
+              <span className="text-[9px] text-gray-400 block text-right">{heroHeadline.length}/120 characters</span>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Subheadline
+              </label>
+              <textarea
+                maxLength={300}
+                value={heroSubheadline}
+                onChange={(e) => setHeroSubheadline(e.target.value)}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none h-24 resize-none"
+                placeholder="Heritage craftsmanship meets Gen-Z streetwear."
+              />
+              <span className="text-[9px] text-gray-400 block text-right">{heroSubheadline.length}/300 characters</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA Button Text
+                </label>
+                <input
+                  required
+                  type="text"
+                  maxLength={40}
+                  value={heroCtaText}
+                  onChange={(e) => setHeroCtaText(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="Shop Collection"
+                />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA Button Text
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    maxLength={40}
-                    value={heroCtaText}
-                    onChange={(e) => setHeroCtaText(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="Shop Collection"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA URL
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    maxLength={200}
-                    value={heroCtaUrl}
-                    onChange={(e) => setHeroCtaUrl(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="/shopallshirts"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA URL
+                </label>
+                <input
+                  required
+                  type="text"
+                  maxLength={200}
+                  value={heroCtaUrl}
+                  onChange={(e) => setHeroCtaUrl(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="/shopallshirts"
+                />
               </div>
+            </div>
 
-              {/* Carousel Slides Section */}
-              <div className="border-t border-gray-200 pt-8 space-y-6">
-                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 block">
-                  Carousel Slides (Max 6)
-                </span>
+            {/* Carousel Slides Section */}
+            <div className="border-t border-gray-200 pt-8 space-y-6">
+              <h4 className="font-headline font-black text-xs uppercase tracking-[0.2em] text-[#0a0a0a]">
+                Carousel Slides (Optional)
+              </h4>
+              <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest opacity-80">
+                If slides are specified, the storefront will render a sliding carousel instead of a single hero image.
+              </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {[0, 1, 2, 3, 4, 5].map((index) => {
-                    const url = carouselSlides[index];
-                    const isFilled = !!url;
-                    return (
-                      <div
-                        key={index}
-                        className={`relative aspect-[16/9] border rounded-lg overflow-hidden flex flex-col items-center justify-center transition-all ${
-                          isFilled
-                            ? "border-[#BA7517] bg-white"
-                            : "border-dashed border-gray-300 hover:border-primary hover:bg-[#fbfbfb] bg-[#fbfbfb]"
-                        }`}
-                      >
-                        <span className="absolute top-2 left-2 text-[10px] font-bold text-gray-400 bg-white/80 px-1.5 py-0.5 rounded shadow-sm z-10">
-                          {index + 1}
-                        </span>
+              <div className="space-y-6">
+                {heroSlides.map((slide, idx) => (
+                  <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                      <span className="text-xs font-black uppercase tracking-widest text-primary">
+                        Slide #{idx + 1}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            const newSlides = [...heroSlides];
+                            const temp = newSlides[idx];
+                            newSlides[idx] = newSlides[idx - 1];
+                            newSlides[idx - 1] = temp;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === heroSlides.length - 1}
+                          onClick={() => {
+                            const newSlides = [...heroSlides];
+                            const temp = newSlides[idx];
+                            newSlides[idx] = newSlides[idx + 1];
+                            newSlides[idx + 1] = temp;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="text-gray-500 hover:text-primary text-[10px] uppercase font-black tracking-widest disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          Down
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHeroSlides(heroSlides.filter((_, i) => i !== idx));
+                          }}
+                          className="text-red-500 hover:text-red-700 text-[10px] uppercase font-black tracking-widest"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
 
-                        {isFilled ? (
-                          <>
-                            <img
-                              src={url}
-                              alt={`Slide ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newSlides = carouselSlides.filter((_, i) => i !== index);
-                                setCarouselSlides(newSlides);
-                              }}
-                              className="absolute top-2 right-2 size-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center border-none shadow-md cursor-pointer transition-all z-20"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">close</span>
-                            </button>
-                          </>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          Headline (Max 120)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={120}
+                          value={slide.headline}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].headline = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="PREDEFINING LUXURY"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          Subheadline (Max 300)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={300}
+                          value={slide.subheadline}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].subheadline = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="Heritage craftsmanship meets street style."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          CTA Button Text (Max 40)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={40}
+                          value={slide.cta_text}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].cta_text = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="Shop Collection"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                          CTA Link URL (Max 200)
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          maxLength={200}
+                          value={slide.cta_url}
+                          onChange={(e) => {
+                            const newSlides = [...heroSlides];
+                            newSlides[idx].cta_url = e.target.value;
+                            setHeroSlides(newSlides);
+                          }}
+                          className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none"
+                          placeholder="/shopallshirts"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+                          Slide Background Image
+                        </label>
+                        {slide.image_url ? (
+                          <div className="flex items-center gap-3">
+                            <img src={slide.image_url} className="w-16 h-10 object-cover border border-gray-200" alt="Slide preview" />
+                            <div className="flex flex-col gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUploadTarget("hero_slide");
+                                  setActiveUploadHeroSlideIndex(idx);
+                                  cloudinaryRef.current?.open();
+                                }}
+                                className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
+                              >
+                                Change
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSlides = [...heroSlides];
+                                  newSlides[idx].image_url = "";
+                                  setHeroSlides(newSlides);
+                                }}
+                                className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:underline bg-transparent border-none p-0 cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             type="button"
                             onClick={() => {
                               setUploadTarget("hero_slide");
-                              setActiveUploadHeroSlideIndex(index);
-                              setUploadOptions({
-                                maxFileSize: 5000000,
-                                minImageWidth: 1920,
-                                minImageHeight: 1080,
-                                clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-                                showPoweredBy: false,
-                                cropping: false,
-                              });
+                              setActiveUploadHeroSlideIndex(idx);
                               cloudinaryRef.current?.open();
                             }}
-                            className="w-full h-full flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer p-2"
+                            className="border border-dashed border-gray-300 px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
                           >
-                            <span className="material-symbols-outlined text-2xl text-gray-400">cloud_upload</span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Add Slide</span>
+                            Upload Image
                           </button>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-500">
-                  <span>{carouselSlides.length} of 6 slides uploaded</span>
-                  <span>Max 6 slides allowed</span>
-                </div>
-                <p className="text-[10px] text-gray-400 italic">
-                  If slides are added, the storefront shows a carousel instead of the single hero image above.
-                </p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="pt-4">
+              {heroSlides.length < 6 && (
                 <button
-                  type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
+                  type="button"
+                  onClick={() => {
+                    setHeroSlides([
+                      ...heroSlides,
+                      { image_url: "", headline: "New Slide", subheadline: "Description...", cta_text: "Shop Now", cta_url: "/shopallshirts" },
+                    ]);
+                  }}
+                  className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
                 >
-                  Save Hero Settings
+                  + Add Slide Card
                 </button>
-              </div>
-            </form>
-          </section>
+              )}
+            </div>
+
+            <div className="pt-4">
+
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Hero Settings
+              </button>
+            </div>
+          </form>
+        </section>
         )}
 
         {/* Section 2: Business Info */}
         {activeTab === "business" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
               Business Information
-            </span>
-            <form onSubmit={handleSaveBusiness} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={20}
-                    value={bizPhone}
-                    onChange={(e) => setBizPhone(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="+91 XXXXX XXXXX"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    maxLength={100}
-                    value={bizEmail}
-                    onChange={(e) => setBizEmail(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="contact@store.com"
-                  />
-                </div>
-              </div>
-
+            </h3>
+          </div>
+          <form onSubmit={handleSaveBusiness} className="p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Office / Store Address
+                  Phone Number
                 </label>
-                <textarea
-                  maxLength={500}
-                  value={bizAddress}
-                  onChange={(e) => setBizAddress(e.target.value)}
-                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-3 bg-neutral-50 rounded-md h-20 resize-none"
-                  placeholder="123 Luxury Lane, Atelier Block..."
+                <input
+                  type="text"
+                  maxLength={20}
+                  value={bizPhone}
+                  onChange={(e) => setBizPhone(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="+91 XXXXX XXXXX"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    GSTIN Number
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={50}
-                    value={bizGst}
-                    onChange={(e) => setBizGst(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="33AAAAA1111A1Z1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Instagram URL
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={bizInstagram}
-                    onChange={(e) => setBizInstagram(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="https://instagram.com/..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Facebook URL
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={bizFacebook}
-                    onChange={(e) => setBizFacebook(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="https://facebook.com/..."
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  maxLength={100}
+                  value={bizEmail}
+                  onChange={(e) => setBizEmail(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="contact@store.com"
+                />
               </div>
+            </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
-                >
-                  Save Business details
-                </button>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Office / Store Address
+              </label>
+              <textarea
+                maxLength={500}
+                value={bizAddress}
+                onChange={(e) => setBizAddress(e.target.value)}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none h-24 resize-none"
+                placeholder="123 Luxury Lane, Atelier Block..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  GST Number
+                </label>
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={bizGst}
+                  onChange={(e) => setBizGst(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="GSTIN12345..."
+                />
               </div>
-            </form>
-          </section>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Instagram Profile URL
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={bizInstagram}
+                  onChange={(e) => setBizInstagram(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="https://instagram.com/..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Facebook Page URL
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={bizFacebook}
+                  onChange={(e) => setBizFacebook(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="https://facebook.com/..."
+                />
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Business details
+              </button>
+            </div>
+          </form>
+        </section>
         )}
 
         {/* Section 3: Feature Flags */}
         {activeTab === "flags" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
               Feature Flags & Policy Rules
-            </span>
-            <form onSubmit={handleSaveFlags} className="space-y-6">
-              <div className="flex items-center gap-3">
-                <input
-                  id="cod-flag"
-                  type="checkbox"
-                  checked={flagCodEnabled}
-                  onChange={(e) => setFlagCodEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
-                />
-                <label htmlFor="cod-flag" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
-                  Enable Cash on Delivery (COD) globally at checkout
-                </label>
-              </div>
+            </h3>
+          </div>
+          <form onSubmit={handleSaveFlags} className="p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <input
+                id="cod-flag"
+                type="checkbox"
+                checked={flagCodEnabled}
+                onChange={(e) => setFlagCodEnabled(e.target.checked)}
+                className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+              />
+              <label htmlFor="cod-flag" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                Enable Cash on Delivery (COD) globally at checkout
+              </label>
+            </div>
 
-              <div className="space-y-2 max-w-xs">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Returns Window Days
-                </label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  max={60}
-                  value={flagReturnsDays}
-                  onChange={(e) => setFlagReturnsDays(Math.max(0, Math.min(60, parseInt(e.target.value) || 0)))}
-                  className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                  placeholder="7"
-                />
-              </div>
+            <div className="space-y-2 max-w-xs">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Returns Window Days
+              </label>
+              <input
+                required
+                type="number"
+                min={0}
+                max={60}
+                value={flagReturnsDays}
+                onChange={(e) => setFlagReturnsDays(Math.max(0, Math.min(60, parseInt(e.target.value) || 0)))}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                placeholder="7"
+              />
+            </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
-                >
-                  Save Feature Flags
-                </button>
-              </div>
-            </form>
-          </section>
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Feature Flags
+              </button>
+            </div>
+          </form>
+        </section>
         )}
 
         {/* Section 4: Marquee Settings */}
         {activeTab === "marquee" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
               Announcement Marquee Editor
-            </span>
-            <form onSubmit={handleSaveMarquee} className="space-y-6">
-              <div className="flex items-center gap-3">
-                <input
-                  id="marquee-enabled"
-                  type="checkbox"
-                  checked={marqueeEnabled}
-                  onChange={(e) => setMarqueeEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
-                />
-                <label htmlFor="marquee-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
-                  Enable Announcement Marquee
-                </label>
-              </div>
+            </h3>
+          </div>
+          <form onSubmit={handleSaveMarquee} className="p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <input
+                id="marquee-enabled"
+                type="checkbox"
+                checked={marqueeEnabled}
+                onChange={(e) => setMarqueeEnabled(e.target.checked)}
+                className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+              />
+              <label htmlFor="marquee-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                Enable Announcement Marquee
+              </label>
+            </div>
 
-              <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Marquee Text Segments (Min 1, Max 10)
-                </label>
-                
-                <div className="space-y-2">
-                  {marqueeItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-neutral-50 border border-gray-200 p-2.5 rounded-md">
-                      <span className="text-xs font-bold text-gray-700 flex-1">{item}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeMarqueeItem(idx)}
-                        className="text-red-500 hover:text-red-700 text-xs uppercase font-black tracking-widest"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {marqueeItems.length < 10 && (
-                  <div className="flex gap-4">
-                    <input
-                      type="text"
-                      maxLength={120}
-                      value={newMarqueeItem}
-                      onChange={(e) => setNewMarqueeItem(e.target.value)}
-                      placeholder="Enter new marquee text segment..."
-                      className="flex-1 h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    />
+            <div className="space-y-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Marquee Text Segments (Min 1, Max 10)
+              </label>
+              
+              <div className="space-y-2">
+                {marqueeItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-neutral-50 border border-gray-200 p-2.5">
+                    <span className="text-xs font-bold text-gray-700 flex-1">{item}</span>
                     <button
                       type="button"
-                      onClick={addMarqueeItem}
-                      className="bg-neutral-800 hover:bg-neutral-900 text-white px-6 h-9 text-[10px] font-black uppercase tracking-widest transition-all rounded-md"
+                      onClick={() => removeMarqueeItem(idx)}
+                      className="text-red-500 hover:text-red-700 text-xs uppercase font-black tracking-widest"
                     >
-                      Add Item
+                      Remove
                     </button>
                   </div>
-                )}
+                ))}
               </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
-                >
-                  Save Marquee Settings
-                </button>
-              </div>
-            </form>
-          </section>
+              {marqueeItems.length < 10 && (
+                <div className="flex gap-4">
+                  <input
+                    type="text"
+                    maxLength={120}
+                    value={newMarqueeItem}
+                    onChange={(e) => setNewMarqueeItem(e.target.value)}
+                    placeholder="Enter new marquee text segment..."
+                    className="flex-1 border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addMarqueeItem}
+                    className="bg-neutral-800 hover:bg-neutral-900 text-white px-6 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-none"
+                  >
+                    Add Item
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Marquee Settings
+              </button>
+            </div>
+          </form>
+        </section>
         )}
 
         {/* Section 5: Offer Box Settings */}
         {activeTab === "offer_box" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+          <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
               Homepage Offer Box Editor
-            </span>
-            <form onSubmit={handleSaveOfferBox} className="space-y-6">
-              <div className="flex items-center gap-3">
+            </h3>
+          </div>
+          <form onSubmit={handleSaveOfferBox} className="p-8 space-y-6">
+            <div className="flex items-center gap-3">
+              <input
+                id="offer-enabled"
+                type="checkbox"
+                checked={offerEnabled}
+                onChange={(e) => setOfferEnabled(e.target.checked)}
+                className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
+              />
+              <label htmlFor="offer-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
+                Enable Offer Box Section
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Label
+                </label>
                 <input
-                  id="offer-enabled"
-                  type="checkbox"
-                  checked={offerEnabled}
-                  onChange={(e) => setOfferEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
-                />
-                <label htmlFor="offer-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
-                  Enable Offer Box Section
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Label
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={offerLabel}
-                    onChange={(e) => setOfferLabel(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="Limited Time Offer"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Heading
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={offerHeading}
-                    onChange={(e) => setOfferHeading(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="S E A S O N"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Body / Subtitle Text
-                </label>
-                <textarea
+                  type="text"
                   maxLength={200}
-                  value={offerBody}
-                  onChange={(e) => setOfferBody(e.target.value)}
-                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-3 bg-neutral-50 rounded-md h-20 resize-none"
-                  placeholder="Elevate your wardrobe with the atelier linen collection..."
+                  value={offerLabel}
+                  onChange={(e) => setOfferLabel(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="Limited Time Offer"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Coupon Code (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={offerCouponCode}
-                    onChange={(e) => setOfferCouponCode(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="FESTIVE24"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA Button Text
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={offerCtaText}
-                    onChange={(e) => setOfferCtaText(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="Shop The Collection"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA Button URL
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={200}
-                    value={offerCtaUrl}
-                    onChange={(e) => setOfferCtaUrl(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="/shopallshirts"
-                  />
-                </div>
-              </div>
-
-              {/* Cloudinary Upload for Offer Box Background */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Offer Box Background Image (Optional)
+                  Heading
                 </label>
-                {offerBgImageUrl ? (
-                  <div className="space-y-4">
-                    <div className="relative w-full max-w-md h-36 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md">
-                      <img src={offerBgImageUrl} alt="Offer Box preview" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUploadTarget("offer");
-                          setUploadOptions({});
-                          cloudinaryRef.current?.open();
-                        }}
-                        className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-md cursor-pointer"
-                      >
-                        Change Image
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOfferBgImageUrl("")}
-                        className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-md cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUploadTarget("offer");
-                      setUploadOptions({});
-                      cloudinaryRef.current?.open();
-                    }}
-                    className="w-full max-w-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb] rounded-md"
-                  >
-                    <span className="material-symbols-outlined text-2xl block mb-2 opacity-50">cloud_upload</span>
-                    Upload Custom Background Image (Cloudinary)
-                  </button>
-                )}
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerHeading}
+                  onChange={(e) => setOfferHeading(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="S E A S O N"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Body / Subtitle Text
+              </label>
+              <textarea
+                maxLength={200}
+                value={offerBody}
+                onChange={(e) => setOfferBody(e.target.value)}
+                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none h-20 resize-none"
+                placeholder="Elevate your wardrobe with the atelier linen collection..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Coupon Code (Optional)
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCouponCode}
+                  onChange={(e) => setOfferCouponCode(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="FESTIVE24"
+                />
               </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
-                >
-                  Save Offer Box Settings
-                </button>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA Button Text
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCtaText}
+                  onChange={(e) => setOfferCtaText(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="Shop The Collection"
+                />
               </div>
-            </form>
-          </section>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  CTA Button URL
+                </label>
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={offerCtaUrl}
+                  onChange={(e) => setOfferCtaUrl(e.target.value)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-3 px-4 rounded-none"
+                  placeholder="/shopallshirts"
+                />
+              </div>
+            </div>
+
+            {/* Cloudinary Upload for Offer Box Background */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                Offer Box Background Image (Optional)
+              </label>
+              {offerBgImageUrl ? (
+                <div className="space-y-4">
+                  <div className="relative w-full max-w-md h-36 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                    <img src={offerBgImageUrl} alt="Offer Box preview" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadTarget("offer");
+                        cloudinaryRef.current?.open();
+                      }}
+                      className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer"
+                    >
+                      Change Image
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOfferBgImageUrl("")}
+                      className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadTarget("offer");
+                    cloudinaryRef.current?.open();
+                  }}
+                  className="w-full max-w-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb]"
+                >
+                  <span className="material-symbols-outlined text-2xl block mb-2 opacity-50">cloud_upload</span>
+                  Upload Custom Background Image (Cloudinary)
+                </button>
+              )}
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
+              >
+                Save Offer Box Settings
+              </button>
+            </div>
+          </form>
+        </section>
         )}
 
         {/* Section 6: Trust Badges Settings */}
         {activeTab === "trust_badges" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
-              Trust Badges Editor
-            </span>
-            <form onSubmit={handleSaveTrustBadges} className="space-y-6">
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Trust Badges Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveTrustBadges} className="p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <input
                   id="trust-enabled"
                   type="checkbox"
                   checked={trustBadgesEnabled}
                   onChange={(e) => setTrustBadgesEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
+                  className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
                 />
                 <label htmlFor="trust-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
                   Enable Trust Badges Section
@@ -1055,7 +1201,7 @@ export default function SettingsDashboardPage() {
 
                 <div className="space-y-4">
                   {trustBadgesItems.map((item, idx) => (
-                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative rounded-md">
+                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
                       <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                         <span className="text-xs font-black uppercase tracking-widest text-primary">
                           Badge #{idx + 1}
@@ -1116,7 +1262,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].icon = e.target.value;
                               setTrustBadgesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="flag, shield, local_shipping..."
                           />
                         </div>
@@ -1135,7 +1281,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].title = e.target.value;
                               setTrustBadgesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="Made in India"
                           />
                         </div>
@@ -1154,7 +1300,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].description = e.target.value;
                               setTrustBadgesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="Crafted in Tamil Nadu"
                           />
                         </div>
@@ -1172,7 +1318,7 @@ export default function SettingsDashboardPage() {
                         { icon: "verified", title: "New Badge", description: "Details..." },
                       ]);
                     }}
-                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb] rounded-md"
+                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
                   >
                     + Add Trust Badge
                   </button>
@@ -1182,7 +1328,7 @@ export default function SettingsDashboardPage() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
+                  className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
                 >
                   Save Trust Badges
                 </button>
@@ -1193,18 +1339,20 @@ export default function SettingsDashboardPage() {
 
         {/* Section 7: Categories Settings */}
         {activeTab === "categories" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 mb-4 block">
-              Categories Section Editor
-            </span>
-            <form onSubmit={handleSaveCategories} className="space-y-6">
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Categories Section Editor
+              </h3>
+            </div>
+            <form onSubmit={handleSaveCategories} className="p-8 space-y-6">
               <div className="flex items-center gap-3">
                 <input
                   id="categories-enabled"
                   type="checkbox"
                   checked={categoriesEnabled}
                   onChange={(e) => setCategoriesEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
+                  className="w-4.5 h-4.5 border-gray-300 text-primary focus:ring-primary rounded-none cursor-pointer"
                 />
                 <label htmlFor="categories-enabled" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
                   Enable Categories Section
@@ -1218,7 +1366,7 @@ export default function SettingsDashboardPage() {
 
                 <div className="space-y-6">
                   {categoriesItems.map((item, idx) => (
-                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative rounded-md">
+                    <div key={idx} className="bg-neutral-50 border border-gray-200 p-6 space-y-4 relative">
                       <div className="flex justify-between items-center border-b border-gray-200 pb-3">
                         <span className="text-xs font-black uppercase tracking-widest text-primary">
                           Category #{idx + 1}
@@ -1279,7 +1427,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].title = e.target.value;
                               setCategoriesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="Belgian Linen"
                           />
                         </div>
@@ -1298,7 +1446,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].subtitle = e.target.value;
                               setCategoriesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="Pure flax linen shirts for breathable luxury"
                           />
                         </div>
@@ -1319,7 +1467,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].cta_url = e.target.value;
                               setCategoriesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none"
                             placeholder="/shopallshirts"
                           />
                         </div>
@@ -1335,7 +1483,7 @@ export default function SettingsDashboardPage() {
                               newItems[idx].theme = e.target.value as any;
                               setCategoriesItems(newItems);
                             }}
-                            className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md font-bold"
+                            className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2.5 px-3 rounded-none bg-white font-bold"
                           >
                             <option value="navy">Classic Navy</option>
                             <option value="crimson">Crimson Red</option>
@@ -1351,14 +1499,13 @@ export default function SettingsDashboardPage() {
                           </label>
                           {item.image_url ? (
                             <div className="flex items-center gap-3">
-                              <img src={item.image_url} className="w-12 h-16 object-cover border border-gray-200 rounded-md" alt="Category thumbnail" />
+                              <img src={item.image_url} className="w-12 h-16 object-cover border border-gray-200" alt="Category thumbnail" />
                               <div className="flex flex-col gap-1">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setUploadTarget("category");
                                     setActiveUploadCategoryIndex(idx);
-                                    setUploadOptions({});
                                     cloudinaryRef.current?.open();
                                   }}
                                   className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
@@ -1384,10 +1531,9 @@ export default function SettingsDashboardPage() {
                               onClick={() => {
                                 setUploadTarget("category");
                                 setActiveUploadCategoryIndex(idx);
-                                setUploadOptions({});
                                 cloudinaryRef.current?.open();
                               }}
-                              className="border border-dashed border-gray-300 px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb] rounded-md"
+                              className="border border-dashed border-gray-300 px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
                             >
                               Upload Image
                             </button>
@@ -1407,7 +1553,7 @@ export default function SettingsDashboardPage() {
                         { title: "New Category", subtitle: "Description...", image_url: "", theme: "navy", cta_url: "/shopallshirts" },
                       ]);
                     }}
-                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb] rounded-md"
+                    className="border border-dashed border-gray-300 w-full py-4 text-center text-xs font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all cursor-pointer bg-[#fbfbfb]"
                   >
                     + Add Category Card
                   </button>
@@ -1417,7 +1563,7 @@ export default function SettingsDashboardPage() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="bg-[#1a1a1a] hover:bg-black text-white px-6 py-2.5 text-[13px] font-medium tracking-wide transition-all rounded-md cursor-pointer border-none shadow-sm block w-fit"
+                  className="bg-primary text-white px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold"
                 >
                   Save Category Settings
                 </button>
@@ -1428,25 +1574,25 @@ export default function SettingsDashboardPage() {
 
         {/* Section 8: Reviews Moderator */}
         {activeTab === "reviews" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <section className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+            <div className="p-8 border-b border-gray-200 bg-[#fafafa] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 block">
+                <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
                   Review Moderation Portal
-                </span>
-                <p className="text-[10px] text-gray-400 italic mt-1">
+                </h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                   Approve, reject, or correct customer reviews before they show on the storefront.
                 </p>
               </div>
 
               {/* Sub-tabs for Pending / Approved */}
-              <div className="flex border border-gray-200 rounded-md overflow-hidden shadow-sm">
+              <div className="flex border border-gray-200 rounded-none overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setActiveReviewsTab("pending")}
                   className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none ${
                     activeReviewsTab === "pending"
-                      ? "bg-[#1a1a1a] text-white font-bold"
+                      ? "bg-primary text-white font-bold"
                       : "bg-white text-gray-600 hover:bg-neutral-50"
                   }`}
                 >
@@ -1457,7 +1603,7 @@ export default function SettingsDashboardPage() {
                   onClick={() => setActiveReviewsTab("approved")}
                   className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border-none ${
                     activeReviewsTab === "approved"
-                      ? "bg-[#1a1a1a] text-white font-bold"
+                      ? "bg-primary text-white font-bold"
                       : "bg-white text-gray-600 hover:bg-neutral-50"
                   }`}
                 >
@@ -1466,7 +1612,7 @@ export default function SettingsDashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="p-8 space-y-6">
               {reviewsList.filter((r) => activeReviewsTab === "approved" ? r.approved : !r.approved).length === 0 ? (
                 <div className="text-center py-12 text-xs font-black uppercase tracking-widest text-gray-400">
                   No {activeReviewsTab} reviews found.
@@ -1513,10 +1659,10 @@ export default function SettingsDashboardPage() {
                                     [review.id]: e.target.value,
                                   });
                                 }}
-                                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-3 bg-neutral-50 rounded-md h-20 resize-none"
+                                className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-sm py-2 px-3 rounded-none h-20 resize-none"
                               />
                             ) : (
-                              <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                              <p className="text-sm text-gray-600 leading-relaxed font-medium">
                                 "{review.comment}"
                               </p>
                             )}
@@ -1529,21 +1675,21 @@ export default function SettingsDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleApproveReview(review.id)}
-                                  className="bg-primary text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-secondary transition-all rounded-md cursor-pointer border-none shrink-0"
+                                  className="bg-primary text-white px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-secondary transition-all rounded-none cursor-pointer border-none shrink-0"
                                 >
                                   Approve
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateReviewComment(review.id)}
-                                  className="border border-gray-200 text-[#0a0a0a] px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-md cursor-pointer shrink-0"
+                                  className="border border-gray-200 text-[#0a0a0a] px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-none cursor-pointer shrink-0"
                                 >
                                   Update Comment
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleRejectReview(review.id)}
-                                  className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-md cursor-pointer shrink-0"
+                                  className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer shrink-0"
                                 >
                                   Reject
                                 </button>
@@ -1552,7 +1698,7 @@ export default function SettingsDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => handleRejectReview(review.id)}
-                                className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-md cursor-pointer shrink-0"
+                                className="border border-red-200 text-red-600 px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-none cursor-pointer shrink-0"
                               >
                                 Delete
                               </button>

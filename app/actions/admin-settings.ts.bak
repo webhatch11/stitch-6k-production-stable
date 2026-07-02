@@ -15,12 +15,11 @@ const heroSlideSchema = z.object({
 
 const heroSchema = z.object({
   image_url: z.string().optional().default(""),
-  headline: z.string().min(1).max(120).optional(),
-  subheadline: z.string().max(300).optional(),
+  headline: z.string().min(1).max(120),
+  subheadline: z.string().max(300).optional().default(""),
   cta_text: z.string().min(1).max(40),
   cta_url: z.string().min(1).max(200),
   slides: z.array(heroSlideSchema).max(6).optional().default([]),
-  carousel_slides: z.array(z.string()).max(6).optional().default([]),
 });
 
 

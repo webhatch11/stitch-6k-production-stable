@@ -514,35 +514,27 @@ export default function HomeClient({
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
   const [heroTransitioning, setHeroTransitioning] = useState(false);
 
-  const activeSlides = (hero?.carousel_slides && hero.carousel_slides.length > 0)
-    ? hero.carousel_slides.map((url: string) => ({
-        bgImage: url,
-        title: "",
-        desc: "",
-        ctaText: hero.cta_text || hero.ctaText || "View Collection",
-        ctaLink: hero.cta_url || hero.ctaUrl || "/shopallshirts"
-      }))
-    : (hero?.slides && hero.slides.length > 0)
+  const activeSlides = (hero?.slides && hero.slides.length > 0)
     ? hero.slides.map((s: any) => ({
         bgImage: s.image_url,
         title: s.headline,
         desc: s.subheadline,
-        ctaText: s.cta_text || "View Collection",
-        ctaLink: s.cta_url || "/shopallshirts"
+        ctaText: s.cta_text,
+        ctaLink: s.cta_url
       }))
     : (hero?.image_url ? [
         {
           bgImage: hero.image_url,
-          title: "",
-          desc: "",
-          ctaText: hero.cta_text || hero.ctaText || "View Collection",
-          ctaLink: hero.cta_url || hero.ctaUrl || "/shopallshirts"
+          title: hero.headline,
+          desc: hero.subheadline,
+          ctaText: hero.cta_text,
+          ctaLink: hero.cta_url
         }
       ] : heroSlides.map((s: any) => ({
         bgImage: s.bgImage,
         title: s.title,
         desc: s.desc,
-        ctaText: s.ctaText || "Shop Collection",
+        ctaText: "Shop Collection",
         ctaLink: s.ctaLink
       })));
 

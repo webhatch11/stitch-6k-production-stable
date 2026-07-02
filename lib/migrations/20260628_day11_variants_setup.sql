@@ -14,6 +14,8 @@ ALTER TABLE public.product_variants
 
 -- 4. Add UNIQUE constraint (product_id, size, color) — not yet present
 ALTER TABLE public.product_variants
+  DROP CONSTRAINT IF EXISTS product_variants_product_size_color_unique;
+ALTER TABLE public.product_variants
   ADD CONSTRAINT product_variants_product_size_color_unique
   UNIQUE (product_id, size, color);
 

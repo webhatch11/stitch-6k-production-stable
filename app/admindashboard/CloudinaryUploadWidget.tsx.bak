@@ -9,7 +9,6 @@ export interface CloudinaryUploadHandle {
 
 interface Props {
   onUpload: (url: string) => void;
-  options?: any;
 }
 
 /**
@@ -19,7 +18,7 @@ interface Props {
  * Mounting ONE instance at the page level avoids multi-widget body-scroll conflicts.
  */
 const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, Props>(
-  ({ onUpload, options }, ref) => {
+  ({ onUpload }, ref) => {
     const openRef = useRef<(() => void) | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -42,7 +41,6 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, Props>(
           showSkipCropButton: true,
           cropping: false,
           showPoweredBy: false,
-          ...options,
         }}
         onSuccess={(result: any) => {
           const url = result?.info?.secure_url;

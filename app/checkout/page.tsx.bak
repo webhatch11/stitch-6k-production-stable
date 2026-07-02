@@ -14,7 +14,6 @@ import {
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
-import { createBrowserClient } from "@supabase/ssr";
 import { AddressList } from "@/components/checkout/AddressList";
 import { AddressErrorBoundary } from "@/components/checkout/AddressErrorBoundary";
 import { UserAddress } from "@/lib/registry";
@@ -88,46 +87,8 @@ export default function CheckoutPage() {
     setAddressCount(count);
   }, []);
 
-  const [user, setUser] = useState<any>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-
-  const supabase = React.useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  ), []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        setUser(authUser);
-      } else {
-        // Fallback for mock user in local development
-        const mockSession = localStorage.getItem("mock_user_session");
-        if (mockSession) {
-          const mockProfile = localStorage.getItem("mock_user_profile");
-          if (mockProfile) {
-            const parsed = JSON.parse(mockProfile);
-            setUser({
-              id: parsed.id,
-              email: parsed.email,
-              user_metadata: { full_name: parsed.name }
-            });
-          }
-        }
-      }
-      setLoadingUser(false);
-    };
-    fetchUser();
-  }, [supabase]);
-
-  const userId = user?.id || null;
-
-  useEffect(() => {
-    if (!loadingUser && !userId) {
-      router.push("/login?redirect=/checkout");
-    }
-  }, [loadingUser, userId, router]);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.email || "guest";
 
   // Cart & Calculation States
   const cartItems = useCartStore((state) => state.cartItems);
@@ -530,7 +491,7 @@ export default function CheckoutPage() {
   };
 
   // Luxury Brand Shimmer Skeleton Loading
-  if (!isHydrated || loadingUser) {
+  if (!isHydrated) {
     return (
       <div className="bg-surface text-on-surface min-h-screen flex flex-col justify-between">
         <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-5">

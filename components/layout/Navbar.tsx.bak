@@ -2,81 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
-import { createBrowserClient } from "@supabase/ssr";
-import { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
   const pathname = usePathname() || "/";
-  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const cartItems = useCartStore((state) => state.cartItems);
   const cartCount = cartItems.length;
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  );
-
-  // Monitor auth state
-  useEffect(() => {
-    const getUser = async () => {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        setUser(currentUser);
-      }
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  // Sync mock user in development if Supabase not configured
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      const mockSession = localStorage.getItem("mock_user_session");
-      if (mockSession) {
-        const mockProfile = localStorage.getItem("mock_user_profile");
-        if (mockProfile) {
-          const parsed = JSON.parse(mockProfile);
-          setUser({
-            id: parsed.id,
-            email: parsed.email,
-            user_metadata: { full_name: parsed.name },
-          } as any);
-        }
-      }
-    }
-  }, []);
-
-  const handleSignOut = async () => {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      await supabase.auth.signOut();
-    } else {
-      localStorage.removeItem("mock_user_session");
-      localStorage.removeItem("mock_user_profile");
-      document.cookie = "mock_user_session=; path=/; max-age=0";
-      setUser(null);
-    }
-    useCartStore.getState().clearCart();
-    setDropdownOpen(false);
-    router.push("/");
-    router.refresh();
-  };
-
-  const initial = user?.user_metadata?.full_name?.[0] || user?.email?.[0] || "U";
-  const displayInitial = initial.toUpperCase();
 
   // Monitor scroll height to handle dynamic navbar transitions
   useEffect(() => {
@@ -197,55 +132,12 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-            {user ? (
-              <div className="relative hidden md:block">
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-8 h-8 rounded-full bg-[#BA7517] text-white flex items-center justify-center text-xs font-black uppercase border border-white/20 shadow-md focus:outline-none cursor-pointer hover:scale-105 transition-transform"
-                >
-                  {displayInitial}
-                </button>
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl rounded-none py-2 z-50 animate-in fade-in duration-200">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Signed in as</p>
-                      <p className="text-[10px] text-black font-black truncate">{user.user_metadata?.full_name || user.email}</p>
-                    </div>
-                    <Link
-                      href="/myprofile"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-50 hover:text-black"
-                    >
-                      My Profile
-                    </Link>
-                    <Link
-                      href="/orderhistory"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-700 hover:bg-gray-50 hover:text-black"
-                    >
-                      Order History
-                    </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full text-left block px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-600 hover:bg-gray-50 hover:text-red-700 border-none bg-transparent cursor-pointer"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className={`hidden md:block text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 border transition-all duration-300 ${
-                  isHome && !isScrolled
-                    ? "text-white border-white/30 hover:border-white hover:bg-white/10"
-                    : "text-on-surface border-on-surface/20 hover:border-on-surface hover:bg-on-surface/5"
-                }`}
-              >
-                Sign In
-              </Link>
-            )}
+            <Link
+              href="/myprofile"
+              className={`hidden md:block ${iconClass}`}
+            >
+              person
+            </Link>
             <Link
               href="/admindashboard"
               className={`hidden md:block ${iconClass}`}
@@ -374,41 +266,13 @@ export default function Navbar() {
           >
             Track Order
           </Link>
-          {user ? (
-            <>
-              <Link
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-                href="/myprofile"
-              >
-                Profile
-              </Link>
-              <Link
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-                href="/orderhistory"
-              >
-                Order History
-              </Link>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleSignOut();
-                }}
-                className="text-3xl font-headline font-black uppercase tracking-tight text-red-600 hover:text-red-700 transition-colors border-none bg-transparent cursor-pointer"
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <Link
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-              href="/login"
-            >
-              Sign In
-            </Link>
-          )}
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
+            href="/myprofile"
+          >
+            Profile
+          </Link>
         </nav>
         <div className="absolute bottom-28 flex gap-6 border-t border-outline/10 pt-6 w-full justify-center px-10">
           <Link

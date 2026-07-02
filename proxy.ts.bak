@@ -67,8 +67,6 @@ export async function proxy(request: NextRequest) {
 
   const isAdminRoute = path.startsWith("/admindashboard");
   const isProfileRoute = path.startsWith("/myprofile");
-  const isCheckoutRoute = path.startsWith("/checkout");
-  const isOrderHistoryRoute = path.startsWith("/orderhistory");
 
   // Client connection metadata for security audit logging
   const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
@@ -100,7 +98,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // If path is not a protected route, continue immediately
-  if (!isAdminRoute && !isProfileRoute && !isCheckoutRoute && !isOrderHistoryRoute) {
+  if (!isAdminRoute && !isProfileRoute) {
     return NextResponse.next();
   }
 
@@ -185,8 +183,6 @@ export const config = {
   matcher: [
     "/admindashboard/:path*", 
     "/myprofile/:path*",
-    "/checkout/:path*",
-    "/orderhistory/:path*",
     "/api/payments/create-order",
     "/login"
   ],

@@ -57,7 +57,7 @@ async function checkRateLimit(ip: string, path: string, limit: number, windowMs:
   return { success: true };
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const path = request.nextUrl.pathname;
 

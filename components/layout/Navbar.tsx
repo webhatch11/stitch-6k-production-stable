@@ -249,7 +249,7 @@ export default function Navbar() {
               </Link>
             )}
             <Link
-              href="/admindashboard"
+              href="/admindashboard/login"
               className={`hidden md:block ${iconClass}`}
             >
               admin_panel_settings
@@ -416,7 +416,7 @@ export default function Navbar() {
           <Link
             onClick={() => setMobileMenuOpen(false)}
             className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
-            href="/admindashboard"
+            href="/admindashboard/login"
           >
             Admin Dashboard
           </Link>

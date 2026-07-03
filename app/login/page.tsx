@@ -128,6 +128,32 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      if (isSignIn) {
+        // Before sending OTP, check if user exists
+        let userExists = false;
+        if (isSupabaseConfigured && supabase) {
+          const { data: existingUser } = await supabase
+            .from("profiles")
+            .select("id, email")
+            .eq("email", email)
+            .maybeSingle();
+          if (existingUser) {
+            userExists = true;
+          }
+        } else {
+          // Mock offline fallback check
+          userExists = !email.toLowerCase().includes("new");
+        }
+
+        if (!userExists) {
+          // Switch to CREATE ACCOUNT state (State 2)
+          setIsSignIn(false);
+          setInfoMsg("Welcome! Let's create your 6K Brand account.");
+          setLoading(false);
+          return;
+        }
+      }
+
       const optionsData: Record<string, string> = {
         full_name: isSignIn ? "" : name
       };

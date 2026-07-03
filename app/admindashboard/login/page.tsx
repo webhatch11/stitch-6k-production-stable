@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Mail, Check, ArrowRight } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { checkAdminEmail } from "@/app/actions/admin-auth";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -93,6 +95,15 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
+      // 1. Extra security layer: Check allowed admin emails via server action
+      const { allowed } = await checkAdminEmail(email);
+      if (!allowed) {
+        setErrorMsg("This email is not authorized for admin access.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Send OTP
       if (isSupabaseConfigured && supabase) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
@@ -145,14 +156,15 @@ export default function AdminLoginPage() {
         });
         if (error) throw error;
 
-        // Check if verified user is an administrator
-        const { data: profile, error: profileErr } = await supabase
+        const user = data.user;
+        if (!user) throw new Error("Authentication failed: No user returned");
+
+        // Check if verified user has admin role in profiles
+        const { data: profile } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", data.user?.id)
-          .maybeSingle();
-
-        if (profileErr) throw profileErr;
+          .eq("id", user.id)
+          .single();
 
         if (!profile || profile.role !== "admin") {
           // Log out immediately if not admin
@@ -228,179 +240,178 @@ export default function AdminLoginPage() {
     }
   };
 
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   return (
     <div className="bg-[#0A0A0A] text-white font-body min-h-screen flex flex-col justify-center items-center p-8 relative overflow-hidden">
-      {/* Dynamic Background Blurs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#fed488]/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#775a19]/5 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+      {/* Background Decorative Blur */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#BA7517]/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#BA7517]/5 rounded-full blur-[100px] -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
-      <div className="absolute top-8 right-8 z-10">
-        <Link 
-          href="/" 
-          className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white flex items-center gap-1 transition-colors"
-        >
-          Back to Shop <span className="material-symbols-outlined text-xs">close</span>
-        </Link>
-      </div>
-
-      <div className="w-full max-w-sm space-y-10 z-10">
-        {/* 6K Logo at top */}
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-white/5 p-2 flex items-center justify-center border border-[#fed488]/15 shadow-sm">
-            <img src="/assets/logo.png" alt="6K Logo" className="max-w-full max-h-full object-contain filter invert" />
+      <div className="w-full max-w-sm z-10 space-y-8">
+        {/* logo and Header */}
+        <div className="flex flex-col items-center">
+          <div className="w-16 h-16 rounded-full bg-white/5 p-2.5 flex items-center justify-center border border-[#BA7517]/25 shadow-md mb-6">
+            <img 
+              src="/assets/logo.png" 
+              alt="6K Logo" 
+              className="max-w-full max-h-full object-contain filter invert" 
+              draggable={false}
+            />
           </div>
         </div>
 
-        {step === 1 ? (
-          <div className="space-y-8 bg-white/5 p-8 border border-white/10 backdrop-blur-md rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <div className="space-y-2 text-center">
-              <h3 className="text-2xl font-headline font-black tracking-tighter uppercase text-white">
-                Admin Portal
-              </h3>
-              <p className="text-[9px] text-[#fed488] uppercase tracking-widest font-bold">
-                6K Brand Management
-              </p>
-            </div>
-
-            <form onSubmit={handleSendOtp} className="space-y-6">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@stitch6k.in"
-                  className="w-full border-b border-white/20 focus:border-[#fed488] bg-transparent py-3 text-xs outline-none transition-colors rounded-none placeholder:text-white/20 text-white"
-                  required
-                />
-              </div>
-
-              {errorMsg && (
-                <div className="bg-red-950/50 text-red-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-red-900/50">
-                  {errorMsg}
-                </div>
-              )}
-              {infoMsg && (
-                <div className="bg-green-950/50 text-green-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-green-900/50">
-                  {infoMsg}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-black hover:bg-[#fed488] hover:text-black text-xs font-black uppercase tracking-[0.2em] py-4 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin h-3 w-3 border-2 border-black border-t-transparent rounded-full" />
-                    Sending...
-                  </span>
-                ) : (
-                  <>
-                    Send OTP
-                    <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="space-y-8 bg-white/5 p-8 border border-white/10 backdrop-blur-md rounded-none shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <div className="space-y-2 text-center">
-              <h3 className="text-2xl font-headline font-black tracking-tighter uppercase text-white">
-                Enter Code
-              </h3>
-              <p className="text-[9px] text-[#fed488] uppercase tracking-widest font-bold leading-relaxed">
-                Sent to <span className="text-white font-extrabold">{email}</span>
-              </p>
-              <div className="pt-1">
-                <button
-                  onClick={() => setStep(1)}
-                  className="text-[9px] font-black uppercase tracking-widest text-[#fed488] hover:underline"
-                >
-                  Change email
-                </button>
-              </div>
-            </div>
-
+        {/* Center Card */}
+        <div className="bg-[#121212] p-8 md:p-10 border border-[#BA7517] rounded-[4px] shadow-[0_8px_32px_rgba(0,0,0,0.7)]">
+          {step === 1 ? (
             <div className="space-y-6">
-              <div className="flex justify-between gap-2 max-w-[280px] mx-auto">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    type="text"
-                    ref={(el) => { inputRefs.current[idx] = el; }}
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(e.target.value, idx)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                    onPaste={handleOtpPaste}
-                    className="w-10 h-12 text-center border-b-2 border-white/20 focus:border-[#fed488] bg-transparent text-lg font-bold outline-none transition-colors text-white"
-                  />
-                ))}
+              <div className="space-y-1 text-center">
+                <h3 className="text-2xl font-black tracking-tight uppercase text-white">
+                  ADMIN PORTAL
+                </h3>
+                <p className="text-[10px] text-[#BA7517] font-bold uppercase tracking-widest">
+                  Authorized personnel only
+                </p>
               </div>
 
-              {errorMsg && (
-                <div className="bg-red-950/50 text-red-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-red-900/50">
-                  {errorMsg}
+              <form onSubmit={handleSendOtp} className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="e.g. admin@stitch6k.in"
+                      className="w-full h-[48px] pl-11 pr-11 border border-white/10 focus:border-[#BA7517] bg-black/40 text-white rounded-[4px] outline-none text-xs transition-colors placeholder:text-white/20"
+                      required
+                    />
+                    {isEmailValid && (
+                      <Check className="absolute right-4 top-1/2 -translate-y-1/2 text-[#BA7517] w-4 h-4" />
+                    )}
+                  </div>
                 </div>
-              )}
-              {infoMsg && (
-                <div className="bg-green-950/50 text-green-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-green-900/50">
-                  {infoMsg}
-                </div>
-              )}
 
-              <div className="pt-2 space-y-4">
+                {errorMsg && (
+                  <div className="bg-red-950/50 text-red-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-red-900/50 rounded-[4px]">
+                    {errorMsg}
+                  </div>
+                )}
+                {infoMsg && (
+                  <div className="bg-green-950/50 text-[#22c55e] text-[10px] font-bold uppercase tracking-widest p-4 border border-green-900/50 rounded-[4px]">
+                    {infoMsg}
+                  </div>
+                )}
+
                 <button
-                  type="button"
-                  onClick={() => handleVerifyCode()}
+                  type="submit"
                   disabled={loading}
-                  className="w-full bg-[#fed488] text-black hover:bg-[#dfb466] text-xs font-black uppercase tracking-[0.2em] py-4 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full h-[52px] bg-[#BA7517] hover:bg-[#a36413] text-white text-xs font-medium uppercase tracking-[0.1em] rounded-[4px] transition-all flex items-center justify-between px-6 disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin h-3 w-3 border-2 border-black border-t-transparent rounded-full" />
-                      Verifying...
-                    </span>
-                  ) : (
-                    <>
-                      Verify Code
-                      <span className="material-symbols-outlined text-xs">verified</span>
-                    </>
-                  )}
+                  <div className="w-4" />
+                  <span>{loading ? "Sending..." : "SEND OTP"}</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-1.5 text-center">
+                <h3 className="text-2xl font-black tracking-tight uppercase text-white">
+                  Check your email
+                </h3>
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider leading-relaxed">
+                  Enter the 6-digit code sent to <span className="text-white font-extrabold">{email}</span>
+                </p>
+                <div className="pt-2 text-center">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="text-[9px] font-black uppercase tracking-widest text-[#BA7517] hover:underline"
+                  >
+                    ← Change email
+                  </button>
+                </div>
+              </div>
 
-                <div className="text-center pt-2">
-                  {countdown > 0 ? (
-                    <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">
-                      Resend in {countdown}s
-                    </span>
-                  ) : (
-                    <button
-                      onClick={handleResendOtp}
-                      disabled={loading}
-                      className="text-[10px] text-[#fed488] hover:text-white font-black uppercase tracking-wider underline cursor-pointer disabled:opacity-50"
-                    >
-                      Resend code
-                    </button>
-                  )}
+              <div className="space-y-6">
+                <div className="flex justify-between gap-2 max-w-[280px] mx-auto">
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      type="text"
+                      ref={(el) => { inputRefs.current[idx] = el; }}
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(e.target.value, idx)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                      onPaste={handleOtpPaste}
+                      className="w-10 h-12 text-center border border-white/10 focus:border-[#BA7517] text-lg font-bold outline-none transition-colors rounded-[4px] bg-black/40 text-white"
+                    />
+                  ))}
+                </div>
+
+                {errorMsg && (
+                  <div className="bg-red-950/50 text-red-400 text-[10px] font-bold uppercase tracking-widest p-4 border border-red-900/50 rounded-[4px]">
+                    {errorMsg}
+                  </div>
+                )}
+                {infoMsg && (
+                  <div className="bg-green-950/50 text-[#22c55e] text-[10px] font-bold uppercase tracking-widest p-4 border border-green-900/50 rounded-[4px]">
+                    {infoMsg}
+                  </div>
+                )}
+
+                <div className="pt-2 space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyCode()}
+                    disabled={loading}
+                    className="w-full h-[52px] bg-[#BA7517] hover:bg-[#a36413] text-white text-xs font-medium uppercase tracking-[0.1em] rounded-[4px] transition-all flex items-center justify-between px-6 disabled:opacity-50 cursor-pointer"
+                  >
+                    <div className="w-4" />
+                    <span>{loading ? "Verifying..." : "Verify Code"}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <div className="text-center pt-2">
+                    {countdown > 0 ? (
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        Resend in {countdown}s
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                        className="text-[10px] text-[#BA7517] hover:text-white font-black uppercase tracking-wider underline cursor-pointer disabled:opacity-50"
+                      >
+                        Resend code
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Quick Mock Login Assist card for Development */}
+        {/* Back to store link */}
+        <Link 
+          href="/" 
+          className="text-[10px] text-gray-500 hover:text-white font-bold uppercase tracking-widest transition-colors duration-300 text-center block mt-6"
+        >
+          ← Back to store
+        </Link>
+
+        {/* Mock mode feedback */}
         {!isSupabaseConfigured && (
-          <div className="border-t border-white/10 pt-8 space-y-4">
-            <div className="flex items-center gap-2 text-amber-500">
+          <div className="border-t border-white/10 pt-6 space-y-2 text-center">
+            <div className="flex items-center justify-center gap-2 text-amber-500">
               <span className="material-symbols-outlined text-sm">info</span>
               <span className="text-[9px] font-black uppercase tracking-widest">Mock offline mode active</span>
             </div>
             <p className="text-[9px] text-white/40 font-bold uppercase leading-relaxed">
-              Supabase keys are missing. Use code <span className="font-extrabold text-white">123456</span> to log in as admin.
+              Supabase keys are missing. Use code <span className="font-extrabold text-white">123456</span> to log in.
             </p>
           </div>
         )}

@@ -43,7 +43,7 @@ export default function Footer({ business }: FooterProps) {
               Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
             </p>
             <Link
-              href="/admindashboard"
+              href="/admindashboard/login"
               className="inline-flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300"
             >
               <span className="material-symbols-outlined text-sm">admin_panel_settings</span>

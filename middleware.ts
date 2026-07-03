@@ -136,7 +136,7 @@ export async function middleware(request: NextRequest) {
 
     if (!user) {
       console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to login.`);
-      if (path.startsWith("/admindashboard")) {
+      if (path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login")) {
         url.pathname = "/admindashboard/login";
       } else {
         url.pathname = "/login";
@@ -169,7 +169,7 @@ export async function middleware(request: NextRequest) {
 
     if (!mockSession) {
       console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to login.`);
-      if (path.startsWith("/admindashboard")) {
+      if (path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login")) {
         url.pathname = "/admindashboard/login";
       } else {
         url.pathname = "/login";

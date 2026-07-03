@@ -10,11 +10,11 @@ export default async function AdminLayout({
   const user = await getServerUser();
 
   if (!user) {
-    redirect("/login?redirect=/admindashboard");
+    redirect("/admindashboard/login?redirect=/admindashboard");
   }
 
   if (user.role !== "admin") {
-    redirect("/myprofile?error=admin_required");
+    redirect("/admindashboard/login?error=admin_required");
   }
 
   return (

@@ -65,7 +65,7 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-  const isAdminRoute = path.startsWith("/admindashboard");
+  const isAdminRoute = path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login");
   const isProfileRoute = path.startsWith("/myprofile");
   const isCheckoutRoute = path.startsWith("/checkout");
   const isOrderHistoryRoute = path.startsWith("/orderhistory");
@@ -135,8 +135,12 @@ export async function middleware(request: NextRequest) {
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user) {
-      console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to /login.`);
-      url.pathname = "/login";
+      console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to login.`);
+      if (path.startsWith("/admindashboard")) {
+        url.pathname = "/admindashboard/login";
+      } else {
+        url.pathname = "/login";
+      }
       url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
@@ -151,7 +155,7 @@ export async function middleware(request: NextRequest) {
 
       if (!profile || profile.role !== "admin") {
         console.error(`[SECURITY VIOLATION] Unauthorized admin access attempt to "${path}" by user "${user.email}" (UID: ${user.id}) from IP ${ip}. Access denied.`);
-        url.pathname = "/myprofile";
+        url.pathname = "/admindashboard/login";
         url.searchParams.set("error", "admin_required");
         return NextResponse.redirect(url);
       }
@@ -164,15 +168,19 @@ export async function middleware(request: NextRequest) {
     const mockRole = request.cookies.get("mock_user_role")?.value;
 
     if (!mockSession) {
-      console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to /login.`);
-      url.pathname = "/login";
+      console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to login.`);
+      if (path.startsWith("/admindashboard")) {
+        url.pathname = "/admindashboard/login";
+      } else {
+        url.pathname = "/login";
+      }
       url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
 
     if (isAdminRoute && mockRole !== "admin") {
-      console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to root.`);
-      url.pathname = "/myprofile";
+      console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to admin login.`);
+      url.pathname = "/admindashboard/login";
       url.searchParams.set("error", "admin_required");
       return NextResponse.redirect(url);
     }

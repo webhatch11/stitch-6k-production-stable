@@ -309,10 +309,10 @@ export default function LoginPage() {
               {/* Header Title */}
               <div className="space-y-2 text-center">
                 <h3 className="text-3xl font-headline font-black tracking-tighter uppercase text-black">
-                  Sign in to your account
+                  Sign in to 6K Brand
                 </h3>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                  New here? We&apos;ll create your account automatically.
+                  Enter your email to receive a verification code
                 </p>
               </div>
 
@@ -365,7 +365,7 @@ export default function LoginPage() {
                     </span>
                   ) : (
                     <>
-                      Send OTP
+                      Send verification code
                       <span className="material-symbols-outlined text-xs">arrow_forward</span>
                     </>
                   )}
@@ -380,7 +380,7 @@ export default function LoginPage() {
                   Check your email
                 </h3>
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
-                  We sent a 6-digit code to <span className="text-black font-extrabold">{email}</span>
+                  Enter the 6-digit code sent to <span className="text-black font-extrabold">{email}</span>
                 </p>
                 <div className="pt-1">
                   <button

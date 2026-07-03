@@ -314,6 +314,9 @@ export default function LoginPage() {
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
                   Enter your email to receive a verification code
                 </p>
+                <p className="text-[9px] text-[#775a19]/80 uppercase tracking-wider font-extrabold pt-1">
+                  New here? We&apos;ll create your account automatically.
+                </p>
               </div>
 
               {/* Step 1 Form */}

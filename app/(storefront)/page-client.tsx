@@ -744,15 +744,30 @@ export default function HomeClient({
   };
 
 
-  const firstRowReviews = reviews.filter((_, i) => i % 2 === 0);
-  const secondRowReviews = reviews.filter((_, i) => i % 2 !== 0);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(3);
 
-  const getCardBg = (row: number, index: number) => {
-    const row1Colors = ["bg-[#fecaca]", "bg-[#fed7aa]", "bg-[#fef08a]", "bg-[#ccfbf1]", "bg-[#fbcfe8]"];
-    const row2Colors = ["bg-[#bbf7d0]", "bg-[#bfdbfe]", "bg-[#e9d5ff]", "bg-[#fbcfe8]", "bg-[#fed7aa]"];
-    const colors = row === 1 ? row1Colors : row2Colors;
-    return colors[index % colors.length];
-  };
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setItemsPerPage(3);
+      } else if (window.innerWidth >= 768) {
+        setItemsPerPage(2);
+      } else {
+        setItemsPerPage(1);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const maxIndex = Math.max(0, reviews.length - itemsPerPage);
+    if (slideIndex > maxIndex) {
+      setSlideIndex(maxIndex);
+    }
+  }, [itemsPerPage, reviews.length, slideIndex]);
 
   // Preloader transition
   useEffect(() => {
@@ -1778,7 +1793,7 @@ export default function HomeClient({
 
         {/* Section 5: Trust Section */}
         {((trustBadges === undefined || trustBadges === null) || (trustBadges?.enabled)) && (
-          <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-[#FAF9F8] border-t border-black/5 overflow-hidden">
+          <section className="py-12 px-4 md:px-8 lg:px-12 bg-white border-t border-b border-[#e5e5e5] overflow-hidden">
             <div className="max-w-[1400px] mx-auto">
               <motion.div 
                 initial="hidden"
@@ -1793,7 +1808,7 @@ export default function HomeClient({
                     }
                   }
                 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center"
+                className="flex flex-col md:flex-row items-center justify-around divide-y md:divide-y-0 md:divide-x divide-[#e5e5e5] w-full"
               >
                 {(trustBadges?.items && trustBadges.items.length > 0) ? (
                   trustBadges.items.map((badge: any, i: number) => {
@@ -1803,38 +1818,27 @@ export default function HomeClient({
                       if (name === 'package') return 'package_2';
                       return name;
                     };
-                    const getIconAnimationClass = (icon: string) => {
-                      const name = icon.toLowerCase();
-                      if (name.includes('handshake') || name.includes('flag')) return 'animate-handshake-shake';
-                      if (name.includes('package') || name.includes('shield')) return 'animate-package-bounce';
-                      if (name.includes('shipping') || name.includes('truck')) return 'animate-shipping-slide';
-                      return 'hover:scale-110';
-                    };
                     return (
                       <motion.div
                         key={i}
                         variants={{
-                          hidden: { opacity: 0, y: 30 },
-                          visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                          hidden: { opacity: 0, y: 20 },
+                          visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 1, 0.5, 1] } }
                         }}
-                        className="flex flex-col items-center group cursor-default"
+                        className="flex flex-col items-center text-center py-6 md:py-2 md:px-8 flex-1 w-full cursor-default"
                       >
-                        <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                          <span
-                            className={`material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 ${getIconAnimationClass(badge.icon)}`}
-                            style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                          >
-                            {getIconName(badge.icon)}
-                          </span>
-                        </div>
-                        <div className="px-4">
-                          <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                            {badge.title}
-                          </h4>
-                          <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                            {badge.description}
-                          </p>
-                        </div>
+                        <span
+                          className="material-symbols-outlined text-[32px] text-[#BA7517] mb-3"
+                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                        >
+                          {getIconName(badge.icon)}
+                        </span>
+                        <h4 className="text-[13px] font-semibold text-black uppercase tracking-[0.08em] mb-1.5">
+                          {badge.title}
+                        </h4>
+                        <p className="text-[12px] text-[#6b7280] leading-relaxed max-w-[280px] mx-auto">
+                          {badge.description}
+                        </p>
                       </motion.div>
                     );
                   })
@@ -1843,79 +1847,67 @@ export default function HomeClient({
                     {/* Point 1: Made In India */}
                     <motion.div
                       variants={{
-                        hidden: { opacity: 0, y: 30 },
-                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 1, 0.5, 1] } }
                       }}
-                      className="flex flex-col items-center group cursor-default"
+                      className="flex flex-col items-center text-center py-6 md:py-2 md:px-8 flex-1 w-full cursor-default"
                     >
-                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                        <span
-                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-handshake-shake"
-                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                        >
-                          handshake
-                        </span>
-                      </div>
-                      <div className="px-4">
-                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                          MADE IN INDIA
-                        </h4>
-                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                          Ethically crafted by master tailors using age-old Indian garment-making techniques.
-                        </p>
-                      </div>
+                      <span
+                        className="material-symbols-outlined text-[32px] text-[#BA7517] mb-3"
+                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                      >
+                        handshake
+                      </span>
+                      <h4 className="text-[13px] font-semibold text-black uppercase tracking-[0.08em] mb-1.5">
+                        MADE IN INDIA
+                      </h4>
+                      <p className="text-[12px] text-[#6b7280] leading-relaxed max-w-[280px] mx-auto">
+                        Ethically crafted by master tailors using age-old Indian garment-making techniques.
+                      </p>
                     </motion.div>
 
                     {/* Point 2: Premium Fabric */}
                     <motion.div
                       variants={{
-                        hidden: { opacity: 0, y: 30 },
-                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 1, 0.5, 1] } }
                       }}
-                      className="flex flex-col items-center group cursor-default"
+                      className="flex flex-col items-center text-center py-6 md:py-2 md:px-8 flex-1 w-full cursor-default"
                     >
-                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                        <span
-                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-package-bounce"
-                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                        >
-                          package_2
-                        </span>
-                      </div>
-                      <div className="px-4">
-                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                          PREMIUM FABRIC
-                        </h4>
-                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                          Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
-                        </p>
-                      </div>
+                      <span
+                        className="material-symbols-outlined text-[32px] text-[#BA7517] mb-3"
+                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                      >
+                        package_2
+                      </span>
+                      <h4 className="text-[13px] font-semibold text-black uppercase tracking-[0.08em] mb-1.5">
+                        PREMIUM FABRIC
+                      </h4>
+                      <p className="text-[12px] text-[#6b7280] leading-relaxed max-w-[280px] mx-auto">
+                        Sourced from the world's finest mills, focusing on Egyptian cotton and pure linens.
+                      </p>
                     </motion.div>
 
                     {/* Point 3: Fast Delivery */}
                     <motion.div
                       variants={{
-                        hidden: { opacity: 0, y: 30 },
-                        visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 1, 0.5, 1] } }
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 1, 0.5, 1] } }
                       }}
-                      className="flex flex-col items-center group cursor-default"
+                      className="flex flex-col items-center text-center py-6 md:py-2 md:px-8 flex-1 w-full cursor-default"
                     >
-                      <div className="w-20 h-12 md:w-28 md:h-16 bg-[#F2F2F2] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.05] group-hover:bg-white group-hover:shadow-[0_10px_20px_rgba(168,130,56,0.08)] group-hover:border-[#a88238]/30 rounded-sm mb-6 border border-black/5">
-                        <span
-                          className="material-symbols-outlined text-[28px] md:text-[32px] text-[#a88238] transition-colors duration-300 animate-shipping-slide"
-                          style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
-                        >
-                          local_shipping
-                        </span>
-                      </div>
-                      <div className="px-4">
-                        <h4 className="font-sans font-bold uppercase tracking-[0.25em] text-xs md:text-sm text-neutral-900 mb-3">
-                          FAST DELIVERY
-                        </h4>
-                        <p className="text-neutral-500 text-xs md:text-xs leading-relaxed max-w-[280px] mx-auto">
-                          Express shipping across India. Your heritage piece arrives at your doorstep in 3-7 business days.
-                        </p>
-                      </div>
+                      <span
+                        className="material-symbols-outlined text-[32px] text-[#BA7517] mb-3"
+                        style={{ fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 40" }}
+                      >
+                        local_shipping
+                      </span>
+                      <h4 className="text-[13px] font-semibold text-black uppercase tracking-[0.08em] mb-1.5">
+                        FAST DELIVERY
+                      </h4>
+                      <p className="text-[12px] text-[#6b7280] leading-relaxed max-w-[280px] mx-auto">
+                        Express shipping across India. Your heritage piece arrives at your doorstep in 3-7 business days.
+                      </p>
                     </motion.div>
                   </>
                 )}
@@ -1925,7 +1917,7 @@ export default function HomeClient({
         )}
 
         {/* Section 6: Social Proof (Global Reach) */}
-        <section className="py-16 md:py-24 bg-[#F9FAFB] relative overflow-hidden px-4 md:px-8 lg:px-12">
+        <section className="py-16 md:py-24 bg-[#f9f9f9] relative overflow-hidden px-4 md:px-8 lg:px-12">
           <div className="w-full relative z-10">
             {/* Header Centered block with standard padding */}
             <motion.div
@@ -1935,346 +1927,235 @@ export default function HomeClient({
               transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
               className="max-w-[1400px] mx-auto text-center mb-12 md:mb-16"
             >
-              <p className="text-secondary font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
+              <p className="text-[#BA7517] font-label text-[10px] uppercase tracking-[0.4em] mb-4 text-center">
                 Born in Tamil Nadu. Worn Worldwide.
               </p>
-              <h2 className="font-headline text-2xl md:text-4xl font-black text-black mb-4 uppercase tracking-tight text-center">
+              <h2 className="font-headline text-2xl md:text-4xl font-black text-[#0a0a0a] mb-4 uppercase tracking-tight text-center">
                 FROM OUR LOOMS
                 <br />
                 TO THE WORLD.
               </h2>
-              <p className="text-neutral-500 max-w-xl mx-auto text-xs md:text-sm leading-relaxed mb-8 text-center">
+              <p className="text-[#555] max-w-[480px] mx-auto text-[16px] leading-[1.8] mb-8 text-center">
                 We handcraft every premium shirt in our Tamil Nadu workshop, shipping absolute luxury to discerning gentlemen across India and across the globe.
               </p>
               
               {/* Trust Badges */}
-              <div className="flex justify-center items-center gap-6 flex-wrap mt-6">
-                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-outline">
-                  <span className="material-symbols-outlined text-secondary text-xl">flight_takeoff</span>
-                  <span>International Shipping</span>
+              <div className="flex justify-center items-center gap-12 flex-wrap mt-8">
+                <div className="flex flex-col items-center text-center">
+                  <span className="material-symbols-outlined text-[32px] text-[#BA7517] mb-2">flight_takeoff</span>
+                  <span className="text-[13px] font-semibold text-[#0a0a0a] uppercase tracking-[0.08em]">International Shipping</span>
                 </div>
-                <div className="hidden md:block w-1.5 h-1.5 bg-outline/30 rounded-full"></div>
-                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-widest text-outline">
-                  <span className="material-symbols-outlined text-secondary text-xl">verified</span>
-                  <span>10k+ Happy Customers</span>
+                <div className="flex flex-col items-center text-center">
+                  <span className="material-symbols-outlined text-[32px] text-[#BA7517] mb-2">workspace_premium</span>
+                  <span className="text-[13px] font-semibold text-[#0a0a0a] uppercase tracking-[0.08em]">Handcrafted with Care</span>
                 </div>
               </div>
             </motion.div>
 
-            {/* Marquee Rows Container */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="w-full flex flex-col gap-4 overflow-hidden mb-12"
-            >
-              {/* Row 1 (Left) */}
-              <div className="marquee-container w-full overflow-hidden relative py-2">
-                <div className="flex gap-6 w-max animate-marquee">
-                  {firstRowReviews.map((rev, idx) => (
-                    <div
-                      key={rev.id}
-                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(1, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
-                    >
+            {/* Reviews Carousel Grid */}
+            <div className="max-w-[1400px] mx-auto overflow-hidden relative px-4">
+              <div 
+                className="flex transition-transform duration-500 ease-out -mx-[10px]"
+                style={{ transform: `translateX(-${slideIndex * (100 / itemsPerPage)}%)` }}
+              >
+                {reviews.map((rev) => (
+                  <div 
+                    key={rev.id} 
+                    className="w-full md:w-1/2 lg:w-1/3 px-[10px] shrink-0"
+                  >
+                    <div className="bg-white p-6 border border-[#e5e5e5] rounded-[8px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex flex-col justify-between h-full min-h-[220px]">
                       <div>
-                        {/* Rating Stars and Quotes */}
+                        {/* Top row: stars + verified badge */}
                         <div className="flex justify-between items-center mb-4">
-                          <div className="flex gap-0.5 text-secondary">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <span
-                                key={i}
-                                className="material-symbols-outlined text-xs select-none"
-                                style={{ fontVariationSettings: "'FILL' 1" }}
-                              >
-                                star
-                              </span>
-                            ))}
+                          <span className="text-[#BA7517] text-[16px] tracking-wider">★★★★★</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+                            <span className="text-[11px] text-gray-500 font-medium">Verified Purchase</span>
                           </div>
-                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
-                            ”
-                          </span>
                         </div>
-                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
-                          &ldquo;{rev.comment}&rdquo;
+                        
+                        {/* Review text */}
+                        <p className="text-[15px] text-[#1a1a1a] font-normal leading-[1.6] mb-6 text-left">
+                          "{rev.comment}"
                         </p>
                       </div>
                       
-                      {/* User Info (No Avatar) */}
-                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
-                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
+                      {/* Bottom row: name + location */}
+                      <div className="flex justify-between items-center mt-auto pt-4 border-t border-[#e5e5e5]">
+                        <span className="text-[13px] font-semibold text-[#1a1a1a] uppercase tracking-wider">
                           {rev.name}
-                        </p>
-                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
+                        </span>
+                        <span className="text-[12px] text-[#9ca3af]">
                           {rev.location}
-                        </p>
+                        </span>
                       </div>
                     </div>
-                  ))}
-                  {/* Duplicated items for infinite marquee loop */}
-                  {firstRowReviews.map((rev, idx) => (
-                    <div
-                      key={`${rev.id}-dup1`}
-                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(1, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
-                    >
-                      <div>
-                        {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex gap-0.5 text-secondary">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <span
-                                key={i}
-                                className="material-symbols-outlined text-xs select-none"
-                                style={{ fontVariationSettings: "'FILL' 1" }}
-                              >
-                                star
-                              </span>
-                            ))}
-                          </div>
-                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
-                            ”
-                          </span>
-                        </div>
-                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
-                          &ldquo;{rev.comment}&rdquo;
-                        </p>
-                      </div>
-                      
-                      {/* User Info (No Avatar) */}
-                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
-                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                          {rev.name}
-                        </p>
-                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                          {rev.location}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Row 2 (Right) */}
-              <div className="marquee-container w-full overflow-hidden relative py-2">
-                <div className="flex gap-6 w-max animate-marquee-reverse">
-                  {secondRowReviews.map((rev, idx) => (
-                    <div
-                      key={rev.id}
-                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(2, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
-                    >
-                      <div>
-                        {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex gap-0.5 text-secondary">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <span
-                                key={i}
-                                className="material-symbols-outlined text-xs select-none"
-                                style={{ fontVariationSettings: "'FILL' 1" }}
-                              >
-                                star
-                              </span>
-                            ))}
-                          </div>
-                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
-                            ”
-                          </span>
-                        </div>
-                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
-                          &ldquo;{rev.comment}&rdquo;
-                        </p>
-                      </div>
-                      
-                      {/* User Info (No Avatar) */}
-                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
-                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                          {rev.name}
-                        </p>
-                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                          {rev.location}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {/* Duplicated items for infinite marquee loop */}
-                  {secondRowReviews.map((rev, idx) => (
-                    <div
-                      key={`${rev.id}-dup2`}
-                      className={`w-[290px] md:w-[320px] shrink-0 ${getCardBg(2, idx)} rounded-[1.25rem] p-6 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.015)] border border-black/5 hover:scale-[1.02] transition-transform duration-300 select-none`}
-                    >
-                      <div>
-                        {/* Rating Stars and Quotes */}
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex gap-0.5 text-secondary">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <span
-                                key={i}
-                                className="material-symbols-outlined text-xs select-none"
-                                style={{ fontVariationSettings: "'FILL' 1" }}
-                              >
-                                star
-                              </span>
-                            ))}
-                          </div>
-                          <span className="font-headline text-2xl font-black text-[#775a19]/25 leading-none select-none">
-                            ”
-                          </span>
-                        </div>
-                        <p className="font-sans text-[12px] md:text-[13px] font-semibold leading-relaxed mb-5 text-neutral-800 text-left">
-                          &ldquo;{rev.comment}&rdquo;
-                        </p>
-                      </div>
-                      
-                      {/* User Info (No Avatar) */}
-                      <div className="flex flex-col text-left mt-auto pt-2 border-t border-black/5">
-                        <p className="font-sans font-bold text-[11px] md:text-[12px] uppercase tracking-wider text-neutral-900 leading-tight">
-                          {rev.name}
-                        </p>
-                        <p className="font-sans text-[8px] md:text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-0.5">
-                          {rev.location}
-                        </p>
-                      </div>
-                    </div>
+              {/* Navigation dots */}
+              {Math.max(0, reviews.length - itemsPerPage) > 0 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  {Array.from({ length: reviews.length - itemsPerPage + 1 }).map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSlideIndex(idx)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                        slideIndex === idx ? "bg-[#BA7517] scale-110" : "bg-neutral-300 hover:bg-neutral-400"
+                      }`}
+                      aria-label={`Go to slide ${idx + 1}`}
+                    />
                   ))}
                 </div>
-              </div>
-            </motion.div>
+              )}
+            </div>
 
             {/* Form Button & Drawer inside centered container */}
             <div className="max-w-[1400px] mx-auto">
-            <div className="flex justify-center mt-12">
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                suppressHydrationWarning={true}
-                className="bg-transparent border border-secondary/50 text-[#775a19] px-8 py-3.5 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 rounded-none relative overflow-hidden group"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">rate_review</span>
-                  {showAddForm ? "Close Form" : "Share Your Experience"}
-                </span>
-                <span className="absolute inset-0 bg-[#775a19] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></span>
-              </button>
+              <div className="text-center py-16 space-y-6">
+                <div className="space-y-2">
+                  <h4 className="text-[14px] font-black uppercase tracking-[0.1em] text-[#BA7517]">
+                    LOVED YOUR PURCHASE?
+                  </h4>
+                  <p className="text-[13px] text-[#6b7280]">
+                    Share your experience and help others discover 6K Brand
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    suppressHydrationWarning={true}
+                    className="bg-transparent border border-[#BA7517] text-[#BA7517] px-[28px] py-[12px] text-xs font-black uppercase tracking-widest hover:bg-[#BA7517] hover:text-white transition-all duration-300 rounded-none relative overflow-hidden group"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">rate_review</span>
+                      {showAddForm ? "Close Form" : "Share Your Experience"}
+                    </span>
+                    <span className="absolute inset-0 bg-[#BA7517] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Interactive Review Drawer */}
+              <AnimatePresence>
+                {showAddForm && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                    animate={{ height: "auto", opacity: 1, marginTop: 32 }}
+                    exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="overflow-hidden max-w-2xl mx-auto border border-outline-variant/30 bg-surface-container-low p-8 relative rounded-none shadow-lg"
+                  >
+                    <h3 className="font-headline text-lg font-black uppercase tracking-wider mb-6 text-on-surface text-center">
+                      Leave a Review
+                    </h3>
+                    <form onSubmit={handleReviewSubmit} className="space-y-6">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2 text-center">
+                          Rating
+                        </label>
+                        <div className="flex justify-center gap-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <motion.button
+                              key={star}
+                              type="button"
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => setNewRating(star)}
+                              onMouseEnter={() => setNewHoverRating(star)}
+                              onMouseLeave={() => setNewHoverRating(null)}
+                              className="text-2xl text-[#BA7517] bg-transparent border-none cursor-pointer p-1"
+                            >
+                              <span className="material-symbols-outlined">
+                                {star <= (newHoverRating !== null ? newHoverRating : newRating) ? "star" : "star_rate"}
+                              </span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label htmlFor="reviewerName" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                            Full Name
+                          </label>
+                          <input
+                            id="reviewerName"
+                            type="text"
+                            required
+                            placeholder="e.g. Aditya Verma"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="reviewerLocation" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                            Location
+                          </label>
+                          <input
+                            id="reviewerLocation"
+                            type="text"
+                            required
+                            placeholder="e.g. Bengaluru, India"
+                            value={newLocation}
+                            onChange={(e) => setNewLocation(e.target.value)}
+                            className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="reviewerComment" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
+                          Review
+                        </label>
+                        <textarea
+                          id="reviewerComment"
+                          required
+                          rows={4}
+                          maxLength={300}
+                          placeholder="Share your thoughts on the fabrics, fit, and craftsmanship..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          className="w-full bg-surface border border-outline-variant/30 focus:border-secondary p-4 text-xs font-medium outline-none text-on-surface transition-all"
+                        />
+                        <div className="text-right text-[9px] font-bold text-outline uppercase tracking-wider mt-1">
+                          {newComment.length}/300 characters
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <button
+                          type="submit"
+                          disabled={submittingReview}
+                          className="bg-on-surface text-surface px-12 py-4 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 disabled:opacity-50"
+                        >
+                          {submittingReview ? "Submitting..." : "Submit Review"}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Dynamic Toast Success Banner */}
+              <AnimatePresence>
+                {showSuccessMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
+                    animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                    exit={{ opacity: 0, y: 20, scale: 0.9, x: "-50%" }}
+                    className="fixed bottom-10 left-1/2 bg-black border border-secondary/50 text-white px-8 py-4 z-[999] shadow-2xl flex items-center gap-3 rounded-none"
+                  >
+                    <span className="material-symbols-outlined text-secondary">check_circle</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      Thank you! Your review has been submitted.
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-
-            {/* Interactive Review Drawer */}
-            <AnimatePresence>
-              {showAddForm && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                  animate={{ height: "auto", opacity: 1, marginTop: 32 }}
-                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  className="overflow-hidden max-w-2xl mx-auto border border-outline-variant/30 bg-surface-container-low p-8 relative rounded-none shadow-lg"
-                >
-                  <h3 className="font-headline text-lg font-black uppercase tracking-wider mb-6 text-on-surface text-center">
-                    Leave a Review
-                  </h3>
-                  <form onSubmit={handleReviewSubmit} className="space-y-6">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2 text-center">
-                        Rating
-                      </label>
-                      <div className="flex justify-center gap-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <motion.button
-                            key={star}
-                            type="button"
-                            whileHover={{ scale: 1.2 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => setNewRating(star)}
-                            onMouseEnter={() => setNewHoverRating(star)}
-                            onMouseLeave={() => setNewHoverRating(null)}
-                            className="text-2xl text-[#775a19] bg-transparent border-none cursor-pointer p-1"
-                          >
-                            <span className="material-symbols-outlined">
-                              {star <= (newHoverRating !== null ? newHoverRating : newRating) ? "star" : "star_rate"}
-                            </span>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label htmlFor="reviewerName" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
-                          Full Name
-                        </label>
-                        <input
-                          id="reviewerName"
-                          type="text"
-                          required
-                          placeholder="e.g. Aditya Verma"
-                          value={newName}
-                          onChange={(e) => setNewName(e.target.value)}
-                          className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="reviewerLocation" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
-                          Location
-                        </label>
-                        <input
-                          id="reviewerLocation"
-                          type="text"
-                          required
-                          placeholder="e.g. Bengaluru, India"
-                          value={newLocation}
-                          onChange={(e) => setNewLocation(e.target.value)}
-                          className="w-full bg-surface border-b border-outline-variant focus:border-secondary p-3 text-xs font-bold uppercase tracking-wider outline-none text-on-surface transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="reviewerComment" className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2">
-                        Review
-                      </label>
-                      <textarea
-                        id="reviewerComment"
-                        required
-                        rows={4}
-                        maxLength={300}
-                        placeholder="Share your thoughts on the fabrics, fit, and craftsmanship..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="w-full bg-surface border border-outline-variant/30 focus:border-secondary p-4 text-xs font-medium outline-none text-on-surface transition-all"
-                      />
-                      <div className="text-right text-[9px] font-bold text-outline uppercase tracking-wider mt-1">
-                        {newComment.length}/300 characters
-                      </div>
-                    </div>
-
-                    <div className="flex justify-center">
-                      <button
-                        type="submit"
-                        disabled={submittingReview}
-                        className="bg-on-surface text-surface px-12 py-4 text-xs font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all duration-300 disabled:opacity-50"
-                      >
-                        {submittingReview ? "Submitting..." : "Submit Review"}
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Dynamic Toast Success Banner */}
-            <AnimatePresence>
-              {showSuccessMessage && (
-                <motion.div
-                  initial={{ opacity: 0, y: 50, scale: 0.9, x: "-50%" }}
-                  animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-                  exit={{ opacity: 0, y: 20, scale: 0.9, x: "-50%" }}
-                  className="fixed bottom-10 left-1/2 bg-black border border-secondary/50 text-white px-8 py-4 z-[999] shadow-2xl flex items-center gap-3 rounded-none"
-                >
-                  <span className="material-symbols-outlined text-secondary">check_circle</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    Thank you! Your review has been submitted.
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
           </div>
         </section>
       </main>

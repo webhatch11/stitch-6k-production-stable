@@ -1953,21 +1953,30 @@ export default function HomeClient({
             </motion.div>
 
             {/* Reviews Carousel Grid */}
-            <div className="max-w-[1400px] mx-auto overflow-hidden relative px-4">
+            <div className="max-w-[1400px] mx-auto overflow-hidden relative px-0 md:px-4">
               <div 
-                className="flex transition-transform duration-500 ease-out -mx-[10px]"
+                className="flex transition-transform duration-500 ease-out mx-0 md:-mx-[10px]"
                 style={{ transform: `translateX(-${slideIndex * (100 / itemsPerPage)}%)` }}
               >
                 {reviews.map((rev) => (
                   <div 
                     key={rev.id} 
-                    className="w-full md:w-1/2 lg:w-1/3 px-[10px] shrink-0"
+                    className="w-full md:w-1/2 lg:w-1/3 px-4 md:px-[10px] shrink-0"
                   >
                     <div className="bg-white p-6 border border-[#e5e5e5] rounded-[8px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex flex-col justify-between h-full min-h-[220px]">
                       <div>
                         {/* Top row: stars + verified badge */}
                         <div className="flex justify-between items-center mb-4">
-                          <span className="text-[#BA7517] text-[16px] tracking-wider">★★★★★</span>
+                          <div className="flex gap-0.5 text-[16px] tracking-wider">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span 
+                                key={i} 
+                                className={i < (rev.rating ?? 5) ? "text-[#BA7517]" : "text-neutral-300"}
+                              >
+                                ★
+                              </span>
+                            ))}
+                          </div>
                           <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
                             <span className="text-[11px] text-gray-500 font-medium">Verified Purchase</span>

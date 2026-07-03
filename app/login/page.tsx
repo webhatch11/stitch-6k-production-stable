@@ -215,14 +215,39 @@ export default function LoginPage() {
 
       setInfoMsg("Signed in successfully. Redirecting...");
 
-      const redirectTo = new URLSearchParams(window.location.search).get("redirect");
-      router.refresh();
-      if (redirectTo === "checkout" || redirectTo === "/checkout") {
-        router.push("/checkout");
-      } else if (redirectTo) {
-        router.push(redirectTo);
+      let userRole = "customer";
+      if (isSupabaseConfigured && supabase) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", authUser.id)
+            .maybeSingle();
+          if (profile?.role) {
+            userRole = profile.role;
+          }
+        }
       } else {
-        router.push("/");
+        const mockProfile = localStorage.getItem("mock_user_profile");
+        if (mockProfile) {
+          const parsed = JSON.parse(mockProfile);
+          userRole = parsed.role || "customer";
+        }
+      }
+
+      router.refresh();
+      if (userRole === "admin") {
+        router.push("/admindashboard");
+      } else {
+        const redirectTo = new URLSearchParams(window.location.search).get("redirect");
+        if (redirectTo === "checkout" || redirectTo === "/checkout") {
+          router.push("/checkout");
+        } else if (redirectTo) {
+          router.push(redirectTo);
+        } else {
+          router.push("/");
+        }
       }
     } catch (err: any) {
       console.error("Verification Error:", err);

@@ -56,9 +56,11 @@ export default function Navbar() {
             user_metadata: { full_name: parsed.name },
           } as any);
         }
+      } else {
+        setUser(null);
       }
     }
-  }, []);
+  }, [pathname]);
 
   const handleSignOut = async () => {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {

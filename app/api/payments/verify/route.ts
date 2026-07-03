@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
       console.error("[verify] dispatchFulfillment failed:", e);
     }
 
-    return NextResponse.json({ success: true, message: "Payment verified successfully" });
+    return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 
   } catch (error: any) {
     console.error("Payment Verification Error:", error);

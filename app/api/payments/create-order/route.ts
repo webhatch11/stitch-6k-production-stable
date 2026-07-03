@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { verifyAndPrepareGatewayCheckoutAction } from "@/app/actions/checkout";
 import { z } from "zod";
 import { supabaseService as supabase } from "@/lib/supabase-service";
+import { getServerUser } from "@/lib/supabase-server";
 
 const createOrderSchema = z.object({
   cart: z.array(z.any()).min(1),
@@ -21,6 +22,8 @@ const createOrderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getServerUser();
+    const user_id = user?.id || undefined;
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
 
@@ -133,6 +136,8 @@ export async function POST(req: NextRequest) {
       cartItems: checkoutState.cartItems,
       paymentStatus: "PAYMENT_PENDING",
       address_snapshot: checkoutState.addressSnapshot ?? null,
+      userId: user_id,
+      user_id: user_id,
     };
 
     await db.saveOrder(orderData);

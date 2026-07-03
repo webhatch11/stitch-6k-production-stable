@@ -502,6 +502,10 @@ export const db = {
     return this.getOrders(userId);
   },
 
+  async getOrder(orderId: string): Promise<Order | null> {
+    return this.getOrderById(orderId);
+  },
+
   async getOrderById(orderId: string): Promise<Order | null> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
@@ -592,7 +596,7 @@ export const db = {
     if (order.idempotencyKey !== undefined) dbPayload.idempotency_key = order.idempotencyKey;
     if (order.cartItems !== undefined) dbPayload.cart_items = order.cartItems;
     if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
-    if (order.userId !== undefined) dbPayload.user_id = order.userId;
+    if (order.userId !== undefined || order.user_id !== undefined) dbPayload.user_id = order.userId || order.user_id;
     if (order.address_snapshot !== undefined) dbPayload.address_snapshot = order.address_snapshot;
 
     if (isExisting) {
@@ -621,7 +625,7 @@ export const db = {
         idempotency_key: order.idempotencyKey || orderId,
         cart_items: order.cartItems || [],
         payment_status: order.paymentStatus || "PENDING",
-        user_id: order.userId || null,
+        user_id: order.userId || order.user_id || null,
         address_snapshot: order.address_snapshot ?? null,
         ...dbPayload
       };

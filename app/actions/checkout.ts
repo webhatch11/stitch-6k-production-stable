@@ -42,6 +42,9 @@ export async function processWalletPointsCheckoutAction(payload: {
     userId,
   } = payload;
 
+  const user = await getServerUser();
+  const user_id = user?.id || userId || undefined;
+
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };
   }
@@ -190,6 +193,8 @@ export async function processWalletPointsCheckoutAction(payload: {
     items: cart.map((item) => item.productName),
     cartItems: cart,
     address_snapshot: addressSnapshot,
+    userId: user_id,
+    user_id: user_id,
   };
 
   let savedOrder;
@@ -362,6 +367,9 @@ export async function processCodCheckoutAction(payload: {
     pincode,
   } = payload;
 
+  const user = await getServerUser();
+  const user_id = user?.id || userId || undefined;
+
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };
   }
@@ -516,6 +524,8 @@ export async function processCodCheckoutAction(payload: {
     items: cart.map((item) => item.productName),
     cartItems: cart,
     address_snapshot: addressSnapshot,
+    userId: user_id,
+    user_id: user_id,
   };
 
   let savedOrder;

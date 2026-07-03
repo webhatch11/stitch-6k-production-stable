@@ -91,6 +91,7 @@ export interface Order {
   cartItems?: any[];
   paymentStatus?: string;
   userId?: string;
+  user_id?: string;
   address_snapshot?: any;
   refund_id?: string;
   refund_amount?: number;

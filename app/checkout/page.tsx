@@ -346,7 +346,7 @@ export default function CheckoutPage() {
 
         triggerToast("Order placed successfully!");
         setTimeout(() => {
-          router.push("/orderconfirmed");
+          router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
         }, 1000);
       } else if (paymentMethod === "cod") {
         // Cash on Delivery Placement
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
           triggerToast("✓ COD Order placed successfully!");
           setProcessingPayment(false);
           setTimeout(() => {
-            router.push("/orderconfirmed");
+            router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
           }, 1000);
 
         } catch (err: any) {
@@ -471,7 +471,7 @@ export default function CheckoutPage() {
 
                 if (verifyData.success) {
                    useCartStore.getState().clearCart();
-                   router.push("/orderconfirmed");
+                   router.push(`/orderconfirmed?orderId=${verifyData.orderId}`);
                 } else {
                    setProcessingPayment(false);
                    setPaymentFailureError(verifyData.error || "Payment verification failed.");

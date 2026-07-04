@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
         stream: false,
         worker_threads: false,
       };
+    } else {
+      config.externals = [
+        ...(config.externals || []),
+        "bullmq",
+        "ioredis"
+      ];
     }
     return config;
   },

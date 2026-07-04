@@ -235,6 +235,64 @@ export async function POST(req: NextRequest) {
       console.error("[verify] dispatchFulfillment failed:", e);
     }
 
+    // j. Send Order Confirmation Email
+    try {
+      let customerEmail = dbOrder.address_snapshot?.email || "";
+      if (!customerEmail && dbOrder.user_id && supabase) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", dbOrder.user_id)
+          .maybeSingle();
+        if (profile?.email) {
+          customerEmail = profile.email;
+        }
+      }
+
+      if (customerEmail) {
+        const { sendOrderConfirmationEmail } = await import("@/lib/email");
+        
+        // Group cart items to compute quantities for duplicates
+        const rawItems = dbOrder.cart_items || [];
+        const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
+        for (const item of rawItems) {
+          const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
+          if (groupedMap.has(key)) {
+            groupedMap.get(key)!.quantity += 1;
+          } else {
+            groupedMap.set(key, {
+              productName: item.productName || item.title || "Product",
+              size: item.size || "Free Size",
+              quantity: 1,
+              price: Number(item.price || 0),
+            });
+          }
+        }
+        const groupedItems = Array.from(groupedMap.values());
+
+        const addr = dbOrder.address_snapshot;
+        const addressStr = addr
+          ? [addr.name, addr.phone, addr.address_line_1, addr.address_line_2, `${addr.city} - ${addr.postal_code}`, addr.state, addr.country]
+              .filter(Boolean)
+              .join(", ")
+          : "No address details available";
+
+        await sendOrderConfirmationEmail({
+          id: dbOrder.id,
+          customerName: dbOrder.customer || "Valued Customer",
+          customerEmail,
+          items: groupedItems,
+          total: Number(dbOrder.total || 0),
+          address: addressStr
+        });
+        console.log(`[Email] Order confirmation email successfully sent for order #${dbOrder.id} to ${customerEmail}`);
+      } else {
+        console.warn(`[Email] Could not resolve customer email for order #${dbOrder.id}. Email sending skipped.`);
+      }
+    } catch (emailError) {
+      console.error("[Email] Order confirmation email failed:", emailError);
+    }
+
     return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 
   } catch (error: any) {

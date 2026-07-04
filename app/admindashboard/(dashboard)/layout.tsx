@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/supabase-server";
-import AdminSidebar from "./AdminSidebar";
+import AdminSidebar from "../AdminSidebar";
 
 export default async function AdminLayout({
   children,

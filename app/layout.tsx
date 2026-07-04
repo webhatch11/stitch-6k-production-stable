@@ -3,6 +3,9 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"
+  ),
   title: "Stitch 6K | Predefining Luxury",
   description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India. Limited batches, precision tailored.",
   keywords: ["luxury shirts", "GEN-Z streetwear", "linen shirts", "premium cotton", "Stitch 6K", "menswear", "South India"],

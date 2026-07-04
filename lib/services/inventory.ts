@@ -177,11 +177,10 @@ export const InventoryService = {
       // Filter from preloaded variants
       const productVariants = allVariants.filter((v) => v.productId === product.id);
       const variant =
-        // Step 1: exact color match (case insensitive)
-        productVariants.find(
-          (v) =>
-            v.size === size &&
-            v.color.toLowerCase() === color.toLowerCase()
+        // Step 1: exact color match
+        productVariants.find((v) =>
+          v.size === size &&
+          (v.color || "").toLowerCase() === color.toLowerCase()
         ) ||
         // Step 2: same size, highest stock color
         productVariants

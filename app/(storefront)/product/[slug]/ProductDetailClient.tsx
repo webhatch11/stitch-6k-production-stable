@@ -111,7 +111,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
       price: product.price,
       size: selectedSize,
       image: activeImg || product.image,
-      color: selectedColor || "Default",
+      color: selectedColor || product.colors?.[0] || "Default",
     }, quantity);
 
     // Trigger cart badge bounce micro-animation

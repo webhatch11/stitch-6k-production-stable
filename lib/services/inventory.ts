@@ -176,15 +176,24 @@ export const InventoryService = {
 
       // Filter from preloaded variants
       const productVariants = allVariants.filter((v) => v.productId === product.id);
-      let variant = productVariants.find((v) => v.size === size && v.color.toLowerCase() === color.toLowerCase());
+      const variant =
+        // Step 1: exact color match (case insensitive)
+        productVariants.find(
+          (v) =>
+            v.size === size &&
+            v.color.toLowerCase() === color.toLowerCase()
+        ) ||
+        // Step 2: same size, highest stock color
+        productVariants
+          .filter((v) => v.size === size && v.stock > 0)
+          .sort((a, b) => b.stock - a.stock)[0] ||
+        // Step 3: same size, any color any stock
+        productVariants.find((v) => v.size === size) ||
+        // Step 4: null — throw error
+        null;
 
       if (!variant) {
-        // Fallback: try finding first available variant for that size
-        variant = productVariants.find((v) => v.size === size);
-      }
-
-      if (!variant) {
-        errors.push(`Variant not found: ${product.id} ${size}/${color}`);
+        errors.push(`Variant not found: ${product.id} ${size}`);
         continue;
       }
 

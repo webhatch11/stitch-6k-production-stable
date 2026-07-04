@@ -129,10 +129,16 @@ async function attachVariantsToProducts(products: Product[]): Promise<Product[]>
       0
     );
 
+    // Derive available colors dynamically from variants
+    const derivedColors = Array.from(new Set(variants.map((v) => v.color).filter(Boolean)));
+    const finalColors = variants.length > 0 ? derivedColors : p.colors;
+    const safeColors = finalColors && finalColors.length > 0 ? finalColors : ["Default"];
+
     return {
       ...p,
       sizeStock: finalSizeStock,
       stock: totalStock,
+      colors: safeColors,
       variants,
     };
   });

@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | Stitch 6K",
+  description: "How Stitch 6K collects, uses and protects your personal data across orders, payments and delivery.",
+};
 
 export default function PrivacyPage() {
   return (

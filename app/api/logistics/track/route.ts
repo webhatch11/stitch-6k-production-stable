@@ -2,7 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { shiprocket } from "@/lib/shiprocket";
 import { supabaseService as supabase } from "@/lib/supabase-service";
+import { getServerUser } from "@/lib/supabase-server";
 import { ShipmentEvent } from "@/lib/registry";
+
+// Only the fields the tracking UI needs — never the full order row, which
+// contains the address snapshot, contact details and payment breakdown.
+function sanitizeOrderForTracking(order: any) {
+  return {
+    id: order.id,
+    status: order.status,
+    date: order.date,
+    items: order.items,
+    shiprocketId: order.shiprocketId || null,
+    returnRequestDate: order.returnRequestDate || null,
+    returnReason: order.returnReason || null,
+    returnImage: order.returnImage || null,
+    returnDate: order.returnDate || null,
+    refundOption: order.refundOption || null,
+  };
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,16 +35,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let order = null;
-    const orders = await db.getOrders();
+    const user = await getServerUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please log in to track orders." },
+        { status: 401 }
+      );
+    }
 
+    // Indexed lookups — never scan the whole orders table per request
+    let order = null;
     if (orderId) {
-      order = orders.find((o) => o.id.toUpperCase() === orderId.toUpperCase());
+      order = (await db.getOrderById(orderId)) || (await db.getOrderById(orderId.toUpperCase()));
     } else if (awb) {
-      order = orders.find((o) => o.shiprocketId === awb);
+      order = await db.getOrderByAwb(awb);
     }
 
     if (!order) {
+      return NextResponse.json(
+        { success: false, error: "Order not found." },
+        { status: 404 }
+      );
+    }
+
+    // Ownership check: customers can only track their own orders. Respond 404
+    // (not 403) so order IDs cannot be enumerated.
+    const orderOwnerId = (order as any).user_id || (order as any).userId;
+    if (user.role !== "admin" && orderOwnerId && orderOwnerId !== user.id) {
       return NextResponse.json(
         { success: false, error: "Order not found." },
         { status: 404 }
@@ -136,7 +171,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      order,
+      order: sanitizeOrderForTracking(order),
       shipment: shipment || {
         order_id: order.id,
         status: order.status,

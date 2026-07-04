@@ -532,6 +532,25 @@ export const db = {
     return data ? mapDbOrderToOrder(data) : null;
   },
 
+  async getOrderByAwb(awb: string): Promise<Order | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      const list = await RegistryManager.getOrders();
+      return list.find((o) => o.shiprocketId === awb) || null;
+    }
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("shiprocket_id", awb)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching order by AWB ${awb}:`, error);
+      return null;
+    }
+    return data ? mapDbOrderToOrder(data) : null;
+  },
+
   async saveOrder(order: Partial<Order>): Promise<Order> {
     const { supabase, isSupabaseConfigured } = loadService();
     // Invalidate metrics cache
@@ -1664,10 +1683,10 @@ export const db = {
       return RegistryManager.deleteAddress(id);
     }
     
-    // fetch before delete to check if default
-    const { data: toDelete } = await supabase.from("user_addresses").select("is_default").eq("id", id).maybeSingle();
+    // fetch before delete to check if default (scoped to owner)
+    const { data: toDelete } = await supabase.from("user_addresses").select("is_default").eq("id", id).eq("user_id", userId).maybeSingle();
 
-    const { error } = await supabase.from("user_addresses").delete().eq("id", id);
+    const { error } = await supabase.from("user_addresses").delete().eq("id", id).eq("user_id", userId);
     if (error) {
       console.error("Error deleting address from Supabase:", error);
       throw error;
@@ -1695,7 +1714,8 @@ export const db = {
     await supabase
       .from("user_addresses")
       .update({ is_default: true })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
   },
 
   async verifyStock(items: any[], sessionId?: string): Promise<{ success: boolean; message?: string }> {

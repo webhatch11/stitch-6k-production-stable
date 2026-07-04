@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 import HomeClient from "./page-client";
 
-export const dynamic = "force-dynamic";
+// ISR: serve cached HTML, regenerate at most every 60s. Admin saves also
+// trigger on-demand revalidation via revalidatePath.
+export const revalidate = 60;
 
 export default async function Home() {
   const hero = await db.getSetting("hero");

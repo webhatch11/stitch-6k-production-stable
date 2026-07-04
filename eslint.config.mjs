@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Throwaway developer scratch scripts and one-off manual test harnesses.
+    // Not shipped, not imported by the app — excluded from lint.
+    "scratch/**",
+    "refactor.js",
+    "tests/concurrency/**",
+    "**/*.bak",
+    "**/*.bak2",
+    "**/*.bak3",
   ]),
 ]);
 

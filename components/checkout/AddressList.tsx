@@ -173,10 +173,6 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     }
   }, [editingAddress, isAddingInline]);
 
-  // Debug Logs
-  console.log("Addresses:", addresses);
-  console.log("Selected:", selectedAddress);
-
   // Fallback Selection Helper - getState keeps callback 100% stable
   const determineSelection = useCallback((list: UserAddress[], targetId?: string | null): UserAddress | null => {
     if (list.length === 0) return null;

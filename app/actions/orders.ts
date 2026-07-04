@@ -1,16 +1,41 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { getServerUser } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Returns the orders of the CALLER (session user). The userId argument is
+ * kept for backward compatibility but is only honored when it matches the
+ * session user, or when the caller is an admin.
+ */
 export async function getUserOrdersAction(userId: string) {
   try {
-    const orders = await db.getUserOrders(userId);
+    const user = await getServerUser();
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const targetUserId = user.role === "admin" && userId ? userId : user.id;
+    const orders = await db.getUserOrders(targetUserId);
     return { success: true, orders };
   } catch (error: any) {
     console.error("[getUserOrdersAction] Error:", error);
     return { success: false, error: error.message || "Failed to fetch orders" };
   }
+}
+
+async function assertOrderOwnership(orderId: string) {
+  const user = await getServerUser();
+  if (!user) return { ok: false as const, error: "Unauthorized" };
+
+  const order = await db.getOrderById(orderId);
+  if (!order) return { ok: false as const, error: "Order not found" };
+
+  const orderUserId = (order as any).userId || (order as any).user_id;
+  if (user.role !== "admin" && orderUserId && orderUserId !== user.id) {
+    return { ok: false as const, error: "Order not found" };
+  }
+  return { ok: true as const, order };
 }
 
 export async function requestManualReturnAction(orderId: string, payload: {
@@ -20,6 +45,10 @@ export async function requestManualReturnAction(orderId: string, payload: {
   refundOption: string;
 }) {
   try {
+    const ownership = await assertOrderOwnership(orderId);
+    if (!ownership.ok) {
+      return { success: false, error: ownership.error };
+    }
     const success = await db.requestManualReturn(orderId, payload);
     if (success) {
       revalidatePath("/orderhistory");
@@ -34,7 +63,11 @@ export async function requestManualReturnAction(orderId: string, payload: {
 
 export async function updateOrderToProcessingAction(orderId: string) {
   try {
-    const order = await db.getOrderById(orderId);
+    const ownership = await assertOrderOwnership(orderId);
+    if (!ownership.ok) {
+      return { success: false, error: ownership.error };
+    }
+    const order = ownership.order;
     if (order && order.status === "Paid") {
       const updated = { ...order, status: "Processing" as const };
       await db.saveOrder(updated);
@@ -47,4 +80,3 @@ export async function updateOrderToProcessingAction(orderId: string) {
     return { success: false, error: error.message || "Failed to update order status" };
   }
 }
-

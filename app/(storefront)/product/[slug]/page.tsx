@@ -1,4 +1,6 @@
-export const dynamic = "force-dynamic";
+// ISR: product pages regenerate at most every 60s (plus on-demand
+// revalidation from admin product saves).
+export const revalidate = 60;
 
 import React from "react";
 import { Metadata } from "next";
@@ -80,7 +82,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
       {/* Insert JSON-LD Schema on server-side for SEO crawlers */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // Escape < so a product field containing "</script>" cannot break out
+        // of the JSON-LD block (stored XSS via admin-editable content).
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <ProductDetailClient product={product} recommendations={recommendations} />
     </>

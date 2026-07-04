@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
@@ -142,10 +143,13 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center group hover-scale z-10">
               <div className={logoBgClass}>
-                <img 
-                  src="/assets/logo.png" 
-                  alt="6K Logo" 
-                  className="max-w-full max-h-full object-contain" 
+                <Image
+                  src="/assets/logo.png"
+                  alt="6K Logo"
+                  width={48}
+                  height={48}
+                  priority
+                  className="max-w-full max-h-full object-contain"
                   draggable={false}
                 />
               </div>

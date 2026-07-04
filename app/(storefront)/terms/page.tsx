@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions | Stitch 6K",
+  description: "The terms and conditions governing purchases and use of the Stitch 6K store.",
+};
 
 export default function TermsPage() {
   return (

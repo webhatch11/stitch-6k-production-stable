@@ -39,11 +39,19 @@ export async function processWalletPointsCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
-    userId,
   } = payload;
 
+  // Wallet/points checkout debits real balances — the identity MUST come from
+  // the server session, never from the client payload.
   const user = await getServerUser();
-  const user_id = user?.id || userId || undefined;
+  if (!user) {
+    return { success: false, error: "Unauthorized: login required for checkout." };
+  }
+  if (payload.userId && payload.userId !== user.id) {
+    return { success: false, error: "Security Alert: session/user mismatch." };
+  }
+  const userId = user.id;
+  const user_id = user.id;
 
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };
@@ -248,8 +256,18 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
-    userId,
   } = payload;
+
+  // Identity comes from the server session only — the resulting checkoutState
+  // drives wallet debits after payment capture, so it must not be spoofable.
+  const user = await getServerUser();
+  if (!user) {
+    return { success: false, error: "Unauthorized: login required for checkout." };
+  }
+  if (payload.userId && payload.userId !== user.id) {
+    return { success: false, error: "Security Alert: session/user mismatch." };
+  }
+  const userId = user.id;
 
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };
@@ -363,12 +381,19 @@ export async function processCodCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
-    userId,
     pincode,
   } = payload;
 
+  // Identity from server session only — COD checkout can debit wallet/points.
   const user = await getServerUser();
-  const user_id = user?.id || userId || undefined;
+  if (!user) {
+    return { success: false, error: "Unauthorized: login required for checkout." };
+  }
+  if (payload.userId && payload.userId !== user.id) {
+    return { success: false, error: "Security Alert: session/user mismatch." };
+  }
+  const userId = user.id;
+  const user_id = user.id;
 
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };

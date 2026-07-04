@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "Payment Policy | Stitch 6K",
+  description: "Accepted payment methods at Stitch 6K — secure prepaid payments via Razorpay. Cash on Delivery is currently unavailable.",
+};
 
 export default function PaymentPolicyPage() {
   return (

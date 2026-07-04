@@ -413,7 +413,6 @@ export default function CheckoutPage() {
         }
 
         try {
-          console.log("[Razorpay] Initiating order creation...");
           const createRes = await fetch("/api/payments/create-order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -433,7 +432,6 @@ export default function CheckoutPage() {
           });
           
           const createData = await createRes.json();
-          console.log("[Razorpay] Order creation API response:", createData);
 
           if (!createData.success) {
             console.error("[Razorpay] Order creation failed:", createData.error);
@@ -442,7 +440,6 @@ export default function CheckoutPage() {
             return;
           }
 
-          console.log("[Razorpay] Initializing payment modal with ID:", createData.razorpayOrderId);
           const options = {
             key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_mockkey",
             amount: createData.amount,
@@ -452,7 +449,6 @@ export default function CheckoutPage() {
             image: "/assets/logo.png",
             order_id: createData.razorpayOrderId,
             handler: async function (response: any) {
-              console.log("[Razorpay] Payment successful, verifying signature:", response);
               setProcessingPayment(true);
               try {
                 const verifyRes = await fetch("/api/payments/verify", {
@@ -467,7 +463,6 @@ export default function CheckoutPage() {
                 });
                 
                 const verifyData = await verifyRes.json();
-                console.log("[Razorpay] Verification API response:", verifyData);
 
                 if (verifyData.success) {
                    useCartStore.getState().clearCart();
@@ -494,7 +489,6 @@ export default function CheckoutPage() {
             },
             modal: {
               ondismiss: function() {
-                console.log("[Razorpay] Payment modal dismissed by user.");
                 setProcessingPayment(false);
                 triggerToast("ℹ️ Payment canceled by user.");
               }
@@ -510,7 +504,6 @@ export default function CheckoutPage() {
             setPaymentFailed(true);
           });
           
-          console.log("[Razorpay] Opening checkout modal...");
           rzp1.open();
         } catch (error: any) {
           console.error("[Razorpay] Communication error:", error);

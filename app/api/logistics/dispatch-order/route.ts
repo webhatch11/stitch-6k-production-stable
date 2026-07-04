@@ -56,9 +56,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing parameter: orderId" }, { status: 400 });
     }
 
-    // 3. Retrieve order
-    const orders = await db.getOrders();
-    const order = orders.find((o) => o.id === orderId);
+    // 3. Retrieve order (indexed lookup)
+    const order = await db.getOrderById(orderId);
 
     if (!order) {
       return NextResponse.json({ success: false, error: `Order #${orderId} not found.` }, { status: 404 });
@@ -142,30 +141,24 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Update order in database/local storage
-    const ordersCopy = await db.getOrders();
-    const idx = ordersCopy.findIndex((o) => o.id === order.id);
-    if (idx !== -1) {
-      ordersCopy[idx].status = "Shipped";
-      ordersCopy[idx].shiprocketId = result.awbCode || "";
-      await db.saveOrder(ordersCopy[idx]);
+    await db.saveOrder({ ...order, status: "Shipped", shiprocketId: result.awbCode || "" });
 
-      // Add status history entry
-      try {
-        await db.addOrderStatusHistory(
-          order.id,
-          "Shipped",
-          "Admin Portal Dispatch",
-          {
-            shiprocket_order_id: result.shiprocketOrderId,
-            shipment_id: result.shipmentId,
-            awb: result.awbCode,
-            courier: result.courierName,
-            is_mock: result.isMock
-          }
-        );
-      } catch (historyErr) {
-        console.warn("[Dispatch API] Failed to add order status history:", historyErr);
-      }
+    // Add status history entry
+    try {
+      await db.addOrderStatusHistory(
+        order.id,
+        "Shipped",
+        "Admin Portal Dispatch",
+        {
+          shiprocket_order_id: result.shiprocketOrderId,
+          shipment_id: result.shipmentId,
+          awb: result.awbCode,
+          courier: result.courierName,
+          is_mock: result.isMock
+        }
+      );
+    } catch (historyErr) {
+      console.warn("[Dispatch API] Failed to add order status history:", historyErr);
     }
 
     return NextResponse.json({

@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "About Us | Stitch 6K",
+  description: "The story of Stitch 6K — premium menswear born from the looms of South India.",
+};
 
 export default function AboutPage() {
   return (

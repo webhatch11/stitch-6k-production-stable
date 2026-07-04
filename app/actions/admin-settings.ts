@@ -161,6 +161,11 @@ export async function saveCategoriesAction(input: any) {
 
 export async function getReviewsAction(approved?: boolean) {
   try {
+    // Only admins may read unapproved/all reviews; the public storefront
+    // is limited to approved ones.
+    if (approved !== true) {
+      try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+    }
     const items = await db.getReviews(typeof approved === "boolean" ? { approved } : undefined);
     return { success: true, value: items };
   } catch (e: any) {

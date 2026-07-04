@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { razorpay } from "@/lib/razorpay";
 import { db } from "@/lib/db";
 import { verifyAndPrepareGatewayCheckoutAction } from "@/app/actions/checkout";
@@ -23,7 +24,10 @@ const createOrderSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getServerUser();
-    const user_id = user?.id || undefined;
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized: login required." }, { status: 401 });
+    }
+    const user_id = user.id;
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
 
@@ -31,14 +35,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid payload parameters", details: parsed.error }, { status: 400 });
     }
 
-    const payload = parsed.data;
+    // Never trust a client-supplied userId — bind the payload to the session user.
+    const payload = { ...parsed.data, userId: user_id };
 
-    // 0. Check if user is blocked
-    if (payload.userId && supabase) {
+    // 0. Check if the session user is blocked
+    if (supabase) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_blocked")
-        .eq("id", payload.userId)
+        .eq("id", user_id)
         .maybeSingle();
       if (profile?.is_blocked) {
         return NextResponse.json(
@@ -175,6 +180,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Order Creation Error:", error);
+    Sentry.captureException(error, { tags: { area: "order", route: "create-order" } });
     return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
   }
 }

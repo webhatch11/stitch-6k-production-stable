@@ -65,15 +65,42 @@ export async function proxy(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-  const isAdminRoute = path.startsWith("/admindashboard");
+  const isAdminRoute = path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login");
   const isProfileRoute = path.startsWith("/myprofile");
+  const isCheckoutRoute = path.startsWith("/checkout");
+  const isOrderHistoryRoute = path.startsWith("/orderhistory");
 
   // Client connection metadata for security audit logging
   const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
 
+  // 0. CSRF protection: state-changing API requests from browsers must come
+  // from our own origin. Webhooks are exempt (server-to-server, signature/token
+  // verified in-route). Requests without an Origin header (curl, mobile SDKs,
+  // same-origin GET) pass through — cookies aren't attached cross-site there.
+  const isStateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
+  if (isStateChanging && path.startsWith("/api/") && !path.startsWith("/api/webhooks/")) {
+    const origin = request.headers.get("origin");
+    if (origin) {
+      let originHost = "";
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        originHost = "";
+      }
+      const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+      if (!originHost || originHost !== requestHost) {
+        console.error(`[CSRF BLOCKED] Cross-origin ${request.method} to "${path}" from origin "${origin}" (host: ${requestHost}, IP: ${ip}).`);
+        return new NextResponse(
+          JSON.stringify({ success: false, error: "Cross-origin request rejected" }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+  }
+
   // 1. Rate Limiting Check for high-risk routes
-  if (path === "/api/payments/create-order" || path === "/login") {
-    const limit = path === "/api/payments/create-order" ? 5 : 15;
+  if (path === "/api/payments/create-order" || path === "/api/payments/verify" || path === "/login") {
+    const limit = path === "/login" ? 15 : path === "/api/payments/verify" ? 10 : 5;
     const windowMs = 60 * 1000;
     
     const rateLimitRes = await checkRateLimit(ip, path, limit, windowMs);
@@ -98,7 +125,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // If path is not a protected route, continue immediately
-  if (!isAdminRoute && !isProfileRoute) {
+  if (!isAdminRoute && !isProfileRoute && !isCheckoutRoute && !isOrderHistoryRoute) {
     return NextResponse.next();
   }
 
@@ -133,8 +160,12 @@ export async function proxy(request: NextRequest) {
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user) {
-      console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to /login.`);
-      url.pathname = "/login";
+      console.warn(`[SECURITY WARNING] Unauthorized request to protected path "${path}" from IP ${ip}. Redirecting to login.`);
+      if (path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login")) {
+        url.pathname = "/admindashboard/login";
+      } else {
+        url.pathname = "/login";
+      }
       url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
@@ -149,7 +180,7 @@ export async function proxy(request: NextRequest) {
 
       if (!profile || profile.role !== "admin") {
         console.error(`[SECURITY VIOLATION] Unauthorized admin access attempt to "${path}" by user "${user.email}" (UID: ${user.id}) from IP ${ip}. Access denied.`);
-        url.pathname = "/myprofile";
+        url.pathname = "/admindashboard/login";
         url.searchParams.set("error", "admin_required");
         return NextResponse.redirect(url);
       }
@@ -162,15 +193,19 @@ export async function proxy(request: NextRequest) {
     const mockRole = request.cookies.get("mock_user_role")?.value;
 
     if (!mockSession) {
-      console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to /login.`);
-      url.pathname = "/login";
+      console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to login.`);
+      if (path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login")) {
+        url.pathname = "/admindashboard/login";
+      } else {
+        url.pathname = "/login";
+      }
       url.searchParams.set("redirect", path);
       return NextResponse.redirect(url);
     }
 
     if (isAdminRoute && mockRole !== "admin") {
-      console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to root.`);
-      url.pathname = "/myprofile";
+      console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to admin login.`);
+      url.pathname = "/admindashboard/login";
       url.searchParams.set("error", "admin_required");
       return NextResponse.redirect(url);
     }
@@ -181,9 +216,11 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/admindashboard/:path*", 
+    "/admindashboard/:path*",
     "/myprofile/:path*",
-    "/api/payments/create-order",
+    "/checkout/:path*",
+    "/orderhistory/:path*",
+    "/api/:path*",
     "/login"
   ],
 };

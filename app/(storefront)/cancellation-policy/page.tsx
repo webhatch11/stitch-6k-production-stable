@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "Cancellation Policy | Stitch 6K",
+  description: "Order cancellation windows and refund timelines at Stitch 6K.",
+};
 
 export default function CancellationPolicyPage() {
   return (

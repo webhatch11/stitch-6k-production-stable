@@ -1,6 +1,12 @@
-"use client";
-
 import React from "react";
+import type { Metadata } from "next";
+
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "Return & Exchange Policy | Stitch 6K",
+  description: "How returns and exchanges work at Stitch 6K, including eligibility windows and refund options.",
+};
 
 export default function ReturnPolicyPage() {
   return (

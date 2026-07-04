@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { db } from "@/lib/db";
 
@@ -328,6 +329,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Webhook processing error:", error);
+    Sentry.captureException(error, { tags: { area: "payment", route: "webhook-razorpay" } });
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

@@ -174,7 +174,6 @@ export default function LoginPage() {
         if (error) throw error;
       } else {
         // Mock offline fallback
-        console.log(`[Mock Dev] OTP sent to ${email} with meta:`, optionsData);
         await new Promise((resolve) => setTimeout(resolve, 800));
         if (!email.includes("@")) {
           throw new Error("Unable to validate email address: invalid format");
@@ -220,7 +219,6 @@ export default function LoginPage() {
         if (error) throw error;
       } else {
         // Mock verify for development
-        console.log(`[Mock Dev] Verifying OTP ${finalCode} for ${email}`);
         await new Promise((resolve) => setTimeout(resolve, 800));
         if (finalCode !== "123456" && finalCode !== "111111") {
           throw new Error("Token has expired or is invalid");

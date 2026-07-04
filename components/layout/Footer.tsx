@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface BusinessData {
   phone?: string;
@@ -30,9 +31,11 @@ export default function Footer({ business }: FooterProps) {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 text-secondary">
-                <img
+                <Image
                   src="/assets/logo.png"
                   alt="6K Logo"
+                  width={32}
+                  height={32}
                   className="h-8 w-auto object-contain"
                   draggable={false}
                 />

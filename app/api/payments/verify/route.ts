@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { z } from "zod";
@@ -297,6 +298,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Payment Verification Error:", error);
+    Sentry.captureException(error, { tags: { area: "payment", route: "verify" } });
     return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
   }
 }

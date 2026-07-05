@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/supabase-server";
 import AdminSidebar from "../AdminSidebar";
+import { db } from "@/lib/db";
 
 export default async function AdminLayout({
   children,
@@ -17,8 +18,11 @@ export default async function AdminLayout({
     redirect("/admindashboard/login?error=admin_required");
   }
 
+  const allOrders = await db.getOrders();
+  const pendingCount = allOrders.filter(o => o.status === "Return Requested").length;
+
   return (
-    <AdminSidebar user={user}>
+    <AdminSidebar user={user} pendingReturnsCount={pendingCount}>
       {children}
     </AdminSidebar>
   );

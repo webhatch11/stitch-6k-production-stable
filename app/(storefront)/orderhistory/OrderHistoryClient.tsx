@@ -91,13 +91,18 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     return new Date();
   };
 
-  const isEligibleForReturn = (orderDateStr: string): boolean => {
-    const orderDate = getOrderDate(orderDateStr);
+  const isEligibleForReturn = (order: Order): boolean => {
+    if (order.status !== "Delivered") return false;
+    const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
+    if (!deliveredAtStr) {
+      return true;
+    }
+    const deliveredAt = new Date(deliveredAtStr);
     const today = new Date();
-    orderDate.setHours(0, 0, 0, 0);
+    deliveredAt.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
-    const diffTime = today.getTime() - orderDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffTime = today.getTime() - deliveredAt.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays >= 0 && diffDays <= 7;
   };
 
@@ -225,7 +230,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                       statusDotClass = "bg-stone-400";
                     }
 
-                    const returnEligible = order.status === "Delivered" && isEligibleForReturn(order.date);
+                    const returnEligible = isEligibleForReturn(order);
 
                     return (
                       <tr
@@ -259,14 +264,96 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               <span className="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
                               <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
                               <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
-                              {order.status === "Return Rejected" && order.returnRejectReason && (
-                                <div className="mt-2 text-[9px] text-red-600 font-bold uppercase tracking-widest bg-red-500/5 p-2 border border-red-500/10">
-                                  Rejected: {order.returnRejectReason}
-                                </div>
-                              )}
-                              {(order.status === "Returned" || order.status === "Return Requested" || order.status === "Return in Transit") && order.returnReason && (
-                                <div className="mt-2 text-[9px] text-secondary font-bold uppercase tracking-widest bg-secondary-container/5 p-2 border border-secondary-container/10">
-                                  Return: {order.returnReason}
+                              {/* Return Eligibility Banner */}
+                              {order.status === "Delivered" && (() => {
+                                const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
+                                if (!deliveredAtStr) {
+                                  return null; // Show nothing when delivered_at is null
+                                }
+                                const eligible = isEligibleForReturn(order);
+                                if (eligible) {
+                                  const deadline = new Date(deliveredAtStr);
+                                  deadline.setDate(deadline.getDate() + 7);
+                                  const deadlineStr = deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                                  return (
+                                    <div className="mt-2 text-[9px] text-green-700 font-bold uppercase tracking-widest bg-green-500/5 p-2 border border-green-500/10">
+                                      Return eligible until {deadlineStr}
+                                    </div>
+                                  );
+                                } else {
+                                  const deliveredAt = new Date(deliveredAtStr);
+                                  const today = new Date();
+                                  deliveredAt.setHours(0, 0, 0, 0);
+                                  today.setHours(0, 0, 0, 0);
+                                  const diffDays = Math.floor((today.getTime() - deliveredAt.getTime()) / (1000 * 60 * 60 * 24));
+                                  return (
+                                    <div className="mt-2 text-[9px] text-stone-500 font-bold uppercase tracking-widest bg-stone-500/5 p-2 border border-stone-500/10">
+                                      Return window closed (delivered {diffDays} days ago)
+                                    </div>
+                                  );
+                                }
+                              })()}
+
+                              {/* Returns timeline */}
+                              {["Return Requested", "Return in Transit", "Returned", "Return Rejected"].includes(order.status) && (
+                                <div className="mt-4 border border-[#e5e5e5]/60 p-4 bg-gray-50/50 space-y-4 rounded-none text-left">
+                                  <h4 className="text-[9px] font-black uppercase tracking-[0.15em] text-[#0a0a0a] border-b border-gray-100 pb-1.5">Return Status Timeline</h4>
+                                  
+                                  <div className="flex flex-col gap-3 relative pl-3.5 border-l border-gray-200">
+                                    {/* Step 1: Requested */}
+                                    <div className="relative">
+                                      <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
+                                      <p className="text-[9px] font-bold uppercase text-gray-800">Return Requested</p>
+                                      <p className="text-[8px] text-gray-400 font-mono">{order.returnRequestDate || order.date}</p>
+                                    </div>
+
+                                    {/* Step 2: Pickup Scheduled */}
+                                    {(order.returnPickupScheduled || (order as any).return_pickup_scheduled || order.status === "Return in Transit" || order.status === "Returned") && (
+                                      <div className="relative">
+                                        <span className={`absolute -left-[20px] top-1 w-2 h-2 rounded-full ${order.status !== "Return Requested" ? "bg-primary" : "bg-gray-300"}`} />
+                                        <p className="text-[9px] font-bold uppercase text-gray-800">Pickup Scheduled</p>
+                                        <p className="text-[8px] text-gray-400 font-mono">
+                                          {order.returnPickupScheduled || (order as any).return_pickup_scheduled
+                                            ? new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                            : "Awaiting partner confirmation"}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Step 3: Refund Processed */}
+                                    {order.status === "Returned" && (
+                                      <div className="relative">
+                                        <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
+                                        <p className="text-[9px] font-bold uppercase text-gray-800">Refund Processed</p>
+                                        <p className="text-[8px] text-gray-400 font-mono">{order.returnDate || "Completed"}</p>
+                                      </div>
+                                    )}
+
+                                    {/* Step 4: Rejected */}
+                                    {order.status === "Return Rejected" && (
+                                      <div className="relative">
+                                        <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-red-600" />
+                                        <p className="text-[9px] font-bold uppercase text-red-600">Return Rejected</p>
+                                        <p className="text-[8px] text-gray-400 font-mono">Reason: "{order.returnRejectReason}"</p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Return Details metadata */}
+                                  <div className="pt-2.5 border-t border-gray-200/60 text-[9px] font-bold text-gray-500 space-y-1.5">
+                                    {order.returnAwb || (order as any).return_awb ? (
+                                      <p className="uppercase">Return AWB: <span className="text-[#0a0a0a] font-mono">{order.returnAwb || (order as any).return_awb}</span></p>
+                                    ) : null}
+                                    {order.returnPickupScheduled || (order as any).return_pickup_scheduled ? (() => {
+                                      const pickupDate = new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled);
+                                      const estRefund = new Date(pickupDate);
+                                      estRefund.setDate(estRefund.getDate() + 7);
+                                      return (
+                                        <p className="uppercase">Expected Refund: <span className="text-[#0a0a0a] font-mono">{estRefund.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></p>
+                                      );
+                                    })() : null}
+                                    <p className="pt-1 text-[8px] tracking-wide text-gray-400">Taking too long? <a href="/contact" className="text-primary underline">Contact Support</a></p>
+                                  </div>
                                 </div>
                               )}
                             </div>

@@ -101,6 +101,12 @@ export interface Order {
   razorpay_payment_id?: string;
   created_at?: string;
   createdAt?: string;
+  deliveredAt?: string;
+  returnAwb?: string;
+  returnPickupScheduled?: string;
+  delivered_at?: string;
+  return_awb?: string;
+  return_pickup_scheduled?: string;
 }
 
 export interface OrderStatusHistory {
@@ -1180,7 +1186,18 @@ export const RegistryManager = {
       razorpay_payment_id: order.razorpay_payment_id !== undefined ? order.razorpay_payment_id : (oldOrder ? oldOrder.razorpay_payment_id : undefined),
       created_at: order.created_at !== undefined ? order.created_at : (oldOrder ? oldOrder.created_at : new Date().toISOString()),
       createdAt: order.createdAt !== undefined ? order.createdAt : (oldOrder ? oldOrder.createdAt : new Date().toISOString()),
+      delivered_at: order.delivered_at !== undefined ? order.delivered_at : (order.deliveredAt !== undefined ? order.deliveredAt : (oldOrder ? oldOrder.delivered_at : undefined)),
+      deliveredAt: order.deliveredAt !== undefined ? order.deliveredAt : (order.delivered_at !== undefined ? order.delivered_at : (oldOrder ? oldOrder.deliveredAt : undefined)),
+      return_awb: order.return_awb !== undefined ? order.return_awb : (order.returnAwb !== undefined ? order.returnAwb : (oldOrder ? oldOrder.return_awb : undefined)),
+      returnAwb: order.returnAwb !== undefined ? order.returnAwb : (order.return_awb !== undefined ? order.return_awb : (oldOrder ? oldOrder.returnAwb : undefined)),
+      return_pickup_scheduled: order.return_pickup_scheduled !== undefined ? order.return_pickup_scheduled : (order.returnPickupScheduled !== undefined ? order.returnPickupScheduled : (oldOrder ? oldOrder.return_pickup_scheduled : undefined)),
+      returnPickupScheduled: order.returnPickupScheduled !== undefined ? order.returnPickupScheduled : (order.return_pickup_scheduled !== undefined ? order.return_pickup_scheduled : (oldOrder ? oldOrder.returnPickupScheduled : undefined)),
     };
+
+    if (newOrder.status && newOrder.status.toLowerCase() === "delivered" && !newOrder.delivered_at) {
+      newOrder.delivered_at = new Date().toISOString();
+      newOrder.deliveredAt = newOrder.delivered_at;
+    }
 
     if (existingIndex !== -1) {
       orders[existingIndex] = newOrder;

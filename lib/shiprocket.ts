@@ -378,5 +378,99 @@ export const shiprocket = {
       console.error("[Shiprocket SDK] Tracking error:", err);
       return { success: false, error: err.message || "Tracking failed" };
     }
-  }
+  },
+
+  async createReversePickup(
+    orderId: string,
+    customerAddress: {
+      name: string;
+      phone: string;
+      address: string;
+      city: string;
+      state: string;
+      pincode: string;
+    },
+    items: Array<{
+      name: string;
+      sku: string;
+      units: number;
+      price: number;
+    }>
+  ): Promise<{
+    success: boolean;
+    awb?: string;
+    pickupScheduled?: string;
+    error?: string;
+  }> {
+    if (!process.env.SHIPROCKET_EMAIL) {
+      console.warn("Shiprocket not configured — reverse pickup in mock mode");
+      return {
+        success: true,
+        awb: "MOCK-" + orderId + "-" + Date.now(),
+        pickupScheduled: "Mock mode — configure Shiprocket credentials",
+      };
+    }
+
+    try {
+      const token = await getAuthToken();
+      const payload = {
+        order_id: orderId,
+        order_date: new Date().toISOString(),
+        channel_id: "",
+        pickup_customer_name: customerAddress.name,
+        pickup_phone: customerAddress.phone,
+        pickup_address: customerAddress.address,
+        pickup_city: customerAddress.city,
+        pickup_state: customerAddress.state,
+        pickup_country: "India",
+        pickup_pincode: customerAddress.pincode,
+        shipping_customer_name: "JRT TEXTILES",
+        shipping_phone: "9363693004",
+        shipping_address: "1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar",
+        shipping_city: "Tiruchirappalli",
+        shipping_country: "India",
+        shipping_pincode: "620018",
+        payment_method: "Prepaid",
+        sub_total: items.reduce((sum, i) => sum + i.price * i.units, 0),
+        order_items: items.map((item) => ({
+          name: item.name,
+          sku: item.sku || item.name.replace(/\s+/g, "-").toLowerCase(),
+          units: item.units,
+          selling_price: item.price,
+          discount: 0,
+          tax: 0,
+          hsn: "",
+        })),
+      };
+
+      const res = await fetch("https://apiv2.shiprocket.in/v1/external/orders/create/return", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Reverse pickup creation failed: ${errText}`);
+      }
+
+      const resData = await res.json();
+      const awb = resData.awb_code || (resData.shipment_result && resData.shipment_result.awb_code);
+
+      return {
+        success: true,
+        awb: awb || "MOCK-" + orderId + "-" + Date.now(),
+        pickupScheduled: resData.pickup_scheduled_date || new Date().toISOString(),
+      };
+    } catch (e: any) {
+      console.error("[Shiprocket SDK] createReversePickup failed:", e);
+      return {
+        success: false,
+        error: e.message || "Failed to schedule reverse pickup",
+      };
+    }
+  },
 };

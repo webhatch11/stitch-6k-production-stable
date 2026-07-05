@@ -183,6 +183,12 @@ const mapDbOrderToOrder = (o: any): Order => {
     razorpay_payment_id: o.razorpay_payment_id || undefined,
     created_at: o.created_at || undefined,
     createdAt: o.created_at || undefined,
+    delivered_at: o.delivered_at || undefined,
+    deliveredAt: o.delivered_at || undefined,
+    return_awb: o.return_awb || undefined,
+    returnAwb: o.return_awb || undefined,
+    return_pickup_scheduled: o.return_pickup_scheduled || undefined,
+    returnPickupScheduled: o.return_pickup_scheduled || undefined,
   };
 };
 
@@ -629,6 +635,13 @@ export const db = {
     if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
     if (order.userId !== undefined || order.user_id !== undefined) dbPayload.user_id = order.userId || order.user_id;
     if (order.address_snapshot !== undefined) dbPayload.address_snapshot = order.address_snapshot;
+    if (order.deliveredAt !== undefined || order.delivered_at !== undefined) dbPayload.delivered_at = order.deliveredAt || order.delivered_at;
+    if (order.returnAwb !== undefined || order.return_awb !== undefined) dbPayload.return_awb = order.returnAwb || order.return_awb;
+    if (order.returnPickupScheduled !== undefined || order.return_pickup_scheduled !== undefined) dbPayload.return_pickup_scheduled = order.returnPickupScheduled || order.return_pickup_scheduled;
+
+    if (order.status && order.status.toLowerCase() === "delivered") {
+      dbPayload.delivered_at = (existingOrder && existingOrder.delivered_at) || dbPayload.delivered_at || new Date().toISOString();
+    }
 
     if (isExisting) {
       const { error } = await supabase.from("orders").update(dbPayload).eq("id", orderId);
@@ -695,6 +708,12 @@ export const db = {
       cartItems: order.cartItems || (existingOrder ? existingOrder.cart_items : []),
       paymentStatus: order.paymentStatus || (existingOrder ? existingOrder.payment_status : "PENDING"),
       address_snapshot: order.address_snapshot !== undefined ? order.address_snapshot : (existingOrder ? existingOrder.address_snapshot : null),
+      delivered_at: dbPayload.delivered_at !== undefined ? dbPayload.delivered_at : (existingOrder ? existingOrder.delivered_at : undefined),
+      deliveredAt: dbPayload.delivered_at !== undefined ? dbPayload.delivered_at : (existingOrder ? existingOrder.delivered_at : undefined),
+      return_awb: dbPayload.return_awb !== undefined ? dbPayload.return_awb : (existingOrder ? existingOrder.return_awb : undefined),
+      returnAwb: dbPayload.return_awb !== undefined ? dbPayload.return_awb : (existingOrder ? existingOrder.return_awb : undefined),
+      return_pickup_scheduled: dbPayload.return_pickup_scheduled !== undefined ? dbPayload.return_pickup_scheduled : (existingOrder ? existingOrder.return_pickup_scheduled : undefined),
+      returnPickupScheduled: dbPayload.return_pickup_scheduled !== undefined ? dbPayload.return_pickup_scheduled : (existingOrder ? existingOrder.return_pickup_scheduled : undefined),
     };
 
     return mergedOrder;

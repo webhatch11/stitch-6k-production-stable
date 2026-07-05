@@ -7,10 +7,11 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface AdminSidebarProps {
   user: { id: string; email: string; role: string };
+  pendingReturnsCount?: number;
   children: React.ReactNode;
 }
 
-export default function AdminSidebar({ user, children }: AdminSidebarProps) {
+export default function AdminSidebar({ user, pendingReturnsCount, children }: AdminSidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -36,6 +37,11 @@ export default function AdminSidebar({ user, children }: AdminSidebarProps) {
       href: "/admindashboard/orders",
       label: "Orders",
       icon: "shopping_basket",
+    },
+    {
+      href: "/admindashboard/returns",
+      label: "Returns",
+      icon: "refresh",
     },
     {
       href: "/admindashboard/customers",
@@ -128,14 +134,21 @@ export default function AdminSidebar({ user, children }: AdminSidebarProps) {
                 key={link.href}
                 href={link.href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-none transition-all ${
+                className={`flex items-center justify-between px-4 py-3.5 rounded-none transition-all ${
                   active
                     ? "bg-white/10 text-white border-l-3 border-[#fed488]"
                     : "text-white/50 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <span className="material-symbols-outlined text-lg">{link.icon}</span>
-                <span className="text-xs font-bold uppercase tracking-widest">{link.label}</span>
+                <div className="flex items-center gap-4">
+                  <span className="material-symbols-outlined text-lg">{link.icon}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">{link.label}</span>
+                </div>
+                {link.label === "Returns" && pendingReturnsCount && pendingReturnsCount > 0 ? (
+                  <span className="bg-red-600 text-white text-[9px] font-black rounded-full px-2 py-0.5 animate-pulse shrink-0">
+                    {pendingReturnsCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

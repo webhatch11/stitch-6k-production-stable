@@ -71,6 +71,9 @@ export async function saveHeroAction(input: any) {
   const ok = await db.saveSetting("hero", parsed.data);
   if (!ok) return { success: false, error: "Save failed" };
   revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/shopallshirts");
+  revalidatePath("/genz");
   return { success: true };
 }
 

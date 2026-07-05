@@ -1230,7 +1230,7 @@ export const RegistryManager = {
     localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
   },
 
-  validateCoupon(code: string, cartTotal: number): { valid: boolean; coupon?: Coupon; error?: string } {
+  validateCoupon(code: string, cartTotal: number, userId?: string): { valid: boolean; coupon?: Coupon; error?: string } {
     if (!isBrowser()) return { valid: false, error: "Validation not possible in SSR environment." };
     const coupons = this.getCoupons();
     const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());

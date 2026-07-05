@@ -831,10 +831,10 @@ export const db = {
     return true;
   },
 
-  async validateCoupon(code: string, cartTotal: number): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
+  async validateCoupon(code: string, cartTotal: number, userId?: string): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.validateCoupon(code, cartTotal);
+      return RegistryManager.validateCoupon(code, cartTotal, userId);
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -863,6 +863,23 @@ export const db = {
     }
     if (coupon.maxUsage !== undefined && coupon.maxUsage !== null && coupon.usageCount !== undefined && coupon.usageCount !== null && coupon.usageCount >= coupon.maxUsage) {
       return { valid: false, error: "Coupon usage limit has been reached." };
+    }
+
+    if (userId) {
+      const { count, error: countError } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("coupon_code", code.toUpperCase());
+
+      if (countError) {
+        console.error("Error checking user coupon usage:", countError);
+      } else if (count && count > 0) {
+        return {
+          valid: false,
+          error: "You have already used this coupon",
+        };
+      }
     }
 
     return { valid: true, coupon };

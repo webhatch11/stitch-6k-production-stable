@@ -179,8 +179,11 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Order Creation Error:", error);
+    console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "order", route: "create-order" } });
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Payment processing failed. Please try again." },
+      { status: 500 }
+    );
   }
 }

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     // Ownership check: customers can only track their own orders. Respond 404
     // (not 403) so order IDs cannot be enumerated.
     const orderOwnerId = (order as any).user_id || (order as any).userId;
-    if (user.role !== "admin" && orderOwnerId && orderOwnerId !== user.id) {
+    if (user.role !== "admin" && (!orderOwnerId || orderOwnerId !== user.id)) {
       return NextResponse.json(
         { success: false, error: "Order not found." },
         { status: 404 }

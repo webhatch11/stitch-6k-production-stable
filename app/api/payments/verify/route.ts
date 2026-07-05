@@ -74,6 +74,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Payment verification failed: Invalid signature" }, { status: 400 });
     }
 
+    // Verify paid amount matches expected amount
+    const expectedAmount = Math.round(
+      (dbOrder.gateway_paid ?? dbOrder.total) * 100
+    ); // Razorpay uses paise
+
+    let paymentEntity;
+    try {
+      paymentEntity = await razorpay.payments.fetch(razorpay_payment_id);
+    } catch (e) {
+      console.error("[verify] failed to fetch payment details from razorpay:", e);
+    }
+
+    if (paymentEntity?.amount && 
+        paymentEntity.amount !== expectedAmount) {
+      console.error(
+        `Amount mismatch: paid ${paymentEntity.amount}` +
+        ` expected ${expectedAmount} for order ${dbOrder.id}`
+      );
+    }
+
     // Idempotency: if this order was already processed, return success without
     // running any side effects.
     if (dbOrder.status === "PAID") {
@@ -297,8 +317,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 
   } catch (error: any) {
-    console.error("Payment Verification Error:", error);
+    console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "payment", route: "verify" } });
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Payment processing failed. Please try again." },
+      { status: 500 }
+    );
   }
 }

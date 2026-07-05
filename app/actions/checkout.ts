@@ -92,7 +92,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   // Validate coupon
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
@@ -307,7 +307,7 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
@@ -448,7 +448,7 @@ export async function processCodCheckoutAction(payload: {
   // Validate coupon
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
@@ -598,7 +598,8 @@ export async function getLoyaltyAndWalletAction() {
 
 export async function validateCouponAction(code: string, baseTotal: number) {
   try {
-    const res = await db.validateCoupon(code, baseTotal);
+    const user = await getServerUser();
+    const res = await db.validateCoupon(code, baseTotal, user?.id);
     return { success: true, res };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to validate coupon" };

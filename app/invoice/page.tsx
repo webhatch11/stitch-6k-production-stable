@@ -36,7 +36,7 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
   }
 
   // Security check: only own order or admin
-  if (matchedOrder.userId && matchedOrder.userId !== user.id && user.role !== "admin") {
+  if (user.role !== "admin" && (!matchedOrder.userId || matchedOrder.userId !== user.id)) {
     redirect("/orderhistory");
   }
 

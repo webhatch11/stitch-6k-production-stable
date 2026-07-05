@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Coupon } from "@/lib/registry";
-import { getCouponsAction } from "@/app/actions/admin-reads";
+import { getCouponsAction, getProductsAction } from "@/app/actions/admin-reads";
 import { saveCouponAction, deleteCouponAction, getCouponDiscountTotalAction } from "@/app/actions/admin-coupons";
 
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [productsList, setProductsList] = useState<any[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
 
   // Coupon discount totals
@@ -24,21 +25,35 @@ export default function CouponsLedgerPage() {
   // New Coupon Form
   const [cpnCode, setCpnCode] = useState("");
   const [cpnValue, setCpnValue] = useState(0);
-  const [cpnType, setCpnType] = useState<"percent" | "flat">("percent");
+  const [cpnType, setCpnType] = useState<"percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount">("percent");
   const [cpnMinCartValue, setCpnMinCartValue] = useState(0);
   const [cpnMaxUsage, setCpnMaxUsage] = useState<string>("");
   const [cpnExpiryDate, setCpnExpiryDate] = useState<string>("");
+
+  // BOGO fields for New Coupon Form
+  const [cpnBuyQuantity, setCpnBuyQuantity] = useState<string>("");
+  const [cpnGetQuantity, setCpnGetQuantity] = useState<string>("");
+  const [cpnGetDiscountPercent, setCpnGetDiscountPercent] = useState<string>("");
+  const [cpnBuyProductId, setCpnBuyProductId] = useState("");
+  const [cpnGetProductId, setCpnGetProductId] = useState("");
 
   // Edit Coupon Form
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editValue, setEditValue] = useState(0);
-  const [editType, setEditType] = useState<"percent" | "flat">("percent");
+  const [editType, setEditType] = useState<"percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount">("percent");
   const [editActive, setEditActive] = useState(true);
   const [editMinCartValue, setEditMinCartValue] = useState(0);
   const [editMaxUsage, setEditMaxUsage] = useState<string>("");
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
+
+  // BOGO fields for Edit Coupon Form
+  const [editBuyQuantity, setEditBuyQuantity] = useState<string>("");
+  const [editGetQuantity, setEditGetQuantity] = useState<string>("");
+  const [editGetDiscountPercent, setEditGetDiscountPercent] = useState<string>("");
+  const [editBuyProductId, setEditBuyProductId] = useState("");
+  const [editGetProductId, setEditGetProductId] = useState("");
 
   // Delete Confirmation State
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -58,6 +73,7 @@ export default function CouponsLedgerPage() {
 
   useEffect(() => {
     loadCoupons();
+    loadProducts();
 
     // Listen for storage events
     const handleStorage = (e: StorageEvent) => {
@@ -81,6 +97,13 @@ export default function CouponsLedgerPage() {
     fetchDiscountTotal();
   };
 
+  const loadProducts = async () => {
+    const res = await getProductsAction();
+    if (res.success) {
+      setProductsList(res.products || []);
+    }
+  };
+
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = cpnCode.trim().toUpperCase();
@@ -88,7 +111,7 @@ export default function CouponsLedgerPage() {
       triggerToast("Please enter a coupon code");
       return;
     }
-    if (cpnValue <= 0) {
+    if ((cpnType === "percent" || cpnType === "flat") && cpnValue <= 0) {
       triggerToast("Please enter a valid discount value");
       return;
     }
@@ -113,12 +136,17 @@ export default function CouponsLedgerPage() {
 
     const res = await saveCouponAction({
       code,
-      discount: cpnValue,
+      discount: cpnType === "percent" || cpnType === "flat" ? cpnValue : 0,
       type: cpnType,
       active: true,
       min_cart_value: cpnMinCartValue,
       max_usage: maxUsageNum,
       expiry_date: cpnExpiryDate || null,
+      buy_quantity: cpnType === "bogo_quantity" && cpnBuyQuantity !== "" ? Number(cpnBuyQuantity) : null,
+      get_quantity: cpnType === "bogo_quantity" && cpnGetQuantity !== "" ? Number(cpnGetQuantity) : null,
+      get_discount_percent: (cpnType === "bogo_product" || cpnType === "spend_discount") && cpnGetDiscountPercent !== "" ? Number(cpnGetDiscountPercent) : null,
+      buy_product_id: cpnType === "bogo_product" ? cpnBuyProductId || null : null,
+      get_product_id: cpnType === "bogo_product" ? cpnGetProductId || null : null,
     });
     if (!res.success) {
       triggerToast(res.error || "Failed to create coupon");
@@ -131,6 +159,11 @@ export default function CouponsLedgerPage() {
     setCpnMinCartValue(0);
     setCpnMaxUsage("");
     setCpnExpiryDate("");
+    setCpnBuyQuantity("");
+    setCpnGetQuantity("");
+    setCpnGetDiscountPercent("");
+    setCpnBuyProductId("");
+    setCpnGetProductId("");
     triggerToast("Coupon code created successfully");
     await loadCoupons();
   };
@@ -139,11 +172,16 @@ export default function CouponsLedgerPage() {
     setEditingCoupon(c);
     setEditCode(c.code);
     setEditValue(c.discount);
-    setEditType(c.type);
+    setEditType(c.type as any);
     setEditActive(c.active);
     setEditMinCartValue(c.minCartValue ?? 0);
     setEditMaxUsage(c.maxUsage != null ? String(c.maxUsage) : "");
     setEditExpiryDate(c.expiryDate ? c.expiryDate.split("T")[0] : "");
+    setEditBuyQuantity(c.buyQuantity != null ? String(c.buyQuantity) : "");
+    setEditGetQuantity(c.getQuantity != null ? String(c.getQuantity) : "");
+    setEditGetDiscountPercent(c.getDiscountPercent != null ? String(c.getDiscountPercent) : "");
+    setEditBuyProductId(c.buyProductId || "");
+    setEditGetProductId(c.getProductId || "");
     setEditModalOpen(true);
   };
 
@@ -155,7 +193,7 @@ export default function CouponsLedgerPage() {
       triggerToast("Please enter a coupon code");
       return;
     }
-    if (editValue <= 0) {
+    if ((editType === "percent" || editType === "flat") && editValue <= 0) {
       triggerToast("Please enter a valid discount value");
       return;
     }
@@ -181,12 +219,17 @@ export default function CouponsLedgerPage() {
     const res = await saveCouponAction({
       id: editingCoupon.id,
       code,
-      discount: editValue,
+      discount: editType === "percent" || editType === "flat" ? editValue : 0,
       type: editType,
       active: editActive,
       min_cart_value: editMinCartValue,
       max_usage: maxUsageNum,
       expiry_date: editExpiryDate || null,
+      buy_quantity: editType === "bogo_quantity" && editBuyQuantity !== "" ? Number(editBuyQuantity) : null,
+      get_quantity: editType === "bogo_quantity" && editGetQuantity !== "" ? Number(editGetQuantity) : null,
+      get_discount_percent: (editType === "bogo_product" || editType === "spend_discount") && editGetDiscountPercent !== "" ? Number(editGetDiscountPercent) : null,
+      buy_product_id: editType === "bogo_product" ? editBuyProductId || null : null,
+      get_product_id: editType === "bogo_product" ? editGetProductId || null : null,
     });
     if (!res.success) {
       triggerToast(res.error || "Failed to update coupon");
@@ -197,6 +240,11 @@ export default function CouponsLedgerPage() {
     setEditMinCartValue(0);
     setEditMaxUsage("");
     setEditExpiryDate("");
+    setEditBuyQuantity("");
+    setEditGetQuantity("");
+    setEditGetDiscountPercent("");
+    setEditBuyProductId("");
+    setEditGetProductId("");
     triggerToast("Coupon updated successfully");
     await loadCoupons();
   };
@@ -320,7 +368,7 @@ export default function CouponsLedgerPage() {
                       {c.code}
                     </td>
                     <td className="px-8 py-6 font-bold text-sm">
-                      {c.type === "percent" ? `${c.discount}%` : `₹${c.discount.toLocaleString("en-IN")}.00`}
+                      {c.type === "percent" ? `${c.discount}%` : (c.type === "flat" ? `₹${c.discount.toLocaleString("en-IN")}.00` : "BOGO/Offer")}
                     </td>
                     <td className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
                       {c.type}
@@ -361,8 +409,8 @@ export default function CouponsLedgerPage() {
 
       {/* Add Coupon Modal */}
       {addModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md p-10 border border-gray-200 rounded-none text-left">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-md p-10 border border-gray-200 rounded-none text-left my-8">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-headline font-black tracking-tighter uppercase">New Coupon</h3>
               <button
@@ -374,6 +422,11 @@ export default function CouponsLedgerPage() {
                   setCpnMinCartValue(0);
                   setCpnMaxUsage("");
                   setCpnExpiryDate("");
+                  setCpnBuyQuantity("");
+                  setCpnGetQuantity("");
+                  setCpnGetDiscountPercent("");
+                  setCpnBuyProductId("");
+                  setCpnGetProductId("");
                 }}
                 className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer flex items-center justify-center"
               >
@@ -394,10 +447,27 @@ export default function CouponsLedgerPage() {
                   placeholder="e.g. HERITAGE20"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-6">
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Coupon Type</label>
+                <select
+                  value={cpnType}
+                  onChange={(e) => setCpnType(e.target.value as any)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                >
+                  <option value="percent">Percentage (%)</option>
+                  <option value="flat">Flat Amount (₹)</option>
+                  <option value="bogo_quantity">Buy X Get Y (Quantity)</option>
+                  <option value="bogo_product">Buy Product Get Product</option>
+                  <option value="spend_discount">Spend & Save</option>
+                </select>
+              </div>
+
+              {/* Dynamic fields based on cpnType */}
+              {(cpnType === "percent" || cpnType === "flat") && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Discount Value
+                    Discount Value {cpnType === "percent" ? "(%)" : "(₹)"}
                   </label>
                   <input
                     required
@@ -409,21 +479,104 @@ export default function CouponsLedgerPage() {
                     placeholder="20"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Type</label>
-                  <select
-                    value={cpnType}
-                    onChange={(e) => setCpnType(e.target.value as any)}
-                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                  >
-                    <option value="percent">Percentage (%)</option>
-                    <option value="flat">Flat Amount (₹)</option>
-                  </select>
+              )}
+
+              {cpnType === "bogo_quantity" && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Quantity</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={cpnBuyQuantity}
+                      onChange={(e) => setCpnBuyQuantity(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Quantity (Free)</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={cpnGetQuantity}
+                      onChange={(e) => setCpnGetQuantity(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="1"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {cpnType === "bogo_product" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Product</label>
+                    <select
+                      required
+                      value={cpnBuyProductId}
+                      onChange={(e) => setCpnBuyProductId(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                    >
+                      <option value="">Select Buy Product</option>
+                      {productsList.map((p) => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Product</label>
+                    <select
+                      required
+                      value={cpnGetProductId}
+                      onChange={(e) => setCpnGetProductId(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                    >
+                      <option value="">Select Get Product</option>
+                      {productsList.map((p) => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount % on Get Product</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={cpnGetDiscountPercent}
+                      onChange={(e) => setCpnGetDiscountPercent(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="50"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {cpnType === "spend_discount" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount %</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={cpnGetDiscountPercent}
+                      onChange={(e) => setCpnGetDiscountPercent(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="20"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Min cart value (₹)
+                  {cpnType === "spend_discount" ? "Minimum spend amount (₹)" : "Min cart value (₹)"}
                 </label>
                 <input
                   type="number"
@@ -434,6 +587,7 @@ export default function CouponsLedgerPage() {
                   placeholder="0"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
@@ -473,8 +627,8 @@ export default function CouponsLedgerPage() {
 
       {/* Edit Coupon Modal */}
       {editModalOpen && editingCoupon && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md p-10 border border-gray-200 rounded-none text-left">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-md p-10 border border-gray-200 rounded-none text-left my-8">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-headline font-black tracking-tighter uppercase">Edit Coupon</h3>
               <button
@@ -484,6 +638,11 @@ export default function CouponsLedgerPage() {
                   setEditMinCartValue(0);
                   setEditMaxUsage("");
                   setEditExpiryDate("");
+                  setEditBuyQuantity("");
+                  setEditGetQuantity("");
+                  setEditGetDiscountPercent("");
+                  setEditBuyProductId("");
+                  setEditGetProductId("");
                 }}
                 className="material-symbols-outlined text-gray-400 hover:text-primary bg-transparent border-none cursor-pointer flex items-center justify-center"
               >
@@ -504,10 +663,27 @@ export default function CouponsLedgerPage() {
                   placeholder="e.g. HERITAGE20"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-6">
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Coupon Type</label>
+                <select
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value as any)}
+                  className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                >
+                  <option value="percent">Percentage (%)</option>
+                  <option value="flat">Flat Amount (₹)</option>
+                  <option value="bogo_quantity">Buy X Get Y (Quantity)</option>
+                  <option value="bogo_product">Buy Product Get Product</option>
+                  <option value="spend_discount">Spend & Save</option>
+                </select>
+              </div>
+
+              {/* Dynamic fields based on editType */}
+              {(editType === "percent" || editType === "flat") && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    Discount Value
+                    Discount Value {editType === "percent" ? "(%)" : "(₹)"}
                   </label>
                   <input
                     required
@@ -519,21 +695,104 @@ export default function CouponsLedgerPage() {
                     placeholder="20"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Type</label>
-                  <select
-                    value={editType}
-                    onChange={(e) => setEditType(e.target.value as any)}
-                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                  >
-                    <option value="percent">Percentage (%)</option>
-                    <option value="flat">Flat Amount (₹)</option>
-                  </select>
+              )}
+
+              {editType === "bogo_quantity" && (
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Quantity</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={editBuyQuantity}
+                      onChange={(e) => setEditBuyQuantity(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Quantity (Free)</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={editGetQuantity}
+                      onChange={(e) => setEditGetQuantity(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="1"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {editType === "bogo_product" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Product</label>
+                    <select
+                      required
+                      value={editBuyProductId}
+                      onChange={(e) => setEditBuyProductId(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                    >
+                      <option value="">Select Buy Product</option>
+                      {productsList.map((p) => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Product</label>
+                    <select
+                      required
+                      value={editGetProductId}
+                      onChange={(e) => setEditGetProductId(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
+                    >
+                      <option value="">Select Get Product</option>
+                      {productsList.map((p) => (
+                        <option key={p.id} value={p.id}>{p.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount % on Get Product</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={editGetDiscountPercent}
+                      onChange={(e) => setEditGetDiscountPercent(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="50"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {editType === "spend_discount" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount %</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={editGetDiscountPercent}
+                      onChange={(e) => setEditGetDiscountPercent(e.target.value)}
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
+                      placeholder="20"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                  Min cart value (₹)
+                  {editType === "spend_discount" ? "Minimum spend amount (₹)" : "Min cart value (₹)"}
                 </label>
                 <input
                   type="number"
@@ -544,6 +803,7 @@ export default function CouponsLedgerPage() {
                   placeholder="0"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">

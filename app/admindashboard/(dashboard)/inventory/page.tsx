@@ -20,6 +20,8 @@ export default function InventoryLedgerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [exporting, setExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"csv" | "xlsx" | null>(null);
 
   // Custom Modal States
   const [modalType, setModalType] = useState<"delete" | "restock" | null>(null);
@@ -40,6 +42,38 @@ export default function InventoryLedgerPage() {
     setTimeout(() => {
       setShowToast(false);
     }, 3000);
+  };
+
+  const handleExport = async (format: "csv" | "xlsx") => {
+    if (products.length === 0) {
+      triggerToast("No products to export");
+      return;
+    }
+    setExporting(true);
+    setExportingFormat(format);
+    try {
+      const response = await fetch(`/api/admin/export/products?format=${format}`);
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dateStr = new Date().toISOString().split("T")[0];
+      a.download = `products-${dateStr}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      triggerToast(`Products exported to ${format.toUpperCase()} successfully`);
+    } catch (e: any) {
+      console.error(e);
+      triggerToast(e.message || "Failed to export products");
+    } finally {
+      setExporting(false);
+      setExportingFormat(null);
+    }
   };
 
   useEffect(() => {
@@ -235,6 +269,22 @@ export default function InventoryLedgerPage() {
               className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full sm:w-72 shadow-sm rounded-none"
             />
           </div>
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => handleExport("csv")}
+            className="px-5 py-3.5 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap"
+          >
+            {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
+          </button>
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => handleExport("xlsx")}
+            className="px-5 py-3.5 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap"
+          >
+            {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
+          </button>
           <button
             type="button"
             onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}

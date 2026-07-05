@@ -116,7 +116,7 @@ export interface Coupon {
   id: string;
   code: string;
   discount: number;
-  type: "percent" | "flat";
+  type: "percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount";
   active: boolean;
   expiryDate?: string | null;
   minCartValue?: number | null;
@@ -125,6 +125,11 @@ export interface Coupon {
   usage_count?: number | null;
   max_usage?: number | null;
   min_cart_value?: number | null;
+  buyQuantity?: number | null;
+  getQuantity?: number | null;
+  getDiscountPercent?: number | null;
+  buyProductId?: string | null;
+  getProductId?: string | null;
 }
 
 export interface WalletTransaction {
@@ -1205,13 +1210,18 @@ export const RegistryManager = {
     const payload: Coupon = {
       id: coupon.id || "CPN-" + Date.now(),
       code: (coupon.code || "CODE").toUpperCase(),
-      discount: coupon.discount || 10,
+      discount: coupon.discount !== undefined ? coupon.discount : 0,
       type: coupon.type || "percent",
       active: coupon.active !== undefined ? coupon.active : true,
       expiryDate: coupon.expiryDate !== undefined ? coupon.expiryDate : null,
       minCartValue: coupon.minCartValue !== undefined ? coupon.minCartValue : 0,
       maxUsage: coupon.maxUsage !== undefined ? coupon.maxUsage : null,
       usageCount: coupon.usageCount !== undefined ? coupon.usageCount : 0,
+      buyQuantity: coupon.buyQuantity !== undefined ? coupon.buyQuantity : null,
+      getQuantity: coupon.getQuantity !== undefined ? coupon.getQuantity : null,
+      getDiscountPercent: coupon.getDiscountPercent !== undefined ? coupon.getDiscountPercent : null,
+      buyProductId: coupon.buyProductId !== undefined ? coupon.buyProductId : null,
+      getProductId: coupon.getProductId !== undefined ? coupon.getProductId : null,
     };
     if (existingIdx > -1) {
       if (coupon.usageCount === undefined) {
@@ -1230,7 +1240,7 @@ export const RegistryManager = {
     localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
   },
 
-  validateCoupon(code: string, cartTotal: number, userId?: string): { valid: boolean; coupon?: Coupon; error?: string } {
+  validateCoupon(code: string, cartTotal: number, userId?: string, cartItems?: any[]): { valid: boolean; coupon?: Coupon; error?: string; discountAmount?: number; message?: string; freeItems?: any[] } {
     if (!isBrowser()) return { valid: false, error: "Validation not possible in SSR environment." };
     const coupons = this.getCoupons();
     const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase());
@@ -1249,7 +1259,92 @@ export const RegistryManager = {
     if (coupon.maxUsage !== undefined && coupon.maxUsage !== null && coupon.usageCount !== undefined && coupon.usageCount !== null && coupon.usageCount >= coupon.maxUsage) {
       return { valid: false, error: "Coupon usage limit has been reached." };
     }
-    return { valid: true, coupon };
+
+    let discountAmount = 0;
+    if (coupon.type === "percent") {
+      discountAmount = Math.floor((cartTotal * coupon.discount) / 100);
+      return { valid: true, coupon, discountAmount };
+    }
+    if (coupon.type === "flat") {
+      discountAmount = coupon.discount;
+      return { valid: true, coupon, discountAmount };
+    }
+
+    if (coupon.type === "bogo_quantity") {
+      const buyQty = coupon.buyQuantity || 1;
+      const getQty = coupon.getQuantity || 1;
+      if (!cartItems || cartItems.length < buyQty) {
+        return {
+          valid: false,
+          error: `Add at least ${buyQty} items to your cart to use this offer.`,
+        };
+      }
+      const sorted = [...cartItems].sort((a, b) => a.price - b.price);
+      const freeCount = Math.floor(cartItems.length / buyQty) * getQty;
+      const freeItems = sorted.slice(0, freeCount);
+      const discountAmount = freeItems.reduce((sum, item) => sum + item.price, 0);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+        freeItems,
+      };
+    }
+
+    if (coupon.type === "bogo_product") {
+      const buyProductId = coupon.buyProductId;
+      const getProductId = coupon.getProductId;
+      if (!cartItems) {
+        return { valid: false, error: "Cart items required for validation." };
+      }
+      const hasBuyProduct = cartItems.some(item => item.productId === buyProductId);
+      if (!hasBuyProduct) {
+        const mockProds = this.getProducts();
+        const p = mockProds.find(item => item.id === buyProductId);
+        const buyProductName = p?.title || buyProductId || "";
+        return {
+          valid: false,
+          error: `Buy "${buyProductName}" to unlock this coupon.`,
+        };
+      }
+      const getProduct = cartItems.find(item => item.productId === getProductId);
+      if (!getProduct) {
+        const mockProds = this.getProducts();
+        const p = mockProds.find(item => item.id === getProductId);
+        const getProductName = p?.title || getProductId || "";
+        return {
+          valid: true,
+          coupon,
+          discountAmount: 0,
+          message: `Add "${getProductName}" to cart to get ${coupon.getDiscountPercent}% off.`,
+        };
+      }
+      const discountAmount = Math.floor((getProduct.price * (coupon.getDiscountPercent || 0)) / 100);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+      };
+    }
+
+    if (coupon.type === "spend_discount") {
+      const minSpend = coupon.minCartValue || 0;
+      if (cartTotal < minSpend) {
+        const remaining = minSpend - cartTotal;
+        return {
+          valid: false,
+          error: `Spend ₹${minSpend} to unlock this offer. You need ₹${remaining} more.`,
+        };
+      }
+      const discountAmount = Math.floor((cartTotal * (coupon.getDiscountPercent || 0)) / 100);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+      };
+    }
+
+    return { valid: true, coupon, discountAmount };
   },
 
   incrementCouponUsage(code: string): boolean {

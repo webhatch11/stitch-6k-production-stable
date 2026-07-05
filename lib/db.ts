@@ -201,6 +201,11 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
     min_cart_value: (c.min_cart_value !== null && c.min_cart_value !== undefined) ? Number(c.min_cart_value) : ((c.minCartValue !== null && c.minCartValue !== undefined) ? Number(c.minCartValue) : null),
     max_usage: (c.max_usage !== null && c.max_usage !== undefined) ? Number(c.max_usage) : ((c.maxUsage !== null && c.maxUsage !== undefined) ? Number(c.maxUsage) : null),
     usage_count: (c.usage_count !== null && c.usage_count !== undefined) ? Number(c.usage_count) : ((c.usageCount !== null && c.usageCount !== undefined) ? Number(c.usageCount) : 0),
+    buyQuantity: c.buy_quantity !== undefined ? c.buy_quantity : (c.buyQuantity || null),
+    getQuantity: c.get_quantity !== undefined ? c.get_quantity : (c.getQuantity || null),
+    getDiscountPercent: c.get_discount_percent !== undefined ? c.get_discount_percent : (c.getDiscountPercent || null),
+    buyProductId: c.buy_product_id !== undefined ? c.buy_product_id : (c.buyProductId || null),
+    getProductId: c.get_product_id !== undefined ? c.get_product_id : (c.getProductId || null),
   };
 };
 
@@ -762,13 +767,18 @@ export const db = {
     const dbPayload = {
       id: coupon.id || "CPN-" + Date.now(),
       code: (coupon.code || "CODE").toUpperCase(),
-      discount: coupon.discount || 10,
+      discount: coupon.discount !== undefined ? coupon.discount : 0,
       type: coupon.type || "percent",
       active: coupon.active !== undefined ? coupon.active : true,
       expiry_date: coupon.expiryDate,
       min_cart_value: coupon.minCartValue,
       max_usage: coupon.maxUsage,
       usage_count: coupon.usageCount,
+      buy_quantity: coupon.buyQuantity,
+      get_quantity: coupon.getQuantity,
+      get_discount_percent: coupon.getDiscountPercent,
+      buy_product_id: coupon.buyProductId,
+      get_product_id: coupon.getProductId,
     };
 
     const { error } = await supabase.from("coupons").upsert(dbPayload);
@@ -831,10 +841,10 @@ export const db = {
     return true;
   },
 
-  async validateCoupon(code: string, cartTotal: number, userId?: string): Promise<{ valid: boolean; coupon?: Coupon; error?: string }> {
+  async validateCoupon(code: string, cartTotal: number, userId?: string, cartItems?: any[]): Promise<{ valid: boolean; coupon?: Coupon; error?: string; discountAmount?: number; message?: string; freeItems?: any[] }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.validateCoupon(code, cartTotal, userId);
+      return RegistryManager.validateCoupon(code, cartTotal, userId, cartItems);
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -882,7 +892,113 @@ export const db = {
       }
     }
 
-    return { valid: true, coupon };
+    let discountAmount = 0;
+    if (coupon.type === "percent") {
+      discountAmount = Math.floor((cartTotal * coupon.discount) / 100);
+      return { valid: true, coupon, discountAmount };
+    }
+    if (coupon.type === "flat") {
+      discountAmount = coupon.discount;
+      return { valid: true, coupon, discountAmount };
+    }
+
+    if (coupon.type === "bogo_quantity") {
+      const buyQty = coupon.buyQuantity || 1;
+      const getQty = coupon.getQuantity || 1;
+      if (!cartItems || cartItems.length < buyQty) {
+        return {
+          valid: false,
+          error: `Add at least ${buyQty} items to your cart to use this offer.`,
+        };
+      }
+      const sorted = [...cartItems].sort((a, b) => a.price - b.price);
+      const freeCount = Math.floor(cartItems.length / buyQty) * getQty;
+      const freeItems = sorted.slice(0, freeCount);
+      const discountAmount = freeItems.reduce((sum, item) => sum + item.price, 0);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+        freeItems,
+      };
+    }
+
+    if (coupon.type === "bogo_product") {
+      const buyProductId = coupon.buyProductId;
+      const getProductId = coupon.getProductId;
+      if (!cartItems) {
+        return { valid: false, error: "Cart items required for validation." };
+      }
+      const hasBuyProduct = cartItems.some(item => item.productId === buyProductId);
+      if (!hasBuyProduct) {
+        let buyProductName = buyProductId || "";
+        const { data: buyProdData } = await supabase
+          .from("products")
+          .select("title")
+          .eq("id", buyProductId)
+          .maybeSingle();
+        if (buyProdData?.title) {
+          buyProductName = buyProdData.title;
+        } else {
+          const mockProds = RegistryManager.getProducts();
+          const p = mockProds.find(item => item.id === buyProductId);
+          if (p?.title) buyProductName = p.title;
+        }
+        return {
+          valid: false,
+          error: `Buy "${buyProductName}" to unlock this coupon.`,
+        };
+      }
+
+      const getProduct = cartItems.find(item => item.productId === getProductId);
+      if (!getProduct) {
+        let getProductName = getProductId || "";
+        const { data: getProdData } = await supabase
+          .from("products")
+          .select("title")
+          .eq("id", getProductId)
+          .maybeSingle();
+        if (getProdData?.title) {
+          getProductName = getProdData.title;
+        } else {
+          const mockProds = RegistryManager.getProducts();
+          const p = mockProds.find(item => item.id === getProductId);
+          if (p?.title) getProductName = p.title;
+        }
+        return {
+          valid: true,
+          coupon,
+          discountAmount: 0,
+          message: `Add "${getProductName}" to cart to get ${coupon.getDiscountPercent}% off.`,
+        };
+      }
+
+      const discountAmount = Math.floor((getProduct.price * (coupon.getDiscountPercent || 0)) / 100);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+      };
+    }
+
+    if (coupon.type === "spend_discount") {
+      const minSpend = coupon.minCartValue || 0;
+      if (cartTotal < minSpend) {
+        const remaining = minSpend - cartTotal;
+        return {
+          valid: false,
+          error: `Spend ₹${minSpend} to unlock this offer. You need ₹${remaining} more.`,
+        };
+      }
+      const discountAmount = Math.floor((cartTotal * (coupon.getDiscountPercent || 0)) / 100);
+      return {
+        valid: true,
+        coupon,
+        discountAmount,
+      };
+    }
+
+    return { valid: true, coupon, discountAmount };
   },
 
   async incrementCouponUsage(code: string): Promise<boolean> {

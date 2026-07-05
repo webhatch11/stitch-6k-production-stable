@@ -10,6 +10,8 @@ import { bulkUpdateOrderStatusAction } from "@/app/actions/admin-orders";
 export default function OrdersLedgerPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [exporting, setExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"csv" | "xlsx" | null>(null);
   const [currentFilter, setCurrentFilter] = useState<"all" | "acquiring" | "manifested" | "returns" | "archived">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -116,69 +118,36 @@ export default function OrdersLedgerPage() {
     return "bg-gray-400 text-white";
   };
 
-  const handleExportCSV = () => {
-    if (filteredOrders.length === 0) {
+  const handleExport = async (format: "csv" | "xlsx") => {
+    if (orders.length === 0) {
       triggerToast("No orders to export");
       return;
     }
-    
-    const headers = [
-      "Order ID",
-      "Date",
-      "Customer Name",
-      "Customer Email",
-      "Status",
-      "Payment Status",
-      "Total (₹)",
-      "Coupon Code",
-      "Coupon Discount (₹)",
-      "Wallet Paid (₹)",
-      "Gateway Paid (₹)",
-      "Items",
-      "Refund Status",
-      "Razorpay Order ID",
-    ];
-    
-    const rows = filteredOrders.map((o: any) => [
-      o.id,
-      o.date,
-      o.customer || "",
-      o.customerEmail || "",
-      o.status,
-      o.paymentStatus || "",
-      o.total,
-      o.couponCode || "",
-      o.couponDiscount || 0,
-      o.walletPaid || 0,
-      o.gatewayPaid || 0,
-      (o.items || []).join("; "),
-      o.refund_status || "",
-      o.razorpay_order_id || "",
-    ]);
-    
-    // CSV escape: wrap in quotes if contains comma, quote, or newline
-    const escapeCsv = (val: any) => {
-      const s = String(val ?? "");
-      if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-      return s;
-    };
-    
-    const csv = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map((row) => row.map(escapeCsv).join(",")),
-    ].join("\n");
-    
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `orders_${new Date().toISOString().split("T")[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    triggerToast(`Exported ${rows.length} orders to CSV`);
+    setExporting(true);
+    setExportingFormat(format);
+    try {
+      const response = await fetch(`/api/admin/export/orders?format=${format}`);
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dateStr = new Date().toISOString().split("T")[0];
+      a.download = `orders-${dateStr}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      triggerToast(`Orders exported to ${format.toUpperCase()} successfully`);
+    } catch (e: any) {
+      console.error(e);
+      triggerToast(e.message || "Failed to export orders");
+    } finally {
+      setExporting(false);
+      setExportingFormat(null);
+    }
   };
 
   // Filter orders based on status tab and search query
@@ -243,10 +212,19 @@ export default function OrdersLedgerPage() {
           </div>
           <button
             type="button"
-            onClick={handleExportCSV}
-            className="px-6 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer"
+            disabled={exporting}
+            onClick={() => handleExport("csv")}
+            className="px-6 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50"
           >
-            Export CSV
+            {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
+          </button>
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => handleExport("xlsx")}
+            className="px-6 py-3 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50"
+          >
+            {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
           </button>
         </div>
       </header>

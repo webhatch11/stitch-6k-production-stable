@@ -25,6 +25,7 @@ import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen
 import Script from "next/script";
 
 interface CartItem {
+  productId?: string;
   productName: string;
   price: number;
   size: string;
@@ -136,6 +137,8 @@ export default function CheckoutPage() {
 
   const [availablePoints, setAvailablePoints] = useState(0);
   const [availableWallet, setAvailableWallet] = useState(0);
+  const [couponInfoMessage, setCouponInfoMessage] = useState("");
+  const [freeItemsList, setFreeItemsList] = useState<any[]>([]);
 
   // Toast Notifications
   const triggerToast = useToastStore((state) => state.addToast);
@@ -163,6 +166,32 @@ export default function CheckoutPage() {
     };
     fetchPerks();
   }, [cartItems]);
+
+  // Revalidate applied coupon if cart changes
+  useEffect(() => {
+    if (appliedCouponCode && cart.length > 0) {
+      const revalidate = async () => {
+        const currentBaseTotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+        const couponRes = await validateCouponAction(appliedCouponCode, currentBaseTotal, cart);
+        const res = (couponRes.success && couponRes.res) ? couponRes.res : { valid: false };
+        if (res.valid) {
+          setAppliedDiscount(res.discountAmount || 0);
+          setCouponInfoMessage(res.message || "");
+          setFreeItemsList(res.freeItems || []);
+        } else {
+          setAppliedDiscount(0);
+          setAppliedCouponCode("");
+          setCouponMessage({ text: "", isError: false });
+          setCouponInfoMessage("");
+          setFreeItemsList([]);
+        }
+      };
+      revalidate();
+    } else if (cart.length === 0) {
+      setCouponInfoMessage("");
+      setFreeItemsList([]);
+    }
+  }, [cart, appliedCouponCode, setAppliedDiscount, setAppliedCouponCode, setCouponMessage]);
 
   // Set idempotency key if empty
   useEffect(() => {
@@ -238,16 +267,20 @@ export default function CheckoutPage() {
       setAppliedDiscount(0);
       setAppliedCouponCode("");
       setCouponMessage({ text: "", isError: false });
+      setCouponInfoMessage("");
+      setFreeItemsList([]);
       return;
     }
 
-    const couponRes = await validateCouponAction(code, baseTotal);
+    const couponRes = await validateCouponAction(code, baseTotal, cart);
     const res = (couponRes.success && couponRes.res) ? couponRes.res : { valid: false, coupon: undefined, error: couponRes.error };
 
     if (res.valid && res.coupon) {
       const coupon = res.coupon;
       let disc = 0;
-      if (coupon.type === "percent") {
+      if (res.discountAmount !== undefined) {
+        disc = res.discountAmount;
+      } else if (coupon.type === "percent") {
         disc = (baseTotal * coupon.discount) / 100;
       } else {
         disc = coupon.discount;
@@ -258,6 +291,8 @@ export default function CheckoutPage() {
         text: `CODE ${coupon.code} APPLIED SUCCESSFULLY`,
         isError: false,
       });
+      setCouponInfoMessage(res.message || "");
+      setFreeItemsList(res.freeItems || []);
       triggerToast(`Coupon ${coupon.code} applied!`);
     } else {
       setCouponMessage({
@@ -266,6 +301,8 @@ export default function CheckoutPage() {
       });
       setAppliedDiscount(0);
       setAppliedCouponCode("");
+      setCouponInfoMessage("");
+      setFreeItemsList([]);
     }
   };
 
@@ -733,6 +770,11 @@ export default function CheckoutPage() {
                         {couponMessage.text}
                       </p>
                     )}
+                    {couponInfoMessage && (
+                      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-lg text-[9px] tracking-widest uppercase font-bold mt-2">
+                        {couponInfoMessage}
+                      </div>
+                    )}
                   </div>
 
                   {/* Wallet & Points Toggles */}
@@ -934,30 +976,63 @@ export default function CheckoutPage() {
                   
                   {/* Product List */}
                   <div className="space-y-6 mb-8">
-                    {cart.map((item, index) => (
-                      <div key={index} className="flex gap-6">
-                        <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10 relative">
-                          <ProductImage
-                            className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                            src={item.image}
-                            alt={item.productName}
-                            fill
-                            sizes="80px"
-                          />
-                        </div>
-                        <div className="flex-grow flex flex-col justify-between py-1 text-left">
-                          <div>
-                            <h4 className="font-headline font-bold uppercase text-xs tracking-wide text-on-surface">{item.productName}</h4>
-                            <p className="text-[8px] uppercase tracking-[0.15em] text-outline mt-1 font-bold">
-                              Size: {item.size} | Color: {item.color || "Default"}
-                            </p>
+                    {(() => {
+                      const freeIndices = new Set<number>();
+                      const remainingFree = [...freeItemsList];
+                      for (let i = 0; i < cart.length; i++) {
+                        const item = cart[i];
+                        const matchIdx = remainingFree.findIndex(f => 
+                          (f.productId && item.productId ? f.productId === item.productId : (f.productName || f.title) === item.productName) && 
+                          f.size === item.size && 
+                          f.price === item.price
+                        );
+                        if (matchIdx > -1) {
+                          freeIndices.add(i);
+                          remainingFree.splice(matchIdx, 1);
+                        }
+                      }
+
+                      return cart.map((item, index) => {
+                        const isFree = freeIndices.has(index);
+                        return (
+                          <div key={index} className="flex gap-6">
+                            <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10 relative">
+                              <ProductImage
+                                className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
+                                src={item.image}
+                                alt={item.productName}
+                                fill
+                                sizes="80px"
+                              />
+                            </div>
+                            <div className="flex-grow flex flex-col justify-between py-1 text-left">
+                              <div>
+                                <h4 className="font-headline font-bold uppercase text-xs tracking-wide text-on-surface">{item.productName}</h4>
+                                <p className="text-[8px] uppercase tracking-[0.15em] text-outline mt-1 font-bold">
+                                  Size: {item.size} | Color: {item.color || "Default"}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {isFree ? (
+                                  <>
+                                    <span className="font-headline font-black text-sm text-gray-400 line-through">
+                                      ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
+                                    </span>
+                                    <span className="bg-green-100 text-green-800 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                                      FREE
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="font-headline font-black text-sm text-[#fed488]">
+                                    ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <span className="font-headline font-black text-sm text-[#fed488]">
-                            ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      });
+                    })()}
                   </div>
 
                   {/* Price Matrix */}
@@ -968,7 +1043,7 @@ export default function CheckoutPage() {
                     </div>
                     {appliedDiscount > 0 && (
                       <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
-                        <span>Coupon Discount</span>
+                        <span>{freeItemsList.length > 0 ? "BOGO Discount" : "Coupon Discount"}</span>
                         <span>- ₹ {appliedDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     )}

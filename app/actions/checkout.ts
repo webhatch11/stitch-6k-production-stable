@@ -92,16 +92,11 @@ export async function processWalletPointsCheckoutAction(payload: {
   // Validate coupon
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId, cart);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
-    const coupon = couponRes.coupon;
-    if (coupon.type === "percent") {
-      verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
-    } else {
-      verifiedCouponDiscount = coupon.discount;
-    }
+    verifiedCouponDiscount = couponRes.discountAmount || 0;
   }
 
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
@@ -307,16 +302,11 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId, cart);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
-    const coupon = couponRes.coupon;
-    if (coupon.type === "percent") {
-      verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
-    } else {
-      verifiedCouponDiscount = coupon.discount;
-    }
+    verifiedCouponDiscount = couponRes.discountAmount || 0;
   }
 
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
@@ -448,16 +438,11 @@ export async function processCodCheckoutAction(payload: {
   // Validate coupon
   let verifiedCouponDiscount = 0;
   if (couponCode) {
-    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId);
+    const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId, cart);
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
-    const coupon = couponRes.coupon;
-    if (coupon.type === "percent") {
-      verifiedCouponDiscount = Math.floor((verifiedSubtotal * coupon.discount) / 100);
-    } else {
-      verifiedCouponDiscount = coupon.discount;
-    }
+    verifiedCouponDiscount = couponRes.discountAmount || 0;
   }
 
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
@@ -596,10 +581,14 @@ export async function getLoyaltyAndWalletAction() {
   return { success: true, loyaltyPoints, walletBalance };
 }
 
-export async function validateCouponAction(code: string, baseTotal: number) {
+export async function validateCouponAction(code: string, baseTotal: number, cartItems?: any[]) {
   try {
     const user = await getServerUser();
-    const res = await db.validateCoupon(code, baseTotal, user?.id);
+    let items = cartItems;
+    if (!items && user?.id) {
+      items = await db.getUserCart(user.id);
+    }
+    const res = await db.validateCoupon(code, baseTotal, user?.id, items);
     return { success: true, res };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to validate coupon" };

@@ -13,12 +13,17 @@ const couponSchema = z
       .min(1, "Code is required")
       .max(50)
       .transform((v) => v.trim().toUpperCase()),
-    discount: z.number().positive("Discount must be positive"),
-    type: z.enum(["percent", "flat"]),
+    discount: z.number().min(0).optional().default(0),
+    type: z.enum(["percent", "flat", "bogo_quantity", "bogo_product", "spend_discount"]),
     active: z.boolean().default(true),
     min_cart_value: z.number().min(0).optional().default(0),
     max_usage: z.number().int().min(0).optional().nullable(),
     expiry_date: z.string().optional().nullable(),  // ISO date string
+    buy_quantity: z.number().int().min(1).optional().nullable(),
+    get_quantity: z.number().int().min(1).optional().nullable(),
+    get_discount_percent: z.number().int().min(0).max(100).optional().nullable(),
+    buy_product_id: z.string().optional().nullable(),
+    get_product_id: z.string().optional().nullable(),
   })
   .refine((data) => data.type !== "percent" || data.discount <= 100, {
     message: "Percentage discount must be between 0 and 100",
@@ -51,6 +56,11 @@ export async function saveCouponAction(
       minCartValue: data.min_cart_value,
       maxUsage: data.max_usage,
       expiryDate: data.expiry_date,
+      buyQuantity: data.buy_quantity,
+      getQuantity: data.get_quantity,
+      getDiscountPercent: data.get_discount_percent,
+      buyProductId: data.buy_product_id,
+      getProductId: data.get_product_id,
     };
     await db.saveCoupon(newCoupon);
     return { success: true };

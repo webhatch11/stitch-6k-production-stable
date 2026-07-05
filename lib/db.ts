@@ -2,6 +2,7 @@ import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransact
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
+import { CartItem } from "@/stores/cartStore";
 
 const DEFAULT_PICKUP_LOCATION = 
   process.env.SHIPROCKET_PICKUP_LOCATION || 
@@ -1716,6 +1717,202 @@ export const db = {
       .update({ is_default: true })
       .eq("id", id)
       .eq("user_id", userId);
+  },
+
+  // --- Cart DB Sync ---
+  async getUserCart(userId: string): Promise<CartItem[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+
+    const { data, error } = await supabase
+      .from("user_cart")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error fetching user cart from Supabase:", error);
+      return [];
+    }
+
+    const items: CartItem[] = [];
+    for (const row of data || []) {
+      const item: CartItem = {
+        productId: row.product_id,
+        productName: row.product_name,
+        price: Number(row.price),
+        size: row.size,
+        color: row.color,
+        image: row.image || "",
+      };
+      const qty = row.quantity || 1;
+      for (let i = 0; i < qty; i++) {
+        items.push({ ...item });
+      }
+    }
+    return items;
+  },
+
+  async syncCartToDB(userId: string, items: CartItem[]): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return;
+
+    try {
+      if (items.length === 0) {
+        await supabase.from("user_cart").delete().eq("user_id", userId);
+        return;
+      }
+
+      const grouped: Record<string, {
+        user_id: string;
+        product_id: string;
+        product_name: string;
+        price: number;
+        size: string;
+        color: string;
+        image: string | null;
+        quantity: number;
+      }> = {};
+
+      for (const item of items) {
+        const pId = item.productId || "unknown";
+        const size = item.size || "Default";
+        const color = item.color || "Default";
+        const key = `${pId}_${size}_${color}`;
+
+        if (!grouped[key]) {
+          grouped[key] = {
+            user_id: userId,
+            product_id: pId,
+            product_name: item.productName,
+            price: Number(item.price),
+            size: size,
+            color: color,
+            image: item.image || null,
+            quantity: 0,
+          };
+        }
+        grouped[key].quantity += 1;
+      }
+
+      const payload = Object.values(grouped);
+
+      const { error } = await supabase
+        .from("user_cart")
+        .upsert(payload, { onConflict: "user_id,product_id,size,color" });
+
+      if (error) {
+        console.error("Error in syncCartToDB upsert:", error);
+      }
+
+      const keysToKeep = new Set(payload.map(p => `${p.product_id}_${p.size}_${p.color}`));
+      const { data: existing } = await supabase
+        .from("user_cart")
+        .select("product_id, size, color")
+        .eq("user_id", userId);
+
+      if (existing) {
+        const toDelete = existing.filter(e => !keysToKeep.has(`${e.product_id}_${e.size}_${e.color}`));
+        for (const item of toDelete) {
+          await supabase
+            .from("user_cart")
+            .delete()
+            .eq("user_id", userId)
+            .eq("product_id", item.product_id)
+            .eq("size", item.size)
+            .eq("color", item.color);
+        }
+      }
+    } catch (err) {
+      console.error("syncCartToDB error:", err);
+    }
+  },
+
+  async addToUserCart(userId: string, item: CartItem): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const pId = item.productId || "unknown";
+    const size = item.size || "Default";
+    const color = item.color || "Default";
+
+    try {
+      const { data: existing } = await supabase
+        .from("user_cart")
+        .select("quantity")
+        .eq("user_id", userId)
+        .eq("product_id", pId)
+        .eq("size", size)
+        .eq("color", color)
+        .maybeSingle();
+
+      const newQty = existing ? existing.quantity + 1 : 1;
+
+      const payload = {
+        user_id: userId,
+        product_id: pId,
+        product_name: item.productName,
+        price: Number(item.price),
+        size: size,
+        color: color,
+        image: item.image || null,
+        quantity: newQty,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from("user_cart")
+        .upsert(payload, { onConflict: "user_id,product_id,size,color" });
+
+      if (error) {
+        console.error("Error in addToUserCart:", error);
+      }
+    } catch (err) {
+      console.error("addToUserCart error:", err);
+    }
+  },
+
+  async removeFromUserCart(
+    userId: string,
+    productId: string,
+    size: string,
+    color: string
+  ): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_cart")
+        .delete()
+        .eq("user_id", userId)
+        .eq("product_id", productId)
+        .eq("size", size || "Default")
+        .eq("color", color || "Default");
+
+      if (error) {
+        console.error("Error in removeFromUserCart:", error);
+      }
+    } catch (err) {
+      console.error("removeFromUserCart error:", err);
+    }
+  },
+
+  async clearUserCart(userId: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from("user_cart")
+        .delete()
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error in clearUserCart:", error);
+      }
+    } catch (err) {
+      console.error("clearUserCart error:", err);
+    }
   },
 
   async verifyStock(items: any[], sessionId?: string): Promise<{ success: boolean; message?: string }> {

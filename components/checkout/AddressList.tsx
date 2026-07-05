@@ -276,7 +276,17 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     setAddressId(address.id);
     localStorage.setItem("selectedAddressId", address.id);
     if (onAddressSelectedRef.current) onAddressSelectedRef.current(address);
-    setIsExpanded(false); // Auto-collapse list on selection to keep flow clean
+    setFormData({
+      id: address.id,
+      name: address.name || "",
+      phone: address.phone || "",
+      address_line_1: address.address_line_1 || "",
+      address_line_2: address.address_line_2 || "",
+      city: address.city || "",
+      state: address.state || "",
+      postal_code: address.postal_code || "",
+      is_default: address.is_default || false,
+    });
     console.log("[Analytics] address_selected", { id: address.id });
   }, [setAddressId]);
 
@@ -441,23 +451,62 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     }
   };
 
-  const openAddInline = useCallback(() => {
+  const handleInputChange = (field: keyof UserAddress, value: any) => {
+    if (selectedAddressId && !editingAddress) {
+      setAddressId(null);
+      localStorage.removeItem("selectedAddressId");
+      if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
+      setFormData(prev => ({
+        ...prev,
+        id: undefined,
+        [field]: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  const resetForm = () => {
     setEditingAddress(null);
-    setIsAddingInline(true);
+    setFormData({
+      name: "",
+      phone: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      is_default: false,
+    });
+  };
+
+  const openAddInline = useCallback(() => {
+    resetForm();
+    const element = document.getElementById("address-form-element");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
   }, []);
 
   const openEditModal = useCallback((address: UserAddress) => {
     setEditingAddress(address);
-    setIsAddingInline(false);
+    setFormData({ ...address });
+    const element = document.getElementById("address-form-element");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
   }, []);
 
   // Inline address input rendering
   const renderInlineForm = () => {
     const isFirstTime = addresses.length === 0;
     return (
-      <form onSubmit={handleSaveAddress} className="space-y-4 bg-white/40 border border-outline-variant/20 rounded-2xl p-6 shadow-sm">
+      <form id="address-form-element" onSubmit={handleSaveAddress} className="space-y-4 bg-white/40 border border-outline-variant/20 rounded-2xl p-6 shadow-sm">
         <h4 className="text-xs font-headline font-black uppercase tracking-wider text-neutral-900">
-          {editingAddress ? "Edit Delivery Address" : "New Delivery Address"}
+          {editingAddress ? `Edit Address: ${editingAddress.name}` : selectedAddressId ? "Selected Address Details" : "New Delivery Address"}
         </h4>
         
         <div className="space-y-1.5">
@@ -466,7 +515,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             required
             name="name"
             value={formData.name || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            onChange={(e) => handleInputChange("name", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
             placeholder="ENTER FULL NAME"
           />
@@ -479,7 +528,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             name="phone"
             type="tel"
             value={formData.phone || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            onChange={(e) => handleInputChange("phone", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
             placeholder="ENTER 10-DIGIT MOBILE NUMBER"
           />
@@ -491,7 +540,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             required
             name="address_line_1"
             value={formData.address_line_1 || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, address_line_1: e.target.value }))}
+            onChange={(e) => handleInputChange("address_line_1", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
             placeholder="HOUSE/FLAT NO, STREET, AREA"
           />
@@ -502,7 +551,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
           <input
             name="address_line_2"
             value={formData.address_line_2 || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, address_line_2: e.target.value }))}
+            onChange={(e) => handleInputChange("address_line_2", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
             placeholder="LOCALITY / LANDMARK"
           />
@@ -515,7 +564,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
               required
               name="city"
               value={formData.city || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              onChange={(e) => handleInputChange("city", e.target.value)}
               className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
               placeholder="CITY"
             />
@@ -526,7 +575,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
               required
               name="postal_code"
               value={formData.postal_code || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+              onChange={(e) => handleInputChange("postal_code", e.target.value)}
               className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
               placeholder="PIN CODE"
             />
@@ -539,7 +588,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             required
             name="state"
             value={formData.state || ""}
-            onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+            onChange={(e) => handleInputChange("state", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
             placeholder="STATE"
           />
@@ -551,7 +600,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
               type="checkbox"
               id="is_default_inline"
               checked={formData.is_default || false}
-              onChange={(e) => setFormData(prev => ({ ...prev, is_default: e.target.checked }))}
+              onChange={(e) => handleInputChange("is_default", e.target.checked)}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
             />
             <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] flex items-center justify-center">
@@ -566,16 +615,13 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
         </div>
 
         <div className="pt-4 flex gap-4">
-          {!isFirstTime && (
+          {(editingAddress || selectedAddressId) && (
             <button
               type="button"
-              onClick={() => {
-                setIsAddingInline(false);
-                setEditingAddress(null);
-              }}
-              className="flex-1 py-3 border border-outline-variant/20 text-[10px] font-black uppercase tracking-widest text-on-surface hover:bg-white/50 rounded-lg transition-colors cursor-pointer"
+              onClick={resetForm}
+              className="flex-1 py-3 border border-outline-variant/20 text-[10px] font-black uppercase tracking-widest text-on-surface hover:bg-white/50 rounded-lg transition-colors cursor-pointer bg-transparent"
             >
-              Cancel
+              Clear Form
             </button>
           )}
           <button
@@ -682,42 +728,35 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
         </h3>
       </div>
 
-      {(isAddingInline || editingAddress) ? (
-        renderInlineForm()
-      ) : (
-        <>
-          <div role="radiogroup" aria-label="Select shipping address" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {addresses.map((address) => (
-              <AddressCard
-                key={address.id}
-                address={address}
-                isSelected={selectedAddressId === address.id}
-                onSelect={handleSelect}
-                onEdit={openEditModal}
-                onDelete={handleDelete}
-                onSetDefault={handleSetDefault}
-                onKeyPress={handleKeyPress}
-              />
-            ))}
-          </div>
+      <div role="radiogroup" aria-label="Select shipping address" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {addresses.map((address) => (
+          <AddressCard
+            key={address.id}
+            address={address}
+            isSelected={selectedAddressId === address.id}
+            onSelect={handleSelect}
+            onEdit={openEditModal}
+            onDelete={handleDelete}
+            onSetDefault={handleSetDefault}
+            onKeyPress={handleKeyPress}
+          />
+        ))}
+      </div>
 
-          <div className="flex gap-4 pt-4 border-t border-outline-variant/10">
-            <button
-              onClick={openAddInline}
-              className="flex-grow py-3 border border-dashed border-outline-variant/60 hover:border-neutral-900 text-[10px] font-black uppercase tracking-widest text-neutral-800 hover:text-neutral-950 transition-all rounded-lg bg-transparent cursor-pointer flex items-center justify-center gap-1"
-            >
-              <span className="material-symbols-outlined text-sm">add</span> Add New Address
-            </button>
-            {selectedAddress && (
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="px-6 py-3 bg-neutral-950 hover:bg-[#fed488] hover:text-neutral-950 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer shadow-md"
-              >
-                Done
-              </button>
-            )}
-          </div>
-        </>
+      <div className="border-t border-outline-variant/20 pt-6">
+        {renderInlineForm()}
+      </div>
+
+      {selectedAddress && (
+        <div className="flex justify-end pt-4 border-t border-outline-variant/10">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(false)}
+            className="px-6 py-3 bg-neutral-950 hover:bg-[#fed488] hover:text-neutral-950 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer shadow-md"
+          >
+            Done
+          </button>
+        </div>
       )}
     </div>
   );

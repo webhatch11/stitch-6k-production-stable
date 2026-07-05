@@ -3,9 +3,16 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order, WalletTransaction, LoyaltyTransaction } from "@/lib/registry";
+import { Order, WalletTransaction, LoyaltyTransaction, UserAddress } from "@/lib/registry";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { getProfileDataAction } from "@/app/actions/profile";
+import { getProfileDataAction, updateProfileAction } from "@/app/actions/profile";
+import { useToastStore } from "@/stores/toastStore";
+import { 
+  getUserAddressesAction, 
+  saveUserAddressAction, 
+  deleteUserAddressAction, 
+  setDefaultUserAddressAction 
+} from "@/app/actions/addresses";
 
 interface MyProfileClientProps {
   userName: string;
@@ -40,6 +47,165 @@ export default function MyProfileClient({
   const [loyaltyPoints, setLoyaltyPoints] = useState(initialLoyaltyPoints);
   const [loyaltyTxs, setLoyaltyTxs] = useState<LoyaltyTransaction[]>(initialLoyaltyTxs);
   const [recentOrders, setRecentOrders] = useState<Order[]>(initialRecentOrders);
+
+  // Profile Edit States
+  const [name, setName] = useState(userName);
+  const [phone, setPhone] = useState(userPhone || "");
+  const [editName, setEditName] = useState(userName);
+  const [editPhone, setEditPhone] = useState(userPhone || "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  // Address CRUD States
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+
+  const [addrName, setAddrName] = useState("");
+  const [addrPhone, setAddrPhone] = useState("");
+  const [addrLine1, setAddrLine1] = useState("");
+  const [addrLine2, setAddrLine2] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrPin, setAddrPin] = useState("");
+  const [addrIsDefault, setAddrIsDefault] = useState(false);
+  const [addrSaving, setAddrSaving] = useState(false);
+  const [addrError, setAddrError] = useState<string | null>(null);
+
+  const loadAddresses = async () => {
+    setLoadingAddresses(true);
+    const res = await getUserAddressesAction();
+    if (res.success && res.addresses) {
+      setAddresses(res.addresses);
+    }
+    setLoadingAddresses(false);
+  };
+
+  useEffect(() => {
+    loadAddresses();
+  }, []);
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    try {
+      const res = await updateProfileAction(editName, editPhone);
+      if (res.success) {
+        setName(editName);
+        setPhone(editPhone);
+        setIsEditing(false);
+        setProfileSuccess("Profile updated successfully!");
+        useToastStore.getState().addToast("✓ Profile updated successfully!");
+        setTimeout(() => setProfileSuccess(null), 4000);
+      } else {
+        setProfileError(res.error || "Failed to update profile");
+      }
+    } catch (err: any) {
+      setProfileError(err.message || "An unexpected error occurred");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditAddressClick = (address: UserAddress) => {
+    setEditingAddress(address);
+    setIsAddingAddress(false);
+    setAddrName(address.name || "");
+    setAddrPhone(address.phone || "");
+    setAddrLine1(address.address_line_1 || "");
+    setAddrLine2(address.address_line_2 || "");
+    setAddrCity(address.city || "");
+    setAddrState(address.state || "");
+    setAddrPin(address.postal_code || "");
+    setAddrIsDefault(address.is_default || false);
+    setAddrError(null);
+  };
+
+  const handleAddAddressClick = () => {
+    setIsAddingAddress(true);
+    setEditingAddress(null);
+    setAddrName("");
+    setAddrPhone("");
+    setAddrLine1("");
+    setAddrLine2("");
+    setAddrCity("");
+    setAddrState("");
+    setAddrPin("");
+    setAddrIsDefault(false);
+    setAddrError(null);
+  };
+
+  const handleAddressSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddrSaving(true);
+    setAddrError(null);
+
+    const payload: Partial<UserAddress> = {
+      id: editingAddress?.id,
+      name: addrName.trim(),
+      phone: addrPhone.trim(),
+      address_line_1: addrLine1.trim(),
+      address_line_2: addrLine2.trim(),
+      city: addrCity.trim(),
+      state: addrState.trim(),
+      postal_code: addrPin.trim(),
+      is_default: addrIsDefault,
+      country: "India",
+    };
+
+    try {
+      const res = await saveUserAddressAction(payload);
+      if (res.success) {
+        useToastStore.getState().addToast(
+          editingAddress ? "✓ Address updated successfully" : "✓ Address added successfully"
+        );
+        setIsAddingAddress(false);
+        setEditingAddress(null);
+        await loadAddresses();
+      } else {
+        setAddrError(res.error || "Failed to save address");
+      }
+    } catch (err: any) {
+      setAddrError(err.message || "An error occurred while saving the address");
+    } finally {
+      setAddrSaving(false);
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this address?")) return;
+    try {
+      const res = await deleteUserAddressAction(id);
+      if (res.success) {
+        useToastStore.getState().addToast("✓ Address deleted successfully");
+        await loadAddresses();
+      } else {
+        useToastStore.getState().addToast(`❌ Delete failed: ${res.error}`);
+      }
+    } catch (err: any) {
+      useToastStore.getState().addToast(`❌ Delete failed: ${err.message}`);
+    }
+  };
+
+  const handleSetDefaultAddress = async (id: string) => {
+    try {
+      const res = await setDefaultUserAddressAction(id);
+      if (res.success) {
+        useToastStore.getState().addToast("✓ Default address updated");
+        await loadAddresses();
+      } else {
+        useToastStore.getState().addToast(`❌ Failed to set default: ${res.error}`);
+      }
+    } catch (err: any) {
+      useToastStore.getState().addToast(`❌ Failed to set default: ${err.message}`);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#loyalty") {
@@ -113,10 +279,10 @@ export default function MyProfileClient({
             <div
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-none bg-cover bg-center border border-secondary flex items-center justify-center bg-black text-[#fed488] font-bold text-xl"
             >
-              {userName.charAt(0).toUpperCase()}
+              {name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="font-bold uppercase text-sm sm:text-base">{userName}</h3>
+              <h3 className="font-bold uppercase text-sm sm:text-base">{name}</h3>
               <p className="text-[10px] sm:text-xs text-gray-500 uppercase">{userRole === 'admin' ? 'Store Admin' : 'Platinum Member'}</p>
             </div>
           </div>
@@ -186,19 +352,323 @@ export default function MyProfileClient({
               <section className="bg-white border border-outline-variant/20 p-8 flex flex-col gap-6">
                 <div className="flex justify-between items-start">
                   <h4 className="text-on-surface font-bold text-xs tracking-widest uppercase">Personal Details</h4>
-                  <span className="material-symbols-outlined text-secondary text-lg cursor-pointer">edit</span>
+                  {!isEditing && (
+                    <button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditName(name);
+                        setEditPhone(phone);
+                        setProfileError(null);
+                        setProfileSuccess(null);
+                      }}
+                      className="p-1 text-secondary bg-transparent border-none cursor-pointer hover:text-black flex items-center justify-center transition-colors"
+                      title="Edit Profile"
+                    >
+                      <span className="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                  )}
                 </div>
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Full Name</p>
-                    <p className="text-on-surface font-headline font-bold text-lg uppercase">{userName}</p>
+
+                {profileError && (
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wider">
+                    {profileError}
                   </div>
-                  <div>
-                    <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Contact Details</p>
-                    <p className="text-on-surface font-body text-sm">{userPhone}</p>
-                    <p className="text-on-surface font-body text-sm">{userEmail}</p>
+                )}
+                {profileSuccess && (
+                  <div className="p-4 bg-[#775a19]/10 border border-[#775a19]/20 text-[#775a19] text-xs font-bold uppercase tracking-wider animate-fade-in">
+                    {profileSuccess}
                   </div>
+                )}
+
+                {isEditing ? (
+                  <form onSubmit={handleProfileSave} className="flex flex-col gap-4 max-w-xl">
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
+                      <input
+                        required
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface transition-all duration-300"
+                        placeholder="Full Name"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
+                      <input
+                        required
+                        type="text"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface transition-all duration-300"
+                        placeholder="Phone Number"
+                      />
+                    </div>
+                    <div className="space-y-1.5 opacity-60">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Email Address (Read-only)</label>
+                      <input
+                        disabled
+                        type="email"
+                        value={userEmail}
+                        className="w-full px-4 py-3 bg-gray-50 border border-outline-variant/20 text-xs font-bold uppercase tracking-wider outline-none rounded-none text-gray-500 cursor-not-allowed"
+                      />
+                    </div>
+                    <div className="flex gap-4 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setProfileError(null);
+                        }}
+                        className="flex-1 py-3 border border-outline-variant/40 text-[10px] font-black uppercase tracking-widest text-on-surface hover:bg-gray-50 rounded-none transition-colors cursor-pointer bg-transparent"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="flex-1 py-3 bg-black hover:bg-[#fed488] hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-none transition-all cursor-pointer flex items-center justify-center gap-2 border-none shadow-sm"
+                      >
+                        {isSaving ? "Saving..." : "Save Details"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Full Name</p>
+                      <p className="text-on-surface font-headline font-bold text-lg uppercase">{name}</p>
+                    </div>
+                    <div>
+                      <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Contact Details</p>
+                      <p className="text-on-surface font-body text-sm">{phone || "Not Provided"}</p>
+                      <p className="text-on-surface font-body text-sm">{userEmail}</p>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Address Book Section */}
+              <section className="bg-white border border-outline-variant/20 p-8 flex flex-col gap-6">
+                <div className="flex justify-between items-center border-b border-outline-variant/20 pb-4">
+                  <h4 className="text-on-surface font-bold text-xs tracking-widest uppercase">Saved Addresses</h4>
+                  {!isAddingAddress && !editingAddress && (
+                    <button
+                      onClick={handleAddAddressClick}
+                      className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#775a19] hover:text-[#775a19]/80 bg-transparent border-none cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">add</span> Add Address
+                    </button>
+                  )}
                 </div>
+
+                {(isAddingAddress || editingAddress) ? (
+                  <form onSubmit={handleAddressSubmit} className="flex flex-col gap-4 max-w-xl">
+                    <h5 className="text-[11px] font-black uppercase tracking-wider text-neutral-900">
+                      {editingAddress ? "Edit Address" : "New Address"}
+                    </h5>
+                    
+                    {addrError && (
+                      <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-xs font-bold uppercase tracking-wider">
+                        {addrError}
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
+                      <input
+                        required
+                        type="text"
+                        value={addrName}
+                        onChange={(e) => setAddrName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                        placeholder="ENTER FULL NAME"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
+                      <input
+                        required
+                        type="text"
+                        value={addrPhone}
+                        onChange={(e) => setAddrPhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                        placeholder="ENTER PHONE NUMBER"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 1</label>
+                      <input
+                        required
+                        type="text"
+                        value={addrLine1}
+                        onChange={(e) => setAddrLine1(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                        placeholder="HOUSE/FLAT NO, STREET, AREA"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 2 (Optional)</label>
+                      <input
+                        type="text"
+                        value={addrLine2}
+                        onChange={(e) => setAddrLine2(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                        placeholder="LOCALITY / LANDMARK"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">City</label>
+                        <input
+                          required
+                          type="text"
+                          value={addrCity}
+                          onChange={(e) => setAddrCity(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                          placeholder="CITY"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Pin Code</label>
+                        <input
+                          required
+                          type="text"
+                          value={addrPin}
+                          onChange={(e) => setAddrPin(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                          placeholder="PIN CODE"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">State</label>
+                      <input
+                        required
+                        type="text"
+                        value={addrState}
+                        onChange={(e) => setAddrState(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-outline-variant/30 focus:border-[#fed488] text-xs font-bold uppercase tracking-wider outline-none rounded-none text-on-surface"
+                        placeholder="STATE"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <input
+                        type="checkbox"
+                        id="is_default_profile"
+                        checked={addrIsDefault}
+                        onChange={(e) => setAddrIsDefault(e.target.checked)}
+                        className="w-4 h-4 accent-[#775a19]"
+                      />
+                      <label htmlFor="is_default_profile" className="font-bold cursor-pointer select-none text-[10px] tracking-wider text-on-surface/85 uppercase">
+                        Set as Default Address
+                      </label>
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingAddress(false);
+                          setEditingAddress(null);
+                        }}
+                        className="flex-1 py-3 border border-outline-variant/40 text-[10px] font-black uppercase tracking-widest text-on-surface hover:bg-gray-50 rounded-none transition-colors cursor-pointer bg-transparent"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={addrSaving}
+                        className="flex-1 py-3 bg-black hover:bg-[#fed488] hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-none transition-all cursor-pointer border-none shadow-sm flex items-center justify-center"
+                      >
+                        {addrSaving ? "Saving..." : "Save Address"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {loadingAddresses ? (
+                      <p className="text-xs text-outline italic animate-pulse">Loading addresses...</p>
+                    ) : addresses.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-8 bg-surface-container-lowest/30 border border-dashed border-outline-variant/30 text-center gap-3 animate-fade-in">
+                        <p className="text-xs text-outline font-semibold uppercase tracking-wider">
+                          No saved addresses yet. Add an address to speed up checkout.
+                        </p>
+                        <button
+                          onClick={handleAddAddressClick}
+                          className="px-6 py-2.5 bg-black hover:bg-[#fed488] hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-none border-none transition-all cursor-pointer"
+                        >
+                          + Add Address
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+                        {addresses.map((address) => (
+                          <div
+                            key={address.id}
+                            className={`p-6 border flex flex-col justify-between transition-all rounded-none ${
+                              address.is_default
+                                ? "bg-white border-[#775a19] shadow-[0_0_15px_rgba(119,90,25,0.08)]"
+                                : "bg-white border-outline-variant/30 hover:border-outline-variant/80"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2 mb-3">
+                                <h5 className="text-[11px] font-black uppercase tracking-wider text-neutral-950">
+                                  {address.name}
+                                </h5>
+                                {address.is_default && (
+                                  <span className="bg-[#775a19] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none">
+                                    DEFAULT
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] font-semibold tracking-wide text-neutral-700 uppercase leading-relaxed">
+                                {address.address_line_1}
+                                {address.address_line_2 && <>, {address.address_line_2}</>}
+                              </p>
+                              <p className="text-[10px] font-semibold tracking-wide text-neutral-700 uppercase leading-relaxed">
+                                {address.city}, {address.state} - {address.postal_code}
+                              </p>
+                              <p className="text-[10px] font-bold tracking-wide text-neutral-850 uppercase mt-3">
+                                Phone: {address.phone}
+                              </p>
+                            </div>
+
+                            <div className="flex gap-4 mt-6 pt-4 border-t border-outline-variant/10 text-xs font-bold uppercase tracking-widest">
+                              <button
+                                onClick={() => handleEditAddressClick(address)}
+                                className="text-[9px] font-black uppercase tracking-widest text-[#775a19] hover:text-black transition-colors bg-transparent border-none cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAddress(address.id)}
+                                className="text-[9px] font-black uppercase tracking-widest text-red-600 hover:text-red-700 transition-colors bg-transparent border-none cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                              {!address.is_default && (
+                                <button
+                                  onClick={() => handleSetDefaultAddress(address.id)}
+                                  className="ml-auto text-[9px] font-black uppercase tracking-widest text-outline hover:text-black transition-colors bg-transparent border-none cursor-pointer"
+                                >
+                                  Set Default
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
 
               {/* Recent Orders Overview */}

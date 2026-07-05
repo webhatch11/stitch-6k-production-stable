@@ -14,6 +14,7 @@ import {
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
+import { clearCartAction } from "@/app/actions/cart";
 import { createBrowserClient } from "@supabase/ssr";
 import { AddressList } from "@/components/checkout/AddressList";
 import { AddressErrorBoundary } from "@/components/checkout/AddressErrorBoundary";
@@ -343,6 +344,7 @@ export default function CheckoutPage() {
 
         // Clear cart
         useCartStore.getState().clearCart();
+        clearCartAction().catch(() => {});
 
         triggerToast("Order placed successfully!");
         setTimeout(() => {
@@ -389,6 +391,7 @@ export default function CheckoutPage() {
           }
 
           useCartStore.getState().clearCart();
+          clearCartAction().catch(() => {});
           triggerToast("✓ COD Order placed successfully!");
           setProcessingPayment(false);
           setTimeout(() => {
@@ -466,6 +469,7 @@ export default function CheckoutPage() {
 
                 if (verifyData.success) {
                    useCartStore.getState().clearCart();
+                   clearCartAction().catch(() => {});
                    router.push(`/orderconfirmed?orderId=${verifyData.orderId}`);
                 } else {
                    setProcessingPayment(false);

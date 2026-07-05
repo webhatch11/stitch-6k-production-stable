@@ -1,5 +1,50 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { supabase } from "@/lib/supabase";
+import { addToCartAction, removeFromCartAction, syncCartAction } from "@/app/actions/cart";
+
+export function mergeCarts(localItems: CartItem[], dbItems: CartItem[]): CartItem[] {
+  const getUniqueKey = (item: CartItem) => {
+    const pId = item.productId || "unknown";
+    const size = item.size || "Default";
+    const color = item.color || "Default";
+    return `${pId}_${size}_${color}`;
+  };
+
+  const localGrouped: Record<string, { item: CartItem; qty: number }> = {};
+  for (const item of localItems) {
+    const key = getUniqueKey(item);
+    if (!localGrouped[key]) {
+      localGrouped[key] = { item, qty: 0 };
+    }
+    localGrouped[key].qty += 1;
+  }
+
+  const dbGrouped: Record<string, { item: CartItem; qty: number }> = {};
+  for (const item of dbItems) {
+    const key = getUniqueKey(item);
+    if (!dbGrouped[key]) {
+      dbGrouped[key] = { item, qty: 0 };
+    }
+    dbGrouped[key].qty += 1;
+  }
+
+  const mergedItems: CartItem[] = [];
+  const allKeys = new Set([...Object.keys(localGrouped), ...Object.keys(dbGrouped)]);
+
+  for (const key of allKeys) {
+    const localVal = localGrouped[key];
+    const dbVal = dbGrouped[key];
+    const item = localVal?.item || dbVal?.item;
+    const qty = Math.max(localVal?.qty || 0, dbVal?.qty || 0);
+
+    for (let i = 0; i < qty; i++) {
+      mergedItems.push({ ...item });
+    }
+  }
+
+  return mergedItems;
+}
 
 export interface CartItem {
   productId?: string;
@@ -33,9 +78,26 @@ export const useCartStore = create<CartState>()(
           }
           return { cartItems: newItems };
         });
+
+        if (supabase) {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              addToCartAction(item).catch((err) => {
+                console.error("Failed to add to DB cart:", err);
+              });
+            }
+          });
+        }
       },
 
       removeFromCart: (productName, size, color) => {
+        const itemToRemove = get().cartItems.find(
+          (item) =>
+            item.productName === productName &&
+            item.size === size &&
+            (item.color || "Default") === (color || "Default")
+        );
+
         set((state) => ({
           cartItems: state.cartItems.filter(
             (item) =>
@@ -46,6 +108,17 @@ export const useCartStore = create<CartState>()(
               )
           ),
         }));
+
+        if (itemToRemove && supabase) {
+          const productId = itemToRemove.productId || "unknown";
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              removeFromCartAction(productId, size, color).catch((err) => {
+                console.error("Failed to remove from DB cart:", err);
+              });
+            }
+          });
+        }
       },
 
       decrementQuantity: (productName, size, color) => {
@@ -59,6 +132,17 @@ export const useCartStore = create<CartState>()(
           if (idx === -1) return {};
           const newItems = [...state.cartItems];
           newItems.splice(idx, 1);
+
+          if (supabase) {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.user) {
+                syncCartAction(newItems).catch((err) => {
+                  console.error("Failed to sync decremented cart to DB:", err);
+                });
+              }
+            });
+          }
+
           return { cartItems: newItems };
         });
       },
@@ -85,9 +169,18 @@ export const useCartStore = create<CartState>()(
 
         if (!templateItem) return false;
 
-        set((state) => ({
-          cartItems: [...state.cartItems, { ...templateItem }]
-        }));
+        const newItems = [...state.cartItems, { ...templateItem }];
+        set({ cartItems: newItems });
+
+        if (supabase) {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              addToCartAction(templateItem).catch((err) => {
+                console.error("Failed to add to DB cart on increment:", err);
+              });
+            }
+          });
+        }
         return true;
       },
 

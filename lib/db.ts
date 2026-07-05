@@ -3051,5 +3051,424 @@ export const db = {
     const { error } = await supabase.from("reviews").update(review).eq("id", id);
     return !error;
   },
+
+  // --- Analytics ---
+  async getTodaySalesKPI(): Promise<{
+    todaySales: number;
+    todayOrders: number;
+    salesChangePercent: number;
+    ordersChangePercent: number;
+    salesTrendStatus: "up" | "down" | "none" | "first";
+    ordersTrendStatus: "up" | "down" | "none" | "first";
+  }> {
+    try {
+      const orders = (await this.getOrders()) as any[];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStart = today.getTime();
+      const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+
+      let todaySales = 0;
+      let todayOrders = 0;
+      let yesterdaySales = 0;
+      let yesterdayOrders = 0;
+
+      const parseOrderDate = (o: any): number => {
+        const orderDateStr = o.created_at || o.createdAt || o.date;
+        if (!orderDateStr) return Date.now();
+        let orderTime = Date.parse(orderDateStr);
+        if (isNaN(orderTime)) {
+          const parts = orderDateStr.split("/");
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            orderTime = d.getTime();
+          } else {
+            orderTime = Date.now();
+          }
+        }
+        return orderTime;
+      };
+
+      for (const o of orders) {
+        const status = (o.status || "").toLowerCase();
+        if (status === "cancelled" || status === "returned") continue;
+
+        const orderTime = parseOrderDate(o);
+        if (orderTime >= todayStart) {
+          todaySales += Number(o.total || 0);
+          todayOrders += 1;
+        } else if (orderTime >= yesterdayStart && orderTime < todayStart) {
+          yesterdaySales += Number(o.total || 0);
+          yesterdayOrders += 1;
+        }
+      }
+
+      let salesChangePercent = 0;
+      let salesTrendStatus: "up" | "down" | "none" | "first" = "none";
+      if (yesterdaySales === 0) {
+        salesTrendStatus = todaySales > 0 ? "first" : "none";
+      } else {
+        const diff = todaySales - yesterdaySales;
+        salesChangePercent = Math.round((diff / yesterdaySales) * 100);
+        salesTrendStatus = diff > 0 ? "up" : (diff < 0 ? "down" : "none");
+      }
+
+      let ordersChangePercent = 0;
+      let ordersTrendStatus: "up" | "down" | "none" | "first" = "none";
+      if (yesterdayOrders === 0) {
+        ordersTrendStatus = todayOrders > 0 ? "first" : "none";
+      } else {
+        const diff = todayOrders - yesterdayOrders;
+        ordersChangePercent = Math.round((diff / yesterdayOrders) * 100);
+        ordersTrendStatus = diff > 0 ? "up" : (diff < 0 ? "down" : "none");
+      }
+
+      return {
+        todaySales,
+        todayOrders,
+        salesChangePercent,
+        ordersChangePercent,
+        salesTrendStatus,
+        ordersTrendStatus,
+      };
+    } catch (e) {
+      console.error("Error in getTodaySalesKPI:", e);
+      return {
+        todaySales: 0,
+        todayOrders: 0,
+        salesChangePercent: 0,
+        ordersChangePercent: 0,
+        salesTrendStatus: "none",
+        ordersTrendStatus: "none",
+      };
+    }
+  },
+
+  async getDashboardKPIMetrics(): Promise<{
+    aov: number;
+    pendingShipments: number;
+    refundRequests: number;
+    customerGrowth: number;
+  }> {
+    try {
+      const orders = (await this.getOrders()) as any[];
+      const now = Date.now();
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+      const parseOrderDate = (o: any): number => {
+        const orderDateStr = o.created_at || o.createdAt || o.date;
+        if (!orderDateStr) return Date.now();
+        let orderTime = Date.parse(orderDateStr);
+        if (isNaN(orderTime)) {
+          const parts = orderDateStr.split("/");
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            orderTime = d.getTime();
+          } else {
+            orderTime = Date.now();
+          }
+        }
+        return orderTime;
+      };
+
+      let recentTotal = 0;
+      let recentCount = 0;
+      let pendingCount = 0;
+      let refundCount = 0;
+
+      for (const o of orders) {
+        const status = (o.status || "").toLowerCase();
+        const orderTime = parseOrderDate(o);
+
+        if (status !== "cancelled" && status !== "returned" && orderTime >= thirtyDaysAgo) {
+          recentTotal += Number(o.total || 0);
+          recentCount += 1;
+        }
+
+        if (["confirmed", "processing", "packed"].includes(status)) {
+          pendingCount += 1;
+        }
+
+        if (["refund_requested", "refund_processing"].includes(status)) {
+          refundCount += 1;
+        }
+      }
+
+      const aov = recentCount > 0 ? Math.round(recentTotal / recentCount) : 0;
+
+      let customerGrowth = 0;
+      const { supabase, isSupabaseConfigured } = loadService();
+      if (isSupabaseConfigured && supabase) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const { count, error } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "customer")
+          .gte("created_at", cutoff.toISOString());
+        if (!error && count !== null) {
+          customerGrowth = count;
+        }
+      }
+      if (customerGrowth === 0) {
+        const recentCustomers = new Set<string>();
+        for (const o of orders) {
+          if (parseOrderDate(o) >= thirtyDaysAgo) {
+            recentCustomers.add(o.customer);
+          }
+        }
+        customerGrowth = Math.max(1, recentCustomers.size);
+      }
+
+      return {
+        aov,
+        pendingShipments: pendingCount,
+        refundRequests: refundCount,
+        customerGrowth,
+      };
+    } catch (e) {
+      console.error("Error in getDashboardKPIMetrics:", e);
+      return {
+        aov: 0,
+        pendingShipments: 0,
+        refundRequests: 0,
+        customerGrowth: 0,
+      };
+    }
+  },
+
+  async getRevenueTrend(days: number = 30): Promise<Array<{
+    date: string;
+    revenue: number;
+    order_count: number;
+    gateway_revenue: number;
+    wallet_revenue: number;
+  }>> {
+    const cacheKey = `analytics:revenue_trend:${days}`;
+    try {
+      const cached = await CacheService.get<any[]>(cacheKey);
+      if (cached) return cached;
+
+      const orders = (await this.getOrders()) as any[];
+      const dateMap = new Map<string, any>();
+
+      const now = new Date();
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const key = d.toISOString().split("T")[0];
+        dateMap.set(key, {
+          date: dateStr,
+          revenue: 0,
+          order_count: 0,
+          gateway_revenue: 0,
+          wallet_revenue: 0,
+        });
+      }
+
+      const parseOrderDate = (o: any): number => {
+        const orderDateStr = o.created_at || o.createdAt || o.date;
+        if (!orderDateStr) return Date.now();
+        let orderTime = Date.parse(orderDateStr);
+        if (isNaN(orderTime)) {
+          const parts = orderDateStr.split("/");
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            orderTime = d.getTime();
+          } else {
+            orderTime = Date.now();
+          }
+        }
+        return orderTime;
+      };
+
+      for (const o of orders) {
+        const status = (o.status || "").toLowerCase();
+        if (status === "cancelled" || status === "returned") continue;
+
+        const orderTime = parseOrderDate(o);
+        const orderDate = new Date(orderTime);
+        const key = orderDate.toISOString().split("T")[0];
+
+        if (dateMap.has(key)) {
+          const entry = dateMap.get(key);
+          entry.revenue += Number(o.total || 0);
+          entry.order_count += 1;
+          entry.gateway_revenue += Number(o.gatewayPaid || o.gateway_paid || 0);
+          entry.wallet_revenue += Number(o.walletPaid || o.wallet_paid || 0);
+        }
+      }
+
+      const result = Array.from(dateMap.values());
+      await CacheService.set(cacheKey, result, 300); // 5 minutes
+      return result;
+    } catch (e) {
+      console.error("Error in getRevenueTrend:", e);
+      return [];
+    }
+  },
+
+  async getTopProducts(days: number = 30, limit: number = 8): Promise<Array<{
+    productName: string;
+    unitsSold: number;
+    revenue: number;
+  }>> {
+    const cacheKey = `analytics:top_products:${days}:${limit}`;
+    try {
+      const cached = await CacheService.get<any[]>(cacheKey);
+      if (cached) return cached;
+
+      const orders = (await this.getOrders()) as any[];
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+      const parseOrderDate = (o: any): number => {
+        const orderDateStr = o.created_at || o.createdAt || o.date;
+        if (!orderDateStr) return Date.now();
+        let orderTime = Date.parse(orderDateStr);
+        if (isNaN(orderTime)) {
+          const parts = orderDateStr.split("/");
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            orderTime = d.getTime();
+          } else {
+            orderTime = Date.now();
+          }
+        }
+        return orderTime;
+      };
+
+      const productMap = new Map<string, { productName: string; unitsSold: number; revenue: number }>();
+
+      for (const o of orders) {
+        const status = (o.status || "").toLowerCase();
+        if (status === "cancelled" || status === "returned") continue;
+
+        const orderTime = parseOrderDate(o);
+        if (orderTime < cutoff) continue;
+
+        const rawItems = o.cartItems || o.cart_items || [];
+        if (Array.isArray(rawItems)) {
+          for (const item of rawItems) {
+            let pName = "";
+            let qty = 1;
+            let price = 0;
+            if (typeof item === "object" && item !== null) {
+              pName = item.productName || item.title || item.productId || "Unnamed Product";
+              qty = Number(item.quantity || item.qty || 1);
+              price = Number(item.price || 0);
+            } else if (typeof item === "string") {
+              pName = item;
+              qty = 1;
+              price = 0;
+            }
+            if (!pName) continue;
+            const existing = productMap.get(pName);
+            if (existing) {
+              existing.unitsSold += qty;
+              existing.revenue += price * qty;
+            } else {
+              productMap.set(pName, { productName: pName, unitsSold: qty, revenue: price * qty });
+            }
+          }
+        } else if (Array.isArray(o.items)) {
+          for (const item of o.items) {
+            const pName = String(item);
+            const existing = productMap.get(pName);
+            if (existing) {
+              existing.unitsSold += 1;
+            } else {
+              productMap.set(pName, { productName: pName, unitsSold: 1, revenue: 0 });
+            }
+          }
+        }
+      }
+
+      const result = Array.from(productMap.values());
+      result.sort((a, b) => b.unitsSold - a.unitsSold);
+      const sliced = result.slice(0, limit);
+      await CacheService.set(cacheKey, sliced, 300); // 5 minutes
+      return sliced;
+    } catch (e) {
+      console.error("Error in getTopProducts:", e);
+      return [];
+    }
+  },
+
+  async getCouponPerformance(days: number = 30): Promise<Array<{
+    coupon_code: string;
+    times_used: number;
+    total_savings: number;
+    avg_order_value: number;
+  }>> {
+    const cacheKey = `analytics:coupons:${days}`;
+    try {
+      const cached = await CacheService.get<any[]>(cacheKey);
+      if (cached) return cached;
+
+      const orders = (await this.getOrders()) as any[];
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+      const parseOrderDate = (o: any): number => {
+        const orderDateStr = o.created_at || o.createdAt || o.date;
+        if (!orderDateStr) return Date.now();
+        let orderTime = Date.parse(orderDateStr);
+        if (isNaN(orderTime)) {
+          const parts = orderDateStr.split("/");
+          if (parts.length === 3) {
+            const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+            orderTime = d.getTime();
+          } else {
+            orderTime = Date.now();
+          }
+        }
+        return orderTime;
+      };
+
+      const performanceMap = new Map<string, { coupon_code: string; times_used: number; total_savings: number; total_order_value: number }>();
+
+      for (const o of orders) {
+        const status = (o.status || "").toLowerCase();
+        if (status === "cancelled" || status === "returned") continue;
+
+        const orderTime = parseOrderDate(o);
+        if (orderTime < cutoff) continue;
+
+        const cCode = (o.couponCode || o.coupon_code || "").trim().toUpperCase();
+        if (!cCode) continue;
+
+        const savings = Number(o.couponDiscount || o.coupon_discount || 0);
+
+        const existing = performanceMap.get(cCode);
+        if (existing) {
+          existing.times_used += 1;
+          existing.total_savings += savings;
+          existing.total_order_value += Number(o.total || 0);
+        } else {
+          performanceMap.set(cCode, {
+            coupon_code: cCode,
+            times_used: 1,
+            total_savings: savings,
+            total_order_value: Number(o.total || 0),
+          });
+        }
+      }
+
+      const result = Array.from(performanceMap.values()).map(cp => ({
+        coupon_code: cp.coupon_code,
+        times_used: cp.times_used,
+        total_savings: cp.total_savings,
+        avg_order_value: Math.round(cp.total_order_value / cp.times_used),
+      }));
+
+      result.sort((a, b) => b.times_used - a.times_used);
+      const sliced = result.slice(0, 10);
+      await CacheService.set(cacheKey, sliced, 300); // 5 minutes
+      return sliced;
+    } catch (e) {
+      console.error("Error in getCouponPerformance:", e);
+      return [];
+    }
+  },
 };
 

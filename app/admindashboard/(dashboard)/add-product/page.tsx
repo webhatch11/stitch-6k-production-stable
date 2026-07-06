@@ -135,8 +135,16 @@ function AddProductContent() {
 
   // Pricing & Commercial
   const [basePrice, setBasePrice] = useState(0);
+  const [compareAtPrice, setCompareAtPrice] = useState<number | "">("");
+  const [weightGrams, setWeightGrams] = useState<number | "">("");
+  const [productStatus, setProductStatus] = useState<"active" | "draft" | "archived">("active");
   const [gstRate, setGstRate] = useState(12);
   const [discountRate, setDiscountRate] = useState(0);
+
+  // SEO States
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoKeywords, setSeoKeywords] = useState("");
 
   // 4-slot image grid: index 0 = primary cover, 1-3 = secondary images
   const [selectedImages, setSelectedImages] = useState<string[]>(["", "", "", ""]);
@@ -229,8 +237,16 @@ function AddProductContent() {
 
           // Pricing
           setBasePrice(p.basePrice || p.price || 0);
+          setCompareAtPrice(p.compareAtPrice !== undefined && p.compareAtPrice !== null ? p.compareAtPrice : (p.comparePrice !== undefined && p.comparePrice !== null ? p.comparePrice : ""));
+          setWeightGrams(p.weightGrams !== undefined && p.weightGrams !== null ? p.weightGrams : "");
+          setProductStatus(p.productStatus || "active");
           setGstRate(p.gstRate || 12);
           setDiscountRate(p.discountRate || 0);
+
+          // SEO
+          setSeoTitle(p.seoTitle || "");
+          setSeoDescription(p.seoDescription || "");
+          setSeoKeywords(p.seoKeywords || "");
 
           // Images — populate 4 fixed slots; empty string = empty slot.
           const imgList = (p.images && p.images.length > 0)
@@ -277,6 +293,7 @@ function AddProductContent() {
   };
 
   const finalPrice = calculateFinalPrice();
+  const hasComparePriceError = compareAtPrice !== "" && Number(compareAtPrice) <= basePrice;
 
   // Drag-and-drop swap handler
   const handleDragEnd = (event: DragEndEvent) => {
@@ -377,6 +394,12 @@ function AddProductContent() {
       customBadge: enableCustomBadge ? customBadgeText.trim() : "",
       variants: finalVariants,
       display_sections: displaySections,
+      compareAtPrice: compareAtPrice === "" ? null : Number(compareAtPrice),
+      weightGrams: weightGrams === "" ? null : Number(weightGrams),
+      productStatus: productStatus,
+      seoTitle: seoTitle.trim() || null,
+      seoDescription: seoDescription.trim() || null,
+      seoKeywords: seoKeywords.trim() || null,
     };
 
     setIsSubmitting(true);
@@ -452,9 +475,9 @@ function AddProductContent() {
           <button
             onClick={handleSaveProduct}
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (compareAtPrice !== "" && Number(compareAtPrice) <= basePrice)}
             className={`flex-1 lg:flex-none bg-primary text-white px-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg rounded-none cursor-pointer border-none font-bold ${
-              isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+              (isSubmitting || (compareAtPrice !== "" && Number(compareAtPrice) <= basePrice)) ? "opacity-55 cursor-not-allowed bg-gray-400" : ""
             }`}
           >
             {isSubmitting ? "Saving..." : (editProductId ? "Update Product" : "Save Product")}
@@ -476,17 +499,42 @@ function AddProductContent() {
               </p>
             </div>
             <div className="lg:col-span-8 space-y-8">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                  Product Name
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Signature Cotton Shirt"
-                  className="w-full bg-white border border-gray-200 p-4 text-sm font-semibold outline-none focus:border-primary rounded-none"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Product Name
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Signature Cotton Shirt"
+                    className="w-full bg-white border border-gray-200 p-4 text-sm font-semibold outline-none focus:border-primary rounded-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3 flex items-center justify-between">
+                    <span>Product Status</span>
+                    <span className="flex items-center gap-1.5 font-black">
+                      <span className={`w-2.5 h-2.5 rounded-full ${
+                        productStatus === "active" ? "bg-green-600" :
+                        productStatus === "draft" ? "bg-yellow-500 animate-pulse" : "bg-gray-400"
+                      }`} />
+                      <span className="text-[9px] uppercase tracking-widest text-outline">
+                        {productStatus}
+                      </span>
+                    </span>
+                  </label>
+                  <select
+                    value={productStatus}
+                    onChange={(e) => setProductStatus(e.target.value as any)}
+                    className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
+                  >
+                    <option value="active">Active — visible on storefront</option>
+                    <option value="draft">Draft — hidden from storefront</option>
+                    <option value="archived">Archived — hidden, no longer sold</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
@@ -922,6 +970,37 @@ function AddProductContent() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Compare-At Price (INR)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-xs text-gray-400">₹</span>
+                    <input
+                      type="number"
+                      value={compareAtPrice}
+                      onChange={(e) => setCompareAtPrice(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value) || 0))}
+                      placeholder="e.g. 18500"
+                      className={`w-full bg-white border pl-8 pr-4 py-4 text-sm font-black outline-none focus:border-primary rounded-none ${
+                        hasComparePriceError ? "border-red-500 focus:border-red-500" : "border-gray-200"
+                      }`}
+                    />
+                  </div>
+                  {hasComparePriceError && (
+                    <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider mt-2">
+                      Compare-at price must be higher than the selling price
+                    </p>
+                  )}
+                  {!hasComparePriceError && compareAtPrice !== "" && basePrice > 0 && Number(compareAtPrice) > basePrice && (
+                    <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider mt-2 bg-green-50/50 p-2 border border-green-200/40">
+                      Preview: <span className="line-through text-gray-400">₹{Number(compareAtPrice).toLocaleString("en-IN")}</span> <span className="text-[#0a0a0a]">₹{basePrice.toLocaleString("en-IN")}</span> <span className="text-green-600">({Math.round((1 - basePrice / Number(compareAtPrice)) * 100)}% off)</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-dashed border-gray-200">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
                     GST Category (%)
@@ -935,6 +1014,22 @@ function AddProductContent() {
                     <option value="12">12% (Premium Apparel)</option>
                     <option value="18">18% (Luxury Goods)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Product Weight (Grams)
+                  </label>
+                  <input
+                    type="number"
+                    value={weightGrams}
+                    onChange={(e) => setWeightGrams(e.target.value === "" ? "" : Math.max(0, parseInt(e.target.value) || 0))}
+                    placeholder="e.g. 300"
+                    className="w-full bg-white border border-gray-200 p-4 text-xs font-black outline-none focus:border-primary rounded-none"
+                  />
+                  <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-2">
+                    Used for Shiprocket shipping calculations. Typical shirt: 250-400g
+                  </p>
                 </div>
               </div>
 
@@ -1070,6 +1165,127 @@ function AddProductContent() {
                   })}
                 </div>
               </DndContext>
+            </div>
+          </div>
+
+          {/* Section 06: SEO & DISCOVERABILITY */}
+          <div className="pb-12 grid grid-cols-1 lg:grid-cols-12 gap-12 pt-12 border-t border-gray-100">
+            <div className="lg:col-span-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#775a19] mb-4 block">
+                Section 06
+              </span>
+              <h3 className="font-headline font-black text-xl uppercase tracking-widest text-primary">
+                SEO & Discoverability
+              </h3>
+              <p className="text-xs text-gray-500 mt-4 leading-relaxed font-semibold uppercase tracking-wider italic opacity-85">
+                Control how this product appears in search engines.
+              </p>
+            </div>
+
+            <div className="lg:col-span-8 space-y-8 bg-white p-8 border border-gray-200">
+              {/* SEO Title */}
+              <div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a]">
+                    SEO Title
+                  </label>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${
+                    seoTitle.length > 60 ? "text-orange-600 font-bold" : "text-gray-400"
+                  }`}>
+                    {seoTitle.length}/60 characters
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={seoTitle}
+                  onChange={(e) => setSeoTitle(e.target.value)}
+                  placeholder="e.g. Premium Cotton Shirt — 6K Brand | Buy Online India"
+                  className="w-full bg-white border border-gray-200 p-4 text-sm font-semibold outline-none focus:border-primary rounded-none"
+                />
+                <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-2 leading-relaxed">
+                  Recommended: 50-60 characters. Leave empty to use product name.
+                </p>
+                {seoTitle.length > 60 && (
+                  <p className="text-[9px] text-orange-600 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">warning</span>
+                    Too long — may be truncated
+                  </p>
+                )}
+                {seoTitle.length > 0 && seoTitle.length < 30 && (
+                  <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mt-1.5">
+                    Consider adding more detail
+                  </p>
+                )}
+              </div>
+
+              {/* Meta Description */}
+              <div>
+                <div className="flex justify-between items-baseline mb-3">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a]">
+                    Meta Description
+                  </label>
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${
+                    seoDescription.length > 160 ? "text-orange-600 font-bold" : "text-gray-400"
+                  }`}>
+                    {seoDescription.length}/160 characters
+                  </span>
+                </div>
+                <textarea
+                  maxLength={300}
+                  value={seoDescription}
+                  onChange={(e) => setSeoDescription(e.target.value)}
+                  placeholder="e.g. Buy premium cotton shirts from 6K Brand. Heritage craftsmanship meets modern streetwear. Free shipping across India."
+                  className="w-full bg-white border border-gray-200 p-4 text-sm font-semibold outline-none focus:border-primary rounded-none h-28 resize-none"
+                />
+                <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-2 leading-relaxed">
+                  Recommended: 150-160 characters. Shown in Google search results.
+                </p>
+                {seoDescription.length > 160 && (
+                  <p className="text-[9px] text-orange-600 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">warning</span>
+                    Too long — may be truncated
+                  </p>
+                )}
+              </div>
+
+              {/* Focus Keywords */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                  Focus Keywords
+                </label>
+                <input
+                  type="text"
+                  value={seoKeywords}
+                  onChange={(e) => setSeoKeywords(e.target.value)}
+                  placeholder="e.g. cotton shirt, premium shirt India"
+                  className="w-full bg-white border border-gray-200 p-4 text-sm font-semibold outline-none focus:border-primary rounded-none"
+                />
+                <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-2">
+                  Comma-separated. Used for search engine discoverability.
+                </p>
+              </div>
+
+              {/* Dynamic Google Search Preview Card */}
+              <div className="pt-6 border-t border-dashed border-gray-200">
+                <div className="bg-[#f8f9fa] border border-gray-200/80 p-6 rounded-none text-left max-w-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-5 h-5 rounded-full bg-[#1a0dab]/5 text-[#1a0dab] font-serif font-black text-xs flex items-center justify-center border border-[#1a0dab]/10">G</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Google Search Preview</span>
+                  </div>
+                  <div className="space-y-1 font-sans">
+                    <p className="text-xs text-[#0d652d] font-mono truncate">
+                      the6k.com › product › {sku || "shirt-sku"}
+                    </p>
+                    <h4 className="text-[17px] leading-tight text-[#1a0dab] hover:underline cursor-pointer font-medium font-sans">
+                      {seoTitle.trim() || title || "Premium Cotton Shirt — 6K Brand"}
+                    </h4>
+                    <p className="text-xs text-[#4d5156] font-sans leading-relaxed">
+                      {seoDescription.trim() || description.trim().slice(0, 160) || "Buy premium cotton shirts from 6K Brand. Heritage craftsmanship meets modern streetwear. Free shipping across India."}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

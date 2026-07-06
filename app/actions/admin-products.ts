@@ -42,6 +42,12 @@ const productSchema = z.object({
     stock: z.number().int().min(0),
   })).optional(),
   display_sections: z.array(z.enum(["new_arrivals", "bestsellers", "atelier_exclusives", "genz"])).optional(),
+  compareAtPrice: z.number().nullable().optional(),
+  weightGrams: z.number().nullable().optional(),
+  productStatus: z.enum(["active", "draft", "archived"]).optional(),
+  seoTitle: z.string().nullable().optional(),
+  seoDescription: z.string().nullable().optional(),
+  seoKeywords: z.string().nullable().optional(),
 });
 
 export async function saveProductAction(input: unknown) {

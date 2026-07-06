@@ -27,12 +27,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: "Artisan luxury shirt not found.",
     };
   }
+  const title = product.seoTitle || `${product.title} | Stitch 6K`;
+  const description = product.seoDescription || product.description || `Buy ${product.title} at Stitch 6K. Artisan crafted premium luxury menswear.`;
   return {
-    title: `${product.title} | Stitch 6K`,
-    description: product.description || `Buy ${product.title} at Stitch 6K. Artisan crafted premium luxury menswear.`,
+    title,
+    description,
+    keywords: product.seoKeywords || undefined,
     openGraph: {
-      title: `${product.title} | Stitch 6K`,
-      description: product.description,
+      title,
+      description,
       images: [
         {
           url: product.image,
@@ -59,7 +62,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     "@type": "Product",
     "name": product.title,
     "image": [product.image, ...(product.images || [])].filter(Boolean),
-    "description": product.description || `Buy ${product.title} at Stitch 6K.`,
+    "description": product.seoDescription || product.description || `Buy ${product.title} at Stitch 6K.`,
     "sku": product.id,
     "offers": {
       "@type": "Offer",

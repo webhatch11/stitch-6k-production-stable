@@ -436,9 +436,27 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                                 {product.category} • Atelier Series
                               </p>
                             </div>
-                            <p className="font-headline font-black text-secondary text-xs shrink-0 self-start">
-                              ₹{product.price.toLocaleString("en-IN")}
-                            </p>
+                            <div className="flex flex-col items-end shrink-0 self-start">
+                              <p className="font-headline font-black text-secondary text-xs">
+                                ₹{product.price.toLocaleString("en-IN")}
+                              </p>
+                              {(() => {
+                                const effectiveComparePrice = product.compareAtPrice || product.comparePrice;
+                                if (effectiveComparePrice && effectiveComparePrice > product.price) {
+                                  return (
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <span className="text-[9px] line-through text-gray-400 font-bold">
+                                        ₹{effectiveComparePrice.toLocaleString("en-IN")}
+                                      </span>
+                                      <span className="text-[8px] font-black text-green-700 uppercase tracking-widest bg-green-50 px-1 py-0.5 border border-green-200/30">
+                                        {Math.round((1 - product.price / effectiveComparePrice) * 100)}% OFF
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </motion.div>

@@ -60,6 +60,12 @@ export interface Product {
   deleted_at?: string | null;
   variants?: ProductVariant[];
   display_sections?: string[];
+  compareAtPrice?: number | null;
+  weightGrams?: number | null;
+  productStatus?: 'active' | 'draft' | 'archived';
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  seoKeywords?: string | null;
 }
 
 
@@ -1093,6 +1099,12 @@ export const RegistryManager = {
       colors: product.colors || [],
       ratings: product.ratings || 5.0,
       reviews: product.reviews || [],
+      compareAtPrice: product.compareAtPrice !== undefined ? product.compareAtPrice : product.comparePrice,
+      weightGrams: product.weightGrams,
+      productStatus: product.productStatus,
+      seoTitle: product.seoTitle,
+      seoDescription: product.seoDescription,
+      seoKeywords: product.seoKeywords,
     };
     const existingIndex = products.findIndex(p => p.id === newProduct.id);
     if (existingIndex !== -1) {

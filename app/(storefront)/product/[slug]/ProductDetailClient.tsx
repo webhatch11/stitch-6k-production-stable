@@ -288,11 +288,22 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   ₹{product.price.toLocaleString("en-IN")}
                 </span>
                 
-                {product.comparePrice && product.comparePrice > product.price && (
-                  <span className="text-lg line-through text-outline font-bold">
-                    ₹{product.comparePrice.toLocaleString("en-IN")}
-                  </span>
-                )}
+                {(() => {
+                  const effectiveComparePrice = product.compareAtPrice || product.comparePrice;
+                  if (effectiveComparePrice && effectiveComparePrice > product.price) {
+                    return (
+                      <>
+                        <span className="text-lg line-through text-gray-400 font-bold">
+                          ₹{effectiveComparePrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-xs font-black text-green-700 uppercase tracking-widest bg-green-50 px-2 py-1 border border-green-200/40">
+                          {Math.round((1 - product.price / effectiveComparePrice) * 100)}% OFF
+                        </span>
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
                 
                 {product.customBadge && (
                   <span className="bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1">

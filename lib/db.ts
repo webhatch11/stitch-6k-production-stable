@@ -85,6 +85,12 @@ const mapDbProductToProduct = (p: any): Product => {
     reviews: p.reviews || [],
     deleted_at: p.deleted_at || null,
     display_sections: p.display_sections || [],
+    compareAtPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.compare_price ? Number(p.compare_price) : null),
+    weightGrams: p.weight_grams || null,
+    productStatus: p.product_status || 'active',
+    seoTitle: p.seo_title || null,
+    seoDescription: p.seo_description || null,
+    seoKeywords: p.seo_keywords || null,
   };
 };
 
@@ -232,10 +238,12 @@ export const db = {
 
     if (!isSupabaseConfigured || !supabase) {
       const res = await RegistryManager.getProducts();
-      // If we need to filter in mock/offline mode:
-      const filteredRes = options?.display_section
+      let filteredRes = options?.display_section
         ? res.filter(p => p.display_sections?.includes(options.display_section!))
         : res;
+      if (!options?.includeDeleted) {
+        filteredRes = filteredRes.filter(p => !p.deleted_at && (p.productStatus === "active" || !p.productStatus));
+      }
       await CacheService.set(cacheKey, filteredRes, 600);
       return filteredRes;
     }
@@ -248,7 +256,7 @@ export const db = {
     if (options?.trashedOnly) {
       query = query.not("deleted_at", "is", null);
     } else if (!options?.includeDeleted) {
-      query = query.is("deleted_at", null);
+      query = query.is("deleted_at", null).or("product_status.eq.active,product_status.is.null");
     }
 
     if (options?.display_section) {
@@ -309,6 +317,12 @@ export const db = {
       colors: product.colors || [],
       ratings: product.ratings || 5.0,
       display_sections: product.display_sections || [],
+      compare_at_price: product.compareAtPrice || null,
+      weight_grams: product.weightGrams || null,
+      product_status: product.productStatus || 'active',
+      seo_title: product.seoTitle || null,
+      seo_description: product.seoDescription || null,
+      seo_keywords: product.seoKeywords || null,
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);

@@ -241,6 +241,25 @@ export interface RepeatPurchaseStats {
   repeatRate: number;
 }
 
+export interface AdSpend {
+  id?: string;
+  channel: string;
+  month: string;
+  spendAmount: number;
+  campaignName?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface ROASReport {
+  channel: string;
+  month: string;
+  spend: number;
+  revenue: number;
+  roas: number;
+  roasFormatted: string;
+}
+
 export const db = {
   // --- Products ---
   async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<Product[]> {
@@ -4112,6 +4131,192 @@ export const db = {
       repeatCustomers,
       repeatRate,
     };
+  },
+
+  async getAdSpend(months: number = 3): Promise<AdSpend[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      return [
+        { channel: "google_ads", month: "2026-06-01", spendAmount: 12000, campaignName: "summer_sale", notes: "Google Ads cost" },
+        { channel: "meta_ads", month: "2026-06-01", spendAmount: 8000, campaignName: "festive_apparel", notes: "Facebook Ads cost" }
+      ];
+    }
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    cutoff.setDate(1);
+    const { data, error } = await supabase
+      .from("ad_spend")
+      .select("id, channel, month, spend_amount, campaign_name, notes, created_at")
+      .gte("month", cutoff.toISOString().split("T")[0])
+      .order("month", { ascending: false });
+
+    if (error) {
+      console.error("Error in getAdSpend:", error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      channel: row.channel,
+      month: row.month,
+      spendAmount: Number(row.spend_amount),
+      campaignName: row.campaign_name,
+      notes: row.notes,
+      createdAt: row.created_at,
+    }));
+  },
+
+  async saveAdSpend(data: {
+    channel: string;
+    month: string;
+    spendAmount: number;
+    campaignName?: string;
+    notes?: string;
+  }): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      console.log("Mock mode saveAdSpend:", data);
+      return;
+    }
+    const { channel, month, spendAmount, campaignName, notes } = data;
+    const targetMonth = month.endsWith("-01") ? month : `${month}-01`;
+    const campaign = campaignName || null;
+
+    let query = supabase
+      .from("ad_spend")
+      .select("id")
+      .eq("channel", channel)
+      .eq("month", targetMonth);
+
+    if (campaign) {
+      query = query.eq("campaign_name", campaign);
+    } else {
+      query = query.is("campaign_name", null);
+    }
+
+    const { data: existing, error: selectErr } = await query;
+    if (selectErr) throw selectErr;
+
+    if (existing && existing.length > 0) {
+      const { error: updateErr } = await supabase
+        .from("ad_spend")
+        .update({ spend_amount: spendAmount, notes: notes || null })
+        .eq("id", existing[0].id);
+      if (updateErr) throw updateErr;
+    } else {
+      const { error: insertErr } = await supabase
+        .from("ad_spend")
+        .insert({
+          channel,
+          month: targetMonth,
+          spend_amount: spendAmount,
+          campaign_name: campaign,
+          notes: notes || null,
+        });
+      if (insertErr) throw insertErr;
+    }
+  },
+
+  async getROASReport(months: number = 3): Promise<ROASReport[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      return [
+        { channel: "google_ads", month: "2026-06-01", spend: 12000, revenue: 45600, roas: 3.8, roasFormatted: "3.8x" },
+        { channel: "meta_ads", month: "2026-06-01", spend: 8000, revenue: 32800, roas: 4.1, roasFormatted: "4.1x" }
+      ];
+    }
+
+    const spendRecords = await this.getAdSpend(months);
+
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    cutoff.setDate(1);
+    const { data: orders, error: ordersErr } = await supabase
+      .from("orders")
+      .select("total, utm_source, created_at, status")
+      .gte("created_at", cutoff.toISOString());
+
+    if (ordersErr) {
+      console.error("Error in getROASReport orders fetch:", ordersErr);
+      return [];
+    }
+
+    const validOrders = (orders || []).filter((o: any) => {
+      const statusLower = (o.status || "").toLowerCase();
+      return statusLower !== "cancelled" && statusLower !== "returned" && statusLower !== "expired" && statusLower !== "failed";
+    });
+
+    const spendMap: Record<string, number> = {};
+    for (const s of spendRecords) {
+      const mStr = s.month.substring(0, 10);
+      const key = `${s.channel}_${mStr}`;
+      spendMap[key] = (spendMap[key] || 0) + s.spendAmount;
+    }
+
+    const instagramSpendMonths = new Set<string>();
+    for (const s of spendRecords) {
+      if (s.channel === "instagram") {
+        instagramSpendMonths.add(s.month.substring(0, 10));
+      }
+    }
+
+    const revenueMap: Record<string, number> = {};
+    for (const o of validOrders) {
+      const orderDate = new Date(o.created_at);
+      const yyyy = orderDate.getFullYear();
+      const mm = String(orderDate.getMonth() + 1).padStart(2, "0");
+      const mStr = `${yyyy}-${mm}-01`;
+
+      const utmSource = (o.utm_source || "").toLowerCase();
+      let channel = "other";
+
+      if (utmSource.includes("google")) {
+        channel = "google_ads";
+      } else if (utmSource.includes("facebook")) {
+        channel = "meta_ads";
+      } else if (utmSource.includes("instagram")) {
+        if (instagramSpendMonths.has(mStr)) {
+          channel = "instagram";
+        } else {
+          channel = "meta_ads";
+        }
+      } else if (utmSource !== "") {
+        channel = "other";
+      } else {
+        continue;
+      }
+
+      const key = `${channel}_${mStr}`;
+      revenueMap[key] = (revenueMap[key] || 0) + Number(o.total || 0);
+    }
+
+    const reportMap = new Map<string, ROASReport>();
+
+    const allKeys = new Set([...Object.keys(spendMap), ...Object.keys(revenueMap)]);
+    for (const key of allKeys) {
+      const [channel, month] = key.split("_");
+      if (!channel || !month) continue;
+
+      const spend = spendMap[key] || 0;
+      const revenue = revenueMap[key] || 0;
+      if (spend === 0 && revenue === 0) continue;
+
+      const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+      const roasFormatted = spend > 0 ? `${roas}x` : "0.0x";
+
+      reportMap.set(key, {
+        channel,
+        month,
+        spend,
+        revenue: Math.round(revenue),
+        roas,
+        roasFormatted,
+      });
+    }
+
+    return Array.from(reportMap.values()).sort(
+      (a, b) => b.month.localeCompare(a.month) || a.channel.localeCompare(b.channel)
+    );
   },
 };
 

@@ -49,6 +49,14 @@ export async function getMarketingAnalyticsAction() {
           { name: "brand_awareness", source: "facebook", medium: "display", orders: 12, revenue: 17400 },
           { name: "newsletter_july", source: "email", medium: "newsletter", orders: 8, revenue: 11600 },
         ],
+        adSpend: [
+          { channel: "google_ads", month: "2026-06-01", spendAmount: 12000, campaignName: "summer_sale", notes: "Google Ads cost" },
+          { channel: "meta_ads", month: "2026-06-01", spendAmount: 8000, campaignName: "festive_apparel", notes: "Facebook Ads cost" }
+        ],
+        roasReport: [
+          { channel: "google_ads", month: "2026-06-01", spend: 12000, revenue: 45600, roas: 3.8, roasFormatted: "3.8x" },
+          { channel: "meta_ads", month: "2026-06-01", spend: 8000, revenue: 32800, roas: 4.1, roasFormatted: "4.1x" }
+        ],
       };
     }
 
@@ -95,7 +103,10 @@ export async function getMarketingAnalyticsAction() {
       };
     }).sort((a, b) => b.revenue - a.revenue);
 
-    return { success: true, utmSources, campaigns };
+    const adSpend = await db.getAdSpend(3);
+    const roasReport = await db.getROASReport(3);
+
+    return { success: true, utmSources, campaigns, adSpend, roasReport };
   } catch (err: any) {
     console.error("Marketing action error:", err);
     return { success: false, error: err.message };
@@ -222,5 +233,22 @@ export async function getSalesAnalyticsAction(days: number = 30) {
   } catch (err: any) {
     console.error("Sales action error:", err);
     return { success: false, error: err.message || "Failed to load sales analytics data" };
+  }
+}
+
+export async function saveAdSpendAction(data: {
+  channel: string;
+  month: string;
+  spendAmount: number;
+  campaignName?: string;
+  notes?: string;
+}) {
+  try {
+    await requireAdmin();
+    await db.saveAdSpend(data);
+    return { success: true };
+  } catch (err: any) {
+    console.error("Save ad spend action error:", err);
+    return { success: false, error: err.message || "Failed to save ad spend" };
   }
 }

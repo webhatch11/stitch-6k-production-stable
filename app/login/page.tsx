@@ -15,6 +15,7 @@ import {
   ShoppingBag 
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { trackLogin, trackSignUp } from "@/lib/analytics";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -238,6 +239,12 @@ export default function LoginPage() {
       }
 
       setInfoMsg("Signed in successfully. Redirecting...");
+
+      if (isSignIn) {
+        trackLogin();
+      } else {
+        trackSignUp();
+      }
 
       let userRole = "customer";
       if (isSupabaseConfigured && supabase) {

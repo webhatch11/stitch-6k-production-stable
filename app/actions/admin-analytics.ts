@@ -22,3 +22,177 @@ export async function getTopProductsAction(days: number) {
     return { success: false, error: err.message || "Failed to load top products" };
   }
 }
+
+// -------------------------------------------------------------
+// ANALYTICS SUITE ACTIONS
+// -------------------------------------------------------------
+
+import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "@/lib/supabase-service";
+
+export async function getMarketingAnalyticsAction() {
+  try {
+    await requireAdmin();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: true,
+        utmSources: [
+          { name: "Instagram", value: 450 },
+          { name: "Google Ads", value: 300 },
+          { name: "Facebook", value: 180 },
+          { name: "Direct / Email", value: 120 },
+          { name: "Organic Search", value: 90 },
+        ],
+        campaigns: [
+          { name: "summer_sale_2026", source: "instagram", medium: "social", orders: 48, revenue: 69600 },
+          { name: "festive_apparel", source: "google", medium: "cpc", orders: 35, revenue: 50750 },
+          { name: "brand_awareness", source: "facebook", medium: "display", orders: 12, revenue: 17400 },
+          { name: "newsletter_july", source: "email", medium: "newsletter", orders: 8, revenue: 11600 },
+        ],
+      };
+    }
+
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select("total, utm_source, utm_medium, utm_campaign, status")
+      .not("utm_source", "is", null);
+
+    if (error) throw error;
+
+    const validOrders = (orders || []).filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+    
+    const sourcesMap: Record<string, number> = {};
+    const campaignsMap: Record<string, { orders: number; revenue: number; source: string; medium: string }> = {};
+
+    for (const o of validOrders) {
+      const src = o.utm_source || "unknown";
+      sourcesMap[src] = (sourcesMap[src] || 0) + 1;
+
+      if (o.utm_campaign) {
+        const key = `${o.utm_campaign}:${src}`;
+        if (!campaignsMap[key]) {
+          campaignsMap[key] = {
+            orders: 0,
+            revenue: 0,
+            source: src,
+            medium: o.utm_medium || "unknown",
+          };
+        }
+        campaignsMap[key].orders += 1;
+        campaignsMap[key].revenue += Number(o.total || 0);
+      }
+    }
+
+    const utmSources = Object.entries(sourcesMap).map(([name, value]) => ({ name, value }));
+    const campaigns = Object.entries(campaignsMap).map(([key, val]) => {
+      const name = key.split(":")[0];
+      return {
+        name,
+        source: val.source,
+        medium: val.medium,
+        orders: val.orders,
+        revenue: Math.round(val.revenue),
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    return { success: true, utmSources, campaigns };
+  } catch (err: any) {
+    console.error("Marketing action error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getLiveAnalyticsAction() {
+  try {
+    await requireAdmin();
+
+    const onlineVisitors = await db.getOnlineVisitorsCount();
+    const activeCarts = await db.getActiveCartsCount();
+    
+    let todayOrdersCount = 5;
+    let todayRevenue = 7250;
+    
+    if (isSupabaseConfigured && supabase) {
+      const todayStart = new Date();
+      todayStart.setHours(0,0,0,0);
+      const todayStartIso = todayStart.toISOString();
+      
+      const { data: todayOrders, error } = await supabase
+        .from("orders")
+        .select("total, status")
+        .gte("created_at", todayStartIso);
+      
+      if (!error && todayOrders) {
+        const validToday = todayOrders.filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+        todayOrdersCount = validToday.length;
+        todayRevenue = validToday.reduce((sum, o) => sum + Number(o.total || 0), 0);
+      }
+    }
+
+    const cityOrders = await db.getCityOrders();
+
+    return {
+      success: true,
+      onlineVisitors,
+      activeCarts,
+      todayOrdersCount,
+      todayRevenue,
+      cityOrders,
+    };
+  } catch (err: any) {
+    console.error("Live action error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function getFinanceAnalyticsAction(year: number, month: number) {
+  try {
+    await requireAdmin();
+
+    const summary = await db.getMonthlyFinanceSummary(year, month);
+    const gstReport = await db.getGSTReport(6);
+
+    let paymentsBreakdown = [
+      { name: "Razorpay (Online)", value: 85 },
+      { name: "Cash on Delivery", value: 13 },
+    ];
+
+    if (isSupabaseConfigured && supabase) {
+      const startOfMonth = new Date(year, month - 1, 1).toISOString();
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("wallet_paid, gateway_paid, status")
+        .gte("created_at", startOfMonth)
+        .lte("created_at", endOfMonth);
+
+      if (!error && orders) {
+        const valid = orders.filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+        let codCount = 0;
+        let onlineCount = 0;
+        for (const o of valid) {
+          if (o.gateway_paid > 0) {
+            onlineCount++;
+          } else {
+            codCount++;
+          }
+        }
+        paymentsBreakdown = [
+          { name: "Razorpay (Online)", value: onlineCount },
+          { name: "Cash on Delivery", value: codCount },
+        ];
+      }
+    }
+
+    return {
+      success: true,
+      summary,
+      gstReport,
+      paymentsBreakdown,
+    };
+  } catch (err: any) {
+    console.error("Finance action error:", err);
+    return { success: false, error: err.message };
+  }
+}

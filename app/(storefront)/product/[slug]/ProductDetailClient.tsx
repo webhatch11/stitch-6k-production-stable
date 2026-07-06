@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { useCartStore } from "@/stores/cartStore";
 import { useRecentStore } from "@/stores/recentStore";
+import { trackViewProduct, trackAddToCart } from "@/lib/analytics";
 
 interface ProductDetailClientProps {
   product: Product;
@@ -77,6 +78,13 @@ export default function ProductDetailClient({ product, recommendations }: Produc
 
       // Track as recently viewed
       addProductToRecent(product);
+
+      trackViewProduct({
+        productId: product.id,
+        productName: product.title,
+        price: product.price,
+        category: product.category || "Apparel",
+      });
     }
   }, [product]);
 
@@ -113,6 +121,14 @@ export default function ProductDetailClient({ product, recommendations }: Produc
       image: activeImg || product.image,
       color: selectedColor || product.colors?.[0] || "Default",
     }, quantity);
+
+    trackAddToCart({
+      productId: product.id,
+      productName: product.title,
+      price: product.price,
+      size: selectedSize,
+      color: selectedColor || product.colors?.[0] || "Default",
+    });
 
     // Trigger cart badge bounce micro-animation
     setAnimateCart(true);

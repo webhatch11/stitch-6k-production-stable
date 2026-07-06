@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Order } from "@/lib/registry";
+import { trackPurchase } from "@/lib/analytics";
 
 interface OrderConfirmedClientProps {
   lastOrder: Order | null;
@@ -10,6 +11,23 @@ interface OrderConfirmedClientProps {
 
 export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (lastOrder) {
+      const itemsMapped = lastOrder.cartItems || (lastOrder.items || []).map((name) => ({
+        productId: lastOrder.id,
+        productName: name,
+        price: lastOrder.total,
+        quantity: 1
+      }));
+      trackPurchase({
+        orderId: lastOrder.id,
+        total: lastOrder.total,
+        items: itemsMapped,
+        couponCode: lastOrder.couponCode
+      });
+    }
+  }, [lastOrder]);
 
   const orderId = lastOrder ? lastOrder.id : "STK-2026-000001";
   const customer = lastOrder ? lastOrder.customer : "Valued Client";

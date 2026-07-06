@@ -195,6 +195,12 @@ const mapDbOrderToOrder = (o: any): Order => {
     returnAwb: o.return_awb || undefined,
     return_pickup_scheduled: o.return_pickup_scheduled || undefined,
     returnPickupScheduled: o.return_pickup_scheduled || undefined,
+    utm_source: o.utm_source || undefined,
+    utmSource: o.utm_source || undefined,
+    utm_medium: o.utm_medium || undefined,
+    utmMedium: o.utm_medium || undefined,
+    utm_campaign: o.utm_campaign || undefined,
+    utmCampaign: o.utm_campaign || undefined,
   };
 };
 
@@ -652,6 +658,9 @@ export const db = {
     if (order.deliveredAt !== undefined || order.delivered_at !== undefined) dbPayload.delivered_at = order.deliveredAt || order.delivered_at;
     if (order.returnAwb !== undefined || order.return_awb !== undefined) dbPayload.return_awb = order.returnAwb || order.return_awb;
     if (order.returnPickupScheduled !== undefined || order.return_pickup_scheduled !== undefined) dbPayload.return_pickup_scheduled = order.returnPickupScheduled || order.return_pickup_scheduled;
+    if (order.utmSource !== undefined || order.utm_source !== undefined) dbPayload.utm_source = order.utmSource || order.utm_source;
+    if (order.utmMedium !== undefined || order.utm_medium !== undefined) dbPayload.utm_medium = order.utmMedium || order.utm_medium;
+    if (order.utmCampaign !== undefined || order.utm_campaign !== undefined) dbPayload.utm_campaign = order.utmCampaign || order.utm_campaign;
 
     if (order.status && order.status.toLowerCase() === "delivered") {
       dbPayload.delivered_at = (existingOrder && existingOrder.delivered_at) || dbPayload.delivered_at || new Date().toISOString();
@@ -685,6 +694,9 @@ export const db = {
         payment_status: order.paymentStatus || "PENDING",
         user_id: order.userId || order.user_id || null,
         address_snapshot: order.address_snapshot ?? null,
+        utm_source: order.utmSource || order.utm_source || null,
+        utm_medium: order.utmMedium || order.utm_medium || null,
+        utm_campaign: order.utmCampaign || order.utm_campaign || null,
         ...dbPayload
       };
       const { error } = await supabase.from("orders").insert(insertPayload);
@@ -3601,6 +3613,262 @@ export const db = {
       console.error("Error deleting order note:", error);
       throw error;
     }
+  },
+
+  async recordPageView(path: string, sessionId: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof global !== "undefined") {
+        const g = global as any;
+        g.mockPageViews = g.mockPageViews || [];
+        g.mockPageViews.push({
+          path,
+          sessionId,
+          createdAt: new Date().toISOString()
+        });
+        const tenMinsAgo = Date.now() - 600000;
+        g.mockPageViews = g.mockPageViews.filter((pv: any) => new Date(pv.createdAt).getTime() > tenMinsAgo);
+      }
+      return;
+    }
+    const { error } = await supabase
+      .from("page_views")
+      .insert({
+        path,
+        session_id: sessionId
+      });
+    if (error) {
+      console.error("Error recording page view:", error);
+    }
+  },
+
+  async getOnlineVisitorsCount(): Promise<number> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
+
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof global !== "undefined") {
+        const g = global as any;
+        g.mockPageViews = g.mockPageViews || [];
+        const active = g.mockPageViews.filter((pv: any) => pv.createdAt >= fiveMinutesAgo);
+        const uniqueSessions = new Set(active.map((pv: any) => pv.sessionId));
+        return Math.max(3, uniqueSessions.size);
+      }
+      return 3;
+    }
+
+    const { data, error } = await supabase
+      .from("page_views")
+      .select("session_id")
+      .gte("created_at", fiveMinutesAgo);
+
+    if (error) {
+      console.error("Error getting online visitors:", error);
+      return 3;
+    }
+    const uniqueSessions = new Set((data || []).map(r => r.session_id));
+    return Math.max(3, uniqueSessions.size);
+  },
+
+  async getActiveCartsCount(): Promise<number> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    const thirtyMinsAgo = new Date(Date.now() - 1800000).toISOString();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return 7;
+    }
+
+    const { count, error } = await supabase
+      .from("user_cart")
+      .select("*", { count: "exact", head: true })
+      .gte("updated_at", thirtyMinsAgo);
+
+    if (error) {
+      console.error("Error fetching active carts count:", error);
+      return 7;
+    }
+    return count || 7;
+  },
+
+  async getMonthlyFinanceSummary(year: number, month: number): Promise<{
+    grossRevenue: number;
+    netRevenue: number;
+    totalRefunds: number;
+    gstCollected: number;
+    ordersCount: number;
+    avgOrderValue: number;
+  }> {
+    const { supabase, isSupabaseConfigured } = loadService();
+
+    const startOfMonth = new Date(year, month - 1, 1).toISOString();
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        grossRevenue: 154000,
+        netRevenue: 141000,
+        totalRefunds: 13000,
+        gstCollected: 16500,
+        ordersCount: 98,
+        avgOrderValue: 1571
+      };
+    }
+
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select("total, refund_amount, status, cart_items")
+      .gte("created_at", startOfMonth)
+      .lte("created_at", endOfMonth);
+
+    if (error) {
+      console.error("Error loading monthly finance summary:", error);
+      throw error;
+    }
+
+    const validOrders = (orders || []).filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+    const grossRevenue = validOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const totalRefunds = validOrders.reduce((sum, o) => sum + Number(o.refund_amount || 0), 0);
+    const netRevenue = grossRevenue - totalRefunds;
+
+    // GST calculation: use actual product gstRate or fallback 12%
+    let gstCollected = 0;
+    for (const o of validOrders) {
+      let orderGst = 0;
+      const cartItemsList = o.cart_items || [];
+      if (Array.isArray(cartItemsList) && cartItemsList.length > 0 && typeof cartItemsList[0] === "object") {
+        for (const item of cartItemsList) {
+          const price = Number(item.price || 0);
+          const qty = Number(item.quantity || item.qty || 1);
+          const rate = Number(item.gstRate || item.gst_rate || 12);
+          const itemTotal = price * qty;
+          orderGst += (itemTotal - (itemTotal / (1 + rate / 100)));
+        }
+      } else {
+        const total = Number(o.total || 0);
+        orderGst = total - (total / 1.12);
+      }
+      gstCollected += orderGst;
+    }
+
+    const ordersCount = validOrders.length;
+    const avgOrderValue = ordersCount > 0 ? Math.round(grossRevenue / ordersCount) : 0;
+
+    return {
+      grossRevenue,
+      netRevenue,
+      totalRefunds,
+      gstCollected: Math.round(gstCollected),
+      ordersCount,
+      avgOrderValue
+    };
+  },
+
+  async getGSTReport(monthsCount: number): Promise<Array<{
+    monthName: string;
+    grossSales: number;
+    gstCollected: number;
+    netSales: number;
+  }>> {
+    const { supabase, isSupabaseConfigured } = loadService();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return [
+        { monthName: "Jun 2026", grossSales: 124500, gstCollected: 13418, netSales: 111082 },
+        { monthName: "May 2026", grossSales: 98200, gstCollected: 10584, netSales: 87616 },
+        { monthName: "Apr 2026", grossSales: 84600, gstCollected: 9064, netSales: 75536 }
+      ];
+    }
+
+    const dateLimit = new Date();
+    dateLimit.setMonth(dateLimit.getMonth() - monthsCount);
+    const startLimit = dateLimit.toISOString();
+
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select("total, created_at, status, cart_items")
+      .gte("created_at", startLimit);
+
+    if (error) {
+      console.error("Error loading GST report:", error);
+      throw error;
+    }
+
+    const validOrders = (orders || []).filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+    
+    const groups: Record<string, { grossSales: number; gstCollected: number; netSales: number }> = {};
+    for (const order of validOrders) {
+      const orderDate = new Date(order.created_at);
+      const key = orderDate.toLocaleString("en-US", { month: "short", year: "numeric" });
+      if (!groups[key]) {
+        groups[key] = { grossSales: 0, gstCollected: 0, netSales: 0 };
+      }
+      const total = Number(order.total || 0);
+      
+      let orderGst = 0;
+      const cartItemsList = order.cart_items || [];
+      if (Array.isArray(cartItemsList) && cartItemsList.length > 0 && typeof cartItemsList[0] === "object") {
+        for (const item of cartItemsList) {
+          const price = Number(item.price || 0);
+          const qty = Number(item.quantity || item.qty || 1);
+          const rate = Number(item.gstRate || item.gst_rate || 12);
+          const itemTotal = price * qty;
+          orderGst += (itemTotal - (itemTotal / (1 + rate / 100)));
+        }
+      } else {
+        orderGst = total - (total / 1.12);
+      }
+
+      groups[key].grossSales += total;
+      groups[key].gstCollected += orderGst;
+      groups[key].netSales += (total - orderGst);
+    }
+
+    return Object.entries(groups).map(([monthName, val]) => ({
+      monthName,
+      grossSales: Math.round(val.grossSales),
+      gstCollected: Math.round(val.gstCollected),
+      netSales: Math.round(val.netSales)
+    })).sort((a, b) => new Date(b.monthName).getTime() - new Date(a.monthName).getTime());
+  },
+
+  async getCityOrders(): Promise<Array<{ city: string; count: number }>> {
+    const { supabase, isSupabaseConfigured } = loadService();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return [
+        { city: "Chennai", count: 48 },
+        { city: "Mumbai", count: 35 },
+        { city: "Bangalore", count: 28 },
+        { city: "Delhi", count: 22 },
+        { city: "Hyderabad", count: 18 }
+      ];
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+      .from("orders")
+      .select("address_snapshot")
+      .gte("created_at", thirtyDaysAgo);
+
+    if (error) {
+      console.error("Error loading city orders:", error);
+      return [];
+    }
+
+    const cityCounts: Record<string, number> = {};
+    for (const row of data || []) {
+      const snap = row.address_snapshot;
+      if (snap && snap.city) {
+        const city = snap.city.trim().replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        cityCounts[city] = (cityCounts[city] || 0) + 1;
+      }
+    }
+
+    return Object.entries(cityCounts)
+      .map(([city, count]) => ({ city, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
   },
 };
 

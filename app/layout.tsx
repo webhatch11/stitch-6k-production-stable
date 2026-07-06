@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { CartSyncProvider } from "@/components/checkout/CartSyncProvider";
+import { GTMScript, GTMNoScript } from "@/components/analytics/GTMScript";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
+import { GA4Script } from "@/components/analytics/GA4Script";
+import { StorefrontPageViewTracker } from "@/components/analytics/StorefrontPageViewTracker";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -45,6 +49,7 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <head>
+        <GTMScript />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -57,6 +62,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-on-surface">
+        <GTMNoScript />
+        <MetaPixel />
+        <GA4Script />
+        <StorefrontPageViewTracker />
         <ToastProvider />
         <CartSyncProvider />
         {children}

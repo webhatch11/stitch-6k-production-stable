@@ -113,6 +113,12 @@ export interface Order {
   delivered_at?: string;
   return_awb?: string;
   return_pickup_scheduled?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
 }
 
 export interface OrderStatusHistory {

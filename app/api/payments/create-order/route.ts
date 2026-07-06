@@ -19,6 +19,9 @@ const createOrderSchema = z.object({
   idempotencyKey: z.string().min(1),
   addressId: z.string().optional(),
   userId: z.string().optional(),
+  utm_source: z.string().nullable().optional(),
+  utm_medium: z.string().nullable().optional(),
+  utm_campaign: z.string().nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -143,6 +146,9 @@ export async function POST(req: NextRequest) {
       address_snapshot: checkoutState.addressSnapshot ?? null,
       userId: user_id,
       user_id: user_id,
+      utm_source: parsed.data.utm_source || undefined,
+      utm_medium: parsed.data.utm_medium || undefined,
+      utm_campaign: parsed.data.utm_campaign || undefined,
     };
 
     await db.saveOrder(orderData);

@@ -27,6 +27,9 @@ export async function processWalletPointsCheckoutAction(payload: {
   idempotencyKey: string;
   addressId?: string;
   userId?: string;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
 }) {
   const {
     cart,
@@ -39,6 +42,9 @@ export async function processWalletPointsCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
+    utm_source,
+    utm_medium,
+    utm_campaign,
   } = payload;
 
   // Wallet/points checkout debits real balances — the identity MUST come from
@@ -198,6 +204,9 @@ export async function processWalletPointsCheckoutAction(payload: {
     address_snapshot: addressSnapshot,
     userId: user_id,
     user_id: user_id,
+    utm_source: utm_source || undefined,
+    utm_medium: utm_medium || undefined,
+    utm_campaign: utm_campaign || undefined,
   };
 
   let savedOrder;
@@ -359,6 +368,9 @@ export async function processCodCheckoutAction(payload: {
   addressId?: string;
   userId?: string;
   pincode: string;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
 }) {
   const {
     cart,
@@ -372,6 +384,9 @@ export async function processCodCheckoutAction(payload: {
     idempotencyKey,
     addressId,
     pincode,
+    utm_source,
+    utm_medium,
+    utm_campaign,
   } = payload;
 
   // Identity from server session only — COD checkout can debit wallet/points.
@@ -536,6 +551,9 @@ export async function processCodCheckoutAction(payload: {
     address_snapshot: addressSnapshot,
     userId: user_id,
     user_id: user_id,
+    utm_source: utm_source || undefined,
+    utm_medium: utm_medium || undefined,
+    utm_campaign: utm_campaign || undefined,
   };
 
   let savedOrder;

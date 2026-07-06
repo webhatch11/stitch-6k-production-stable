@@ -44,6 +44,21 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
       icon: "refresh",
     },
     {
+      href: "/admindashboard/analytics/marketing",
+      label: "Marketing",
+      icon: "trending_up",
+    },
+    {
+      href: "/admindashboard/analytics/live",
+      label: "Live",
+      icon: "sensors",
+    },
+    {
+      href: "/admindashboard/analytics/finance",
+      label: "Finance",
+      icon: "payments",
+    },
+    {
       href: "/admindashboard/customers",
       label: "Customers",
       icon: "group",

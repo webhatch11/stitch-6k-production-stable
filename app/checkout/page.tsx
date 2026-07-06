@@ -14,6 +14,7 @@ import {
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
+import { trackBeginCheckout } from "@/lib/analytics";
 import { clearCartAction } from "@/app/actions/cart";
 import { createBrowserClient } from "@supabase/ssr";
 import { AddressList } from "@/components/checkout/AddressList";
@@ -155,6 +156,9 @@ export default function CheckoutPage() {
       return;
     }
     setCart(savedCart);
+
+    const totalVal = savedCart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+    trackBeginCheckout(totalVal, savedCart.length);
 
     // Fetch Available Perks
     const fetchPerks = async () => {
@@ -334,6 +338,10 @@ export default function CheckoutPage() {
       }
       const customerName = selectedAddress.name || "Guest";
 
+      const utm_source = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null;
+      const utm_medium = typeof window !== "undefined" ? sessionStorage.getItem("utm_medium") : null;
+      const utm_campaign = typeof window !== "undefined" ? sessionStorage.getItem("utm_campaign") : null;
+
       // Verify stock before any checkout actions
       const stockCheck = await verifyStockAction(cart);
       if (!stockCheck.success) {
@@ -355,6 +363,9 @@ export default function CheckoutPage() {
           idempotencyKey,
           addressId: selectedAddress?.id,
           userId,
+          utm_source,
+          utm_medium,
+          utm_campaign,
         });
 
         if (!res.success) {
@@ -404,6 +415,9 @@ export default function CheckoutPage() {
             addressId: selectedAddress?.id,
             userId,
             pincode: selectedAddress?.postal_code || "",
+            utm_source,
+            utm_medium,
+            utm_campaign,
           });
 
           if (!res.success) {
@@ -468,6 +482,9 @@ export default function CheckoutPage() {
               idempotencyKey,
               addressId: selectedAddress?.id,
               userId,
+              utm_source,
+              utm_medium,
+              utm_campaign,
             })
           });
           

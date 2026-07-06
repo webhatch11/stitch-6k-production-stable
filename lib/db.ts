@@ -227,6 +227,20 @@ const mapDbCouponToCoupon = (c: any): Coupon => {
   };
 };
 
+export interface CategorySales {
+  category: string;
+  revenue: number;
+  orderCount: number;
+  unitsSold: number;
+  percentage: number;
+}
+
+export interface RepeatPurchaseStats {
+  totalCustomers: number;
+  repeatCustomers: number;
+  repeatRate: number;
+}
+
 export const db = {
   // --- Products ---
   async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<Product[]> {
@@ -3194,6 +3208,8 @@ export const db = {
     pendingShipments: number;
     refundRequests: number;
     customerGrowth: number;
+    conversionRate: number;
+    conversionRatePrev: number;
   }> {
     try {
       const orders = (await this.getOrders()) as any[];
@@ -3265,11 +3281,56 @@ export const db = {
         customerGrowth = Math.max(1, recentCustomers.size);
       }
 
+      let conversionRate = 0;
+      let conversionRatePrev = 0;
+
+      if (isSupabaseConfigured && supabase) {
+        const date30DaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+        const date60DaysAgo = new Date(Date.now() - 60 * 86400000).toISOString();
+
+        const { count: checkoutAttempts } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', date30DaysAgo);
+
+        const { count: completedOrders } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'Paid')
+          .gte('created_at', date30DaysAgo);
+
+        conversionRate = (checkoutAttempts && checkoutAttempts > 0)
+          ? Math.round(((completedOrders || 0) / checkoutAttempts) * 100)
+          : 0;
+
+        const { count: prevCheckoutAttempts } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', date60DaysAgo)
+          .lt('created_at', date30DaysAgo);
+
+        const { count: prevCompletedOrders } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'Paid')
+          .gte('created_at', date60DaysAgo)
+          .lt('created_at', date30DaysAgo);
+
+        conversionRatePrev = (prevCheckoutAttempts && prevCheckoutAttempts > 0)
+          ? Math.round(((prevCompletedOrders || 0) / prevCheckoutAttempts) * 100)
+          : 0;
+      } else {
+        conversionRate = 14;
+        conversionRatePrev = 12;
+      }
+
       return {
         aov,
         pendingShipments: pendingCount,
         refundRequests: refundCount,
         customerGrowth,
+        conversionRate,
+        conversionRatePrev,
       };
     } catch (e) {
       console.error("Error in getDashboardKPIMetrics:", e);
@@ -3278,6 +3339,8 @@ export const db = {
         pendingShipments: 0,
         refundRequests: 0,
         customerGrowth: 0,
+        conversionRate: 0,
+        conversionRatePrev: 0,
       };
     }
   },
@@ -3831,16 +3894,16 @@ export const db = {
     })).sort((a, b) => new Date(b.monthName).getTime() - new Date(a.monthName).getTime());
   },
 
-  async getCityOrders(): Promise<Array<{ city: string; count: number }>> {
+  async getCityOrders(): Promise<Array<{ city: string; count: number; revenue: number }>> {
     const { supabase, isSupabaseConfigured } = loadService();
 
     if (!isSupabaseConfigured || !supabase) {
       return [
-        { city: "Chennai", count: 48 },
-        { city: "Mumbai", count: 35 },
-        { city: "Bangalore", count: 28 },
-        { city: "Delhi", count: 22 },
-        { city: "Hyderabad", count: 18 }
+        { city: "Chennai", count: 48, revenue: 47040 },
+        { city: "Mumbai", count: 35, revenue: 34300 },
+        { city: "Bangalore", count: 28, revenue: 27440 },
+        { city: "Delhi", count: 22, revenue: 21560 },
+        { city: "Hyderabad", count: 18, revenue: 17640 }
       ];
     }
 
@@ -3848,7 +3911,7 @@ export const db = {
 
     const { data, error } = await supabase
       .from("orders")
-      .select("address_snapshot")
+      .select("address_snapshot, total, status")
       .gte("created_at", thirtyDaysAgo);
 
     if (error) {
@@ -3856,19 +3919,199 @@ export const db = {
       return [];
     }
 
-    const cityCounts: Record<string, number> = {};
+    const cityData: Record<string, { count: number; revenue: number }> = {};
     for (const row of data || []) {
+      const statusLower = (row.status || "").toLowerCase();
+      if (statusLower === "cancelled" || statusLower === "returned" || statusLower === "expired" || statusLower === "failed") {
+        continue;
+      }
       const snap = row.address_snapshot;
       if (snap && snap.city) {
         const city = snap.city.trim().replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-        cityCounts[city] = (cityCounts[city] || 0) + 1;
+        if (!cityData[city]) {
+          cityData[city] = { count: 0, revenue: 0 };
+        }
+        cityData[city].count += 1;
+        cityData[city].revenue += Number(row.total || 0);
       }
     }
 
-    return Object.entries(cityCounts)
-      .map(([city, count]) => ({ city, count }))
+    return Object.entries(cityData)
+      .map(([city, val]) => ({ city, count: val.count, revenue: Math.round(val.revenue) }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
+  },
+
+  async getSalesByCategory(days: number = 30): Promise<CategorySales[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    const cacheKey = `analytics:sales-category:${days}`;
+    const cached = await CacheService.get<CategorySales[]>(cacheKey);
+    if (cached) return cached;
+
+    if (!isSupabaseConfigured || !supabase) {
+      const res = [
+        { category: "Heritage Wear", revenue: 250000, orderCount: 120, unitsSold: 180, percentage: 50 },
+        { category: "Streetwear", revenue: 150000, orderCount: 80, unitsSold: 120, percentage: 30 },
+        { category: "Accessories", revenue: 100000, orderCount: 50, unitsSold: 70, percentage: 20 },
+      ];
+      await CacheService.set(cacheKey, res, 300);
+      return res;
+    }
+
+    const { data: productsData, error: prodErr } = await supabase
+      .from("products")
+      .select("id, title, category");
+
+    if (prodErr) {
+      console.error("Error fetching products for category stats:", prodErr);
+      return [];
+    }
+
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const { data: ordersData, error: ordersErr } = await supabase
+      .from("orders")
+      .select("id, total, status, cart_items")
+      .gte("created_at", cutoff);
+
+    if (ordersErr) {
+      console.error("Error fetching orders for category stats:", ordersErr);
+      return [];
+    }
+
+    const productById: Record<string, any> = {};
+    const productByTitle: Record<string, any> = {};
+    const productByTitleLower: Record<string, any> = {};
+
+    if (productsData) {
+      for (const p of productsData) {
+        if (p.id) productById[p.id] = p;
+        if (p.title) {
+          productByTitle[p.title] = p;
+          productByTitleLower[p.title.toLowerCase().trim()] = p;
+        }
+      }
+    }
+
+    const categoryStatsMap: Record<string, { category: string; revenue: number; orderCount: number; unitsSold: number; orderIds: Set<string> }> = {};
+
+    for (const order of ordersData || []) {
+      const statusLower = (order.status || "").toLowerCase();
+      if (statusLower === "cancelled" || statusLower === "returned" || statusLower === "expired" || statusLower === "failed") {
+        continue;
+      }
+
+      const cartItems = order.cart_items || [];
+      if (!Array.isArray(cartItems)) continue;
+
+      for (const item of cartItems) {
+        const cartItemName = item.productName || item.title || "";
+        const cartItemId = item.productId || item.product_id;
+
+        let matchedProduct = null;
+        if (cartItemId && productById[cartItemId]) {
+          matchedProduct = productById[cartItemId];
+        } else if (cartItemName) {
+          if (productByTitle[cartItemName]) {
+            matchedProduct = productByTitle[cartItemName];
+          } else {
+            const keyLower = cartItemName.toLowerCase().trim();
+            if (productByTitleLower[keyLower]) {
+              matchedProduct = productByTitleLower[keyLower];
+            }
+          }
+        }
+
+        const category = matchedProduct ? (matchedProduct.category || "Uncategorized") : "Uncategorized";
+
+        if (!categoryStatsMap[category]) {
+          categoryStatsMap[category] = {
+            category,
+            revenue: 0,
+            orderCount: 0,
+            unitsSold: 0,
+            orderIds: new Set<string>(),
+          };
+        }
+
+        const itemQty = Number(item.quantity || item.qty || 1);
+        categoryStatsMap[category].unitsSold += itemQty;
+        categoryStatsMap[category].orderIds.add(order.id);
+        categoryStatsMap[category].revenue += Number(order.total || 0);
+      }
+    }
+
+    const result: CategorySales[] = Object.values(categoryStatsMap).map((c) => ({
+      category: c.category,
+      revenue: Math.round(c.revenue),
+      orderCount: c.orderIds.size,
+      unitsSold: c.unitsSold,
+      percentage: 0,
+    }));
+
+    const totalRevenue = result.reduce((sum, item) => sum + item.revenue, 0);
+    for (const item of result) {
+      item.percentage = totalRevenue > 0 ? Number(((item.revenue / totalRevenue) * 100).toFixed(1)) : 0;
+    }
+
+    result.sort((a, b) => b.revenue - a.revenue);
+    const finalResult = result.slice(0, 6);
+
+    await CacheService.set(cacheKey, finalResult, 300);
+    return finalResult;
+  },
+
+  async getRepeatPurchaseRate(days: number = 30): Promise<RepeatPurchaseStats> {
+    const { supabase, isSupabaseConfigured } = loadService();
+
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        totalCustomers: 150,
+        repeatCustomers: 45,
+        repeatRate: 30.0,
+      };
+    }
+
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id, user_id, status")
+      .gte("created_at", cutoff);
+
+    if (error) {
+      console.error("Error in getRepeatPurchaseRate:", error);
+      return { totalCustomers: 0, repeatCustomers: 0, repeatRate: 0 };
+    }
+
+    const userOrderCounts: Record<string, number> = {};
+    for (const order of data || []) {
+      const uId = order.user_id;
+      if (!uId) continue;
+      const statusLower = (order.status || "").toLowerCase();
+      if (statusLower === "cancelled" || statusLower === "returned" || statusLower === "expired" || statusLower === "failed") {
+        continue;
+      }
+      userOrderCounts[uId] = (userOrderCounts[uId] || 0) + 1;
+    }
+
+    let totalCustomers = 0;
+    let repeatCustomers = 0;
+    for (const count of Object.values(userOrderCounts)) {
+      totalCustomers++;
+      if (count > 1) {
+        repeatCustomers++;
+      }
+    }
+
+    const repeatRate = totalCustomers > 0
+      ? Number(((repeatCustomers * 100) / totalCustomers).toFixed(1))
+      : 0;
+
+    return {
+      totalCustomers,
+      repeatCustomers,
+      repeatRate,
+    };
   },
 };
 

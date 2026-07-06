@@ -44,21 +44,6 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
       icon: "refresh",
     },
     {
-      href: "/admindashboard/analytics/marketing",
-      label: "Marketing",
-      icon: "trending_up",
-    },
-    {
-      href: "/admindashboard/analytics/live",
-      label: "Live",
-      icon: "sensors",
-    },
-    {
-      href: "/admindashboard/analytics/finance",
-      label: "Finance",
-      icon: "payments",
-    },
-    {
       href: "/admindashboard/customers",
       label: "Customers",
       icon: "group",
@@ -85,7 +70,30 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
     },
   ];
 
-  const isActive = (link: (typeof navLinks)[0]) => {
+  const analyticsLinks = [
+    {
+      href: "/admindashboard/analytics/sales",
+      label: "Sales",
+      icon: "bar_chart",
+    },
+    {
+      href: "/admindashboard/analytics/marketing",
+      label: "Marketing",
+      icon: "trending_up",
+    },
+    {
+      href: "/admindashboard/analytics/live",
+      label: "Live",
+      icon: "sensors",
+    },
+    {
+      href: "/admindashboard/analytics/finance",
+      label: "Finance",
+      icon: "payments",
+    },
+  ];
+
+  const isActive = (link: { href: string; exact?: boolean }) => {
     if (link.exact) {
       return pathname === link.href;
     }
@@ -164,6 +172,28 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
                     {pendingReturnsCount}
                   </span>
                 ) : null}
+              </Link>
+            );
+          })}
+
+          <p className="px-4 text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4 mt-6">Analytics</p>
+          {analyticsLinks.map((link) => {
+            const active = isActive(link);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center justify-between px-4 py-3.5 rounded-none transition-all ${
+                  active
+                    ? "bg-white/10 text-white border-l-3 border-[#fed488]"
+                    : "text-white/50 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <span className="material-symbols-outlined text-lg">{link.icon}</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">{link.label}</span>
+                </div>
               </Link>
             );
           })}

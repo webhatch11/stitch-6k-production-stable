@@ -33,6 +33,9 @@ interface AdminDashboardClientProps {
   initialCouponPerformance: any[];
   initialOrders: Order[];
   initialProducts: Product[];
+  initialCategoryStats: any[];
+  initialRepeatPurchaseStats: any;
+  initialCityOrders: any[];
 }
 
 export default function AdminDashboardClient({
@@ -44,6 +47,9 @@ export default function AdminDashboardClient({
   initialCouponPerformance,
   initialOrders,
   initialProducts,
+  initialCategoryStats,
+  initialRepeatPurchaseStats,
+  initialCityOrders,
 }: AdminDashboardClientProps) {
   const router = useRouter();
 
@@ -56,6 +62,9 @@ export default function AdminDashboardClient({
   const [couponPerformance] = useState(initialCouponPerformance);
   const [orders, setOrders] = useState(initialOrders);
   const [products, setProducts] = useState(initialProducts);
+  const [categoryStats, setCategoryStats] = useState(initialCategoryStats);
+  const [repeatPurchaseStats, setRepeatPurchaseStats] = useState(initialRepeatPurchaseStats);
+  const [cityOrders, setCityOrders] = useState(initialCityOrders);
 
   // Active Date Range states
   const [revenueDays, setRevenueDays] = useState<7 | 30 | 90>(30);
@@ -310,6 +319,40 @@ export default function AdminDashboardClient({
           </h3>
           <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold mt-2 block">New customer signups this month</span>
         </div>
+
+        {/* Card 7: Conversion Rate */}
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Conversion Rate</p>
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-3xl font-headline font-black tracking-tighter text-primary">
+                {kpis.conversionRate || 0}%
+              </h3>
+              {(() => {
+                const diff = (kpis.conversionRate || 0) - (kpis.conversionRatePrev || 0);
+                const trend = diff > 0 ? "up" : diff < 0 ? "down" : "none";
+                return renderTrendText(trend, Math.abs(diff));
+              })()}
+            </div>
+          </div>
+          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold mt-2 block">Checkout → Payment (30 days)</span>
+        </div>
+
+        {/* Card 8: Repeat Customers */}
+        <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Repeat Customers</p>
+            <h3 className="text-3xl font-headline font-black tracking-tighter text-primary">
+              {repeatPurchaseStats?.repeatRate || 0}%
+            </h3>
+          </div>
+          <div>
+            <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold mt-2 block">Customers with 2+ orders</span>
+            <span className="text-[8px] font-black text-gray-600 block mt-0.5">
+              {repeatPurchaseStats?.repeatCustomers || 0} of {repeatPurchaseStats?.totalCustomers || 0} customers returned
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* PART 2 & PART 3: Charts Layout */}
@@ -533,6 +576,82 @@ export default function AdminDashboardClient({
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* SALES BY CATEGORY & TOP CITIES */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+        {/* Sales by Category horizontal bar chart */}
+        <div className="bg-white p-8 border border-gray-200 shadow-sm flex flex-col justify-between h-[380px]">
+          <div>
+            <h4 className="font-headline font-black text-xs uppercase tracking-[0.2em] text-[#0a0a0a]">Sales by Category</h4>
+            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Revenue distribution by product type</p>
+          </div>
+          <div className="flex-grow w-full relative h-[250px] mt-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={categoryStats} layout="vertical" margin={{ top: 10, right: 10, left: 35, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f5f5f5" />
+                <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace" }} stroke="#ccc" tickFormatter={(val) => `₹${val}`} />
+                <YAxis
+                  dataKey="category"
+                  type="category"
+                  tick={{ fontSize: 9, fontFamily: "monospace" }}
+                  stroke="#ccc"
+                  width={90}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 10, background: "#fff", border: "1px solid #e5e5e5" }}
+                  formatter={(value: any, name: any, props: any) => {
+                    if (name === "revenue") {
+                      return [
+                        `₹${value.toLocaleString()}`,
+                        `Revenue (${props.payload.percentage}% of total, ${props.payload.unitsSold} units)`,
+                      ];
+                    }
+                    return [value, name];
+                  }}
+                />
+                <Bar dataKey="revenue" fill="#BA7517" barSize={12} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Cities section */}
+        <div className="bg-white p-8 border border-gray-200 shadow-sm flex flex-col justify-between h-[380px]">
+          <div>
+            <h4 className="font-headline font-black text-xs uppercase tracking-[0.2em] text-[#0a0a0a]">Top Cities by Orders</h4>
+            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Last 30 days order distribution</p>
+          </div>
+          <div className="flex-grow overflow-y-auto mt-6 space-y-4 pr-2">
+            {cityOrders && cityOrders.length > 0 ? (
+              (() => {
+                const maxCount = Math.max(...cityOrders.map((c: any) => c.count || 1));
+                return cityOrders.slice(0, 5).map((item: any, index: number) => {
+                  const pct = Math.round(((item.count || 0) / maxCount) * 100);
+                  return (
+                    <div key={item.city} className="space-y-1">
+                      <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+                        <span className="text-gray-700">{index + 1}. {item.city}</span>
+                        <div className="flex gap-4 font-mono text-gray-900">
+                          <span>{item.count} orders</span>
+                          <span>₹{(item.revenue || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-none overflow-hidden">
+                        <div
+                          className="h-full bg-[#BA7517] transition-all duration-1000 ease-out"
+                          style={{ width: `${pct}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()
+            ) : (
+              <p className="text-xs text-gray-400 italic text-center py-8">No order data available</p>
             )}
           </div>
         </div>

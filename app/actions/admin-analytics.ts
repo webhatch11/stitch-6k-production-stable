@@ -196,3 +196,31 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     return { success: false, error: err.message };
   }
 }
+
+export async function getSalesAnalyticsAction(days: number = 30) {
+  try {
+    await requireAdmin();
+
+    const todaySales = await db.getTodaySalesKPI();
+    const kpiMetrics = await db.getDashboardKPIMetrics();
+    const revenueTrend = await db.getRevenueTrend(days);
+    const categoryStats = await db.getSalesByCategory(days);
+    const topProducts = await db.getTopProducts(days, 8);
+    const repeatPurchaseStats = await db.getRepeatPurchaseRate(days);
+    const cityOrders = await db.getCityOrders();
+
+    return {
+      success: true,
+      todaySales,
+      kpiMetrics,
+      revenueTrend,
+      categoryStats,
+      topProducts,
+      repeatPurchaseStats,
+      cityOrders,
+    };
+  } catch (err: any) {
+    console.error("Sales action error:", err);
+    return { success: false, error: err.message || "Failed to load sales analytics data" };
+  }
+}

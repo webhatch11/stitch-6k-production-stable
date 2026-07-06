@@ -13,6 +13,9 @@ export default async function AdminDashboardPage() {
   const initialCouponPerformance = await db.getCouponPerformance(30);
   const initialOrders = await db.getOrders();
   const initialProducts = await db.getProducts({ includeDeleted: false });
+  const initialCategoryStats = await db.getSalesByCategory(30);
+  const initialRepeatPurchaseStats = await db.getRepeatPurchaseRate(30);
+  const initialCityOrders = await db.getCityOrders();
 
   return (
     <AdminDashboardClient
@@ -24,6 +27,9 @@ export default async function AdminDashboardPage() {
       initialCouponPerformance={initialCouponPerformance}
       initialOrders={initialOrders}
       initialProducts={initialProducts}
+      initialCategoryStats={initialCategoryStats}
+      initialRepeatPurchaseStats={initialRepeatPurchaseStats}
+      initialCityOrders={initialCityOrders}
     />
   );
 }

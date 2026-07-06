@@ -1,4 +1,4 @@
-import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog } from "./registry";
+import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote } from "./registry";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
@@ -3501,6 +3501,105 @@ export const db = {
     } catch (e) {
       console.error("Error in getCouponPerformance:", e);
       return [];
+    }
+  },
+
+  async getOrderNotes(orderId: string): Promise<OrderNote[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window !== "undefined") {
+        try {
+          const notes = JSON.parse(localStorage.getItem(`order_notes:${orderId}`) || "[]");
+          return notes;
+        } catch (e) {
+          return [];
+        }
+      }
+      return [];
+    }
+    const { data, error } = await supabase
+      .from("order_notes")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Error fetching order notes:", error);
+      throw error;
+    }
+    return (data || []).map(n => ({
+      id: n.id,
+      orderId: n.order_id,
+      note: n.note,
+      createdBy: n.created_by,
+      createdAt: n.created_at
+    }));
+  },
+
+  async addOrderNote(orderId: string, note: string, createdBy: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window !== "undefined") {
+        try {
+          const notes = JSON.parse(localStorage.getItem(`order_notes:${orderId}`) || "[]");
+          const newNote: OrderNote = {
+            id: "NOTE-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
+            orderId,
+            note,
+            createdBy,
+            createdAt: new Date().toISOString()
+          };
+          notes.push(newNote);
+          localStorage.setItem(`order_notes:${orderId}`, JSON.stringify(notes));
+          window.dispatchEvent(new Event("storage"));
+        } catch (e) {
+          console.error("Mock save note error:", e);
+        }
+      }
+      return;
+    }
+    const { error } = await supabase
+      .from("order_notes")
+      .insert({
+        order_id: orderId,
+        note,
+        created_by: createdBy
+      });
+    if (error) {
+      console.error("Error saving order note:", error);
+      throw error;
+    }
+  },
+
+  async deleteOrderNote(noteId: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      if (typeof window !== "undefined") {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith("order_notes:")) {
+              const notes = JSON.parse(localStorage.getItem(key) || "[]");
+              const filtered = notes.filter((n: any) => n.id !== noteId);
+              if (notes.length !== filtered.length) {
+                localStorage.setItem(key, JSON.stringify(filtered));
+                window.dispatchEvent(new Event("storage"));
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Mock delete note error:", e);
+        }
+      }
+      return;
+    }
+    const { error } = await supabase
+      .from("order_notes")
+      .delete()
+      .eq("id", noteId);
+    if (error) {
+      console.error("Error deleting order note:", error);
+      throw error;
     }
   },
 };

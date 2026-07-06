@@ -307,6 +307,7 @@ export default function OrdersLedgerPage() {
                 <th className="px-8 py-6 font-black">Customer Name</th>
                 <th className="px-8 py-6 font-black">Purchased Items</th>
                 <th className="px-8 py-6 font-black">Grand Total</th>
+                <th className="px-8 py-6 font-black">Payment</th>
                 <th className="px-8 py-6 text-right font-black">Status</th>
               </tr>
             </thead>
@@ -356,6 +357,45 @@ export default function OrdersLedgerPage() {
                     </td>
                     <td className="px-8 py-8 text-sm font-black font-headline text-primary">
                       ₹{order.total.toLocaleString("en-IN")}.00
+                    </td>
+                    <td className="px-8 py-8" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-wrap gap-2.5">
+                        {(() => {
+                          const wPaid = order.walletPaid || 0;
+                          const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+                          const isPending = order.status.toLowerCase() === "payment pending";
+
+                          if (isPending) {
+                            return (
+                              <span className="px-2.5 py-1 text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200/50">
+                                ⏳ Awaiting Payment
+                              </span>
+                            );
+                          }
+                          if (gPaid === 0 && wPaid === 0) {
+                            return (
+                              <span className="px-2.5 py-1 text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 border border-gray-200/50">
+                                Free order
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <>
+                              {gPaid > 0 && (
+                                <span className="px-2.5 py-1 text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-700 border border-green-200/50" title={`Gateway Payment ID: ${order.razorpay_payment_id || "N/A"}`}>
+                                  Razorpay ₹{gPaid.toLocaleString("en-IN")}
+                                </span>
+                              )}
+                              {wPaid > 0 && (
+                                <span className="px-2.5 py-1 text-[8px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-200/50">
+                                  Wallet ₹{wPaid.toLocaleString("en-IN")}
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-8 py-8 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-3">

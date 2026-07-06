@@ -205,3 +205,51 @@ export async function getOrderEventsAction(orderId: string): Promise<{
     return { success: false, error: e.message };
   }
 }
+
+export async function getOrderNotesAction(orderId: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  try {
+    const notes = await db.getOrderNotes(orderId);
+    return { success: true, notes };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function addOrderNoteAction(orderId: string, note: string) {
+  let user;
+  try {
+    user = await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  if (!note?.trim()) return { success: false, error: "Note cannot be empty" };
+  try {
+    const createdBy = user.email || "admin@the6k.com";
+    await db.addOrderNote(orderId, note, createdBy);
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function deleteOrderNoteAction(noteId: string) {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!noteId?.trim()) return { success: false, error: "Invalid note ID" };
+  try {
+    await db.deleteOrderNote(noteId);
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}

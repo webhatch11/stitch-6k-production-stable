@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Order, Product } from "@/lib/registry";
+import { Order, Product, OrderNote } from "@/lib/registry";
 import { getOrdersAction, getProductsAction } from "@/app/actions/admin-reads";
 import {
   bulkUpdateOrderStatusAction,
@@ -14,6 +14,9 @@ import {
   rejectReturnAction,
   issueRefundAction,
   getOrderEventsAction,
+  addOrderNoteAction,
+  deleteOrderNoteAction,
+  getOrderNotesAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -36,6 +39,50 @@ function OrderDetailsContent() {
     const res = await getOrderEventsAction(oId);
     if (res.success) setOrderEvents(res.events || []);
     setEventsLoading(false);
+  };
+
+  // Order notes state
+  const [notes, setNotes] = useState<OrderNote[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+
+  const loadNotes = async (oId: string) => {
+    setNotesLoading(true);
+    const res = await getOrderNotesAction(oId);
+    if (res.success) setNotes(res.notes || []);
+    setNotesLoading(false);
+  };
+
+  const handleAddNote = async () => {
+    if (!order || !newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) return;
+    setNoteSubmitting(true);
+    const res = await addOrderNoteAction(order.id, newNoteText.trim());
+    setNoteSubmitting(false);
+    if (res.success) {
+      setNewNoteText("");
+      triggerToast("Note added successfully.");
+      await loadNotes(order.id);
+    } else {
+      triggerToast(res.error || "Failed to add note.");
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!order) return;
+    openConfirmDialog(
+      "Delete Internal Note",
+      "Are you sure you want to delete this internal note? This action cannot be undone.",
+      async () => {
+        const res = await deleteOrderNoteAction(noteId);
+        if (res.success) {
+          triggerToast("Note deleted successfully.");
+          await loadNotes(order.id);
+        } else {
+          triggerToast(res.error || "Failed to delete note.");
+        }
+      }
+    );
   };
 
   const [refundModalOpen, setRefundModalOpen] = useState(false);
@@ -98,6 +145,7 @@ function OrderDetailsContent() {
 
     if (currentOrder) {
       loadEvents((currentOrder as any).id);
+      loadNotes((currentOrder as any).id);
     }
   };
 
@@ -511,6 +559,36 @@ function OrderDetailsContent() {
                 </span>
               </div>
             )}
+
+            {/* Return AWB display */}
+            {(order.returnAwb || order.return_awb) && (
+              <div className="mt-6 pt-6 border-t border-black/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[9px] text-[#0a0a0a] font-black uppercase tracking-widest block mb-1">
+                      Return Pickup AWB
+                    </span>
+                    <span className="font-mono text-xs font-bold text-[#0a0a0a] bg-black/5 px-2 py-1 select-all">
+                      {order.returnAwb || order.return_awb}
+                    </span>
+                    {(order.returnAwb || order.return_awb || "").startsWith("MOCK-") && (
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1 italic">
+                        (Mock — real AWB after Shiprocket credentials configured)
+                      </span>
+                    )}
+                  </div>
+                  <a
+                    href={`https://shiprocket.co/tracking/${order.returnAwb || order.return_awb}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-[#0a0a0a] text-white hover:bg-secondary transition-all px-4 py-2.5 text-[9px] font-black uppercase tracking-widest self-start rounded-none"
+                  >
+                    <span className="material-symbols-outlined text-sm">local_shipping</span>
+                    Track Return
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -676,6 +754,94 @@ function OrderDetailsContent() {
               </ol>
             )}
           </div>
+
+          {/* Internal Notes Section */}
+          <div className="p-8 border border-gray-200 bg-white">
+            <div className="mb-6">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+                Internal Notes
+              </h3>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                Visible to admin only — not shown to customers
+              </p>
+            </div>
+
+            {/* Notes List */}
+            {notesLoading ? (
+              <p className="text-xs text-gray-400 italic mb-6">Loading notes...</p>
+            ) : notes.length === 0 ? (
+              <p className="text-xs text-gray-400 italic mb-6">
+                No notes yet. Add a note to keep track of important order information.
+              </p>
+            ) : (
+              <div className="space-y-4 mb-8">
+                {notes.map((note) => {
+                  const getRelativeTime = (isoString: string) => {
+                    const diffMs = Date.now() - new Date(isoString).getTime();
+                    const diffMins = Math.floor(diffMs / 60000);
+                    if (diffMins < 1) return "just now";
+                    if (diffMins < 60) return `${diffMins}m ago`;
+                    const diffHours = Math.floor(diffMins / 60);
+                    if (diffHours < 24) return `${diffHours}h ago`;
+                    const diffDays = Math.floor(diffHours / 24);
+                    return `${diffDays}d ago`;
+                  };
+                  return (
+                    <div key={note.id} className="p-4 bg-gray-50 border border-gray-100 flex justify-between gap-4 animate-fade-in">
+                      <div className="space-y-1 w-full">
+                        <p className="text-xs font-semibold text-primary font-mono whitespace-pre-wrap leading-relaxed select-text">
+                          {note.note}
+                        </p>
+                        <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5 pt-1">
+                          <span>by {note.createdBy}</span>
+                          <span>•</span>
+                          <span>{getRelativeTime(note.createdAt)}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors bg-transparent border-none cursor-pointer self-start p-1"
+                        title="Delete Note"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add Note Form */}
+            <form onSubmit={(e) => { e.preventDefault(); handleAddNote(); }} className="space-y-3 pt-6 border-t border-dashed border-gray-100">
+              <div className="flex justify-between items-baseline">
+                <label className="text-[9px] font-black uppercase tracking-widest text-[#0a0a0a]">
+                  Add Note
+                </label>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${
+                  newNoteText.length > 450 ? "text-orange-600 font-bold" : "text-gray-400"
+                }`}>
+                  {newNoteText.length}/500 characters
+                </span>
+              </div>
+              <textarea
+                placeholder="Add an internal note about this order..."
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
+                maxLength={500}
+                className="w-full bg-white border border-gray-200 p-4 text-xs font-semibold outline-none focus:border-primary rounded-none h-24 resize-none"
+              />
+              <button
+                type="submit"
+                disabled={!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting}
+                className={`bg-primary text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-secondary transition-all rounded-none cursor-pointer border-none font-bold ${
+                  (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "opacity-55 cursor-not-allowed bg-gray-400" : ""
+                }`}
+              >
+                {noteSubmitting ? "Adding..." : "Add Note"}
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Right Side: Action panel */}
@@ -703,6 +869,63 @@ function OrderDetailsContent() {
                 India
               </p>
             </div>
+          </div>
+
+          {/* Payment Status Card */}
+          <div className="bg-white border border-gray-200 p-8 shadow-sm rounded-none">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-6">Payment Status</h3>
+            {(() => {
+              const isPending = order.status.toLowerCase() === "payment pending";
+              const totalAmount = order.total || 0;
+              const wPaid = order.walletPaid || 0;
+              const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, totalAmount - wPaid);
+
+              if (isPending) {
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-amber-600 font-bold text-xs uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-sm">pending_actions</span>
+                      <span>⏳ Awaiting Payment</span>
+                    </div>
+                    <div className="pt-2 border-t border-dashed border-gray-100 flex justify-between items-center">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Amount Due</span>
+                      <span className="text-sm font-headline font-black text-[#775a19]">₹{totalAmount.toLocaleString("en-IN")}.00</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-green-700 font-bold text-xs uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    <span>✓ Payment Confirmed</span>
+                  </div>
+                  <div className="space-y-2 pt-2 border-t border-dashed border-gray-100 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Razorpay Gateway</span>
+                      <span className="font-semibold text-primary">₹{gPaid.toLocaleString("en-IN")}.00</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Store Wallet</span>
+                      <span className="font-semibold text-primary">₹{wPaid.toLocaleString("en-IN")}.00</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100 font-black">
+                      <span className="text-[10px] uppercase tracking-widest text-[#0a0a0a]">Total Paid</span>
+                      <span className="text-sm font-headline text-[#775a19]">₹{totalAmount.toLocaleString("en-IN")}.00</span>
+                    </div>
+                  </div>
+                  {(order.razorpay_payment_id || order.id) && (
+                    <div className="pt-3 border-t border-dashed border-gray-100 space-y-1 text-[9px] text-gray-400 font-mono">
+                      {order.razorpay_payment_id && (
+                        <p className="truncate">Payment ID: {order.razorpay_payment_id}</p>
+                      )}
+                      <p className="truncate">Order Ref: {order.id}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Action station container */}

@@ -124,6 +124,14 @@ export interface OrderStatusHistory {
   updated_by: string;
 }
 
+export interface OrderNote {
+  id: string;
+  orderId: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface Coupon {
   id: string;
   code: string;

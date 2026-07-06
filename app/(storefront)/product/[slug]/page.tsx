@@ -17,32 +17,50 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const slug = resolvedParams?.slug;
   if (!slug) {
     return {
-      title: "Product | Stitch 6K",
+      title: "6K Brand",
+      metadataBase: new URL("https://the6k.com"),
     };
   }
   const product = await db.getProductBySlug(slug);
   if (!product) {
     return {
-      title: "Product Not Found | Stitch 6K",
-      description: "Artisan luxury shirt not found.",
+      title: "6K Brand",
+      metadataBase: new URL("https://the6k.com"),
     };
   }
-  const title = product.seoTitle || `${product.title} | Stitch 6K`;
-  const description = product.seoDescription || product.description || `Buy ${product.title} at Stitch 6K. Artisan crafted premium luxury menswear.`;
+  
+  const title = product.seoTitle || `${product.title} — 6K Brand`;
+  const description = product.seoDescription || product.description?.slice(0, 160) || `Buy ${product.title} from 6K Brand.`;
+  
+  const primaryImage = product.images?.[0] || product.image || "/og-default.jpg";
+  
   return {
+    metadataBase: new URL(
+      process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"
+    ),
     title,
     description,
     keywords: product.seoKeywords || undefined,
     openGraph: {
       title,
       description,
-      images: [
-        {
-          url: product.image,
-          alt: product.title,
-        },
-      ],
+      url: `https://the6k.com/product/${slug}`,
+      siteName: "6K Brand",
+      images: [{
+        url: primaryImage,
+        width: 1200,
+        height: 1200,
+        alt: product.title
+      }],
+      type: "website",
+      locale: "en_IN",
     },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [primaryImage],
+    }
   };
 }
 

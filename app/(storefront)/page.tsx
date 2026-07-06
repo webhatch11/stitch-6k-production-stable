@@ -1,5 +1,34 @@
 import { db } from "@/lib/db";
 import HomeClient from "./page-client";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"
+  ),
+  title: "6K Brand — Premium Streetwear",
+  description: "Heritage craftsmanship meets Gen-Z streetwear. Premium cotton and linen shirts from Tamil Nadu, India.",
+  openGraph: {
+    title: "6K Brand — Premium Streetwear",
+    description: "Heritage craftsmanship meets Gen-Z streetwear.",
+    url: "https://the6k.com",
+    siteName: "6K Brand",
+    images: [{
+      url: "/og-default.jpg",
+      width: 1200,
+      height: 630,
+      alt: "6K Brand — Premium Streetwear"
+    }],
+    type: "website",
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "6K Brand — Premium Streetwear",
+    description: "Heritage craftsmanship meets Gen-Z streetwear.",
+    images: ["/og-default.jpg"],
+  }
+};
 
 // ISR: serve cached HTML, regenerate at most every 60s. Admin saves also
 // trigger on-demand revalidation via revalidatePath.

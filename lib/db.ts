@@ -1,4 +1,5 @@
 import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote } from "./registry";
+import { ShippingRules } from "./shipping";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
@@ -201,6 +202,8 @@ const mapDbOrderToOrder = (o: any): Order => {
     utmMedium: o.utm_medium || undefined,
     utm_campaign: o.utm_campaign || undefined,
     utmCampaign: o.utm_campaign || undefined,
+    shippingAmount: o.shipping_amount != null ? Number(o.shipping_amount) : 0,
+    shipping_amount: o.shipping_amount != null ? Number(o.shipping_amount) : 0,
   };
 };
 
@@ -694,6 +697,7 @@ export const db = {
     if (order.utmSource !== undefined || order.utm_source !== undefined) dbPayload.utm_source = order.utmSource || order.utm_source;
     if (order.utmMedium !== undefined || order.utm_medium !== undefined) dbPayload.utm_medium = order.utmMedium || order.utm_medium;
     if (order.utmCampaign !== undefined || order.utm_campaign !== undefined) dbPayload.utm_campaign = order.utmCampaign || order.utm_campaign;
+    if (order.shippingAmount !== undefined || order.shipping_amount !== undefined) dbPayload.shipping_amount = order.shippingAmount ?? order.shipping_amount;
 
     if (order.status && order.status.toLowerCase() === "delivered") {
       dbPayload.delivered_at = (existingOrder && existingOrder.delivered_at) || dbPayload.delivered_at || new Date().toISOString();
@@ -730,6 +734,7 @@ export const db = {
         utm_source: order.utmSource || order.utm_source || null,
         utm_medium: order.utmMedium || order.utm_medium || null,
         utm_campaign: order.utmCampaign || order.utm_campaign || null,
+        shipping_amount: order.shippingAmount ?? order.shipping_amount ?? 0,
         ...dbPayload
       };
       const { error } = await supabase.from("orders").insert(insertPayload);
@@ -773,6 +778,8 @@ export const db = {
       returnAwb: dbPayload.return_awb !== undefined ? dbPayload.return_awb : (existingOrder ? existingOrder.return_awb : undefined),
       return_pickup_scheduled: dbPayload.return_pickup_scheduled !== undefined ? dbPayload.return_pickup_scheduled : (existingOrder ? existingOrder.return_pickup_scheduled : undefined),
       returnPickupScheduled: dbPayload.return_pickup_scheduled !== undefined ? dbPayload.return_pickup_scheduled : (existingOrder ? existingOrder.return_pickup_scheduled : undefined),
+      shippingAmount: order.shippingAmount !== undefined ? order.shippingAmount : (order.shipping_amount !== undefined ? order.shipping_amount : (existingOrder ? Number(existingOrder.shipping_amount) : 0)),
+      shipping_amount: order.shippingAmount !== undefined ? order.shippingAmount : (order.shipping_amount !== undefined ? order.shipping_amount : (existingOrder ? Number(existingOrder.shipping_amount) : 0)),
     };
 
     return mergedOrder;
@@ -903,6 +910,16 @@ export const db = {
     }
     await CacheService.set(cacheKey, data.value, 600);
     return data.value;
+  },
+
+  async getShippingRules(): Promise<ShippingRules> {
+    const setting = await this.getSetting('shipping_rules');
+    return {
+      mode: setting?.mode || 'free_above',
+      flatRate: setting?.flat_rate || 99,
+      freeAboveAmount: setting?.free_above_amount || 999,
+      displayMessage: setting?.display_message || 'Free shipping on orders above ₹999'
+    };
   },
 
   async saveSetting(key: string, value: any): Promise<boolean> {

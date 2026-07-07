@@ -119,7 +119,10 @@ export interface Order {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
+  shippingAmount?: number;
+  shipping_amount?: number;
 }
+
 
 export interface OrderStatusHistory {
   id: string;

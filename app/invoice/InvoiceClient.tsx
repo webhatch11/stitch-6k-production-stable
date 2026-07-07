@@ -155,7 +155,13 @@ export default function InvoiceClient({
             )}
             <div className="flex justify-between">
               <span className="text-gray-400">Premium Shipping</span>
-              <span className="text-[#775a19]">Complimentary</span>
+              <span>
+                {matchedOrder.shippingAmount || matchedOrder.shipping_amount ? (
+                  `₹${(matchedOrder.shippingAmount || matchedOrder.shipping_amount || 0).toLocaleString("en-IN")}.00`
+                ) : (
+                  <span className="text-[#775a19] font-bold">FREE</span>
+                )}
+              </span>
             </div>
             <div className="flex justify-between border-t border-gray-100 pt-2">
               <span className="text-gray-400">Net Total</span>

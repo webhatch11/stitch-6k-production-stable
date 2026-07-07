@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
         "Discount": Number(o.couponDiscount || o.coupon_discount || 0),
         "GST": Number(o.total || 0) - (Number(o.total || 0) / 1.12),
         "Total": Number(o.total || 0),
+        "Shipping Amount": Number(o.shippingAmount || o.shipping_amount || 0),
         "Payment Method": o.paymentMethod || o.payment_method || "",
         "Payment Status": o.paymentStatus || o.payment_status || "",
         "Order Status": o.status || "",
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
       // Default: CSV format
       const csvHeaders = [
         "Order ID", "Date", "Customer Name", "Customer Email", "Customer Phone",
-        "Items Summary", "Subtotal", "Discount", "GST", "Total",
+        "Items Summary", "Subtotal", "Discount", "GST", "Total", "Shipping Amount",
         "Payment Method", "Payment Status", "Order Status", "Shipping Address", "Courier AWB"
       ];
 
@@ -110,6 +111,7 @@ export async function GET(req: NextRequest) {
         Number(o.couponDiscount || o.coupon_discount || 0).toFixed(2),
         (Number(o.total || 0) - (Number(o.total || 0) / 1.12)).toFixed(2),
         Number(o.total || 0).toFixed(2),
+        Number(o.shippingAmount || o.shipping_amount || 0).toFixed(2),
         o.paymentMethod || o.payment_method || "",
         o.paymentStatus || o.payment_status || "",
         o.status || "",

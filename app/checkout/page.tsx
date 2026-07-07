@@ -14,6 +14,7 @@ import {
 import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
+import { calculateShipping, getShippingMessage, type ShippingRules } from "@/lib/shipping";
 import { trackBeginCheckout } from "@/lib/analytics";
 import { clearCartAction } from "@/app/actions/cart";
 import { createBrowserClient } from "@supabase/ssr";
@@ -48,14 +49,20 @@ export default function CheckoutPage() {
   const [globalCodEnabled, setGlobalCodEnabled] = useState(() => {
     return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
   });
+  const [shippingRules, setShippingRules] = useState<any>(null);
 
-  // Load global COD flag on mount
+  // Load global COD flag and shipping rules on mount
   useEffect(() => {
     import("@/app/actions/admin-settings").then(({ getSettingAction }) => {
       getSettingAction("flags").then((res) => {
         if (res.success && res.value) {
           const enabled = res.value.cod_enabled ?? true;
           setGlobalCodEnabled(enabled);
+        }
+      });
+      getSettingAction("shipping_rules").then((res) => {
+        if (res.success && res.value) {
+          setShippingRules(res.value);
         }
       });
     });
@@ -220,13 +227,37 @@ export default function CheckoutPage() {
 
   const netTotal = discountedTotal - loyaltyDiscount;
 
+  // Load and calculate shipping
+  let shippingCost = 0;
+  let shippingMessage = "";
+  let freeAboveAmount = 999;
+  let showProgressBar = false;
+  let progressPercent = 0;
+
+  if (shippingRules) {
+    const rules: ShippingRules = {
+      mode: shippingRules.mode,
+      flatRate: Number(shippingRules.flat_rate ?? shippingRules.flatRate ?? 99),
+      freeAboveAmount: Number(shippingRules.free_above_amount ?? shippingRules.freeAboveAmount ?? 999),
+      displayMessage: shippingRules.display_message ?? shippingRules.displayMessage ?? ""
+    };
+    freeAboveAmount = rules.freeAboveAmount;
+    shippingCost = calculateShipping(discountedTotal, rules);
+    shippingMessage = getShippingMessage(discountedTotal, rules);
+    
+    if (rules.mode === 'free_above') {
+      showProgressBar = true;
+      progressPercent = Math.min(100, (discountedTotal / freeAboveAmount) * 100);
+    }
+  }
+
   // Wallet calculation
   let walletDeduction = 0;
   if (walletChecked) {
-    walletDeduction = Math.min(netTotal, availableWallet);
+    walletDeduction = Math.min(netTotal + shippingCost, availableWallet);
   }
 
-  const finalPayable = netTotal - walletDeduction;
+  const finalPayable = Math.max(0, netTotal + shippingCost - walletDeduction);
   const subtotal = netTotal / 1.12;
   const gst = netTotal - subtotal;
 
@@ -1076,8 +1107,39 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between text-[10px] tracking-widest uppercase text-secondary font-bold">
                       <span>Shipping</span>
-                      <span>FREE</span>
+                      <span>{shippingCost === 0 ? "FREE" : `₹ ${shippingCost.toFixed(2)}`}</span>
                     </div>
+
+                    {/* Progress Bar Addition */}
+                    {showProgressBar && (
+                      <div className="mt-2 mb-2 p-3 bg-neutral-50/50 border border-outline-variant/10 rounded-lg animate-fade-in text-left">
+                        {discountedTotal >= freeAboveAmount ? (
+                          <div className="space-y-2">
+                            <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                              <div className="bg-green-600 h-full rounded-full transition-all duration-500" style={{ width: "100%" }}></div>
+                            </div>
+                            <p className="text-[10px] font-black text-green-600 uppercase tracking-wider flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-sm font-black">check_circle</span>
+                              ✓ FREE SHIPPING!
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                              <span>Progress</span>
+                              <span>₹ {Math.round(discountedTotal)} / ₹ {freeAboveAmount}</span>
+                            </div>
+                            <div className="w-full bg-gray-150 h-1.5 rounded-full overflow-hidden">
+                              <div className="bg-[#BA7517] h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+                            </div>
+                            <p className="text-[9px] font-bold text-[#BA7517] uppercase tracking-wider flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-xs font-black animate-pulse">local_shipping</span>
+                              🚚 Add ₹ {Math.round(freeAboveAmount - discountedTotal)} more for free shipping
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {walletChecked && walletDeduction > 0 && (
                       <div className="flex justify-between text-[10px] tracking-widest uppercase text-green-700 font-bold animate-fade-in">
                         <span>Wallet Paid</span>

@@ -16,7 +16,9 @@ import {
   approveReviewAction,
   rejectReviewAction,
   updateReviewAction,
+  saveShippingAction,
 } from "@/app/actions/admin-settings";
+import { calculateShipping, getShippingMessage, type ShippingMode } from "@/lib/shipping";
 
 export default function SettingsDashboardPage() {
   const router = useRouter();
@@ -66,7 +68,13 @@ export default function SettingsDashboardPage() {
 
 
   // Tab control state
-  const [activeTab, setActiveTab] = useState<"hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews">("hero");
+  const [activeTab, setActiveTab] = useState<"hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews" | "shipping">("hero");
+
+  // States for Shipping Settings
+  const [shippingMode, setShippingMode] = useState<ShippingMode>("free_above");
+  const [shippingFlatRate, setShippingFlatRate] = useState<number>(99);
+  const [shippingFreeAboveAmount, setShippingFreeAboveAmount] = useState<number>(999);
+  const [shippingDisplayMessage, setShippingDisplayMessage] = useState<string>("Free shipping on orders above ₹999");
 
   // States for Trust Badges
   const [trustBadgesEnabled, setTrustBadgesEnabled] = useState(true);
@@ -102,7 +110,7 @@ export default function SettingsDashboardPage() {
   const loadAllSettings = async () => {
     try {
       setLoading(true);
-      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes] = await Promise.all([
+      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes, shippingRes] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
         getSettingAction("flags"),
@@ -110,6 +118,7 @@ export default function SettingsDashboardPage() {
         getSettingAction("offer_box"),
         getSettingAction("trust_badges"),
         getSettingAction("categories"),
+        getSettingAction("shipping_rules"),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -158,6 +167,13 @@ export default function SettingsDashboardPage() {
       if (categoriesRes.success && categoriesRes.value) {
         setCategoriesEnabled(categoriesRes.value.enabled ?? true);
         setCategoriesItems(categoriesRes.value.items || []);
+      }
+
+      if (shippingRes.success && shippingRes.value) {
+        setShippingMode(shippingRes.value.mode || "free_above");
+        setShippingFlatRate(shippingRes.value.flat_rate ?? 99);
+        setShippingFreeAboveAmount(shippingRes.value.free_above_amount ?? 999);
+        setShippingDisplayMessage(shippingRes.value.display_message || "Free shipping on orders above ₹999");
       }
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
@@ -285,6 +301,22 @@ export default function SettingsDashboardPage() {
       router.refresh();
     } else {
       triggerToast(res.error || "Failed to update categories settings");
+    }
+  };
+
+  const handleSaveShipping = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await saveShippingAction({
+      mode: shippingMode,
+      flatRate: Number(shippingFlatRate),
+      freeAboveAmount: Number(shippingFreeAboveAmount),
+      displayMessage: shippingDisplayMessage,
+    });
+    if (res.success) {
+      triggerToast("Shipping settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update shipping settings");
     }
   };
 
@@ -422,6 +454,7 @@ export default function SettingsDashboardPage() {
           { id: "trust_badges", label: "Trust Badges" },
           { id: "categories", label: "Categories" },
           { id: "reviews", label: "Reviews" },
+          { id: "shipping", label: "Shipping" },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -430,7 +463,7 @@ export default function SettingsDashboardPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? "border-primary text-primary"
+                  ? "border-[#BA7517] text-[#BA7517]"
                   : "border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300"
               }`}
             >
@@ -1564,6 +1597,187 @@ export default function SettingsDashboardPage() {
                 </div>
               )}
             </div>
+          </section>
+        )}
+
+        {/* Section 9: Shipping Settings */}
+        {activeTab === "shipping" && (
+          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
+            <header className="mb-8 border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-headline font-black tracking-tight text-primary uppercase">
+                Delivery Charges
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold opacity-60">
+                Configure shipping costs for customer orders
+              </p>
+            </header>
+
+            <form onSubmit={handleSaveShipping} className="space-y-8">
+              {/* Radio Group for Shipping Modes */}
+              <div className="space-y-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block mb-2">
+                  Shipping Mode
+                </span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { id: "free_always", title: "Free Always", desc: "All orders ship for free" },
+                    { id: "flat_rate", title: "Flat Rate", desc: "Charge a fixed amount per order" },
+                    { id: "free_above", title: "Free Above Amount (Recommended)", desc: "Free shipping above a minimum order value" },
+                    { id: "paid_always", title: "Always Paid", desc: "Always charge shipping" },
+                  ].map((modeOption) => (
+                    <label
+                      key={modeOption.id}
+                      className={`flex items-start gap-4 border p-5 rounded-lg cursor-pointer transition-all ${
+                        shippingMode === modeOption.id
+                          ? "border-[#BA7517] bg-[#BA7517]/5"
+                          : "border-gray-200 hover:bg-neutral-50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="shippingMode"
+                        value={modeOption.id}
+                        checked={shippingMode === modeOption.id}
+                        onChange={() => setShippingMode(modeOption.id as any)}
+                        className="text-[#BA7517] focus:ring-[#BA7517] mt-1 border-gray-300"
+                      />
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-black uppercase tracking-wider text-primary">
+                          {modeOption.title}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                          {modeOption.desc}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Conditional Input Fields */}
+              {(shippingMode === "flat_rate" || shippingMode === "paid_always" || shippingMode === "free_above") && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-neutral-50 border border-gray-200 p-6 rounded-lg">
+                  {(shippingMode === "flat_rate" || shippingMode === "paid_always" || shippingMode === "free_above") && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                        Flat Rate Shipping Amount (₹)
+                      </label>
+                      <input
+                        required
+                        type="number"
+                        min={0}
+                        value={shippingFlatRate}
+                        onChange={(e) => setShippingFlatRate(Number(e.target.value))}
+                        className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-bold"
+                      />
+                    </div>
+                  )}
+
+                  {shippingMode === "free_above" && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                        Free Above Order Value Threshold (₹)
+                      </label>
+                      <input
+                        required
+                        type="number"
+                        min={0}
+                        value={shippingFreeAboveAmount}
+                        onChange={(e) => setShippingFreeAboveAmount(Number(e.target.value))}
+                        className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-bold"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Promotional Message Input */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                  Promotional Message
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={shippingDisplayMessage}
+                  onChange={(e) => setShippingDisplayMessage(e.target.value)}
+                  className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  placeholder="e.g. Free shipping on orders above ₹999"
+                />
+                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">
+                  Shown in the global announcement marquee bar and checkout page.
+                </span>
+              </div>
+
+              {/* Live Preview Card */}
+              <div className="border border-dashed border-[#BA7517]/40 bg-[#BA7517]/5 p-6 rounded-lg space-y-4">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#BA7517] block">
+                  Interactive Preview (Customer Experience)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold uppercase tracking-wider">
+                  <div className="bg-white p-4 border border-[#BA7517]/10 rounded shadow-sm space-y-2">
+                    <p className="text-gray-400 text-[10px] tracking-widest">Order value: ₹300</p>
+                    <p className="text-sm font-black">
+                      Shipping: ₹
+                      {calculateShipping(300, {
+                        mode: shippingMode,
+                        flatRate: Number(shippingFlatRate || 0),
+                        freeAboveAmount: Number(shippingFreeAboveAmount || 0),
+                        displayMessage: shippingDisplayMessage,
+                      })}
+                    </p>
+                    <p className="text-[9px] text-[#BA7517] normal-case italic font-medium font-sans">
+                      {getShippingMessage(300, {
+                        mode: shippingMode,
+                        flatRate: Number(shippingFlatRate || 0),
+                        freeAboveAmount: Number(shippingFreeAboveAmount || 0),
+                        displayMessage: shippingDisplayMessage,
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="bg-white p-4 border border-[#BA7517]/10 rounded shadow-sm space-y-2">
+                    <p className="text-gray-400 text-[10px] tracking-widest">
+                      Order value: ₹{shippingFreeAboveAmount || 999}
+                    </p>
+                    <p className="text-sm font-black text-green-600">
+                      Shipping:{" "}
+                      {calculateShipping(Number(shippingFreeAboveAmount || 0), {
+                        mode: shippingMode,
+                        flatRate: Number(shippingFlatRate || 0),
+                        freeAboveAmount: Number(shippingFreeAboveAmount || 0),
+                        displayMessage: shippingDisplayMessage,
+                      }) === 0
+                        ? "FREE ✓"
+                        : `₹${calculateShipping(Number(shippingFreeAboveAmount || 0), {
+                            mode: shippingMode,
+                            flatRate: Number(shippingFlatRate || 0),
+                            freeAboveAmount: Number(shippingFreeAboveAmount || 0),
+                            displayMessage: shippingDisplayMessage,
+                          })}`}
+                    </p>
+                    <p className="text-[9px] text-[#BA7517] normal-case italic font-medium font-sans">
+                      {getShippingMessage(Number(shippingFreeAboveAmount || 0), {
+                        mode: shippingMode,
+                        flatRate: Number(shippingFlatRate || 0),
+                        freeAboveAmount: Number(shippingFreeAboveAmount || 0),
+                        displayMessage: shippingDisplayMessage,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
+                >
+                  Save Shipping Settings
+                </button>
+              </div>
+            </form>
           </section>
         )}
       </div>

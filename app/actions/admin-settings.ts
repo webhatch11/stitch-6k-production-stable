@@ -2,6 +2,7 @@
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
+import { ShippingRules } from "@/lib/shipping";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -54,7 +55,7 @@ const offerBoxSchema = z.object({
   bg_image_url: z.string().max(200).optional().default(""),
 });
 
-export async function getSettingAction(key: "hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "hero_slides" | "categories" | "reviews") {
+export async function getSettingAction(key: "hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "hero_slides" | "categories" | "reviews" | "shipping_rules") {
   // No requireAdmin — these are public reads via cached layer
   try {
     const value = await db.getSetting(key);
@@ -212,6 +213,27 @@ export async function updateReviewAction(id: string, comment: string) {
   const ok = await db.updateReview(id, { comment });
   if (!ok) return { success: false, error: "Failed to update review" };
   revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function saveShippingAction(
+  rules: ShippingRules
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  const ok = await db.saveSetting('shipping_rules', {
+    mode: rules.mode,
+    flat_rate: Number(rules.flatRate),
+    free_above_amount: Number(rules.freeAboveAmount),
+    display_message: rules.displayMessage
+  });
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/checkout");
   return { success: true };
 }
 

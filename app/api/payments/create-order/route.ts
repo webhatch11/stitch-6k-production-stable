@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
       id: sequentialOrderId,
       customer: checkoutState.customer,
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-      total: checkoutState.netTotal,
+      total: checkoutState.total ?? (checkoutState.netTotal + (checkoutState.shippingAmount || 0)),
       originalTotal: checkoutState.originalTotal,
       couponDiscount: checkoutState.couponDiscount,
       couponCode: checkoutState.couponCode,
@@ -149,6 +149,8 @@ export async function POST(req: NextRequest) {
       utm_source: parsed.data.utm_source || undefined,
       utm_medium: parsed.data.utm_medium || undefined,
       utm_campaign: parsed.data.utm_campaign || undefined,
+      shippingAmount: checkoutState.shippingAmount || 0,
+      shipping_amount: checkoutState.shippingAmount || 0,
     };
 
     await db.saveOrder(orderData);

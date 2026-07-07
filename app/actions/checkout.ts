@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Product } from "@/lib/registry";
 import { getServerUser } from "@/lib/supabase-server";
 import { supabaseService as supabase } from "@/lib/supabase-service";
+import { calculateShipping } from "@/lib/shipping";
 
 interface CartItem {
   productId?: string;
@@ -121,7 +122,10 @@ export async function processWalletPointsCheckoutAction(payload: {
 
   // Ensure finalPayable is zero
   const verifiedPointsDiscount = pointsRedeemed * 1; // 1 point = 1 INR discount
-  const verifiedFinalPayable = Math.max(0, verifiedNetTotal - verifiedPointsDiscount - walletDeduction);
+  const shippingRules = await db.getShippingRules();
+  const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
+  const totalWithShipping = verifiedNetTotal + shippingAmount;
+  const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - walletDeduction);
 
   if (verifiedFinalPayable !== 0) {
     return { success: false, error: "Security Alert: Final payable is not zero for wallet checkout." };
@@ -189,7 +193,9 @@ export async function processWalletPointsCheckoutAction(payload: {
       month: "short",
       year: "numeric",
     }),
-    total: verifiedNetTotal,
+    total: totalWithShipping,
+    shippingAmount: shippingAmount,
+    shipping_amount: shippingAmount,
     originalTotal: verifiedSubtotal,
     couponDiscount: verifiedCouponDiscount,
     couponCode: couponCode,
@@ -331,7 +337,10 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   }
 
   const verifiedPointsDiscount = pointsRedeemed * 1;
-  const verifiedFinalPayable = Math.max(0, verifiedNetTotal - verifiedPointsDiscount - walletDeduction);
+  const shippingRules = await db.getShippingRules();
+  const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
+  const totalWithShipping = verifiedNetTotal + shippingAmount;
+  const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - walletDeduction);
 
   return {
     success: true,
@@ -341,6 +350,9 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
       couponDiscount: verifiedCouponDiscount,
       couponCode: couponCode,
       netTotal: verifiedNetTotal,
+      shippingAmount: shippingAmount,
+      shipping_amount: shippingAmount,
+      total: totalWithShipping,
       walletDeduction: walletDeduction,
       pointsRedeemed: pointsRedeemed,
       pointsDiscount: verifiedPointsDiscount,
@@ -422,16 +434,8 @@ export async function processCodCheckoutAction(payload: {
   // A. Verify COD eligibility rules server-side
   const finalPayable = Math.max(0, netTotal - (pointsRedeemed * 1) - walletDeduction);
   
-  const { evaluateCodRules } = await import("@/lib/codRules");
-  const codCheck = evaluateCodRules({
-    pincode,
-    orderTotal: finalPayable,
-    customerEmail: userId,
-  });
-
-  if (!codCheck.allowed) {
-    return { success: false, error: codCheck.reason || "COD is not allowed." };
-  }
+  // Final payable will be verified and checked after recalculations to prevent tampering.
+  // Move evaluation below.
 
   // B. Verify stock first server-side
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
@@ -472,6 +476,23 @@ export async function processCodCheckoutAction(payload: {
   }
   if (pointsRedeemed > dbLoyaltyPoints) {
     return { success: false, error: "Security Alert: Loyalty points redeemed exceed available points." };
+  }
+
+  const shippingRules = await db.getShippingRules();
+  const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
+  const totalWithShipping = verifiedNetTotal + shippingAmount;
+  const verifiedPointsDiscount = pointsRedeemed * 1;
+  const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - walletDeduction);
+
+  const { evaluateCodRules } = await import("@/lib/codRules");
+  const codCheck = evaluateCodRules({
+    pincode,
+    orderTotal: verifiedFinalPayable,
+    customerEmail: userId,
+  });
+
+  if (!codCheck.allowed) {
+    return { success: false, error: codCheck.reason || "COD is not allowed." };
   }
 
   // Check Idempotency Key (prevent duplicate orders)
@@ -536,7 +557,9 @@ export async function processCodCheckoutAction(payload: {
       month: "short",
       year: "numeric",
     }),
-    total: verifiedNetTotal,
+    total: totalWithShipping,
+    shippingAmount: shippingAmount,
+    shipping_amount: shippingAmount,
     originalTotal: verifiedSubtotal,
     couponDiscount: verifiedCouponDiscount,
     couponCode: couponCode,
@@ -563,7 +586,7 @@ export async function processCodCheckoutAction(payload: {
     // Add status history entry
     await db.addOrderStatusHistory(idempotencyKey, "Order Placed", "COD Checkout System", {
       payment_method: "COD",
-      amount_to_collect: finalPayable
+      amount_to_collect: verifiedFinalPayable
     });
   } catch (err) {
     if (couponCode) {

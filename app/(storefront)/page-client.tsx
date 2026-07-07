@@ -1104,7 +1104,7 @@ export default function HomeClient({
                 {offerBox?.cta_text && (
                   <div className="mt-2">
                     <Link
-                      href={offerBox.cta_url || "/shopallshirts"}
+                      href={offerBox.cta_url && offerBox.cta_url !== "/text-url" ? offerBox.cta_url : "/shopallshirts"}
                       className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-8 py-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
                     >
                       {offerBox.cta_text}

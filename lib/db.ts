@@ -987,6 +987,36 @@ export const db = {
       }
     }
 
+    // Security: BOGO discounts are derived from per-item prices. The cartItems
+    // array is client-supplied, so a customer could inflate item.price to make
+    // the free/discounted items worth more than they really are and zero out the
+    // order total. Before computing any price-based discount, overwrite each
+    // item's price with the authoritative value from the products table. Items
+    // that don't resolve to a real product contribute a price of 0.
+    if (
+      cartItems &&
+      cartItems.length > 0 &&
+      (coupon.type === "bogo_quantity" || coupon.type === "bogo_product")
+    ) {
+      const dbProducts = await this.getProducts();
+      const priceById = new Map<string, number>();
+      const priceByTitle = new Map<string, number>();
+      for (const p of dbProducts) {
+        if (p.id !== undefined && p.id !== null) priceById.set(String(p.id), p.price);
+        if (p.title) priceByTitle.set(p.title.toLowerCase(), p.price);
+      }
+      cartItems = cartItems.map((item) => {
+        let authoritativePrice: number | undefined;
+        if (item.productId !== undefined && item.productId !== null) {
+          authoritativePrice = priceById.get(String(item.productId));
+        }
+        if (authoritativePrice === undefined && item.productName) {
+          authoritativePrice = priceByTitle.get(String(item.productName).toLowerCase());
+        }
+        return { ...item, price: authoritativePrice ?? 0 };
+      });
+    }
+
     let discountAmount = 0;
     if (coupon.type === "percent") {
       discountAmount = Math.floor((cartTotal * coupon.discount) / 100);

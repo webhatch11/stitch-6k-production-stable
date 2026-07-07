@@ -33,6 +33,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
   const [selectedSize, setSelectedSize] = useState("M");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   // Accordion open/close state
   const [accordionOpen, setAccordionOpen] = useState({
@@ -220,6 +221,15 @@ export default function ProductDetailClient({ product, recommendations }: Produc
       
       {/* Main Content */}
       <main className="pt-20 md:pt-32 pb-24 px-6 md:px-12 max-w-[1440px] mx-auto animate-fade-in">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-8" id="productBreadcrumb">
+          <Link href="/" className="hover:text-black transition-colors">Home</Link>
+          <span>→</span>
+          <Link href="/shopallshirts" className="hover:text-black transition-colors">Shop All</Link>
+          <span>→</span>
+          <span className="text-black font-extrabold">{product.title}</span>
+        </nav>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
           
           {/* Left Side: Product Gallery */}
@@ -251,12 +261,21 @@ export default function ProductDetailClient({ product, recommendations }: Produc
 
               {/* Main Image Display */}
               <div className="col-span-12 md:col-span-10">
-                <div className="aspect-[4/5] bg-surface-container-low border border-outline-variant/10 gallery-zoom-container relative overflow-hidden">
+                <div 
+                  onMouseEnter={() => setIsZoomed(true)}
+                  onMouseLeave={() => setIsZoomed(false)}
+                  style={{ overflow: "hidden", cursor: "zoom-in" }}
+                  className="aspect-[4/5] bg-surface-container-low border border-outline-variant/10 gallery-zoom-container relative overflow-hidden"
+                >
                   {activeImg && (
                     <ProductImage
                       className={`object-cover transition-all duration-300 ${
-                        imgAnimating ? "opacity-0 scale-[0.98]" : "opacity-100 scale-100"
+                        imgAnimating ? "opacity-0 scale-[0.98]" : "opacity-100"
                       }`}
+                      style={{
+                        transform: isZoomed ? "scale(1.5)" : "scale(1)",
+                        transition: "transform 0.3s ease"
+                      }}
                       src={activeImg}
                       alt={product.title}
                       fill

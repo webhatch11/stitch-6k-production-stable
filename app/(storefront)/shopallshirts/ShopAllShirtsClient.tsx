@@ -21,6 +21,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
   const cartItems = useCartStore((state) => state.cartItems);
   const cartCount = cartItems.length;
   const addToCartStore = useCartStore((state) => state.addToCart);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter & Sort state
   const [products] = useState<Product[]>(initialProducts);
@@ -46,6 +47,12 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
+
+  // Simulated loading transition
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Reset pagination on filter change
   useEffect(() => {
@@ -314,7 +321,13 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
 
           {/* PRODUCTS SECTION */}
           <section className="lg:col-span-3">
-            {filteredProducts.length === 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="animate-pulse bg-neutral-200 rounded-[1.5rem] aspect-[3/4] w-full" />
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="py-20 text-center">
                 <p className="text-gray-400 text-sm uppercase tracking-widest">No products match your filters.</p>
               </div>

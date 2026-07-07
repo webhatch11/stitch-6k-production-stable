@@ -116,9 +116,9 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
               {!isClient || cartItems.length === 0 ? (
                 <div className="text-center py-20 border border-dashed border-outline-variant/30 space-y-6">
                   <span className="material-symbols-outlined text-6xl text-outline/40">shopping_bag</span>
-                  <h3 className="font-headline text-2xl font-bold uppercase tracking-tight">Your Bag is Empty</h3>
+                  <h3 className="font-headline text-2xl font-bold uppercase tracking-tight">Your cart is empty</h3>
                   <p className="text-xs text-outline uppercase tracking-widest max-w-sm mx-auto leading-relaxed">
-                    Explore our limited-run collections and South Indian woven heritage series.
+                    Add items to get started. Explore our limited-run collections and South Indian woven heritage series.
                   </p>
                   <Link
                     href="/shopallshirts"

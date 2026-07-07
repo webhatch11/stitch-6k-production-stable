@@ -13,6 +13,7 @@ interface OrderHistoryClientProps {
 
 export default function OrderHistoryClient({ initialOrders, userId }: OrderHistoryClientProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Return Modal states
   const [returnModalOpen, setReturnModalOpen] = useState(false);
@@ -34,6 +35,10 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
       setShowToast(false);
     }, 3000);
   };
+
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     // Listen for storage events from admin or other tabs
@@ -184,24 +189,33 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                   <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline text-right">Order Actions</th>
                 </tr>
               </thead>
-
               <tbody id="historyBody" className="block md:table-row-group divide-y divide-outline-variant/10 font-label">
-                {orders.length === 0 ? (
+                {isLoading ? (
+                  <tr className="flex flex-col md:table-row">
+                    <td colSpan={6} className="px-8 py-10">
+                      <div className="space-y-4 animate-pulse">
+                        <div className="h-16 bg-neutral-200 rounded"></div>
+                        <div className="h-16 bg-neutral-200 rounded"></div>
+                        <div className="h-16 bg-neutral-200 rounded"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : orders.length === 0 ? (
                   <tr className="flex flex-col md:table-row">
                     <td colSpan={6} className="px-6 py-24 text-center">
                       <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                         <div className="size-20 rounded-full bg-surface-container-low flex items-center justify-center border border-outline-variant/20 mb-6 text-secondary/60">
                           <span className="material-symbols-outlined text-4xl">inventory_2</span>
                         </div>
-                        <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">Order Archive Empty</h3>
+                        <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">No orders yet</h3>
                         <p className="text-xs text-outline leading-relaxed uppercase tracking-wider font-semibold opacity-70 mb-8">
-                          You haven't placed any orders yet. Discover our premium collections hand-loomed in South India.
+                          Your orders will appear here after your first purchase. Discover our premium collections hand-loomed in South India.
                         </p>
                         <Link
                           href="/shopallshirts"
                           className="w-full inline-flex items-center justify-center bg-on-surface hover:bg-secondary text-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10"
                         >
-                          Start Exploring
+                          SHOP NOW
                         </Link>
                       </div>
                     </td>

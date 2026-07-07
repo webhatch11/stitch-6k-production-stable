@@ -63,6 +63,7 @@ export default function MyProfileClient({
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddress, setEditingAddress] = useState<UserAddress | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [addrName, setAddrName] = useState("");
   const [addrPhone, setAddrPhone] = useState("");
@@ -82,6 +83,7 @@ export default function MyProfileClient({
       setAddresses(res.addresses);
     }
     setLoadingAddresses(false);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -257,6 +259,23 @@ export default function MyProfileClient({
     setActiveTab(tabName);
     setSidebarOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="layout-container flex h-full grow flex-col max-w-7xl mx-auto w-full flex-grow py-10 px-6">
+        <div className="animate-pulse space-y-8 w-full">
+          <div className="h-10 bg-neutral-200 w-1/4 rounded"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 h-64 bg-neutral-200 rounded-[1.5rem]"></div>
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-40 bg-neutral-200 rounded-[1.5rem]"></div>
+              <div className="h-40 bg-neutral-200 rounded-[1.5rem]"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="layout-container flex h-full grow flex-col max-w-7xl mx-auto w-full flex-grow py-10">

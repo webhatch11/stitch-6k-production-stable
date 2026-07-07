@@ -1,43 +1,46 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function NotFound() {
   return (
-    <div className="bg-surface text-on-surface min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      <motion.div 
+    <div className="bg-[#0a0a0a] text-white min-h-screen flex flex-col items-center justify-center p-8 text-center font-body">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="max-w-md w-full relative"
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="max-w-md w-full relative space-y-6"
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-outline-variant/5 rounded-full blur-3xl -z-10"></div>
-        
-        <h1 className="text-[120px] leading-none font-headline font-black tracking-tighter text-[#fed488]/20 select-none mb-4 relative">
+        {/* Glow backdrop */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#BA7517]/5 rounded-full blur-3xl -z-10"></div>
+
+        <h1 className="text-[120px] font-bold text-[#BA7517] leading-none mb-4 tracking-tighter">
           404
-          <span className="absolute inset-0 flex items-center justify-center text-4xl text-on-surface tracking-tight uppercase">
-            Not Found
-          </span>
         </h1>
-        
-        <p className="text-xs uppercase tracking-widest text-outline/80 mb-10 leading-relaxed max-w-sm mx-auto">
-          The collection or piece you are looking for has been moved or does not exist in our current registry.
+
+        <h2 className="text-2xl font-medium tracking-widest uppercase text-white mb-4">
+          PAGE NOT FOUND
+        </h2>
+
+        <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto mb-8">
+          The page you are looking for does not exist or has been moved.
         </p>
 
-        <div className="flex flex-col gap-4 max-w-[200px] mx-auto">
-          <Link 
-            href="/shopallshirts"
-            className="bg-[#775a19] text-white px-8 py-3 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-[#fed488] hover:text-primary transition-all active:scale-95 shadow-md flex items-center justify-center gap-2"
-          >
-            Explore Collections
-          </Link>
-          
-          <Link 
+        <div className="flex flex-col gap-4 max-w-[240px] mx-auto pt-4">
+          <Link
             href="/"
-            className="border border-outline-variant/30 text-on-surface px-8 py-3 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+            className="bg-[#BA7517] text-white py-3.5 px-8 text-xs font-black tracking-widest uppercase hover:bg-[#fed488] hover:text-black transition-all active:scale-95 shadow-md flex items-center justify-center rounded-[4px]"
           >
-            Return to Atrium
+            BACK TO HOME
+          </Link>
+
+          <Link
+            href="/shopallshirts"
+            className="text-[#BA7517] hover:text-white transition-colors text-xs font-bold tracking-wider"
+          >
+            Browse our collection →
           </Link>
         </div>
       </motion.div>

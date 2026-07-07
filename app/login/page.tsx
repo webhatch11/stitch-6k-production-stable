@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { trackLogin, trackSignUp } from "@/lib/analytics";
+import { checkUserExistsAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -130,24 +131,27 @@ export default function LoginPage() {
 
     try {
       if (isSignIn) {
-        // Before sending OTP, check if user exists
+        // -------------------------------------------------------------------
+        // Bug 1 fix: Use server action for authoritative user-exists check.
+        // The old approach queried profiles.email client-side via RLS, which
+        // returned null whenever the profile row was missing or had a NULL
+        // email (trigger race / legacy data), wrongly routing returning users
+        // to the Create Account form.
+        //
+        // The server action checks profiles.email first, then falls back to
+        // auth.users via the admin API — the true source of truth.
+        // -------------------------------------------------------------------
         let userExists = false;
-        if (isSupabaseConfigured && supabase) {
-          const { data: existingUser } = await supabase
-            .from("profiles")
-            .select("id, email")
-            .eq("email", email)
-            .maybeSingle();
-          if (existingUser) {
-            userExists = true;
-          }
+        if (isSupabaseConfigured) {
+          const { exists } = await checkUserExistsAction(email);
+          userExists = exists;
         } else {
-          // Mock offline fallback check
+          // Mock offline fallback: treat addresses without "new" as existing
           userExists = !email.toLowerCase().includes("new");
         }
 
         if (!userExists) {
-          // Switch to CREATE ACCOUNT state (State 2)
+          // New user — switch to Create Account form
           setIsSignIn(false);
           setInfoMsg("Welcome! Let's create your 6K Brand account.");
           setLoading(false);
@@ -168,7 +172,11 @@ export default function LoginPage() {
           email,
           options: {
             data: optionsData,
-            shouldCreateUser: true,
+            // Bug 1 fix: returning users (isSignIn=true) must use
+            // shouldCreateUser:false — prevents Supabase from creating a
+            // duplicate auth user if the profiles row was absent. New users
+            // (isSignIn=false, Create Account path) keep shouldCreateUser:true.
+            shouldCreateUser: !isSignIn,
             emailRedirectTo: `${origin}/auth/callback`
           }
         });
@@ -211,6 +219,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // -----------------------------------------------------------------------
+      // Bug 2 fix — Step 1: OTP verification ONLY.
+      // This try/catch is now exclusively for the verifyOtp call. Any error
+      // here is a genuine auth failure (wrong/expired code) and SHOULD be
+      // shown to the user via setErrorMsg.
+      // -----------------------------------------------------------------------
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.auth.verifyOtp({
           email,
@@ -237,18 +251,45 @@ export default function LoginPage() {
         document.cookie = `mock_user_session=${mockUser.id}; path=/; max-age=86400`;
         document.cookie = `mock_user_email=${mockUser.email}; path=/; max-age=86400`;
       }
-
-      setInfoMsg("Signed in successfully. Redirecting...");
-
-      if (isSignIn) {
-        trackLogin();
-      } else {
-        trackSignUp();
+    } catch (err: any) {
+      // OTP itself failed — show error, stop here.
+      console.error("Verification Error:", err);
+      let friendlyMsg = err.message || "Failed to verify OTP.";
+      if (err.message?.includes("Token has expired or is invalid")) {
+        friendlyMsg = "Code expired or incorrect. Request a new one.";
       }
+      setErrorMsg(friendlyMsg);
+      setLoading(false);
+      return;
+    }
 
-      let userRole = "customer";
+    // -------------------------------------------------------------------------
+    // Bug 2 fix — Step 2: Post-verify operations (analytics + role fetch).
+    // These run in their OWN try/catch so any failure here NEVER blocks the
+    // redirect. router.push() is guaranteed to fire regardless.
+    // router.refresh() has been moved AFTER router.push() to avoid the
+    // App Router race where refresh() cancels a pending navigation.
+    // -------------------------------------------------------------------------
+    setInfoMsg("Signed in successfully. Redirecting...");
+
+    if (isSignIn) {
+      trackLogin();
+    } else {
+      trackSignUp();
+    }
+
+    // Determine redirect target before we attempt the profile fetch
+    const redirectParam = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("redirect")
+      : null;
+
+    let userRole = "customer";
+    try {
       if (isSupabaseConfigured && supabase) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // Use getSession() — more reliable immediately after verifyOtp than
+        // getUser() which can return null before session cookies are written.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const authUser = sessionData?.session?.user;
         if (authUser) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -266,30 +307,25 @@ export default function LoginPage() {
           userRole = parsed.role || "customer";
         }
       }
-
-      router.refresh();
-      if (userRole === "admin") {
-        router.push("/admindashboard");
-      } else {
-        const redirectTo = new URLSearchParams(window.location.search).get("redirect");
-        if (redirectTo === "checkout" || redirectTo === "/checkout") {
-          router.push("/checkout");
-        } else if (redirectTo) {
-          router.push(redirectTo);
-        } else {
-          router.push("/");
-        }
-      }
-    } catch (err: any) {
-      console.error("Verification Error:", err);
-      let friendlyMsg = err.message || "Failed to verify OTP.";
-      if (err.message?.includes("Token has expired or is invalid")) {
-        friendlyMsg = "Code expired or incorrect. Request a new one.";
-      }
-      setErrorMsg(friendlyMsg);
-    } finally {
-      setLoading(false);
+    } catch (profileErr: any) {
+      // Profile fetch failed — log it but DO NOT block the redirect.
+      console.error("[login] Profile role fetch failed (non-fatal):", profileErr);
     }
+
+    // Redirect — guaranteed to execute regardless of profile fetch outcome.
+    if (userRole === "admin") {
+      router.push("/admindashboard");
+    } else if (redirectParam === "checkout" || redirectParam === "/checkout") {
+      router.push("/checkout");
+    } else if (redirectParam) {
+      router.push(redirectParam);
+    } else {
+      router.push("/");
+    }
+    // Refresh after push so server components update without racing the navigation.
+    router.refresh();
+
+    setLoading(false);
   };
 
   const handleResendOtp = async () => {

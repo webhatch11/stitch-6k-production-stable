@@ -7,8 +7,10 @@ import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 import { Product } from "@/lib/registry";
 import { useCartStore } from "@/stores/cartStore";
+import { trackRemoveFromCart } from "@/lib/analytics";
 
 interface GroupedCartItem {
+  productId?: string;
   productName: string;
   price: number;
   size: string;
@@ -49,6 +51,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
       const key = `${item.productName}_${item.size || "M"}_${item.color || "Default"}`;
       if (!groups[key]) {
         groups[key] = {
+          productId: item.productId,
           productName: item.productName,
           price: item.price,
           size: item.size || "M",
@@ -85,10 +88,36 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
   };
 
   const handleDecrement = (item: GroupedCartItem) => {
+    const dbProduct = products.find(
+      (p) => p.title.toLowerCase() === item.productName.toLowerCase()
+    );
+    const productId = item.productId || dbProduct?.id || "";
+
+    trackRemoveFromCart({
+      productId: productId,
+      productName: item.productName,
+      price: item.price,
+      size: item.size,
+      color: item.color || "Default",
+      quantity: 1,
+    });
     useCartStore.getState().decrementQuantity(item.productName, item.size, item.color || "Default");
   };
 
   const handleRemove = (item: GroupedCartItem) => {
+    const dbProduct = products.find(
+      (p) => p.title.toLowerCase() === item.productName.toLowerCase()
+    );
+    const productId = item.productId || dbProduct?.id || "";
+
+    trackRemoveFromCart({
+      productId: productId,
+      productName: item.productName,
+      price: item.price,
+      size: item.size,
+      color: item.color || "Default",
+      quantity: item.quantity,
+    });
     useCartStore.getState().removeFromCart(item.productName, item.size, item.color || "Default");
   };
 

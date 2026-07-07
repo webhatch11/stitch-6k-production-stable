@@ -15,7 +15,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useAuthStore } from "@/stores/authStore";
 import { calculateShipping, getShippingMessage, type ShippingRules } from "@/lib/shipping";
-import { trackBeginCheckout } from "@/lib/analytics";
+import { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo } from "@/lib/analytics";
 import { clearCartAction } from "@/app/actions/cart";
 import { createBrowserClient } from "@supabase/ssr";
 import { AddressList } from "@/components/checkout/AddressList";
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
     setCart(savedCart);
 
     const totalVal = savedCart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-    trackBeginCheckout(totalVal, savedCart.length);
+    trackBeginCheckout(totalVal, savedCart);
 
     // Fetch Available Perks
     const fetchPerks = async () => {
@@ -349,6 +349,8 @@ export default function CheckoutPage() {
         triggerToast("Please select a delivery address");
         return;
       }
+      // Fire GA4 add_shipping_info when transitioning from Step 1 to Step 2
+      trackAddShippingInfo(shippingCost, cart);
     }
     setCurrentStep(step);
   };
@@ -367,6 +369,11 @@ export default function CheckoutPage() {
         setCurrentStep(1); // send them back to address selection
         return;
       }
+      
+      // Track add_payment_info here!
+      const finalPaymentMethod = finalPayable === 0 ? "Wallet/Points" : (paymentMethod === "cod" ? "COD" : "Razorpay");
+      trackAddPaymentInfo(finalPaymentMethod, finalPayable, cart);
+      
       const customerName = selectedAddress.name || "Guest";
 
       const utm_source = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null;

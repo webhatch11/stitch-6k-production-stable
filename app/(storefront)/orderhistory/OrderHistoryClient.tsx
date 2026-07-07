@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Order } from "@/lib/registry";
 import { getUserOrdersAction, requestManualReturnAction } from "@/app/actions/orders";
+import { trackRefund } from "@/lib/analytics";
 
 interface OrderHistoryClientProps {
   initialOrders: Order[];
@@ -52,6 +53,37 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  useEffect(() => {
+    orders.forEach((order) => {
+      const refundAmt = order.refund_amount || (order as any).refundAmount || 0;
+      if (order.status === "Returned" && refundAmt > 0) {
+        const sessionKey = `tracked_refund_${order.id}`;
+        if (typeof window !== "undefined" && !sessionStorage.getItem(sessionKey)) {
+          sessionStorage.setItem(sessionKey, "true");
+          const mappedItems = order.cartItems && order.cartItems.length > 0
+            ? order.cartItems.map((item: any) => ({
+                productId: item.productId || item.product_id,
+                productName: item.productName || item.title || item.name,
+                price: item.price,
+                quantity: item.quantity || 1
+              }))
+            : (order.items || []).map((name, idx) => ({
+                productId: `${order.id}-item-${idx}`,
+                productName: name,
+                price: refundAmt / (order.items.length || 1),
+                quantity: 1
+              }));
+          
+          trackRefund({
+            orderId: order.id,
+            total: refundAmt,
+            items: mappedItems
+          });
+        }
+      }
+    });
+  }, [orders]);
 
   const loadOrders = async () => {
     const res = await getUserOrdersAction(userId);

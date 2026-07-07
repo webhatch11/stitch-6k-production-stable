@@ -40,6 +40,7 @@ export const trackAddToCart = (item: {
   price: number;
   size: string;
   color: string;
+  category?: string;
 }) => {
   const data = {
     currency: "INR",
@@ -48,6 +49,7 @@ export const trackAddToCart = (item: {
       {
         item_id: item.productId,
         item_name: item.productName,
+        item_category: item.category || "Shirts",
         price: item.price,
         item_variant: `${item.size}/${item.color}`,
         quantity: 1,
@@ -58,6 +60,34 @@ export const trackAddToCart = (item: {
   trackMetaEvent("AddToCart", {
     content_ids: [item.productId],
     content_name: item.productName,
+    value: item.price,
+    currency: "INR",
+  });
+};
+
+export const trackRemoveFromCart = (item: {
+  productId: string;
+  productName: string;
+  price: number;
+  size: string;
+  color: string;
+  quantity: number;
+}) => {
+  trackEvent("remove_from_cart", {
+    currency: "INR",
+    value: item.price * item.quantity,
+    items: [
+      {
+        item_id: item.productId,
+        item_name: item.productName,
+        price: item.price,
+        item_variant: `${item.size}/${item.color}`,
+        quantity: item.quantity,
+      },
+    ],
+  });
+  trackMetaEvent("RemoveFromCart", {
+    content_ids: [item.productId],
     value: item.price,
     currency: "INR",
   });
@@ -78,6 +108,7 @@ export const trackViewProduct = (item: {
         item_name: item.productName,
         item_category: item.category,
         price: item.price,
+        quantity: 1,
       },
     ],
   });
@@ -89,16 +120,68 @@ export const trackViewProduct = (item: {
   });
 };
 
-export const trackBeginCheckout = (total: number, itemCount: number) => {
+export const trackBeginCheckout = (total: number, cartItems: any[]) => {
+  const grouped: Record<string, any> = {};
+  cartItems.forEach((item) => {
+    const key = `${item.productId || item.product_id || "unknown"}_${item.size || "Default"}_${item.color || "Default"}`;
+    if (!grouped[key]) {
+      grouped[key] = {
+        item_id: item.productId || item.product_id || "unknown",
+        item_name: item.productName || item.title || item.name || "Apparel Item",
+        price: item.price,
+        item_variant: `${item.size || "Default"}/${item.color || "Default"}`,
+        quantity: 0,
+      };
+    }
+    grouped[key].quantity += 1;
+  });
+
   trackEvent("begin_checkout", {
     currency: "INR",
     value: total,
-    num_items: itemCount,
+    items: Object.values(grouped),
   });
+
   trackMetaEvent("InitiateCheckout", {
     value: total,
     currency: "INR",
-    num_items: itemCount,
+    num_items: cartItems.length,
+  });
+};
+
+export const trackAddShippingInfo = (shippingCost: number, cartItems: any[]) => {
+  trackEvent("add_shipping_info", {
+    currency: "INR",
+    value: cartItems.reduce((sum, i) => sum + (i.price || 0), 0),
+    shipping_tier: shippingCost === 0 ? "Free" : `₹${shippingCost}`,
+    items: cartItems.map((item) => ({
+      item_id: item.productId || item.product_id || "unknown",
+      item_name: item.productName || item.title || item.name || "Apparel Item",
+      price: item.price,
+      quantity: item.quantity || 1,
+    })),
+  });
+};
+
+export const trackAddPaymentInfo = (
+  paymentMethod: string,
+  total: number,
+  cartItems: any[]
+) => {
+  trackEvent("add_payment_info", {
+    currency: "INR",
+    value: total,
+    payment_type: paymentMethod,
+    items: cartItems.map((item) => ({
+      item_id: item.productId || item.product_id || "unknown",
+      item_name: item.productName || item.title || item.name || "Apparel Item",
+      price: item.price,
+      quantity: item.quantity || 1,
+    })),
+  });
+  trackMetaEvent("AddPaymentInfo", {
+    value: total,
+    currency: "INR",
   });
 };
 
@@ -116,6 +199,7 @@ export const trackPurchase = (order: {
     items: order.items.map((item) => ({
       item_id: item.productId || item.product_id || order.orderId,
       item_name: item.productName || item.title || item.name || "Apparel Item",
+      item_category: item.category || item.item_category || "Shirts",
       price: item.price || order.total,
       quantity: item.quantity || item.qty || 1,
     })),
@@ -141,6 +225,24 @@ export const trackPurchase = (order: {
   }
 };
 
+export const trackRefund = (order: {
+  orderId: string;
+  total: number;
+  items: any[];
+}) => {
+  trackEvent("refund", {
+    currency: "INR",
+    value: order.total,
+    transaction_id: order.orderId,
+    items: order.items.map((item) => ({
+      item_id: item.productId || item.id || "unknown",
+      item_name: item.productName || item.name || "Apparel Item",
+      price: item.price,
+      quantity: item.quantity || 1,
+    })),
+  });
+};
+
 export const trackLogin = () => {
   trackEvent("login", { method: "OTP" });
   trackMetaEvent("Lead");
@@ -157,3 +259,4 @@ export const trackSearch = (query: string) => {
     search_string: query,
   });
 };
+

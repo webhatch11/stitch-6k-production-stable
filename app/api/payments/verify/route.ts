@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { z } from "zod";
 import { razorpay } from "@/lib/razorpay";
+import { sendGA4Purchase, sendMetaPurchase } from "@/lib/server-analytics";
 
 const verifySchema = z.object({
   razorpay_payment_id: z.string().min(1),
@@ -313,6 +314,27 @@ export async function POST(req: NextRequest) {
     } catch (emailError) {
       console.error("[Email] Order confirmation email failed:", emailError);
     }
+
+    // Run server-side tracking in parallel (non-blocking)
+    Promise.all([
+      sendGA4Purchase({
+        orderId: dbOrder.id,
+        total: dbOrder.total,
+        items: dbOrder.cart_items || [],
+        couponCode: dbOrder.coupon_code,
+        clientId: req.headers.get("x-ga-client-id") || dbOrder.id,
+      }),
+      sendMetaPurchase({
+        orderId: dbOrder.id,
+        total: dbOrder.total,
+        items: dbOrder.cart_items || [],
+        customerEmail: dbOrder.address_snapshot?.email || undefined,
+        customerPhone: dbOrder.address_snapshot?.phone || undefined,
+        customerName: dbOrder.customer,
+      }),
+    ]).catch((err) => {
+      console.error("[Server Analytics]:", err);
+    });
 
     return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 

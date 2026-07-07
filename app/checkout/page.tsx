@@ -35,6 +35,16 @@ interface CartItem {
   color?: string;
 }
 
+// Get GA4 client ID from cookie
+const getGA4ClientId = (): string => {
+  if (typeof window === "undefined") return "";
+  const cookie = document.cookie
+    .split(";")
+    .find((c) => c.trim().startsWith("_ga="));
+  if (!cookie) return "";
+  return cookie.split("=")[1]?.split(".").slice(-2).join(".") || "";
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -548,7 +558,10 @@ export default function CheckoutPage() {
               try {
                 const verifyRes = await fetch("/api/payments/verify", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-ga-client-id": getGA4ClientId()
+                  },
                   body: JSON.stringify({
                     razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_order_id: response.razorpay_order_id,

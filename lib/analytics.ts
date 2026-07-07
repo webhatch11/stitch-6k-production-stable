@@ -208,6 +208,7 @@ export const trackPurchase = (order: {
     value: order.total,
     currency: "INR",
     content_ids: order.items.map((i) => i.productId || i.product_id || order.orderId),
+    event_id: order.orderId,
   });
 
   // Google Ads conversion

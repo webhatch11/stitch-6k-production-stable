@@ -6,6 +6,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Cancellation Policy | Stitch 6K",
   description: "Order cancellation windows and refund timelines at Stitch 6K.",
+  openGraph: {
+    title: "Cancellation Policy | Stitch 6K",
+    description: "Order cancellation windows and refund timelines at Stitch 6K.",
+    images: [{ url: "/og-default.jpg" }],
+  },
 };
 
 export default function CancellationPolicyPage() {

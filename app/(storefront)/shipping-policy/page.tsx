@@ -6,6 +6,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy | Stitch 6K",
   description: "Shipping timelines, coverage and delivery details for Stitch 6K prepaid orders across India.",
+  openGraph: {
+    title: "Shipping & Delivery Policy | Stitch 6K",
+    description: "Shipping timelines, coverage and delivery details for Stitch 6K prepaid orders across India.",
+    images: [{ url: "/og-default.jpg" }],
+  },
 };
 
 export default function ShippingPolicyPage() {

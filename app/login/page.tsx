@@ -347,7 +347,7 @@ export default function LoginPage() {
           email,
           options: {
             data: { full_name: name },
-            shouldCreateUser: true,
+            shouldCreateUser: !isSignIn,   // keep consistent with handleSendOtp
             emailRedirectTo: `${origin}/auth/callback`
           }
         });

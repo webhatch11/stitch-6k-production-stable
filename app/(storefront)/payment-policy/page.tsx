@@ -6,6 +6,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Payment Policy | Stitch 6K",
   description: "Accepted payment methods at Stitch 6K — secure prepaid payments via Razorpay. Cash on Delivery is currently unavailable.",
+  openGraph: {
+    title: "Payment Policy | Stitch 6K",
+    description: "Accepted payment methods at Stitch 6K — secure prepaid payments via Razorpay.",
+    images: [{ url: "/og-default.jpg" }],
+  },
 };
 
 export default function PaymentPolicyPage() {

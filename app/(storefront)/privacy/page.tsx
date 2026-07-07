@@ -6,6 +6,11 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Privacy Policy | Stitch 6K",
   description: "How Stitch 6K collects, uses and protects your personal data across orders, payments and delivery.",
+  openGraph: {
+    title: "Privacy Policy | Stitch 6K",
+    description: "How Stitch 6K collects, uses and protects your personal data across orders, payments and delivery.",
+    images: [{ url: "/og-default.jpg" }],
+  },
 };
 
 export default function PrivacyPage() {

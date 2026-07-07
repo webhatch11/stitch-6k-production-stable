@@ -54,7 +54,7 @@ async function runConcurrencyTest() {
   console.log("\n--- Starting Inventory Overselling Test ---");
   const testProductId = "product-123"; // replace with real
   const testSize = "M";
-  const testColor = "Atelier Choice";
+  const testColor = "Default";
 
   const invPromises = [];
   for (let i = 0; i < numWorkers; i++) {

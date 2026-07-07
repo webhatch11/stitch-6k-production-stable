@@ -40,6 +40,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [isCheckoutRedirect, setIsCheckoutRedirect] = useState(false);
+  // Shown after OTP verify succeeds, while router.push() is in flight
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -260,8 +262,12 @@ export default function LoginPage() {
       }
       setErrorMsg(friendlyMsg);
       setLoading(false);
+      setIsVerifying(false);
       return;
     }
+
+    // OTP verified — show redirect loading overlay immediately
+    setIsVerifying(true);
 
     // -------------------------------------------------------------------------
     // Bug 2 fix — Step 2: Post-verify operations (analytics + role fetch).
@@ -451,6 +457,21 @@ export default function LoginPage() {
 
       {/* RIGHT PANEL: Authentication Form */}
       <div className="flex-1 bg-white flex flex-col justify-between p-8 md:p-12 lg:p-16 relative">
+
+        {/* Signing-in overlay — shown between OTP verify success and router.push completion */}
+        {isVerifying && (
+          <div className="absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-5">
+            {/* Animated spinner ring */}
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-[3px] border-[#e5e5e5]" />
+              <div className="absolute inset-0 rounded-full border-[3px] border-t-[#1a1a1a] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#1a1a1a]">Signing you in...</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">Just a moment</p>
+            </div>
+          </div>
+        )}
         
         {/* Mobile Header (hidden on desktop) */}
         <div className="flex md:hidden items-center justify-between w-full pb-4 border-b border-gray-100">

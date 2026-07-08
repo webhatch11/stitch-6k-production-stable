@@ -389,13 +389,6 @@ export default function Navbar() {
               >
                 Profile
               </Link>
-              <Link
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
-                href="/orderhistory"
-              >
-                Order History
-              </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);

@@ -1122,6 +1122,40 @@ function AddProductContent() {
                           <>
                             <DraggableImage slotIdx={slotIdx} url={url} />
 
+                            {/* Direct absolute remove button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImages((prev) => {
+                                  const next = [...prev];
+                                  while (next.length < 4) next.push("");
+                                  next[slotIdx] = "";
+                                  return next;
+                                });
+                              }}
+                              style={{
+                                position: "absolute",
+                                top: "8px",
+                                right: "8px",
+                                background: "rgba(0,0,0,0.6)",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: "50%",
+                                width: "24px",
+                                height: "24px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                zIndex: 40,
+                              }}
+                              className="pointer-events-auto hover:bg-red-600 transition-colors"
+                            >
+                              ×
+                            </button>
+
                             {/* Hover overlay — pointer-events-none so drags pass through;
                                 buttons restore pointer-events-auto individually */}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 z-20 pointer-events-none">

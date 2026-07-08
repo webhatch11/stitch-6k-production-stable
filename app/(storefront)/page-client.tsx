@@ -723,8 +723,8 @@ export default function HomeClient({
 
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newRating, setNewRating] = useState(5);
-  const [newHoverRating, setNewHoverRating] = useState<number | null>(null);
+  const [newRating, setNewRating] = useState(0);
+  const [newHoverRating, setNewHoverRating] = useState(0);
   const [newName, setNewName] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newComment, setNewComment] = useState("");
@@ -733,6 +733,10 @@ export default function HomeClient({
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newRating === 0) {
+      alert("Please select a star rating");
+      return;
+    }
     if (!newName.trim() || !newLocation.trim() || !newComment.trim()) return;
 
     setSubmittingReview(true);
@@ -2076,24 +2080,49 @@ export default function HomeClient({
                         <label className="block text-[10px] font-black uppercase tracking-widest text-outline mb-2 text-center">
                           Rating
                         </label>
-                        <div className="flex justify-center gap-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <motion.button
+                        {/* Star Rating */}
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <span
                               key={star}
-                              type="button"
-                              whileHover={{ scale: 1.2 }}
-                              whileTap={{ scale: 0.9 }}
                               onClick={() => setNewRating(star)}
                               onMouseEnter={() => setNewHoverRating(star)}
-                              onMouseLeave={() => setNewHoverRating(null)}
-                              className="text-2xl text-[#BA7517] bg-transparent border-none cursor-pointer p-1"
+                              onMouseLeave={() => setNewHoverRating(0)}
+                              style={{
+                                fontSize: '28px',
+                                color: star <= (newHoverRating || newRating)
+                                  ? '#BA7517'  // gold filled
+                                  : 'transparent',
+                                WebkitTextStroke: '1.5px #BA7517',
+                                cursor: 'pointer',
+                                transition: 'color 0.15s ease',
+                                userSelect: 'none',
+                                display: 'inline-block',
+                                lineHeight: 1
+                              }}
                             >
-                              <span className="material-symbols-outlined">
-                                {star <= (newHoverRating !== null ? newHoverRating : newRating) ? "star" : "star_rate"}
-                              </span>
-                            </motion.button>
+                              ★
+                            </span>
                           ))}
                         </div>
+
+                        {/* Show selected rating text */}
+                        {newRating > 0 && (
+                          <p style={{
+                            fontSize: '12px',
+                            color: '#BA7517',
+                            textAlign: 'center',
+                            marginTop: '4px',
+                            fontWeight: '500'
+                          }}>
+                            {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][newRating]}
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

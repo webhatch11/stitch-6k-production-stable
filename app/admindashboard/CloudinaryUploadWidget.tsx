@@ -35,7 +35,7 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
   ) => {
     const widgetRef = useRef<any>(null);
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o";
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_unsigned";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products";
 
     const initWidget = () => {
       if (!window.cloudinary) {

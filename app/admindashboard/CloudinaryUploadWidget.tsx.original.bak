@@ -34,16 +34,13 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
     ref
   ) => {
     const widgetRef = useRef<any>(null);
-    const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
-    const uploadPreset = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, "");
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products";
 
     const initWidget = () => {
       if (!window.cloudinary) {
         console.error("[Cloudinary] window.cloudinary not available");
         return;
-      }
-      if (widgetRef.current) {
-        return; // already initialized
       }
 
       widgetRef.current = window.cloudinary.createUploadWidget(
@@ -97,33 +94,26 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
     };
 
     useEffect(() => {
-      let intervalId: any;
+      // Load Cloudinary script if not loaded
+      const existingScript = document.querySelector('script[src*="cloudinary"]');
 
-      const checkAndInit = () => {
-        if (window.cloudinary) {
+      if (!existingScript) {
+        const script = document.createElement("script");
+        script.src = "https://upload-widget.cloudinary.com/global/all.js";
+        script.async = true;
+        script.onload = () => {
+          console.log("[Cloudinary] Script loaded");
           initWidget();
-          if (intervalId) clearInterval(intervalId);
-          return true;
-        }
-        return false;
-      };
-
-      if (!checkAndInit()) {
-        // Ensure the Cloudinary global script is loading or loaded
-        const existingScript = document.querySelector('script[src*="cloudinary"]');
-        if (!existingScript) {
-          const script = document.createElement("script");
-          script.src = "https://upload-widget.cloudinary.com/global/all.js";
-          script.async = true;
-          document.head.appendChild(script);
-        }
-
-        // Poll every 100ms until window.cloudinary is available
-        intervalId = setInterval(checkAndInit, 100);
+        };
+        document.head.appendChild(script);
+      } else if (window.cloudinary) {
+        initWidget();
+      } else {
+        // Script exists but not loaded yet
+        existingScript.addEventListener("load", initWidget);
       }
 
       return () => {
-        if (intervalId) clearInterval(intervalId);
         if (widgetRef.current) {
           widgetRef.current.destroy();
           widgetRef.current = null;

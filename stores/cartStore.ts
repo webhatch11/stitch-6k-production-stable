@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "@/lib/supabase";
-import { addToCartAction, removeFromCartAction, syncCartAction } from "@/app/actions/cart";
+import { syncCartAction } from "@/app/actions/cart";
 
 export function mergeCarts(localItems: CartItem[], dbItems: CartItem[]): CartItem[] {
   const getUniqueKey = (item: CartItem) => {
@@ -71,19 +71,17 @@ export const useCartStore = create<CartState>()(
       cartItems: [],
       
       addToCart: (item, quantity) => {
-        set((state) => {
-          const newItems = [...state.cartItems];
-          for (let i = 0; i < quantity; i++) {
-            newItems.push({ ...item });
-          }
-          return { cartItems: newItems };
-        });
+        const newItems = [...get().cartItems];
+        for (let i = 0; i < quantity; i++) {
+          newItems.push({ ...item });
+        }
+        set({ cartItems: newItems });
 
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-              addToCartAction(item).catch((err) => {
-                console.error("Failed to add to DB cart:", err);
+              syncCartAction(newItems).catch((err) => {
+                console.error("Failed to sync DB cart on add:", err);
               });
             }
           });
@@ -91,30 +89,22 @@ export const useCartStore = create<CartState>()(
       },
 
       removeFromCart: (productName, size, color) => {
-        const itemToRemove = get().cartItems.find(
+        const newItems = get().cartItems.filter(
           (item) =>
-            item.productName === productName &&
-            item.size === size &&
-            (item.color || "Default") === (color || "Default")
+            !(
+              item.productName === productName &&
+              item.size === size &&
+              (item.color || "Default") === (color || "Default")
+            )
         );
 
-        set((state) => ({
-          cartItems: state.cartItems.filter(
-            (item) =>
-              !(
-                item.productName === productName &&
-                item.size === size &&
-                (item.color || "Default") === (color || "Default")
-              )
-          ),
-        }));
+        set({ cartItems: newItems });
 
-        if (itemToRemove && supabase) {
-          const productId = itemToRemove.productId || "unknown";
+        if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-              removeFromCartAction(productId, size, color).catch((err) => {
-                console.error("Failed to remove from DB cart:", err);
+              syncCartAction(newItems).catch((err) => {
+                console.error("Failed to sync DB cart on remove:", err);
               });
             }
           });
@@ -175,8 +165,8 @@ export const useCartStore = create<CartState>()(
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-              addToCartAction(templateItem).catch((err) => {
-                console.error("Failed to add to DB cart on increment:", err);
+              syncCartAction(newItems).catch((err) => {
+                console.error("Failed to sync DB cart on increment:", err);
               });
             }
           });

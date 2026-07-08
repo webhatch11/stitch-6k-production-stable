@@ -1,48 +1,57 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCartStore, mergeCarts } from "@/stores/cartStore";
 import { getCartAction, syncCartAction } from "@/app/actions/cart";
 
 export function CartSyncProvider() {
-  useEffect(() => {
-    const restoreCart = async () => {
-      if (!supabase) return;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const dbItems = await getCartAction() || [];
-          const localItems = useCartStore.getState().cartItems;
+  const lastUserId = useRef<string | null>(null);
 
-          if (dbItems.length > 0 && localItems.length === 0) {
-            useCartStore.setState({ cartItems: dbItems });
-          } else if (localItems.length > 0) {
-            const merged = mergeCarts(localItems, dbItems);
-            await syncCartAction(merged);
-            useCartStore.setState({ cartItems: merged });
-          }
+  useEffect(() => {
+    const syncCart = async (userId: string | null) => {
+      // Synchronously set the lastUserId at the start to prevent concurrent syncs
+      if (userId === lastUserId.current) return;
+      lastUserId.current = userId;
+
+      if (!userId) {
+        // User logged out, clear cart if it is not already empty
+        if (useCartStore.getState().cartItems.length > 0) {
+          useCartStore.getState().clearCart();
+        }
+        return;
+      }
+
+      try {
+        const dbItems = await getCartAction() || [];
+        const localItems = useCartStore.getState().cartItems;
+
+        if (dbItems.length > 0 && localItems.length === 0) {
+          useCartStore.setState({ cartItems: dbItems });
+        } else if (localItems.length > 0) {
+          const merged = mergeCarts(localItems, dbItems);
+          await syncCartAction(merged);
+          useCartStore.setState({ cartItems: merged });
         }
       } catch (err) {
-        console.error("Error restoring cart on mount:", err);
+        console.error("Error syncing cart for user:", userId, err);
       }
     };
 
-    restoreCart();
+    // Run initial sync check
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        syncCart(session?.user?.id || null);
+      });
+    }
 
     if (!supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
         if (event === "SIGNED_IN") {
-          const dbItems = await getCartAction() || [];
-          const localItems = useCartStore.getState().cartItems;
-          const merged = mergeCarts(localItems, dbItems);
-          await syncCartAction(merged);
-          useCartStore.setState({ cartItems: merged });
+          await syncCart(session?.user?.id || null);
         } else if (event === "SIGNED_OUT") {
-          const localItems = useCartStore.getState().cartItems;
-          await syncCartAction(localItems);
-          useCartStore.getState().clearCart();
+          await syncCart(null);
         }
       } catch (err) {
         console.error("Error in onAuthStateChange handler:", err);

@@ -35,17 +35,38 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function Home() {
-  const hero = await db.getSetting("hero");
-  const business = await db.getSetting("business");
-  const marquee = await db.getSetting("marquee");
-  const offerBox = await db.getSetting("offer_box");
-  const trustBadges = await db.getSetting("trust_badges");
-  const categories = await db.getSetting("categories");
-  const approvedReviews = await db.getReviews({ approved: true });
-
-  const newArrivals = await db.getProducts({ display_section: "new_arrivals" });
-  const exclusives = await db.getProducts({ display_section: "atelier_exclusives" });
-  const bestsellers = await db.getProducts({ display_section: "bestsellers" });
+  // Run all DB queries in parallel; any individual failure returns a safe fallback
+  // instead of crashing the entire page render.
+  const [
+    hero,
+    business,
+    marquee,
+    offerBox,
+    trustBadges,
+    categories,
+    approvedReviews,
+    newArrivals,
+    exclusives,
+    bestsellers,
+  ] = await Promise.allSettled([
+    db.getSetting("hero"),
+    db.getSetting("business"),
+    db.getSetting("marquee"),
+    db.getSetting("offer_box"),
+    db.getSetting("trust_badges"),
+    db.getSetting("categories"),
+    db.getReviews({ approved: true }),
+    db.getProducts({ display_section: "new_arrivals" }),
+    db.getProducts({ display_section: "atelier_exclusives" }),
+    db.getProducts({ display_section: "bestsellers" }),
+  ]).then((results) => results.map((r, i) => {
+    if (r.status === "rejected") {
+      console.error(`[Home] DB query ${i} failed:`, r.reason);
+      // Return safe defaults: arrays for lists, null for settings
+      return [6, 7, 8, 9].includes(i) ? [] : null;
+    }
+    return r.value;
+  }));
 
   return (
     <HomeClient
@@ -55,11 +76,10 @@ export default async function Home() {
       offerBox={offerBox}
       trustBadges={trustBadges}
       categories={categories}
-      approvedReviews={approvedReviews}
-      newArrivals={newArrivals}
-      exclusives={exclusives}
-      bestsellers={bestsellers}
+      approvedReviews={approvedReviews ?? []}
+      newArrivals={newArrivals ?? []}
+      exclusives={exclusives ?? []}
+      bestsellers={bestsellers ?? []}
     />
   );
 }
-

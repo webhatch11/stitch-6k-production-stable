@@ -12,6 +12,26 @@ import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
 import { submitReviewAction } from "@/app/actions/public-reviews";
 
 
+const StarRating = ({ rating }: { rating: number }) => {
+  return (
+    <div style={{ display: 'flex', gap: '2px' }}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <span
+          key={star}
+          style={{
+            color: star <= Math.round(rating)
+              ? '#BA7517'  // gold filled
+              : '#e5e5e5', // gray empty
+            fontSize: '16px'
+          }}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+};
+
 interface HeroSlide {
   badge: string;
   title: string;
@@ -612,7 +632,7 @@ export default function HomeClient({
         id: r.id,
         name: r.name,
         location: r.location,
-        rating: r.rating,
+        rating: Number(r.rating) || 5,
         comment: r.comment,
         avatar: r.name ? r.name.charAt(0).toUpperCase() : "R"
       }));
@@ -1968,16 +1988,7 @@ export default function HomeClient({
                       <div>
                         {/* Top row: stars + verified badge */}
                         <div className="flex justify-between items-center mb-4">
-                          <div className="flex gap-0.5 text-[16px] tracking-wider">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <span 
-                                key={i} 
-                                className={i < (rev.rating ?? 5) ? "text-[#BA7517]" : "text-neutral-300"}
-                              >
-                                ★
-                              </span>
-                            ))}
-                          </div>
+                          <StarRating rating={Number(rev.rating) || 5} />
                           <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
                             <span className="text-[11px] text-gray-500 font-medium">Verified Purchase</span>

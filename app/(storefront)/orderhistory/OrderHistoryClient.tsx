@@ -297,15 +297,25 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                         </td>
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
                           <div className="flex items-start gap-4">
-                            <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0">
-                              <Image
-                                className="object-cover transition-transform duration-700 hover:scale-105"
-                                src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200"
-                                alt={order.items[0]}
-                                fill
-                                sizes="64px"
-                              />
-                            </div>
+                            {(() => {
+                              const firstItem = order.cartItems?.[0] || (order as any).cart_items?.[0];
+                              const img = firstItem?.image;
+                              return img ? (
+                                <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0">
+                                  <Image
+                                    className="object-cover transition-transform duration-700 hover:scale-105"
+                                    src={img}
+                                    alt={firstItem?.productName || order.items[0] || "Shirt"}
+                                    fill
+                                    sizes="64px"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0 flex items-center justify-center text-2xl" style={{ backgroundColor: '#f5f5f5' }}>
+                                  👕
+                                </div>
+                              );
+                            })()}
                             <div className="flex-1 min-w-0">
                               <span className="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
                               <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>

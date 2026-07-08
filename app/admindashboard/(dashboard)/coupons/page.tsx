@@ -5,6 +5,33 @@ import { Coupon } from "@/lib/registry";
 import { getCouponsAction, getProductsAction } from "@/app/actions/admin-reads";
 import { saveCouponAction, deleteCouponAction, getCouponDiscountTotalAction } from "@/app/actions/admin-coupons";
 
+const getCouponStatus = (coupon: Coupon) => {
+  const now = new Date()
+  
+  if (!coupon.active) return 'Inactive'
+  
+  if (coupon.expiryDate) {
+    const expiry = new Date(coupon.expiryDate)
+    expiry.setHours(23, 59, 59, 999)
+    if (now > expiry) return 'Expired'
+  }
+  
+  const usage = coupon.usageCount ?? coupon.usage_count ?? 0;
+  const max = coupon.maxUsage ?? coupon.max_usage;
+  if (max !== undefined && max !== null && usage >= max) {
+    return 'Limit Reached'
+  }
+  
+  return 'Active'
+}
+
+const statusColors = {
+  'Active': { bg: '#dcfce7', color: '#166534' },
+  'Expired': { bg: '#fee2e2', color: '#991b1b' },
+  'Inactive': { bg: '#f3f4f6', color: '#6b7280' },
+  'Limit Reached': { bg: '#fef3c7', color: '#92400e' }
+}
+
 export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -377,9 +404,18 @@ export default function CouponsLedgerPage() {
                       {c.usageCount || 0}{c.maxUsage ? ` / ${c.maxUsage}` : ""}
                     </td>
                     <td className="px-8 py-6">
-                      <span className={`px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-none border ${c.active ? "bg-green-50 text-green-700 border-green-200/50" : "bg-gray-50 text-gray-500 border-gray-200/50"}`}>
-                        {c.active ? "Active" : "Inactive"}
-                      </span>
+                      {(() => {
+                        const status = getCouponStatus(c);
+                        const colors = statusColors[status] || statusColors['Inactive'];
+                        return (
+                          <span 
+                            className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-none border"
+                            style={{ backgroundColor: colors.bg, color: colors.color, borderColor: colors.color + '20' }}
+                          >
+                            {status}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-3">

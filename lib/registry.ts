@@ -1296,8 +1296,15 @@ export const RegistryManager = {
     if (!coupon.active) {
       return { valid: false, error: "Coupon is inactive." };
     }
-    if (coupon.expiryDate && new Date(coupon.expiryDate).getTime() < Date.now()) {
-      return { valid: false, error: "Coupon has expired." };
+    if (coupon.expiryDate) {
+      const expiryDate = new Date(coupon.expiryDate);
+      expiryDate.setHours(23, 59, 59, 999);
+      if (new Date() > expiryDate) {
+        return {
+          valid: false,
+          error: `This coupon expired on ${expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+        };
+      }
     }
     if (coupon.minCartValue !== undefined && coupon.minCartValue !== null && cartTotal < coupon.minCartValue) {
       return { valid: false, error: `Minimum cart value of ₹${coupon.minCartValue} required.` };

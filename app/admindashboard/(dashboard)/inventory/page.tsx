@@ -339,11 +339,18 @@ export default function InventoryLedgerPage() {
         </div>
 
         {/* Desktop View Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="hidden md:block overflow-x-auto" style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
+          <table className="w-full text-left border-collapse" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
+            <colgroup>
+              <col style={{ width: '80px' }} />
+              <col style={{ width: 'auto' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '320px' }} />
+              <col style={{ width: '80px' }} />
+            </colgroup>
             <thead>
               <tr className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 border-b border-gray-200 bg-white">
-                <th className="p-6 w-24">Image</th>
+                <th className="p-6">Image</th>
                 <th className="p-6">Product Details</th>
                 <th className="p-6">Price</th>
                 <th className="p-6">Stock Status</th>
@@ -393,28 +400,37 @@ export default function InventoryLedgerPage() {
                               </span>
                               <span className="text-xs font-black">Total: <strong className="font-mono">{stockCount}</strong></span>
                             </div>                            {/* Per-size row list layout */}
-                            <div className="flex flex-col gap-2 mt-2.5 max-w-md">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '100%', marginTop: '10px' }}>
                               {(["S", "M", "L", "XL", "XXL"] as const).map((size) => {
                                 const currentVal = p.sizeStock?.[size] || 0;
                                 const adjustKey = `${p.id}-${size}`;
                                 const isAdjusting = adjusting[adjustKey];
                                 return (
-                                  <div key={size} className="flex items-center justify-between border border-gray-200/60 bg-[#fafafa]/30 p-1.5 rounded-none select-none text-[10px]">
+                                  <div key={size} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: '#f9f9f9',
+                                    border: '0.5px solid #e5e5e5',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    whiteSpace: 'nowrap'
+                                  }} className="select-none text-[10px]">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-black px-2 py-0.5 bg-[#f0f0f0] text-primary rounded-none min-w-[28px] text-center">{size}</span>
-                                      <div className="flex items-center border border-gray-200 bg-white p-0.5 rounded-none">
+                                      <span className="font-black px-1.5 py-0.5 bg-[#f0f0f0] text-primary rounded-sm min-w-[20px] text-center">{size}</span>
+                                      <div className="flex items-center border border-gray-200 bg-white p-0.5 rounded-sm">
                                         <button
                                           onClick={() => handleInlineAdjust(p.id, size, -1)}
                                           disabled={currentVal <= 0 || isAdjusting}
-                                          className="px-1.5 text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                          className="px-1 text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
                                         >
                                           -
                                         </button>
-                                        <span className="font-mono px-2 min-w-[16px] text-center font-bold">{currentVal}</span>
+                                        <span className="font-mono px-1 min-w-[12px] text-center font-bold">{currentVal}</span>
                                         <button
                                           onClick={() => handleInlineAdjust(p.id, size, 1)}
                                           disabled={isAdjusting}
-                                          className="px-1.5 text-gray-500 hover:text-green-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
+                                          className="px-1 text-gray-500 hover:text-green-600 disabled:opacity-30 disabled:pointer-events-none bg-transparent border-none cursor-pointer text-xs font-bold"
                                         >
                                           +
                                         </button>
@@ -429,11 +445,11 @@ export default function InventoryLedgerPage() {
                                       }`}
                                       style={
                                         currentVal > 2
-                                          ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "26px", height: "26px", borderRadius: "50%" }
-                                          : { backgroundColor: "#BA7517", color: "#ffffff", width: "26px", height: "26px", borderRadius: "50%" }
+                                          ? { backgroundColor: "#f5f0e0", color: "#7a5c00", width: "20px", height: "20px", borderRadius: "50%" }
+                                          : { backgroundColor: "#BA7517", color: "#ffffff", width: "20px", height: "20px", borderRadius: "50%" }
                                       }
                                     >
-                                      <span className="material-symbols-outlined text-xs select-none">sync</span>
+                                      <span className="material-symbols-outlined text-[10px] select-none">sync</span>
                                     </button>
                                   </div>
                                 );

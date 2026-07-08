@@ -7,3 +7,13 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   approved boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.reviews 
+  ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "reviews_admin_only"
+  ON public.reviews FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+

@@ -1042,11 +1042,12 @@ export default function HomeClient({
               className="max-w-4xl mx-auto w-full relative min-h-[280px] lg:min-h-[320px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
             >
               {/* Background Image with slow zoom-scale */}
-              <img
+              <Image
                 alt="Elegant dark silk fabric texture"
                 className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.2] group-hover:scale-105 transition-transform duration-[3000ms] ease-out select-none pointer-events-none"
                 src={offerBox?.bg_image_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBt_dM_PwNyCwIwT-O1Hdc00MIZ22eGAUgYi9vEfWdoVc132M9C6iGLoFpcH8jO3Ef-tMj5hHNCSqM6luyueIIuCAzB2muFZoy5zrcS6-J6xi7bbBWJq9Vyy44Q5AaYLfV6B6xsYzHw0ZkNcVDrBXiQK17gSFXF9x3nD3Q9pNhJWSjTd_zcb6fo_VxbX_1BNBczo3rMeCVhL6lBg88mr66F5-9-dmZp16Hwth9jmqvFTgyCzd5dvpwfsUpu5d-js0dRPMLDm1UPQmA"}
-                style={{ position: 'absolute', height: '100%', width: '100%', left: 0, top: 0 }}
+                fill
+                style={{ objectFit: 'cover' }}
               />
               
               {/* Double-Gold Framed Card */}

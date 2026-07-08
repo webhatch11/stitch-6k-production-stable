@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Order } from "@/lib/registry";
 import { trackPurchase } from "@/lib/analytics";
 
@@ -68,9 +69,11 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
           <div className="flex items-center gap-12">
             <Link href="/" className="flex items-center group">
               <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
-                <img 
+                <Image 
                   src="/assets/logo.png" 
                   alt="6K Logo" 
+                  width={44}
+                  height={44}
                   className="max-w-full max-h-full object-contain" 
                   draggable={false}
                 />

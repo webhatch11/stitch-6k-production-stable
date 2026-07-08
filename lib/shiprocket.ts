@@ -23,7 +23,7 @@ const SHIPROCKET_PASSWORD = process.env.SHIPROCKET_PASSWORD || "";
 const isMockMode = !SHIPROCKET_EMAIL || !SHIPROCKET_PASSWORD;
 
 if (isMockMode) {
-  console.log("ℹ️ Shiprocket email or password missing. Operating in MOCK mode.");
+  console.error("ℹ️ Shiprocket email or password missing. Operating in MOCK mode.");
 }
 
 async function getAuthToken(): Promise<string> {

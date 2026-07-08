@@ -4222,7 +4222,7 @@ export const db = {
   }): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      console.log("Mock mode saveAdSpend:", data);
+      console.error("[Mock Mode] saveAdSpend:", data);
       return;
     }
     const { channel, month, spendAmount, campaignName, notes } = data;

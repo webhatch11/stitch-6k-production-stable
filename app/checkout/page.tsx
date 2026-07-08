@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProductImage from "@/components/ProductImage";
 import {
@@ -709,9 +710,11 @@ export default function CheckoutPage() {
           <div className="flex items-center gap-12">
             <Link href="/" className="flex items-center group">
               <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
-                <img 
+                <Image 
                   src="/assets/logo.png" 
                   alt="6K Logo" 
+                  width={44}
+                  height={44}
                   className="max-w-full max-h-full object-contain" 
                   draggable={false}
                 />
@@ -1250,9 +1253,11 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img 
+                <Image 
                     src="/assets/logo.png" 
                     alt="6K Logo" 
+                    width={32}
+                    height={32}
                     className="h-8 w-auto object-contain"
                     draggable={false}
                   />

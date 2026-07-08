@@ -8,7 +8,7 @@ export async function initJobs() {
     return;
   }
 
-  console.log("ℹ️ Initializing BullMQ background jobs...");
+  console.log("[Jobs Init] ℹ️ Initializing BullMQ background jobs...");
 
   try {
     const connection = new IORedis(redisUrl, {
@@ -41,7 +41,7 @@ export async function initJobs() {
         removeOnFail: true,
       }
     );
-    console.log("✓ Scheduled repeatable shipment-sync job (every 30m)");
+    console.log("[Jobs Init] ✓ Scheduled repeatable shipment-sync job (every 30m)");
 
     // 2. Initialize Reservation Cleanup repeatable job
     const cleanupQueue = new Queue("reservation-cleanup", { connection: connection as any });
@@ -62,7 +62,7 @@ export async function initJobs() {
         removeOnFail: true,
       }
     );
-    console.log("✓ Scheduled repeatable reservation-cleanup sweep job (every 5m)");
+    console.log("[Jobs Init] ✓ Scheduled repeatable reservation-cleanup sweep job (every 5m)");
 
     // Close temporary connection
     await connection.quit();

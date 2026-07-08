@@ -38,6 +38,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid payload parameters", details: parsed.error }, { status: 400 });
     }
 
+    const { idempotencyKey } = parsed.data;
+    console.error('[Create Order] idempotencyKey:', idempotencyKey ? (idempotencyKey.slice(0, 8) + '...') : 'undefined');
+
     // Never trust a client-supplied userId — bind the payload to the session user.
     const payload = { ...parsed.data, userId: user_id };
 

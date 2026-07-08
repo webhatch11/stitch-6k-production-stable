@@ -215,12 +215,13 @@ export default function CheckoutPage() {
     }
   }, [cart, appliedCouponCode, setAppliedDiscount, setAppliedCouponCode, setCouponMessage]);
 
-  // Set idempotency key if empty
+  // Generate fresh idempotency key on checkout page mount
   useEffect(() => {
-    if (isHydrated && !idempotencyKey) {
-      setIdempotencyKey("ORD-" + Math.floor(Math.random() * 900000 + 100000));
+    if (typeof window !== "undefined") {
+      const newKey = window.crypto?.randomUUID ? window.crypto.randomUUID() : "ORD-" + Math.floor(Math.random() * 900000 + 100000);
+      setIdempotencyKey(newKey);
     }
-  }, [isHydrated, idempotencyKey]);
+  }, [setIdempotencyKey]);
 
   // Recalculate Totals
   const baseTotal = cart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
@@ -442,6 +443,7 @@ export default function CheckoutPage() {
         // Clear cart
         useCartStore.getState().clearCart();
         clearCartAction().catch(() => {});
+        useCheckoutStore.getState().resetCheckout();
 
         triggerToast("Order placed successfully!");
         setTimeout(() => {
@@ -492,6 +494,7 @@ export default function CheckoutPage() {
 
           useCartStore.getState().clearCart();
           clearCartAction().catch(() => {});
+          useCheckoutStore.getState().resetCheckout();
           triggerToast("✓ COD Order placed successfully!");
           setProcessingPayment(false);
           setTimeout(() => {
@@ -576,6 +579,8 @@ export default function CheckoutPage() {
                 if (verifyData.success) {
                    useCartStore.getState().clearCart();
                    clearCartAction().catch(() => {});
+                   useCheckoutStore.getState().resetCheckout();
+                   setIdempotencyKey(typeof window !== "undefined" && window.crypto?.randomUUID ? window.crypto.randomUUID() : "ORD-" + Math.floor(Math.random() * 900000 + 100000));
                    router.push(`/orderconfirmed?orderId=${verifyData.orderId}`);
                 } else {
                    setProcessingPayment(false);

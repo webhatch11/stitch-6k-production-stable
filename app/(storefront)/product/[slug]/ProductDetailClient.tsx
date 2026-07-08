@@ -26,6 +26,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [toastItem, setToastItem] = useState<{ productName: string; size: string; image: string } | null>(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   // Interactive Product States
   const [activeImg, setActiveImg] = useState("");
@@ -398,10 +399,19 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   Select Size: <span className="text-secondary font-black">{selectedSize}</span>
                 </label>
                 <button
-                  onClick={() =>
-                    triggerToast("Size Guide (Inches) - S: 38 | M: 40 | L: 42 | XL: 44 | XXL: 46")
-                  }
-                  className="text-[10px] uppercase tracking-widest font-black text-secondary hover:text-primary transition-colors pb-0.5"
+                  onClick={() => setShowSizeGuide(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#BA7517',
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
                 >
                   Size Guide
                 </button>
@@ -782,6 +792,249 @@ export default function ProductDetailClient({ product, recommendations }: Produc
           >
             Buy Now
           </button>
+        </div>
+      )}
+
+      {showSizeGuide && (
+        <div
+          onClick={() => setShowSizeGuide(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '8px',
+              padding: '2rem',
+              maxWidth: '520px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)'
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <div>
+                <h2 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  margin: 0,
+                  color: '#1a1a1a'
+                }}>
+                  SIZE GUIDE
+                </h2>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  marginTop: '4px'
+                }}>
+                  All measurements in inches
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSizeGuide(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Size Chart Table */}
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px'
+            }}>
+              <thead>
+                <tr style={{
+                  background: '#1a1a1a',
+                  color: '#ffffff'
+                }}>
+                  <th style={{
+                    padding: '10px 16px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '12px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Size
+                  </th>
+                  <th style={{
+                    padding: '10px 16px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '12px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Chest
+                  </th>
+                  <th style={{
+                    padding: '10px 16px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '12px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Length
+                  </th>
+                  <th style={{
+                    padding: '10px 16px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '12px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Shoulder
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { size: 'S (Est)', chest: 38, length: 28,   shoulder: 17   },
+                  { size: 'M',       chest: 42, length: 29.5, shoulder: 18.5 },
+                  { size: 'L',       chest: 46, length: 30,   shoulder: 19   },
+                  { size: 'XL',      chest: 47, length: 31,   shoulder: 20   },
+                  { size: 'XXL',     chest: 51, length: 32,   shoulder: 21   },
+                ].map((row, i) => (
+                  <tr
+                    key={row.size}
+                    style={{
+                      background: i % 2 === 0 
+                        ? '#ffffff' : '#f9f9f9',
+                      borderBottom: '1px solid #e5e5e5'
+                    }}
+                  >
+                    <td style={{
+                      padding: '12px 16px',
+                      textAlign: 'center',
+                      fontWeight: '600',
+                      color: '#1a1a1a'
+                    }}>
+                      {row.size}
+                    </td>
+                    <td style={{
+                      padding: '12px 16px',
+                      textAlign: 'center',
+                      color: '#374151'
+                    }}>
+                      {row.chest}
+                    </td>
+                    <td style={{
+                      padding: '12px 16px',
+                      textAlign: 'center',
+                      color: '#374151'
+                    }}>
+                      {row.length}
+                    </td>
+                    <td style={{
+                      padding: '12px 16px',
+                      textAlign: 'center',
+                      color: '#374151'
+                    }}>
+                      {row.shoulder}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* How to measure tip */}
+            <div style={{
+              marginTop: '1.5rem',
+              padding: '12px 16px',
+              background: '#faf5e8',
+              border: '0.5px solid #e8d08a',
+              borderRadius: '6px'
+            }}>
+              <p style={{
+                fontSize: '12px',
+                color: '#7a5c00',
+                fontWeight: '500',
+                marginBottom: '6px',
+                marginTop: 0
+              }}>
+                HOW TO MEASURE
+              </p>
+              <ul style={{
+                fontSize: '12px',
+                color: '#92400e',
+                paddingLeft: '16px',
+                margin: 0,
+                lineHeight: 1.8
+              }}>
+                <li>
+                  <strong>Chest:</strong> Measure around the fullest part of your chest, under your arms
+                </li>
+                <li>
+                  <strong>Length:</strong> Measure from the highest point of the shoulder to the hem
+                </li>
+                <li>
+                  <strong>Shoulder:</strong> Measure from one shoulder seam to the other
+                </li>
+              </ul>
+            </div>
+
+            {/* Note */}
+            <p style={{
+              fontSize: '11px',
+              color: '#9ca3af',
+              textAlign: 'center',
+              marginTop: '1rem',
+              marginBottom: '1rem',
+              lineHeight: 1.5
+            }}>
+              * S size measurements are estimated. If you are between sizes, we recommend sizing up for a comfortable fit.
+            </p>
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowSizeGuide(false)}
+              style={{
+                width: '100%',
+                marginTop: '1rem',
+                padding: '10px',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontWeight: '500',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                cursor: 'pointer'
+              }}
+            >
+              CLOSE
+            </button>
+          </div>
         </div>
       )}
     </>

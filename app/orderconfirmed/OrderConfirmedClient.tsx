@@ -34,6 +34,9 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
   const customer = lastOrder ? lastOrder.customer : "Valued Client";
   const total = lastOrder ? lastOrder.total : 14500;
   const items = lastOrder ? lastOrder.items : ["Your Order"];
+  const subtotal = lastOrder ? (lastOrder.originalTotal !== undefined ? lastOrder.originalTotal : lastOrder.total) : 14500;
+  const discount = lastOrder ? ((lastOrder.couponDiscount || 0) + (lastOrder.pointsDiscount || 0)) : 0;
+  const shipping = lastOrder ? (lastOrder.shippingAmount || (lastOrder as any).shipping_amount || 0) : 0;
 
   return (
     <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
@@ -173,7 +176,23 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
                 <span className="text-secondary font-black">PREPARING ATELIER DISPATCH</span>
               </div>
               <div className="flex justify-between items-center pt-2">
-                <span className="text-on-surface font-black">Valuation</span>
+                <span>Subtotal</span>
+                <span className="text-on-surface font-extrabold">₹{subtotal.toLocaleString("en-IN")}</span>
+              </div>
+              {discount > 0 && (
+                <div className="flex justify-between items-center text-green-700">
+                  <span>Discount</span>
+                  <span>-₹{discount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span>Shipping</span>
+                <span className={shipping === 0 ? "text-green-700 font-extrabold" : "text-on-surface font-extrabold"}>
+                  {shipping === 0 ? "FREE" : `₹${shipping.toLocaleString("en-IN")}`}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t border-outline-variant/10 pt-4">
+                <span className="text-on-surface font-black">Valuation / Total</span>
                 <span className="font-headline font-black text-2xl text-on-surface">₹{total.toLocaleString("en-IN")}</span>
               </div>
             </div>

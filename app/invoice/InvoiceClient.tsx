@@ -164,7 +164,15 @@ export default function InvoiceClient({
               </span>
             </div>
             <div className="flex justify-between border-t border-gray-100 pt-2">
-              <span className="text-gray-400">Net Total</span>
+              <span className="text-gray-400">Subtotal (excl. GST)</span>
+              <span>₹{(matchedOrder.total / 1.12).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">GST (12%)</span>
+              <span>₹{(matchedOrder.total - (matchedOrder.total / 1.12)).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between border-t border-gray-100 pt-2">
+              <span className="text-gray-400">Total (incl. GST)</span>
               <span>₹{matchedOrder.total.toLocaleString("en-IN")}.00</span>
             </div>
             {walletPaid > 0 && (

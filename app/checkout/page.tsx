@@ -273,6 +273,29 @@ export default function CheckoutPage() {
   const subtotal = netTotal / 1.12;
   const gst = netTotal - subtotal;
 
+  const groupedCartItems = React.useMemo(() => {
+    const groups: { [key: string]: any } = {};
+    cart.forEach((item) => {
+      const key = `${item.productName}_${item.size || "M"}_${item.color || "Default"}`;
+      if (!groups[key]) {
+        groups[key] = {
+          productId: item.productId || "",
+          productName: item.productName,
+          price: Number(item.price),
+          size: item.size || "M",
+          image: item.image,
+          quantity: 0,
+          color: item.color || "Default",
+        };
+      }
+      groups[key].quantity += 1;
+    });
+    return Object.values(groups);
+  }, [cart]);
+
+  const discountAmount = appliedDiscount + loyaltyDiscount;
+  const finalTotal = finalPayable;
+
   // Evaluate COD Eligibility dynamically
   useEffect(() => {
     if (isHydrated) {
@@ -1048,136 +1071,140 @@ export default function CheckoutPage() {
                 <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-[#775a19]/5 rounded-full blur-3xl"></div>
                 
                 <div className="relative z-10">
-                  <h3 className="text-lg font-headline font-black tracking-tight uppercase mb-6 pb-3 border-b border-outline-variant/10 text-on-surface">Order Summary</h3>
-                  
-                  {/* Product List */}
-                  <div className="space-y-6 mb-8">
-                    {(() => {
-                      const freeIndices = new Set<number>();
-                      const remainingFree = [...freeItemsList];
-                      for (let i = 0; i < cart.length; i++) {
-                        const item = cart[i];
-                        const matchIdx = remainingFree.findIndex(f => 
-                          (f.productId && item.productId ? f.productId === item.productId : (f.productName || f.title) === item.productName) && 
-                          f.size === item.size && 
-                          f.price === item.price
-                        );
-                        if (matchIdx > -1) {
-                          freeIndices.add(i);
-                          remainingFree.splice(matchIdx, 1);
-                        }
-                      }
+                  <h3 style={{
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: '1rem',
+                    color: '#1a1a1a'
+                  }}>
+                    ORDER SUMMARY
+                  </h3>
 
-                      return cart.map((item, index) => {
-                        const isFree = freeIndices.has(index);
-                        return (
-                          <div key={index} className="flex gap-6">
-                            <div className="w-20 h-26 bg-white overflow-hidden flex-shrink-0 rounded-xl border border-outline-variant/10 relative">
-                              <ProductImage
-                                className="object-cover grayscale hover:grayscale-0 transition-all duration-500"
-                                src={item.image}
-                                alt={item.productName}
-                                fill
-                                sizes="80px"
-                              />
-                            </div>
-                            <div className="flex-grow flex flex-col justify-between py-1 text-left">
-                              <div>
-                                <h4 className="font-headline font-bold uppercase text-xs tracking-wide text-on-surface">{item.productName}</h4>
-                                <p className="text-[8px] uppercase tracking-[0.15em] text-outline mt-1 font-bold">
-                                  Size: {item.size} | Color: {item.color || "Default"}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {isFree ? (
-                                  <>
-                                    <span className="font-headline font-black text-sm text-gray-400 line-through">
-                                      ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
-                                    </span>
-                                    <span className="bg-green-100 text-green-800 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
-                                      FREE
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="font-headline font-black text-sm text-[#fed488]">
-                                    ₹ {(Number(item.price) || 0).toLocaleString("en-IN")}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
+                  {/* Cart items list */}
+                  {groupedCartItems.map(item => (
+                    <div key={item.productId + item.size}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '8px',
+                        fontSize: '13px'
+                      }}
+                    >
+                      <span style={{ color: '#6b7280' }}>
+                        {item.productName} × {item.quantity}
+                        <br />
+                        <span style={{ fontSize: '11px' }}>
+                          {item.size} / {item.color || "Default"}
+                        </span>
+                      </span>
+                      <span>₹{(item.price * (item.quantity || 1)).toFixed(2)}</span>
+                    </div>
+                  ))}
+
+                  <div style={{ 
+                    borderTop: '1px solid #e5e5e5',
+                    marginTop: '12px',
+                    paddingTop: '12px'
+                  }} />
+
+                  {/* Subtotal */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '13px',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ color: '#6b7280' }}>
+                      SUBTOTAL
+                    </span>
+                    <span>₹{baseTotal.toFixed(2)}</span>
                   </div>
 
-                  {/* Price Matrix */}
-                  <div className="space-y-4 border-t border-outline-variant/10 pt-6 mb-6">
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
-                      <span>Subtotal</span>
-                      <span>₹ {subtotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  {/* Discount if applied */}
+                  {discountAmount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '13px',
+                      marginBottom: '8px',
+                      color: '#16a34a'
+                    }}>
+                      <span>DISCOUNT</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
                     </div>
-                    {appliedDiscount > 0 && (
-                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
-                        <span>{freeItemsList.length > 0 ? "BOGO Discount" : "Coupon Discount"}</span>
-                        <span>- ₹ {appliedDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    {loyaltyChecked && loyaltyDiscount > 0 && (
-                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-red-600 font-bold animate-fade-in">
-                        <span>Loyalty Discount</span>
-                        <span>- ₹ {loyaltyDiscount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-outline/70">
-                      <span>GST (12%)</span>
-                      <span>₹ {gst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px] tracking-widest uppercase text-secondary font-bold">
-                      <span>Shipping</span>
-                      <span>{shippingCost === 0 ? "FREE" : `₹ ${shippingCost.toFixed(2)}`}</span>
-                    </div>
+                  )}
 
-                    {/* Progress Bar Addition */}
-                    {showProgressBar && (
-                      <div className="mt-2 mb-2 p-3 bg-neutral-50/50 border border-outline-variant/10 rounded-lg animate-fade-in text-left">
-                        {discountedTotal >= freeAboveAmount ? (
-                          <div className="space-y-2">
-                            <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-green-600 h-full rounded-full transition-all duration-500" style={{ width: "100%" }}></div>
-                            </div>
-                            <p className="text-[10px] font-black text-green-600 uppercase tracking-wider flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-sm font-black">check_circle</span>
-                              ✓ FREE SHIPPING!
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                              <span>Progress</span>
-                              <span>₹ {Math.round(discountedTotal)} / ₹ {freeAboveAmount}</span>
-                            </div>
-                            <div className="w-full bg-gray-150 h-1.5 rounded-full overflow-hidden">
-                              <div className="bg-[#BA7517] h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
-                            </div>
-                            <p className="text-[9px] font-bold text-[#BA7517] uppercase tracking-wider flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-xs font-black animate-pulse">local_shipping</span>
-                              🚚 Add ₹ {Math.round(freeAboveAmount - discountedTotal)} more for free shipping
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {walletChecked && walletDeduction > 0 && (
-                      <div className="flex justify-between text-[10px] tracking-widest uppercase text-green-700 font-bold animate-fade-in">
-                        <span>Wallet Paid</span>
-                        <span>- ₹ {walletDeduction.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-md font-headline font-black tracking-tight pt-4 border-t border-outline-variant/10 text-on-surface">
-                      <span className="uppercase">Final Payable</span>
-                      <span className="text-[#fed488]">₹ {finalPayable.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  {/* Shipping */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '13px',
+                    marginBottom: '12px'
+                  }}>
+                    <span style={{ color: '#6b7280' }}>
+                      SHIPPING
+                    </span>
+                    <span style={{ color: '#16a34a' }}>
+                      {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
+                    </span>
+                  </div>
+
+                  {/* Wallet Paid if applied */}
+                  {walletChecked && walletDeduction > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '13px',
+                      marginBottom: '8px',
+                      color: '#16a34a'
+                    }}>
+                      <span>WALLET PAID</span>
+                      <span>-₹{walletDeduction.toFixed(2)}</span>
                     </div>
+                  )}
+
+                  {/* DO NOT show GST row */}
+                  {/* GST is calculated internally but not shown to customer */}
+
+                  <div style={{ 
+                    borderTop: '1px solid #1a1a1a',
+                    marginTop: '4px',
+                    paddingTop: '12px'
+                  }} />
+
+                  {/* Final Total */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#BA7517',
+                    marginBottom: '12px'
+                  }}>
+                    <span>FINAL PAYABLE</span>
+                    <span>₹{finalTotal.toFixed(2)}</span>
+                  </div>
+
+                  {/* GST inclusive note */}
+                  <div style={{
+                    background: '#f9f9f9',
+                    border: '0.5px solid #e5e5e5',
+                    borderRadius: '4px',
+                    padding: '8px 12px',
+                    marginTop: '4px'
+                  }}>
+                    <p style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      margin: 0,
+                      lineHeight: 1.6
+                    }}>
+                      ✓ Prices are inclusive of GST.
+                      <br />
+                      ✓ Free shipping on all orders.
+                    </p>
                   </div>
 
                   {currentStep === 1 && !selectedAddress && (

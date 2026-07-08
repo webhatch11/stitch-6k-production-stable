@@ -416,9 +416,30 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                           </div>
                         </td>
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
-                          <div className="flex items-center justify-between md:block">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-outline md:hidden">Valuation</span>
-                            <span className="font-headline font-extrabold text-base md:text-lg text-on-surface">₹{order.total.toLocaleString("en-IN")}</span>
+                          <div className="flex flex-col gap-1.5 text-xs text-on-surface">
+                            <div className="flex justify-between md:gap-4 items-center">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-outline">Items</span>
+                              <span className="font-medium text-right max-w-[150px] truncate">{order.items.join(", ")}</span>
+                            </div>
+                            {((order.couponDiscount || 0) + (order.pointsDiscount || 0)) > 0 && (
+                              <div className="flex justify-between md:gap-4 items-center text-green-700">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Discount</span>
+                                <span>-₹{((order.couponDiscount || 0) + (order.pointsDiscount || 0)).toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between md:gap-4 items-center">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-outline">Shipping</span>
+                              <span className="font-bold text-green-700 uppercase tracking-wider">
+                                {order.shippingAmount === 0 || !order.shippingAmount ? "Free" : `₹${order.shippingAmount}`}
+                              </span>
+                            </div>
+                            <div className="flex justify-between md:gap-4 items-center border-t border-outline-variant/10 pt-1">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface">Total</span>
+                              <span className="font-headline font-extrabold text-base text-on-surface">₹{order.total.toLocaleString("en-IN")}</span>
+                            </div>
+                            <span className="text-[8px] text-gray-400 font-medium tracking-wide text-right">
+                              ✓ Prices inclusive of GST
+                            </span>
                           </div>
                         </td>
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">

@@ -38,8 +38,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
-  const gst = subtotal * 0.12;
-  const total = subtotal + gst;
+  const total = subtotal;
 
   useEffect(() => {
     setIsClient(true);
@@ -242,10 +241,6 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                     <span className="text-outline uppercase tracking-wider">Shipping</span>
                     <span className="text-secondary font-bold uppercase tracking-widest">Free</span>
                   </div>
-                  <div className="flex justify-between text-sm font-medium">
-                    <span className="text-outline uppercase tracking-wider">Estimated Tax / GST</span>
-                    <span>₹{gst.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span>
-                  </div>
                 </div>
 
                 <div className="border-t border-on-surface/10 pt-6 mb-8">
@@ -255,6 +250,26 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                       ₹{total.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
+                </div>
+
+                {/* GST inclusive note */}
+                <div style={{
+                  background: '#f9f9f9',
+                  border: '0.5px solid #e5e5e5',
+                  borderRadius: '4px',
+                  padding: '8px 12px',
+                  marginBottom: '1.5rem'
+                }}>
+                  <p style={{
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    margin: 0,
+                    lineHeight: 1.6
+                  }}>
+                    ✓ Prices are inclusive of GST.
+                    <br />
+                    ✓ Free shipping on all orders.
+                  </p>
                 </div>
 
                 <button

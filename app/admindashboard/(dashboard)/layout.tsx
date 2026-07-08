@@ -27,9 +27,6 @@ export default async function AdminLayout({
       <Script
         src="https://upload-widget.cloudinary.com/global/all.js"
         strategy="lazyOnload"
-        onLoad={() => {
-          console.log('[Cloudinary] Widget ready');
-        }}
       />
       <AdminSidebar user={user} pendingReturnsCount={pendingCount}>
         {children}

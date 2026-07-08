@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerUser } from "@/lib/supabase-server";
 import AdminSidebar from "../AdminSidebar";
 import { db } from "@/lib/db";
+import Script from "next/script";
 
 export default async function AdminLayout({
   children,
@@ -22,8 +23,17 @@ export default async function AdminLayout({
   const pendingCount = allOrders.filter(o => o.status === "Return Requested").length;
 
   return (
-    <AdminSidebar user={user} pendingReturnsCount={pendingCount}>
-      {children}
-    </AdminSidebar>
+    <>
+      <Script
+        src="https://upload-widget.cloudinary.com/global/all.js"
+        strategy="lazyOnload"
+        onLoad={() => {
+          console.log('[Cloudinary] Widget ready');
+        }}
+      />
+      <AdminSidebar user={user} pendingReturnsCount={pendingCount}>
+        {children}
+      </AdminSidebar>
+    </>
   );
 }

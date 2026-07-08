@@ -1,60 +1,153 @@
 "use client";
 
-import { CldUploadWidget } from "next-cloudinary";
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { useEffect, useRef, ReactNode, forwardRef, useImperativeHandle } from "react";
 
 export interface CloudinaryUploadHandle {
   open: () => void;
 }
 
-interface Props {
-  onUpload: (url: string) => void;
+interface CloudinaryUploadWidgetProps {
+  onUploadSuccess?: (url: string) => void;
+  onUpload?: (url: string) => void; // backwards compatibility
+  children?: (props: { open: () => void }) => ReactNode;
+  maxFileSize?: number;
+  acceptedFormats?: string[];
   options?: any;
 }
 
-/**
- * Single mountable Cloudinary upload widget controlled via ref.
- * Parent calls ref.current.open() to trigger the modal.
- * On success, calls onUpload(url) with the secure_url.
- * Mounting ONE instance at the page level avoids multi-widget body-scroll conflicts.
- */
-const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, Props>(
-  ({ onUpload, options }, ref) => {
-    const openRef = useRef<(() => void) | null>(null);
+declare global {
+  interface Window {
+    cloudinary: any;
+  }
+}
 
-    useImperativeHandle(ref, () => ({
-      open: () => {
-        openRef.current?.();
-      },
-    }));
+const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUploadWidgetProps>(
+  (
+    {
+      onUploadSuccess,
+      onUpload,
+      children,
+      maxFileSize = 10000000,
+      acceptedFormats = ["png", "jpg", "jpeg", "webp"],
+      options = {},
+    },
+    ref
+  ) => {
+    const widgetRef = useRef<any>(null);
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_unsigned";
 
-    return (
-      <CldUploadWidget
-        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-        signatureEndpoint="/api/admin/cloudinary-sign"
-        options={{
+    const initWidget = () => {
+      if (!window.cloudinary) {
+        console.error("[Cloudinary] window.cloudinary not available");
+        return;
+      }
+
+      widgetRef.current = window.cloudinary.createUploadWidget(
+        {
+          cloudName,
+          uploadPreset,
           sources: ["local", "url", "camera"],
           multiple: false,
-          maxFiles: 1,
-          folder: "products",
-          clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
-          maxFileSize: 10000000,
-          showSkipCropButton: true,
+          maxFileSize,
+          clientAllowedFormats: acceptedFormats,
           cropping: false,
           showPoweredBy: false,
+          styles: {
+            palette: {
+              window: "#FFFFFF",
+              windowBorder: "#1a1a1a",
+              tabIcon: "#BA7517",
+              menuIcons: "#5A616A",
+              textDark: "#000000",
+              textLight: "#FFFFFF",
+              link: "#BA7517",
+              action: "#1a1a1a",
+              inactiveTabIcon: "#6b7280",
+              error: "#F44235",
+              inProgress: "#BA7517",
+              complete: "#20B832",
+              sourceBg: "#F9F9F9",
+            },
+          },
           ...options,
-        }}
-        onSuccess={(result: any) => {
-          const url = result?.info?.secure_url;
-          if (url) onUpload(url);
-        }}
-      >
-        {({ open }) => {
-          openRef.current = open;
-          return <></>;
-        }}
-      </CldUploadWidget>
-    );
+        },
+        (error: any, result: any) => {
+          if (error) {
+            console.error("[Cloudinary] Upload error:", error);
+            return;
+          }
+          if (result?.event === "success") {
+            const url = result.info.secure_url;
+            console.log("[Cloudinary] Upload success:", url);
+            
+            if (onUploadSuccess) {
+              onUploadSuccess(url);
+            } else if (onUpload) {
+              onUpload(url);
+            }
+            
+            widgetRef.current?.close();
+          }
+        }
+      );
+    };
+
+    useEffect(() => {
+      // Load Cloudinary script if not loaded
+      const existingScript = document.querySelector('script[src*="cloudinary"]');
+
+      if (!existingScript) {
+        const script = document.createElement("script");
+        script.src = "https://upload-widget.cloudinary.com/global/all.js";
+        script.async = true;
+        script.onload = () => {
+          console.log("[Cloudinary] Script loaded");
+          initWidget();
+        };
+        document.head.appendChild(script);
+      } else if (window.cloudinary) {
+        initWidget();
+      } else {
+        // Script exists but not loaded yet
+        existingScript.addEventListener("load", initWidget);
+      }
+
+      return () => {
+        if (widgetRef.current) {
+          widgetRef.current.destroy();
+          widgetRef.current = null;
+        }
+      };
+    }, []);
+
+    const open = () => {
+      if (!widgetRef.current) {
+        // Widget not ready — try to init first
+        if (window.cloudinary) {
+          initWidget();
+          setTimeout(() => {
+            widgetRef.current?.open();
+          }, 100);
+        } else {
+          console.error(
+            "[Cloudinary] Widget not initialized. Check script load and upload preset."
+          );
+          alert("Image upload is loading. Please try again in a moment.");
+        }
+        return;
+      }
+      widgetRef.current.open();
+    };
+
+    useImperativeHandle(ref, () => ({
+      open,
+    }));
+
+    if (children) {
+      return <>{children({ open })}</>;
+    }
+    return <></>;
   }
 );
 

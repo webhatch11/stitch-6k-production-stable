@@ -152,3 +152,20 @@ export const shipmentRetryWorker = new Worker(
   },
   { connection: connection as any }
 );
+
+import * as Sentry from "@sentry/nextjs";
+
+shipmentRetryWorker.on("completed", (job) => {
+  console.log(`[Shipment Retry Worker] Job ${job.id} completed successfully`);
+});
+shipmentRetryWorker.on("failed", (job, err) => {
+  console.error(`[Shipment Retry Worker] Job ${job?.id} failed:`, err);
+  Sentry.captureException(err, {
+    tags: { queue: "shipment-retry" },
+    extra: {
+      jobId: job?.id,
+      jobName: job?.name,
+      jobData: job?.data,
+    },
+  });
+});

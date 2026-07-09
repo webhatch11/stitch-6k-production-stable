@@ -95,10 +95,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Idempotency: if this order was already processed, return success without
-    // running any side effects.
+    // Idempotency: if this order was already processed, verify all side effects completed.
+    // If the previous run crashed midway, the order status is 'Paid' but the inventory reservation
+    // remains unfulfilled. In that case, we proceed to run the missed side effects.
+    let isRecoveryMode = false;
     if (dbOrder.status === "Paid") {
-      return NextResponse.json({ success: true, message: "Order already processed" });
+      const { data: resData } = await supabase
+        .from("inventory_reservations")
+        .select("status")
+        .eq("session_id", dbOrder.idempotency_key)
+        .maybeSingle();
+
+      if (resData && resData.status !== "fulfilled") {
+        console.warn(`[verify] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
+        isRecoveryMode = true;
+      } else {
+        return NextResponse.json({ success: true, message: "Order already processed" });
+      }
     }
 
     if (dbOrder.status === "FAILED") {
@@ -109,25 +122,31 @@ export async function POST(req: NextRequest) {
     // in a single UPDATE statement.
     const earned = Math.floor(dbOrder.total / 10);
 
-    // Atomic compare-and-set: only one process (verify or webhook) wins this UPDATE.
-    // The WHERE status='PAYMENT_PENDING' predicate means only the first caller
-    // transitions the row; subsequent callers see claimed=null and return early.
-    const { data: claimed, error: claimErr } = await supabase
-      .from("orders")
-      .update({
-        status: "Paid",
-        payment_status: "Paid",
-        points_earned: earned,
-        razorpay_payment_id,   // ← store on orders row — required for refunds
-      })
-      .eq("id", dbOrder.id)
-      .eq("status", "PAYMENT_PENDING")
-      .select("id")
-      .maybeSingle();
+    let claimed = null;
+    if (isRecoveryMode) {
+      claimed = { id: dbOrder.id };
+    } else {
+      // Atomic compare-and-set: only one process (verify or webhook) wins this UPDATE.
+      // The WHERE status='PAYMENT_PENDING' predicate means only the first caller
+      // transitions the row; subsequent callers see claimed=null and return early.
+      const { data: claimedRow, error: claimErr } = await supabase
+        .from("orders")
+        .update({
+          status: "Paid",
+          payment_status: "Paid",
+          points_earned: earned,
+          razorpay_payment_id,   // ← store on orders row — required for refunds
+        })
+        .eq("id", dbOrder.id)
+        .eq("status", "PAYMENT_PENDING")
+        .select("id")
+        .maybeSingle();
 
-    if (claimErr) {
-      console.error("[verify] claim error:", claimErr);
-      return NextResponse.json({ success: false, error: "Failed to claim order" }, { status: 500 });
+      if (claimErr) {
+        console.error("[verify] claim error:", claimErr);
+        return NextResponse.json({ success: false, error: "Failed to claim order" }, { status: 500 });
+      }
+      claimed = claimedRow;
     }
 
     if (!claimed) {
@@ -142,7 +161,17 @@ export async function POST(req: NextRequest) {
     // a. Deduct inventory stock
     let deductSuccess = false;
     try {
-      deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+      const { data: currentRes } = await supabase
+        .from("inventory_reservations")
+        .select("status")
+        .eq("session_id", dbOrder.idempotency_key)
+        .maybeSingle();
+
+      if (currentRes?.status === "fulfilled") {
+        deductSuccess = true;
+      } else {
+        deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+      }
     } catch (e) {
       console.error("[verify] deductStock failed:", e);
     }
@@ -180,7 +209,7 @@ export async function POST(req: NextRequest) {
     }
 
     // b. Increment coupon usage
-    if (dbOrder.coupon_code) {
+    if (dbOrder.coupon_code && !isRecoveryMode) {
       try {
         await db.incrementCouponUsage(dbOrder.coupon_code);
       } catch (e) {

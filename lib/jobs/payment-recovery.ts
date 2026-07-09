@@ -98,9 +98,19 @@ export const paymentRecoveryWorker = new Worker(
   { connection: connection as any }
 );
 
+import * as Sentry from "@sentry/nextjs";
+
 paymentRecoveryWorker.on("completed", (job) => {
   console.log(`[Payment Recovery Worker] Job ${job.id} completed successfully`);
 });
 paymentRecoveryWorker.on("failed", (job, err) => {
   console.error(`[Payment Recovery Worker] Job ${job?.id} failed:`, err);
+  Sentry.captureException(err, {
+    tags: { queue: "payment-recovery" },
+    extra: {
+      jobId: job?.id,
+      jobName: job?.name,
+      jobData: job?.data,
+    },
+  });
 });

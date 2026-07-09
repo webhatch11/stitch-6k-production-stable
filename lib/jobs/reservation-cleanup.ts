@@ -87,9 +87,19 @@ export const reservationCleanupWorker = new Worker(
   { connection: connection as any }
 );
 
+import * as Sentry from "@sentry/nextjs";
+
 reservationCleanupWorker.on("completed", (job) => {
   console.log(`[Reservation Cleanup Worker] Job ${job.id} completed successfully`);
 });
 reservationCleanupWorker.on("failed", (job, err) => {
   console.error(`[Reservation Cleanup Worker] Job ${job?.id} failed:`, err);
+  Sentry.captureException(err, {
+    tags: { queue: "reservation-cleanup" },
+    extra: {
+      jobId: job?.id,
+      jobName: job?.name,
+      jobData: job?.data,
+    },
+  });
 });

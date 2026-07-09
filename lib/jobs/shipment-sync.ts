@@ -155,11 +155,21 @@ export const shipmentSyncWorker = connection
     )
   : null;
 
+import * as Sentry from "@sentry/nextjs";
+
 if (shipmentSyncWorker) {
   shipmentSyncWorker.on("completed", (job) => {
     console.log(`[Shipment Sync Worker] Job ${job.id} completed successfully`);
   });
   shipmentSyncWorker.on("failed", (job, err) => {
     console.error(`[Shipment Sync Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "shipment-sync" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
   });
 }

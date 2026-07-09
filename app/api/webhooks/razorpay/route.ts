@@ -96,34 +96,64 @@ export async function POST(req: NextRequest) {
           } else {
             const earned = Math.floor(dbOrder.total / 10);
 
-            // Atomic compare-and-set: only one process (verify or webhook) wins this UPDATE.
-            // The WHERE status='PAYMENT_PENDING' predicate means only the first caller
-            // transitions the row; subsequent callers see claimed=null and skip side effects.
-            const { data: claimed, error: claimErr } = await supabase
-              .from("orders")
-              .update({
-                status: "Paid",
-                payment_status: "Paid",
-                points_earned: earned,
-              })
-              .eq("id", dbOrder.id)
-              .eq("status", "PAYMENT_PENDING")
-              .select("id")
-              .maybeSingle();
+            let isRecoveryMode = false;
+            let claimed = null;
 
-            if (claimErr) {
-              console.error("[Webhook] claim error:", claimErr);
-            } else if (!claimed) {
+            if (dbOrder.status === "Paid") {
+              const { data: resData } = await supabase
+                .from("inventory_reservations")
+                .select("status")
+                .eq("session_id", dbOrder.idempotency_key)
+                .maybeSingle();
+
+              if (resData && resData.status !== "fulfilled") {
+                console.warn(`[Webhook] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
+                isRecoveryMode = true;
+                claimed = { id: dbOrder.id };
+              }
+            }
+
+            if (!claimed) {
+              const { data: claimedRow, error: claimErr } = await supabase
+                .from("orders")
+                .update({
+                  status: "Paid",
+                  payment_status: "Paid",
+                  points_earned: earned,
+                })
+                .eq("id", dbOrder.id)
+                .eq("status", "PAYMENT_PENDING")
+                .select("id")
+                .maybeSingle();
+
+              if (claimErr) {
+                console.error("[Webhook] claim error:", claimErr);
+              } else {
+                claimed = claimedRow;
+              }
+            }
+
+            if (!claimed) {
               console.log(`[Webhook] Order ${dbOrder.id} already claimed by another process, skipping side effects`);
             } else {
-              // We won the race. Run side effects in order.
+              // We won the race or are recovering. Run side effects in order.
               // Failures here are logged but do NOT roll back PAID status — the
               // customer's payment is captured and reverting risks a second charge.
 
               // a. Deduct inventory stock
               let deductSuccess = false;
               try {
-                deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+                const { data: currentRes } = await supabase
+                  .from("inventory_reservations")
+                  .select("status")
+                  .eq("session_id", dbOrder.idempotency_key)
+                  .maybeSingle();
+
+                if (currentRes?.status === "fulfilled") {
+                  deductSuccess = true;
+                } else {
+                  deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
+                }
               } catch (e) {
                 console.error("[webhook] deductStock failed:", e);
               }
@@ -134,7 +164,7 @@ export async function POST(req: NextRequest) {
               }
 
               // b. Increment coupon usage
-              if (dbOrder.coupon_code) {
+              if (dbOrder.coupon_code && !isRecoveryMode) {
                 try {
                   await db.incrementCouponUsage(dbOrder.coupon_code);
                 } catch (e) {

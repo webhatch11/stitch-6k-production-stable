@@ -652,6 +652,28 @@ export const db = {
     return data ? mapDbOrderToOrder(data) : null;
   },
 
+  async getOrderByIdempotencyKey(key: string): Promise<Order | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
+    const { data, error } = await supabase
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
+      .eq("idempotency_key", key)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching order by idempotency key ${key}:`, error);
+      return null;
+    }
+    return data ? mapDbOrderToOrder(data) : null;
+  },
+
   async getOrderByAwb(awb: string): Promise<Order | null> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {

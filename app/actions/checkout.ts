@@ -132,7 +132,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // C. Check Idempotency Key (prevent duplicate orders)
-  const existingOrder = await db.getOrderById(idempotencyKey);
+  const existingOrder = await db.getOrderByIdempotencyKey(idempotencyKey);
   if (existingOrder) {
     return { 
       success: true, 
@@ -513,7 +513,7 @@ export async function processCodCheckoutAction(payload: {
   }
 
   // Check Idempotency Key (prevent duplicate orders)
-  const existingOrder = await db.getOrderById(idempotencyKey);
+  const existingOrder = await db.getOrderByIdempotencyKey(idempotencyKey);
   if (existingOrder) {
     return { 
       success: true, 

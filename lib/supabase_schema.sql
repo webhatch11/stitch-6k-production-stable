@@ -790,3 +790,23 @@ NOT NULL DEFAULT 0 CHECK (reserved_stock >= 0);
 
 ALTER TABLE public.product_variants
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- 16. Return Constraints & Performance Composite Indexes (2026-07-09 Audit)
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_return_fields;
+ALTER TABLE public.orders ADD CONSTRAINT chk_orders_return_fields CHECK (
+    (status NOT IN ('Return Requested', 'Returned', 'Return Rejected')) OR 
+    (return_reason IS NOT NULL AND refund_option IS NOT NULL AND return_request_date IS NOT NULL)
+);
+
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_return_reject;
+ALTER TABLE public.orders ADD CONSTRAINT chk_orders_return_reject CHECK (
+    (status <> 'Return Rejected') OR (return_reject_reason IS NOT NULL)
+);
+
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_refund_option;
+ALTER TABLE public.orders ADD CONSTRAINT chk_orders_refund_option CHECK (
+    refund_option IS NULL OR refund_option IN ('wallet', 'original_source')
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id_status ON public.orders (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_product_variants_lookup ON public.product_variants (product_id, size, color);

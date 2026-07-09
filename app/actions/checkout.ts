@@ -71,10 +71,16 @@ export async function processWalletPointsCheckoutAction(payload: {
     if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
-    let email = "";
+    let email = user.email || "";
     if (supabase) {
-      const authResult = await supabase.auth.admin.getUserById(userId);
-      email = authResult.data?.user?.email || "";
+      try {
+        const authResult = await supabase.auth.admin.getUserById(userId);
+        if (authResult.data?.user?.email) {
+          email = authResult.data.user.email;
+        }
+      } catch (err) {
+        console.error("[Checkout] admin getUserById error:", err);
+      }
     }
     addressSnapshot = { ...addr, email };
   }
@@ -299,10 +305,16 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
-    let email = "";
+    let email = user.email || "";
     if (supabase) {
-      const authResult = await supabase.auth.admin.getUserById(userId);
-      email = authResult.data?.user?.email || "";
+      try {
+        const authResult = await supabase.auth.admin.getUserById(userId);
+        if (authResult.data?.user?.email) {
+          email = authResult.data.user.email;
+        }
+      } catch (err) {
+        console.error("[Checkout] admin getUserById error:", err);
+      }
     }
     addressSnapshot = { ...addr, email };
   }
@@ -440,10 +452,16 @@ export async function processCodCheckoutAction(payload: {
     if (!addr) {
       return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
     }
-    let email = "";
+    let email = user.email || "";
     if (supabase) {
-      const authResult = await supabase.auth.admin.getUserById(userId);
-      email = authResult.data?.user?.email || "";
+      try {
+        const authResult = await supabase.auth.admin.getUserById(userId);
+        if (authResult.data?.user?.email) {
+          email = authResult.data.user.email;
+        }
+      } catch (err) {
+        console.error("[Checkout] admin getUserById error:", err);
+      }
     }
     addressSnapshot = { ...addr, email };
   }

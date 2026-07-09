@@ -34,8 +34,15 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
     ref
   ) => {
     const widgetRef = useRef<any>(null);
-    const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
+    const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "").replace(/"/g, "");
     const uploadPreset = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, "");
+
+    if (!cloudName) {
+      console.error(
+        '[Cloudinary] NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME not configured'
+      );
+      return null;
+    }
 
     const initWidget = () => {
       if (!window.cloudinary) {

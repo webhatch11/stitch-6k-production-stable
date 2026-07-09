@@ -572,8 +572,16 @@ export default function CheckoutPage() {
             return;
           }
 
+          const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+          if (!key) {
+            console.error('[Razorpay] NEXT_PUBLIC_RAZORPAY_KEY_ID not configured');
+            triggerToast('❌ Payment system not configured. Please contact support.');
+            setProcessingPayment(false);
+            return;
+          }
+
           const options = {
-            key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_mockkey",
+            key,
             amount: createData.amount,
             currency: createData.currency,
             name: "Stitch 6K",

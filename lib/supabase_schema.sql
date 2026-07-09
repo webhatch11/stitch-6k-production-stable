@@ -810,3 +810,7 @@ ALTER TABLE public.orders ADD CONSTRAINT chk_orders_refund_option CHECK (
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id_status ON public.orders (user_id, status);
 CREATE INDEX IF NOT EXISTS idx_product_variants_lookup ON public.product_variants (product_id, size, color);
+
+-- 17. Review Approval Audit Trace (2026-07-09 Audit)
+ALTER TABLE public.reviews 
+  ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;

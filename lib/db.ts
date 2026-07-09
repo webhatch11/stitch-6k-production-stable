@@ -3362,7 +3362,7 @@ export const db = {
     return data || [];
   },
 
-  async updateReviewStatus(id: string, approved: boolean) {
+  async updateReviewStatus(id: string, approved: boolean, approvedBy?: string) {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -3372,7 +3372,11 @@ export const db = {
         'environment variables.'
       );
     }
-    const { error } = await supabase.from("reviews").update({ approved }).eq("id", id);
+    const updateData: any = { approved };
+    if (approved && approvedBy) {
+      updateData.approved_by = approvedBy;
+    }
+    const { error } = await supabase.from("reviews").update(updateData).eq("id", id);
     return !error;
   },
 

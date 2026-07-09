@@ -180,12 +180,13 @@ export async function getReviewsAction(approved?: boolean) {
 }
 
 export async function approveReviewAction(id: string) {
+  let adminUser;
   try {
-    await requireAdmin();
+    adminUser = await requireAdmin();
   } catch {
     return { success: false, error: "Unauthorized" };
   }
-  const ok = await db.updateReviewStatus(id, true);
+  const ok = await db.updateReviewStatus(id, true, adminUser.id);
   if (!ok) return { success: false, error: "Failed to approve review" };
   revalidatePath("/", "layout");
   return { success: true };

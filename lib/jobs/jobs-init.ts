@@ -2,6 +2,15 @@ import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
 export async function initJobs() {
+  if (process.env.VERCEL === '1' || process.env.VERCEL === 'true') {
+    console.log(
+      '[Jobs] Vercel serverless detected — ' +
+      'BullMQ workers disabled. ' +
+      'Will activate after VPS deployment.'
+    );
+    return;
+  }
+
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
     console.warn("⚠️ REDIS_URL not configured. Background jobs are disabled.");

@@ -122,20 +122,6 @@ export default function CheckoutPage() {
       if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
-      } else {
-        // Fallback for mock user in local development
-        const mockSession = localStorage.getItem("mock_user_session");
-        if (mockSession) {
-          const mockProfile = localStorage.getItem("mock_user_profile");
-          if (mockProfile) {
-            const parsed = JSON.parse(mockProfile);
-            setUser({
-              id: parsed.id,
-              email: parsed.email,
-              user_metadata: { full_name: parsed.name }
-            });
-          }
-        }
       }
       setLoadingUser(false);
     };

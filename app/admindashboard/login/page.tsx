@@ -171,24 +171,7 @@ export default function AdminLoginPage() {
           throw new Error("Access denied. This portal is for administrators only.");
         }
       } else {
-        // Mock verify for development
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        if (finalCode !== "123456" && finalCode !== "111111") {
-          throw new Error("Token has expired or is invalid");
-        }
-
-        // Setup mock cookies & storage
-        const mockUser = {
-          id: "mock-admin-123",
-          name: "Admin User",
-          email: email,
-          role: "admin"
-        };
-        localStorage.setItem("mock_user_profile", JSON.stringify(mockUser));
-        localStorage.setItem("mock_user_session", JSON.stringify({ email: mockUser.email, userId: mockUser.id }));
-        document.cookie = `mock_user_session=${mockUser.id}; path=/; max-age=86400`;
-        document.cookie = `mock_user_email=${mockUser.email}; path=/; max-age=86400`;
-        document.cookie = `mock_user_role=admin; path=/; max-age=86400`;
+        throw new Error("Supabase is not configured.");
       }
 
       setInfoMsg("Authenticated. Redirecting to admin panel...");

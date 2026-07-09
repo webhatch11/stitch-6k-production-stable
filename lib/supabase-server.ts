@@ -36,19 +36,11 @@ export async function getServerUser() {
   const cookieStore = await cookies();
 
   if (!isSupabaseConfigured) {
-    const mockSession = cookieStore.get("mock_user_session")?.value;
-    const mockEmail = cookieStore.get("mock_user_email")?.value;
-    const mockRole = cookieStore.get("mock_user_role")?.value;
-
-    if (mockSession) {
-      return {
-        id: mockSession,
-        email: mockEmail || "guest@stitch6k.com",
-        role: mockRole || "customer",
-        isMock: true,
-      };
-    }
-    return null;
+    throw new Error(
+      'Supabase not configured. ' +
+      'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+    );
   }
 
   const supabaseClient = await getServerSupabase();

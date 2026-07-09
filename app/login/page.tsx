@@ -235,23 +235,7 @@ export default function LoginPage() {
         });
         if (error) throw error;
       } else {
-        // Mock verify for development
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        if (finalCode !== "123456" && finalCode !== "111111") {
-          throw new Error("Token has expired or is invalid");
-        }
-
-        // Save mock session
-        const mockUser = {
-          id: "mock-user-123",
-          name: name || "Demo User",
-          email: email,
-          role: "customer"
-        };
-        localStorage.setItem("mock_user_profile", JSON.stringify(mockUser));
-        localStorage.setItem("mock_user_session", JSON.stringify({ email: mockUser.email, userId: mockUser.id }));
-        document.cookie = `mock_user_session=${mockUser.id}; path=/; max-age=86400`;
-        document.cookie = `mock_user_email=${mockUser.email}; path=/; max-age=86400`;
+        throw new Error("Supabase is not configured.");
       }
     } catch (err: any) {
       // OTP itself failed — show error, stop here.

@@ -103,13 +103,6 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
   const handleLogout = async () => {
     if (isSupabaseConfigured() && supabase) {
       await supabase.auth.signOut();
-    } else {
-      document.cookie = "mock_user_session=; path=/; max-age=0";
-      document.cookie = "mock_user_role=; path=/; max-age=0";
-      document.cookie = "mock_user_email=; path=/; max-age=0";
-      document.cookie = "mock_user_name=; path=/; max-age=0";
-      localStorage.removeItem("mock_user_session");
-      localStorage.removeItem("mock_user_profile");
     }
     router.push("/login");
   };

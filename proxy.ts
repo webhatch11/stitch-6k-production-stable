@@ -188,29 +188,11 @@ export async function proxy(request: NextRequest) {
 
     return response;
   } else {
-    // --- Mock Development Offline Guarding (Cookie Synced) ---
-    const mockSession = request.cookies.get("mock_user_session")?.value;
-    const mockRole = request.cookies.get("mock_user_role")?.value;
-
-    if (!mockSession) {
-      console.warn(`[MOCK SECURITY WARNING] Unauthorized request to mock protected path "${path}" from IP ${ip}. Redirecting to login.`);
-      if (path.startsWith("/admindashboard") && !path.startsWith("/admindashboard/login")) {
-        url.pathname = "/admindashboard/login";
-      } else {
-        url.pathname = "/login";
-      }
-      url.searchParams.set("redirect", path);
-      return NextResponse.redirect(url);
-    }
-
-    if (isAdminRoute && mockRole !== "admin") {
-      console.error(`[MOCK SECURITY VIOLATION] Unauthorized mock admin access attempt to "${path}" by session "${mockSession}" (Role: ${mockRole}) from IP ${ip}. Redirecting to admin login.`);
-      url.pathname = "/admindashboard/login";
-      url.searchParams.set("error", "admin_required");
-      return NextResponse.redirect(url);
-    }
-
-    return NextResponse.next();
+    throw new Error(
+      'Supabase not configured. ' +
+      'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+    );
   }
 }
 

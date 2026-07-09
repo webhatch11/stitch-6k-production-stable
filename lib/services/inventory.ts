@@ -114,7 +114,21 @@ export const InventoryService = {
         'environment variables.'
       );
     }
-    const { data, error } = await supabase.from("products").select("*").is("deleted_at", null);
+    const cartProductIds = items.map(item => (item as any).productId).filter(Boolean);
+    const cartProductNames = items.map(item => item.productName).filter(Boolean);
+
+    let query = supabase
+      .from("products")
+      .select("id, title, price, category, image, colors, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl")
+      .is("deleted_at", null);
+
+    if (cartProductIds.length > 0) {
+      query = query.or(`id.in.(${cartProductIds.map(x => `"${x}"`).join(",")}),title.in.(${cartProductNames.map(x => `"${x}"`).join(",")})`);
+    } else {
+      query = query.in("title", cartProductNames);
+    }
+
+    const { data, error } = await query;
     if (error) {
       console.error("Error fetching products in validateStock from Supabase:", error);
       products = [];
@@ -161,33 +175,33 @@ export const InventoryService = {
 
       // Filter from preloaded variants
       const productVariants = allVariants.filter((v) => v.productId === product.id);
-      const variant =
-        // Step 1: exact color match
-        productVariants.find((v) =>
-          v.size === size &&
-          (v.color || "").toLowerCase() === color.toLowerCase()
-        ) ||
-        // Step 2: same size, highest stock color
-        productVariants
-          .filter((v) => v.size === size && v.stock > 0)
-          .sort((a, b) => b.stock - a.stock)[0] ||
-        // Step 3: same size, any color any stock
-        productVariants.find((v) => v.size === size) ||
-        // Step 4: null — throw error
-        null;
+      const variant = productVariants.find(v =>
+        v.size === size &&
+        (v.color || "").toLowerCase() === color.toLowerCase()
+      ) || 
+      // Only fall back to Default if product has no real color variants
+      (productVariants.every(v => 
+        (v.color || "").toLowerCase() === 'default'
+      ) 
+        ? productVariants.find(v => v.size === size)
+        : null
+      );
 
       if (!variant) {
-        errors.push(`Variant not found: ${product.id} ${size}`);
+        errors.push(
+          `${product.title} in size ${size} / color ${color} is currently out of stock. Please select a different size or color.`
+        );
         continue;
       }
 
       const availableStock = variant.stock;
       availableStockMap[key] = availableStock;
 
-      if (availableStock < item.quantity) {
+      if (availableStock < (item.quantity || 1)) {
         errors.push(
-          `Insufficient stock for ${product.title} (Size: ${size}, Color: ${color}). Available: ${availableStock}, Requested: ${item.quantity}.`
+          `Only ${availableStock} unit(s) of ${product.title} (${size} / ${color}) available. Please update your cart.`
         );
+        continue;
       }
     }
 

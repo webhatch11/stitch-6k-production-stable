@@ -34,7 +34,7 @@ export const paymentRecoveryWorker = new Worker(
               
               if (rzpOrder.status === "paid") {
                 // Should not happen if webhook/client fired, but if it did:
-                await supabase.from("orders").update({ payment_status: "PAID", status: "PAID" }).eq("id", order.id);
+                await supabase.from("orders").update({ payment_status: "Paid", status: "Paid" }).eq("id", order.id);
                 continue;
               }
             }

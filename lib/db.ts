@@ -220,8 +220,8 @@ const mapDbAddressToUserAddress = (a: any): UserAddress => {
     user_id: a.user_id,
     name: a.name,
     phone: a.phone,
-    address_line_1: a.address_line1 || "",
-    address_line_2: a.address_line2 || "",
+    address_line_1: a.address_line_1 || a.address_line1 || "",
+    address_line_2: a.address_line_2 || a.address_line2 || "",
     city: a.city,
     state: a.state,
     postal_code: a.postal_code,
@@ -2015,7 +2015,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("user_addresses").select("id, user_id, name, address_line1, address_line2, city, state, postal_code, country, phone, is_default, created_at")
+      .from("user_addresses").select("id, user_id, name, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, created_at")
       .eq("user_id", userId)
       .order("is_default", { ascending: false });
 
@@ -2037,7 +2037,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("user_addresses").select("id, user_id, name, address_line1, address_line2, city, state, postal_code, country, phone, is_default, created_at")
+      .from("user_addresses").select("id, user_id, name, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, created_at")
       .eq("id", addressId)
       .eq("user_id", userId)
       .maybeSingle();

@@ -229,12 +229,6 @@ export default function MyProfileClient({
   const handleSignOut = async () => {
     if (isSupabaseConfigured() && supabase) {
       await supabase.auth.signOut();
-    } else {
-      localStorage.removeItem("mock_user_session");
-      document.cookie = "mock_user_session=; path=/; max-age=0";
-      document.cookie = "mock_user_role=; path=/; max-age=0";
-      document.cookie = "mock_user_email=; path=/; max-age=0";
-      document.cookie = "mock_user_name=; path=/; max-age=0";
     }
     router.refresh();
     router.push("/login");

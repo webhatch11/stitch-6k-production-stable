@@ -15,26 +15,15 @@ export default async function MyProfilePage() {
   let email = "aditya.singhania@heritage.com";
   let phone = "+91 98765 43210";
 
-  if (!user.isMock) {
-    const supabase = await getServerSupabase();
-    if (supabase) {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        const metadata = authUser.user_metadata || {};
-        name = metadata.name || "Customer User";
-        email = authUser.email || "";
-        phone = metadata.phone || authUser.phone || "Not Provided";
-      }
+  const supabase = await getServerSupabase();
+  if (supabase) {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      const metadata = authUser.user_metadata || {};
+      name = metadata.name || "Customer User";
+      email = authUser.email || "";
+      phone = metadata.phone || authUser.phone || "Not Provided";
     }
-  } else {
-    // Read from cookies
-    const cookieStore = await cookies();
-    const mockEmail = cookieStore.get("mock_user_email")?.value;
-    const mockName = cookieStore.get("mock_user_name")?.value;
-    const mockPhone = cookieStore.get("mock_user_phone")?.value;
-    if (mockEmail) email = mockEmail;
-    if (mockName) name = mockName;
-    if (mockPhone) phone = mockPhone;
   }
 
   const balance = await db.getWalletBalance(user.id);

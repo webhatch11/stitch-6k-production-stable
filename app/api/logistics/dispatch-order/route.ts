@@ -33,10 +33,7 @@ async function checkAdminAuth(req: NextRequest): Promise<boolean> {
 
     return profile?.role === "admin";
   } else {
-    // Fallback mock check
-    const mockRole = req.cookies.get("mock_user_role")?.value;
-    const mockSession = req.cookies.get("mock_user_session")?.value;
-    return !!mockSession && mockRole === "admin";
+    throw new Error("Supabase is not configured.");
   }
 }
 

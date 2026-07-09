@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     // Idempotency: if this order was already processed, return success without
     // running any side effects.
-    if (dbOrder.status === "PAID") {
+    if (dbOrder.status === "Paid") {
       return NextResponse.json({ success: true, message: "Order already processed" });
     }
 
@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
     const { data: claimed, error: claimErr } = await supabase
       .from("orders")
       .update({
-        status: "PAID",
-        payment_status: "PAID",
+        status: "Paid",
+        payment_status: "Paid",
         points_earned: earned,
       })
       .eq("id", dbOrder.id)
@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
 
     // g. Payment audit log
     try {
-      await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "PAID", "verify_route");
+      await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "Paid", "verify_route");
     } catch (e) {
       console.error("[verify] createPaymentAuditLog failed:", e);
     }

@@ -7,28 +7,34 @@ let isRedisAvailable = false;
 
 // Gracefully initialize Redis client
 try {
-  if (process.env.REDIS_URL && process.env.NEXT_PHASE !== "phase-production-build") {
+  if (process.env.NEXT_PHASE !== "phase-production-build") {
+    if (!process.env.REDIS_URL) {
+      throw new Error("[Cache Service] FATAL: REDIS_URL environment variable is missing.");
+    }
+
     redisClient = new IORedis(REDIS_URL, {
       maxRetriesPerRequest: 2,
       connectTimeout: 2000,
     });
 
     redisClient.on("error", (err) => {
-      if (isRedisAvailable) {
-        console.warn("[Cache Service] Redis connection lost, falling back to memory:", err.message);
-        isRedisAvailable = false;
-      }
+      console.error("[Cache Service] Redis connection error, failing early:", err.message);
+      // Fail early if Redis is offline to prevent split-brain cache states
+      throw new Error(`[Cache Service] FATAL: Redis connection failed: ${err.message}`);
     });
 
     redisClient.on("connect", () => {
       console.log("[Cache Service] Redis connection established successfully.");
       isRedisAvailable = true;
     });
-  } else {
-    console.log("[Cache Service] REDIS_URL not configured. Cache operates in pass-through mode.");
   }
 } catch (e) {
-  console.warn("[Cache Service] Failed to initialize Redis:", e);
+  if (process.env.NEXT_PHASE !== "phase-production-build") {
+    console.error("[Cache Service] Fatal startup error:", e);
+    throw e;
+  } else {
+    console.warn("[Cache Service] Ignoring Redis build-phase setup error:", e);
+  }
 }
 
 // Memory cache fallback for robustness/offline mode

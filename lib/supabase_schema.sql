@@ -814,3 +814,9 @@ CREATE INDEX IF NOT EXISTS idx_product_variants_lookup ON public.product_variant
 -- 17. Review Approval Audit Trace (2026-07-09 Audit)
 ALTER TABLE public.reviews 
   ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+-- 18. Wallet Balance Hard Ceiling Limits (2026-07-09 Audit)
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS chk_profiles_wallet_balance;
+ALTER TABLE public.profiles ADD CONSTRAINT chk_profiles_wallet_balance CHECK (
+    wallet_balance >= 0 AND wallet_balance <= 100000
+);

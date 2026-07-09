@@ -114,6 +114,46 @@ const AddressCard = React.memo(function AddressCard({
   );
 });
 
+const INDIAN_STATES = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Lakshadweep",
+  "Puducherry",
+  "Jammu and Kashmir",
+  "Ladakh"
+];
+
+
 interface Props {
   userId: string;
   onAddressSelected?: (address: UserAddress | null) => void;
@@ -584,14 +624,20 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
         <div className="space-y-1.5">
           <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">State</label>
-          <input
+          <select
             required
             name="state"
             value={formData.state || ""}
             onChange={(e) => handleInputChange("state", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
-            placeholder="STATE"
-          />
+          >
+            <option value="" disabled>SELECT STATE</option>
+            {INDIAN_STATES.map((state) => (
+              <option key={state} value={state}>
+                {state.toUpperCase()}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-3 pt-2">

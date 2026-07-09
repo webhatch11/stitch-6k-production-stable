@@ -101,21 +101,43 @@ export async function GET(req: NextRequest) {
           // Map status
           let mappedStatus = order.status;
           const lowerStatus = currentStatus.toLowerCase();
+          const isReturnFlow = ["Return Requested", "Return in Transit", "Returned"].includes(order.status);
 
-          if (lowerStatus.includes("delivered")) {
-            mappedStatus = "Delivered";
-          } else if (lowerStatus.includes("out for delivery") || lowerStatus.includes("out_for_delivery")) {
-            mappedStatus = "Out for Delivery";
-          } else if (lowerStatus.includes("transit") || lowerStatus.includes("shipped")) {
-            mappedStatus = "Shipped";
-          } else if (lowerStatus.includes("packed") || lowerStatus.includes("manifest")) {
-            mappedStatus = "Packed";
-          } else if (lowerStatus.includes("placed") || lowerStatus.includes("confirmed")) {
-            mappedStatus = "Order Placed";
-          } else if (lowerStatus.includes("return") || lowerStatus.includes("rto")) {
-            mappedStatus = "Returned";
-          } else if (lowerStatus.includes("cancel")) {
-            mappedStatus = "Cancelled";
+          if (isReturnFlow) {
+            if (lowerStatus.includes("delivered")) {
+              mappedStatus = "Returned";
+            } else if (
+              lowerStatus.includes("transit") ||
+              lowerStatus.includes("shipped") ||
+              lowerStatus.includes("out for delivery") ||
+              lowerStatus.includes("out_for_delivery") ||
+              lowerStatus.includes("packed") ||
+              lowerStatus.includes("manifest")
+            ) {
+              mappedStatus = "Return in Transit";
+            } else if (lowerStatus.includes("placed") || lowerStatus.includes("confirmed")) {
+              mappedStatus = "Return Requested";
+            } else if (lowerStatus.includes("return") || lowerStatus.includes("rto")) {
+              mappedStatus = "Returned";
+            } else if (lowerStatus.includes("cancel")) {
+              mappedStatus = "Cancelled";
+            }
+          } else {
+            if (lowerStatus.includes("delivered")) {
+              mappedStatus = "Delivered";
+            } else if (lowerStatus.includes("out for delivery") || lowerStatus.includes("out_for_delivery")) {
+              mappedStatus = "Out for Delivery";
+            } else if (lowerStatus.includes("transit") || lowerStatus.includes("shipped")) {
+              mappedStatus = "Shipped";
+            } else if (lowerStatus.includes("packed") || lowerStatus.includes("manifest")) {
+              mappedStatus = "Packed";
+            } else if (lowerStatus.includes("placed") || lowerStatus.includes("confirmed")) {
+              mappedStatus = "Order Placed";
+            } else if (lowerStatus.includes("return") || lowerStatus.includes("rto")) {
+              mappedStatus = "Returned";
+            } else if (lowerStatus.includes("cancel")) {
+              mappedStatus = "Cancelled";
+            }
           }
 
           // Update DB if status changed

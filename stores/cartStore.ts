@@ -4,8 +4,20 @@ import { supabase } from "@/lib/supabase";
 import { syncCartAction } from "@/app/actions/cart";
 
 export function mergeCarts(localItems: CartItem[], dbItems: CartItem[]): CartItem[] {
+  // Build a lookup map of productName -> productId to normalize missing IDs
+  const nameToIdMap: Record<string, string> = {};
+  for (const item of [...localItems, ...dbItems]) {
+    if (item.productId && item.productId !== "unknown" && item.productName) {
+      nameToIdMap[item.productName.toLowerCase()] = item.productId;
+    }
+  }
+
   const getUniqueKey = (item: CartItem) => {
-    const pId = item.productId || "unknown";
+    let pId = item.productId;
+    if ((!pId || pId === "unknown") && item.productName) {
+      pId = nameToIdMap[item.productName.toLowerCase()];
+    }
+    pId = pId || "unknown";
     const size = item.size || "Default";
     const color = item.color || "Default";
     return `${pId}_${size}_${color}`;
@@ -35,7 +47,16 @@ export function mergeCarts(localItems: CartItem[], dbItems: CartItem[]): CartIte
   for (const key of allKeys) {
     const localVal = localGrouped[key];
     const dbVal = dbGrouped[key];
-    const item = localVal?.item || dbVal?.item;
+    const item = { ...(localVal?.item || dbVal?.item) };
+    
+    // Normalize item's productId if it was missing
+    if ((!item.productId || item.productId === "unknown") && item.productName) {
+      const mappedId = nameToIdMap[item.productName.toLowerCase()];
+      if (mappedId) {
+        item.productId = mappedId;
+      }
+    }
+
     const qty = Math.max(localVal?.qty || 0, dbVal?.qty || 0);
 
     for (let i = 0; i < qty; i++) {

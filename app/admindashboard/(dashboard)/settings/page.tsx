@@ -87,6 +87,7 @@ export default function SettingsDashboardPage() {
   // States for Reviews
   const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [editingCommentMap, setEditingCommentMap] = useState<{ [id: string]: string }>({});
+  const [editingRatingMap, setEditingRatingMap] = useState<{ [id: string]: number }>({});
   const [activeReviewsTab, setActiveReviewsTab] = useState<"pending" | "approved">("pending");
 
 
@@ -324,12 +325,15 @@ export default function SettingsDashboardPage() {
     const res = await getReviewsAction();
     if (res.success && res.value) {
       setReviewsList(res.value);
-      // Initialize edit comments map
+      // Initialize edit comments & ratings map
       const editMap: { [id: string]: string } = {};
+      const ratingMap: { [id: string]: number } = {};
       res.value.forEach((r: any) => {
         editMap[r.id] = r.comment;
+        ratingMap[r.id] = r.rating;
       });
       setEditingCommentMap(editMap);
+      setEditingRatingMap(ratingMap);
     }
   };
 
@@ -361,11 +365,12 @@ export default function SettingsDashboardPage() {
 
   const handleUpdateReviewComment = async (id: string) => {
     const comment = editingCommentMap[id] || "";
+    const rating = editingRatingMap[id];
     if (!comment.trim()) {
       triggerToast("Comment cannot be empty");
       return;
     }
-    const res = await updateReviewAction(id, comment);
+    const res = await updateReviewAction(id, comment, rating);
     if (res.success) {
       triggerToast("Review updated successfully");
       loadReviews();
@@ -1526,11 +1531,29 @@ export default function SettingsDashboardPage() {
                               </p>
                               {/* Stars */}
                               <div className="flex gap-0.5 mt-1 text-[#fed488]">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <span key={i} className="material-symbols-outlined text-sm font-bold">
-                                    {i < review.rating ? "star" : "star_outline"}
-                                  </span>
-                                ))}
+                                {Array.from({ length: 5 }).map((_, i) => {
+                                  const currentRating = activeReviewsTab === "pending"
+                                    ? (editingRatingMap[review.id] ?? review.rating)
+                                    : review.rating;
+                                  return (
+                                    <span
+                                      key={i}
+                                      onClick={() => {
+                                        if (activeReviewsTab === "pending") {
+                                          setEditingRatingMap({
+                                            ...editingRatingMap,
+                                            [review.id]: i + 1,
+                                          });
+                                        }
+                                      }}
+                                      className={`material-symbols-outlined text-sm font-bold ${
+                                        activeReviewsTab === "pending" ? "cursor-pointer hover:scale-110 transition-transform" : ""
+                                      }`}
+                                    >
+                                      {i < currentRating ? "star" : "star_outline"}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -1571,7 +1594,7 @@ export default function SettingsDashboardPage() {
                                   onClick={() => handleUpdateReviewComment(review.id)}
                                   className="border border-gray-200 text-[#0a0a0a] px-4 py-2 text-[9px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-md cursor-pointer shrink-0"
                                 >
-                                  Update Comment
+                                  Update Review
                                 </button>
                                 <button
                                   type="button"

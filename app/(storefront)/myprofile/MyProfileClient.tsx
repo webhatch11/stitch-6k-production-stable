@@ -786,7 +786,12 @@ export default function MyProfileClient({
                     Wallet Transactions
                   </h2>
                   <div className="overflow-x-auto bg-white border border-outline-variant/25 rounded-none">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[500px]">
+                      <colgroup>
+                        <col className="w-[25%]" />
+                        <col className="w-[55%]" />
+                        <col className="w-[20%]" />
+                      </colgroup>
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
                           <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Date</th>
@@ -802,9 +807,9 @@ export default function MyProfileClient({
                         ) : (
                           walletTxs.map((tx) => (
                             <tr key={tx.id} className="hover:bg-surface-container-lowest transition-colors">
-                              <td className="p-4 text-outline font-semibold">{tx.date}</td>
-                              <td className="p-4 font-bold uppercase tracking-tight">{tx.description}</td>
-                              <td className={`p-4 text-right font-bold ${tx.type === "credit" ? "text-green-700" : "text-red-700"}`}>
+                              <td className="p-4 text-outline font-semibold truncate">{tx.date}</td>
+                              <td className="p-4 font-bold uppercase tracking-tight truncate">{tx.description}</td>
+                              <td className={`p-4 text-right font-bold ${tx.type === "credit" ? "text-green-700" : "text-red-700"} truncate`}>
                                 {tx.type === "credit" ? "+" : "-"} ₹{tx.amount.toLocaleString("en-IN")}
                               </td>
                             </tr>
@@ -821,7 +826,12 @@ export default function MyProfileClient({
                     Loyalty Log
                   </h2>
                   <div className="overflow-x-auto bg-white border border-outline-variant/25 rounded-none">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[500px]">
+                      <colgroup>
+                        <col className="w-[25%]" />
+                        <col className="w-[55%]" />
+                        <col className="w-[20%]" />
+                      </colgroup>
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
                           <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Date</th>

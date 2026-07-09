@@ -313,16 +313,26 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               {order.status === "Delivered" && (() => {
                                 const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
                                 if (!deliveredAtStr) {
-                                  return null; // Show nothing when delivered_at is null
+                                  return null;
                                 }
                                 const eligible = isEligibleForReturn(order);
                                 if (eligible) {
+                                  const deliveredDate = new Date(deliveredAtStr);
+                                  const today = new Date();
+                                  deliveredDate.setHours(0, 0, 0, 0);
+                                  today.setHours(0, 0, 0, 0);
+                                  const daysSince = Math.floor((today.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24));
+                                  const daysLeft = 7 - daysSince;
                                   const deadline = new Date(deliveredAtStr);
                                   deadline.setDate(deadline.getDate() + 7);
                                   const deadlineStr = deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                                  
+                                  const daysLeftText = daysLeft > 0 
+                                    ? ` — ${daysLeft} day${daysLeft > 1 ? 's' : ''} left` 
+                                    : '';
                                   return (
                                     <div className="mt-2 text-[9px] text-green-700 font-bold uppercase tracking-widest bg-green-500/5 p-2 border border-green-500/10">
-                                      Return eligible until {deadlineStr}
+                                      Return eligible{daysLeftText} (until {deadlineStr})
                                     </div>
                                   );
                                 } else {
@@ -426,6 +436,24 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface">Total</span>
                               <span className="font-headline font-extrabold text-base text-on-surface">₹{order.total.toLocaleString("en-IN")}</span>
                             </div>
+                            {order.walletPaid > 0 && (
+                              <div className="flex justify-between md:gap-4 items-center text-[9px] text-outline font-semibold">
+                                <span>Wallet Debit</span>
+                                <span>₹{order.walletPaid.toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            {order.gatewayPaid > 0 && (
+                              <div className="flex justify-between md:gap-4 items-center text-[9px] text-outline font-semibold">
+                                <span>Online Paid</span>
+                                <span>₹{order.gatewayPaid.toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            {order.refund_amount !== undefined && order.refund_amount > 0 && (
+                              <div className="flex justify-between md:gap-4 items-center text-[9px] text-green-700 font-bold border-t border-dashed border-outline-variant/10 pt-1 mt-1">
+                                <span>Refunded</span>
+                                <span>₹{order.refund_amount.toLocaleString("en-IN")} {order.refund_status === "wallet_only" ? "(to Wallet)" : "(to Source)"}</span>
+                              </div>
+                            )}
                             <span className="text-[8px] text-gray-400 font-medium tracking-wide text-right">
                               ✓ Prices inclusive of GST
                             </span>

@@ -78,6 +78,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
     }
 
     useCartStore.getState().addToCart({
+      productId: item.productId,
       productName: item.productName,
       price: item.price,
       size: item.size,

@@ -203,7 +203,7 @@ export async function rejectReviewAction(id: string) {
   return { success: true };
 }
 
-export async function updateReviewAction(id: string, comment: string) {
+export async function updateReviewAction(id: string, comment: string, rating?: number) {
   try {
     await requireAdmin();
   } catch {
@@ -212,7 +212,16 @@ export async function updateReviewAction(id: string, comment: string) {
   if (!comment || comment.trim().length === 0) {
     return { success: false, error: "Comment cannot be empty" };
   }
-  const ok = await db.updateReview(id, { comment });
+  
+  const updatePayload: { comment: string; rating?: number } = { comment };
+  if (rating !== undefined) {
+    if (rating < 1 || rating > 5) {
+      return { success: false, error: "Rating must be between 1 and 5" };
+    }
+    updatePayload.rating = rating;
+  }
+
+  const ok = await db.updateReview(id, updatePayload);
   if (!ok) return { success: false, error: "Failed to update review" };
   revalidatePath("/", "layout");
   return { success: true };

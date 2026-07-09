@@ -437,6 +437,10 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                       }`}
                     >
                       {size}
+                      {/* Red indicator for out of stock sizes */}
+                      {isOutOfStock && (
+                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                      )}
                       {/* Subtly show quick warning dot on sizes if low stock */}
                       {!isOutOfStock && sizeStock > 0 && sizeStock < 5 && (
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"></span>
@@ -446,7 +450,13 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                 })}
               </div>
 
-              {/* Sizing Low Stock Warning Alert */}
+              {/* Sizing Low/No Stock Warning Alert */}
+              {selectedSize && selectedSizeStock === 0 && (
+                <p className="text-[10px] text-red-600 font-bold uppercase tracking-wider mt-2">
+                  ✗ This size is out of stock. Please select another size.
+                </p>
+              )}
+
               {selectedSizeStock > 0 && selectedSizeStock < 5 && (
                 <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-500 flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm animate-pulse">warning</span>

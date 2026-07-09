@@ -457,14 +457,22 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                         </span>
                       </td>
                       <td className="px-8 py-6">
-                        {o.status === "Returned" ? `₹${o.total.toLocaleString("en-IN")}` : "—"}
+                        {o.status === "Returned"
+                          ? `₹${(o.refund_amount !== undefined && o.refund_amount !== null ? o.refund_amount : o.total).toLocaleString("en-IN")}`
+                          : "—"}
                       </td>
                       <td className="px-8 py-6 text-gray-600">
                         {o.status === "Returned"
                           ? (o.refundOption === "wallet" ? "Wallet" : "Razorpay Gateway")
                           : "—"}
                       </td>
-                      <td className="px-8 py-6 text-gray-500">{o.returnDate || o.date}</td>
+                      <td className="px-8 py-6 text-gray-500">
+                        {o.returnDate
+                          ? o.returnDate
+                          : o.refunded_at
+                          ? new Date(o.refunded_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                          : o.date}
+                      </td>
                       <td className="px-8 py-6 text-right">
                         <Link
                           href={`/admindashboard/order-details?orderId=${o.id}`}

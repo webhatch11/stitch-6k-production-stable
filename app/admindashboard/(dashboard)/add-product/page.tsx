@@ -319,6 +319,10 @@ function AddProductContent() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
+      predicate: (event: any) => {
+        const target = event.target as HTMLElement;
+        return !target.closest("button") && !target.closest("input");
+      },
     }),
     useSensor(KeyboardSensor)
   );

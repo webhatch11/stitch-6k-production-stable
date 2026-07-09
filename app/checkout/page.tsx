@@ -910,7 +910,7 @@ export default function CheckoutPage() {
                           </label>
                         </div>
                         <span id="loyaltyAvailableText" className="text-outline font-bold text-[9px] tracking-wider uppercase">
-                          {availablePoints} PTS AVAILABLE
+                          {availablePoints} PTS AVAILABLE <span className="text-[#BA7517]">(WORTH ₹{(availablePoints * 0.1).toFixed(2)})</span>
                         </span>
                       </div>
                       {loyaltyChecked && loyaltyDiscount > 0 && (

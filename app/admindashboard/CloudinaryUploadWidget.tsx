@@ -37,6 +37,15 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
     const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "").replace(/"/g, "");
     const uploadPreset = (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, "");
 
+    // Keep callbacks fresh using refs to prevent stale closures inside createUploadWidget
+    const onUploadSuccessRef = useRef(onUploadSuccess);
+    const onUploadRef = useRef(onUpload);
+
+    useEffect(() => {
+      onUploadSuccessRef.current = onUploadSuccess;
+      onUploadRef.current = onUpload;
+    });
+
     if (!cloudName) {
       console.error(
         '[Cloudinary] NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME not configured'
@@ -91,10 +100,10 @@ const CloudinaryUploadWidget = forwardRef<CloudinaryUploadHandle, CloudinaryUplo
             const url = result.info.secure_url;
             console.log("[Cloudinary] Upload success:", url);
             
-            if (onUploadSuccess) {
-              onUploadSuccess(url);
-            } else if (onUpload) {
-              onUpload(url);
+            if (onUploadSuccessRef.current) {
+              onUploadSuccessRef.current(url);
+            } else if (onUploadRef.current) {
+              onUploadRef.current(url);
             }
             
             widgetRef.current?.close();

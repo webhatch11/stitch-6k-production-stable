@@ -3368,7 +3368,7 @@ export const db = {
     return !error;
   },
 
-  async updateReview(id: string, review: { comment: string }) {
+  async updateReview(id: string, review: { comment?: string; rating?: number }) {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(

@@ -38,6 +38,46 @@ export default function InvoiceClient({
     window.print();
   };
 
+  const renderAddress = () => {
+    if (!matchedOrder.address_snapshot) {
+      return (
+        <>
+          12/A Sky Gardens, Worli Sea Face<br />
+          Mumbai, Maharashtra 400018
+        </>
+      );
+    }
+
+    try {
+      const addr = typeof matchedOrder.address_snapshot === "string"
+        ? JSON.parse(matchedOrder.address_snapshot)
+        : matchedOrder.address_snapshot;
+
+      const line1 = addr.address_line_1 || addr.address || "";
+      const line2 = addr.address_line_2 || "";
+      const city = addr.city || "";
+      const state = addr.state || "";
+      const zip = addr.postal_code || addr.pincode || "";
+
+      return (
+        <>
+          {line1}
+          {line2 ? <><br />{line2}</> : null}
+          <br />
+          {city}, {state} {zip}
+          {addr.phone ? <><br />T: {addr.phone}</> : null}
+        </>
+      );
+    } catch (e) {
+      return (
+        <>
+          12/A Sky Gardens, Worli Sea Face<br />
+          Mumbai, Maharashtra 400018
+        </>
+      );
+    }
+  };
+
   return (
     <div className="bg-[#f9f9f9] text-on-surface font-body min-h-screen py-12 px-6">
       {/* Control Actions */}
@@ -93,8 +133,7 @@ export default function InvoiceClient({
             <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Customer Details</h4>
             <p className="font-headline font-bold text-sm uppercase">{matchedOrder.customer}</p>
             <p className="text-[10px] text-gray-500 font-medium mt-2 leading-relaxed uppercase tracking-wider">
-              12/A Sky Gardens, Worli Sea Face<br />
-              Mumbai, Maharashtra 400018
+              {renderAddress()}
             </p>
           </div>
           <div className="text-right">

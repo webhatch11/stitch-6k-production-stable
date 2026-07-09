@@ -198,10 +198,16 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
             </div>
             <div className="mt-12 space-y-4">
               <Link
+                href="/shopallshirts"
+                className="w-full inline-flex items-center justify-center bg-transparent text-on-surface hover:bg-on-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-on-surface"
+              >
+                Continue Shopping
+              </Link>
+              <Link
                 href="/orderhistory"
                 className="w-full inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-on-surface/10"
               >
-                Go to Order History
+                View My Orders
               </Link>
               <Link
                 href={`/invoice?orderId=${orderId}`}
@@ -209,6 +215,9 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
               >
                 Download Invoice (PDF)
               </Link>
+              <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest text-center mt-4">
+                ✓ Order confirmation sent to your email address.
+              </p>
             </div>
           </div>
         </div>

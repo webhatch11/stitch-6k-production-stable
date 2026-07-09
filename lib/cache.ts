@@ -87,6 +87,19 @@ export const CacheService = {
     if (redisClient && isRedisAvailable) {
       try {
         await redisClient.set(key, JSON.stringify(value), "EX", ttlSecs);
+        
+        // Track keys via Redis Sets for optimized pattern invalidation (avoiding keys/scan spikes)
+        let tagSet: string | null = null;
+        if (key.startsWith("products:slug:")) {
+          tagSet = "tag:products:slug";
+        } else if (key.startsWith("products:list")) {
+          tagSet = "tag:products:list";
+        }
+        if (tagSet) {
+          await redisClient.sadd(tagSet, key);
+          // Set tag set TTL to match or exceed the key TTL to prevent stale sets
+          await redisClient.expire(tagSet, ttlSecs + 3600);
+        }
       } catch (err: any) {
         console.warn(`[Cache Service] Redis SET failed for key "${key}":`, err.message);
       }
@@ -130,9 +143,33 @@ export const CacheService = {
 
     if (redisClient && isRedisAvailable) {
       try {
-        const keys = await redisClient.keys(pattern);
-        if (keys && keys.length > 0) {
-          await redisClient.del(...keys);
+        // Tag set check based on pattern wildcard
+        let tagSet: string | null = null;
+        if (pattern === "products:slug:*" || pattern.startsWith("products:slug")) {
+          tagSet = "tag:products:slug";
+        } else if (pattern === "products:list*" || pattern.startsWith("products:list")) {
+          tagSet = "tag:products:list";
+        }
+
+        if (tagSet) {
+          const keys = await redisClient.smembers(tagSet);
+          if (keys && keys.length > 0) {
+            await redisClient.del(...keys);
+            await redisClient.del(tagSet);
+          }
+        } else {
+          // Fallback for generic patterns: use SCAN instead of blocking KEYS call
+          const keys: string[] = [];
+          let cursor = "0";
+          do {
+            const reply = await redisClient.scan(cursor, "MATCH", pattern, "COUNT", 100);
+            cursor = reply[0];
+            keys.push(...reply[1]);
+          } while (cursor !== "0");
+
+          if (keys.length > 0) {
+            await redisClient.del(...keys);
+          }
         }
       } catch (err: any) {
         console.warn(`[Cache Service] Redis DEL pattern failed for "${pattern}":`, err.message);

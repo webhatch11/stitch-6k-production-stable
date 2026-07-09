@@ -347,6 +347,13 @@ export default function Navbar() {
         <nav className="flex flex-col items-center gap-10 text-center">
           <Link
             onClick={() => setMobileMenuOpen(false)}
+            style={{
+              minHeight: '44px',
+              padding: '12px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
             href="/"
           >
@@ -354,6 +361,13 @@ export default function Navbar() {
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}
+            style={{
+              minHeight: '44px',
+              padding: '12px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
             href="/genz"
           >
@@ -361,6 +375,13 @@ export default function Navbar() {
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}
+            style={{
+              minHeight: '44px',
+              padding: '12px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             className="text-3xl font-headline font-black uppercase tracking-tight text-secondary transition-colors"
             href="/shopallshirts"
           >
@@ -368,6 +389,13 @@ export default function Navbar() {
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}
+            style={{
+              minHeight: '44px',
+              padding: '12px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
             href="/orderhistory"
           >
@@ -375,6 +403,13 @@ export default function Navbar() {
           </Link>
           <Link
             onClick={() => setMobileMenuOpen(false)}
+            style={{
+              minHeight: '44px',
+              padding: '12px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
             href="/ordertracking"
           >
@@ -384,6 +419,13 @@ export default function Navbar() {
             <>
               <Link
                 onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  minHeight: '44px',
+                  padding: '12px 16px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
                 href="/myprofile"
               >
@@ -394,6 +436,13 @@ export default function Navbar() {
                   setMobileMenuOpen(false);
                   handleSignOut();
                 }}
+                style={{
+                  minHeight: '44px',
+                  padding: '12px 16px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 className="text-3xl font-headline font-black uppercase tracking-tight text-red-600 hover:text-red-700 transition-colors border-none bg-transparent cursor-pointer"
               >
                 Sign Out
@@ -402,6 +451,13 @@ export default function Navbar() {
           ) : (
             <Link
               onClick={() => setMobileMenuOpen(false)}
+              style={{
+                minHeight: '44px',
+                padding: '12px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               className="text-3xl font-headline font-black uppercase tracking-tight text-on-surface hover:text-secondary transition-colors"
               href="/login"
             >

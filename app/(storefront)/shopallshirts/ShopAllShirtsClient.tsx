@@ -369,7 +369,13 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                       >
                         <Link
                           href={`/product/${product.slug}`}
-                          style={{ aspectRatio: '3/4' }}
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            aspectRatio: '3/4',
+                            overflow: 'hidden',
+                            backgroundColor: '#f5f5f5'
+                          }}
                           className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem] select-none"
                         >
                           {/* Primary Image */}
@@ -442,9 +448,17 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                                 href={`/product/${product.slug}`}
                                 onClick={() => recentStore.addProductToRecent(product)}
                               >
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-[#fed488] transition-colors leading-tight">
-                                  {product.title}
-                                </h4>
+                                 <h4
+                                   style={{
+                                     overflow: 'hidden',
+                                     textOverflow: 'ellipsis',
+                                     whiteSpace: 'nowrap',
+                                     maxWidth: '100%'
+                                   }}
+                                   className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-[#fed488] transition-colors leading-tight"
+                                 >
+                                   {product.title}
+                                 </h4>
                               </Link>
                               <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-bold">
                                 {product.category} • Atelier Series
@@ -503,7 +517,17 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {recentStore.recentItems.map((item) => (
                 <div key={item.id} className="group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:border-[#fed488]/40 rounded-2xl flex flex-col justify-between transition-all duration-300">
-                  <Link href={`/product/${item.slug}`} style={{ aspectRatio: '3/4' }} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-container select-none block">
+                  <Link
+                    href={`/product/${item.slug}`}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      aspectRatio: '3/4',
+                      overflow: 'hidden',
+                      backgroundColor: '#f5f5f5'
+                    }}
+                    className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-container select-none block"
+                  >
                     <ProductImage
                       src={item.image}
                       alt={item.title}

@@ -358,6 +358,13 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                     >
                       <Link
                         href={`/product/${product.slug}`}
+                        style={{
+                          position: 'relative',
+                          width: '100%',
+                          aspectRatio: '3/4',
+                          overflow: 'hidden',
+                          backgroundColor: '#f5f5f5'
+                        }}
                         className="block relative aspect-[3/4] overflow-hidden bg-neutral-900 border border-white/5 rounded-xl select-none"
                       >
                         {/* Primary Image */}
@@ -428,7 +435,15 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                               href={`/product/${product.slug}`}
                               onClick={() => recentStore.addProductToRecent(product)}
                             >
-                              <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-white group-hover:text-[#fed488] transition-colors leading-tight">
+                              <h4
+                                style={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: '100%'
+                                }}
+                                className="text-[10px] font-black uppercase tracking-[0.15em] text-white group-hover:text-[#fed488] transition-colors leading-tight"
+                              >
                                 {product.title}
                               </h4>
                             </Link>
@@ -459,7 +474,17 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {recentStore.recentItems.map((item) => (
                 <div key={item.id} className="group border border-white/5 p-2 bg-[#121214] hover:border-[#fed488]/30 rounded-2xl flex flex-col justify-between transition-all duration-300 text-left">
-                  <Link href={`/product/${item.slug}`} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-neutral-900 select-none block">
+                  <Link
+                    href={`/product/${item.slug}`}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      aspectRatio: '3/4',
+                      overflow: 'hidden',
+                      backgroundColor: '#f5f5f5'
+                    }}
+                    className="relative aspect-[3/4] overflow-hidden rounded-xl bg-neutral-900 select-none block"
+                  >
                     <ProductImage
                       src={item.image}
                       alt={item.title}

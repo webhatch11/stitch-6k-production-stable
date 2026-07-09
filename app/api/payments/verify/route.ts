@@ -118,6 +118,7 @@ export async function POST(req: NextRequest) {
         status: "Paid",
         payment_status: "Paid",
         points_earned: earned,
+        razorpay_payment_id,   // ← store on orders row — required for refunds
       })
       .eq("id", dbOrder.id)
       .eq("status", "PAYMENT_PENDING")

@@ -102,6 +102,21 @@ function AddProductContent() {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
 
+  // Load categories dynamically from database site settings
+  useEffect(() => {
+    import("@/app/actions/admin-settings").then(({ getSettingAction }) => {
+      getSettingAction("categories").then((res) => {
+        if (res.success && res.value && Array.isArray(res.value.items)) {
+          const list = res.value.items.map((item: any) => item.title);
+          if (list.length > 0) {
+            setCategories(list);
+            setCategory(list[0]);
+          }
+        }
+      });
+    });
+  }, []);
+
   // Stock Size Allocation
   const [stockS, setStockS] = useState(0);
   const [stockM, setStockM] = useState(0);

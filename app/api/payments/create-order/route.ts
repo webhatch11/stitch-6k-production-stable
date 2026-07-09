@@ -110,8 +110,9 @@ export async function POST(req: NextRequest) {
     let rzpOrder;
     try {
       rzpOrder = await razorpay.orders.create(options);
-    } catch (e: any) {
-      const errMsg = e.message || JSON.stringify(e) || "";
+    } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+      const errMsg = message || JSON.stringify(e) || "";
       if (errMsg.includes("expire_by")) {
         console.warn("[Razorpay] expire_by rejected by Razorpay gateway API. Retrying without expire_by...");
         const fallbackOptions = { ...options };
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
       checkoutState: { ...checkoutState, orderId: sequentialOrderId }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "order", route: "create-order" } });
     return NextResponse.json(

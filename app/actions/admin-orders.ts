@@ -202,6 +202,7 @@ export async function getOrderEventsAction(orderId: string): Promise<{
     const events = await db.getOrderEvents(orderId);
     return { success: true, events };
   } catch (e: any) {
+    console.error('[admin-orders.ts]:', e);
     return { success: false, error: e.message };
   }
 }
@@ -217,6 +218,7 @@ export async function getOrderNotesAction(orderId: string) {
     const notes = await db.getOrderNotes(orderId);
     return { success: true, notes };
   } catch (e: any) {
+    console.error('[admin-orders.ts]:', e);
     return { success: false, error: e.message };
   }
 }
@@ -235,6 +237,7 @@ export async function addOrderNoteAction(orderId: string, note: string) {
     await db.addOrderNote(orderId, note, createdBy);
     return { success: true };
   } catch (e: any) {
+    console.error('[admin-orders.ts]:', e);
     return { success: false, error: e.message };
   }
 }
@@ -250,6 +253,7 @@ export async function deleteOrderNoteAction(noteId: string) {
     await db.deleteOrderNote(noteId);
     return { success: true };
   } catch (e: any) {
+    console.error('[admin-orders.ts]:', e);
     return { success: false, error: e.message };
   }
 }

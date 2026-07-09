@@ -108,6 +108,7 @@ export async function deleteProductAction(id: string) {
     revalidatePath("/", "layout");
     return { success: true };
   } catch (e: any) {
+    console.error('[admin-products.ts]:', e);
     return { success: false, error: e.message || "Failed to delete product" };
   }
 }
@@ -126,6 +127,7 @@ export async function restoreProductAction(id: string) {
     revalidatePath("/", "layout");
     return { success: true };
   } catch (e: any) {
+    console.error('[admin-products.ts]:', e);
     return { success: false, error: e.message || "Failed to restore product" };
   }
 }

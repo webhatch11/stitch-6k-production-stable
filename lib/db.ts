@@ -109,8 +109,7 @@ async function attachVariantsToProducts(products: Product[]): Promise<Product[]>
 
   const productIds = products.map((p) => p.id);
   const { data: allVariants } = await supabase
-    .from("product_variants")
-    .select("*")
+    .from("product_variants").select("id, product_id, size, color, sku, price, stock")
     .in("product_id", productIds);
 
   const variantsByProduct = new Map<string, ProductVariant[]>();
@@ -214,6 +213,23 @@ const mapDbOrderToOrder = (o: any): Order => {
   };
 };
 
+const mapDbAddressToUserAddress = (a: any): UserAddress => {
+  if (!a) return a;
+  return {
+    id: a.id,
+    user_id: a.user_id,
+    name: a.name,
+    phone: a.phone,
+    address_line_1: a.address_line1 || "",
+    address_line_2: a.address_line2 || "",
+    city: a.city,
+    state: a.state,
+    postal_code: a.postal_code,
+    country: a.country,
+    is_default: !!a.is_default,
+  };
+};
+
 const mapDbCouponToCoupon = (c: any): Coupon => {
   if (!c) return c;
   return {
@@ -295,8 +311,7 @@ export const db = {
     }
 
     let query = supabase
-      .from("products")
-      .select("*")
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
       .order("created_at", { ascending: false });
 
     if (options?.trashedOnly) {
@@ -446,8 +461,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("products")
-      .select("*")
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
       .eq("slug", slug)
       .is("deleted_at", null)
       .maybeSingle();
@@ -477,8 +491,7 @@ export const db = {
     if (!current) return [];
 
     const { data, error } = await supabase
-      .from("products")
-      .select("*")
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
       .neq("slug", slug)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -596,7 +609,7 @@ export const db = {
         'environment variables.'
       );
     }
-    let query = supabase.from("orders").select("*");
+    let query = supabase.from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount");
     if (userId) {
       query = query.eq("user_id", userId);
     }
@@ -628,8 +641,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -651,8 +663,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("shiprocket_id", awb)
       .maybeSingle();
 
@@ -681,8 +692,7 @@ export const db = {
 
     // Check if order exists
     const { data: existingOrder, error: fetchError } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -867,8 +877,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons")
-      .select("*")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_uses, expiry_date, is_first_order")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1008,8 +1017,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons")
-      .select("*")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_uses, expiry_date, is_first_order")
       .eq("code", code.toUpperCase())
       .maybeSingle();
 
@@ -1046,7 +1054,7 @@ export const db = {
     if (userId) {
       const { count, error: countError } = await supabase
         .from("orders")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("coupon_code", code.toUpperCase());
 
@@ -1223,8 +1231,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons")
-      .select("*")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_uses, expiry_date, is_first_order")
       .eq("code", code.toUpperCase())
       .maybeSingle();
 
@@ -1233,19 +1240,12 @@ export const db = {
       return false;
     }
 
-    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : (data.usageCount !== undefined ? Number(data.usageCount) : 0);
+    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : 0;
     const newUsage = Math.max(0, currentUsage - 1);
 
-    const updatePayload: any = {};
-    if (data.usage_count !== undefined) {
-      updatePayload.usage_count = newUsage;
-    }
-    if (data.usageCount !== undefined) {
-      updatePayload.usageCount = newUsage;
-    }
-    if (Object.keys(updatePayload).length === 0) {
-      updatePayload.usage_count = newUsage;
-    }
+    const updatePayload: any = {
+      usage_count: newUsage
+    };
 
     const { error: updateErr } = await supabase
       .from("coupons")
@@ -1300,8 +1300,7 @@ export const db = {
     if (!uid) return [];
 
     const { data, error } = await supabase
-      .from("wallet_transactions")
-      .select("*")
+      .from("wallet_transactions").select("id, user_id, amount, type, description, created_at")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
 
@@ -1309,7 +1308,13 @@ export const db = {
       console.error("Error fetching wallet transactions from Supabase:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map(row => ({
+      id: row.id,
+      date: row.created_at || "",
+      amount: Number(row.amount),
+      type: row.type as "credit" | "debit",
+      description: row.description || "",
+    }));
   },
 
   async getWalletData(userId?: string) {
@@ -1410,8 +1415,7 @@ export const db = {
     if (!uid) return [];
 
     const { data, error } = await supabase
-      .from("loyalty_transactions")
-      .select("*")
+      .from("loyalty_transactions").select("id, user_id, points, type, description, created_at")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
 
@@ -1419,7 +1423,13 @@ export const db = {
       console.error("Error fetching loyalty transactions from Supabase:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map(row => ({
+      id: row.id,
+      date: row.created_at || "",
+      points: Number(row.points),
+      type: row.type as "credit" | "debit",
+      description: row.description || "",
+    }));
   },
 
   async getLoyaltyData(userId?: string) {
@@ -1518,8 +1528,7 @@ export const db = {
       );
     }
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -1571,8 +1580,7 @@ export const db = {
     }
 
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -1749,8 +1757,7 @@ export const db = {
     }
 
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -1888,8 +1895,7 @@ export const db = {
     }
 
     const { data: orderData, error } = await supabase
-      .from("orders")
-      .select("*")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, order_number, shipping_amount")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -2009,8 +2015,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("user_addresses")
-      .select("*")
+      .from("user_addresses").select("id, user_id, name, address_line1, address_line2, city, state, postal_code, country, phone, is_default, created_at")
       .eq("user_id", userId)
       .order("is_default", { ascending: false });
 
@@ -2018,7 +2023,7 @@ export const db = {
       console.error("Error fetching addresses from Supabase:", error);
       return [];
     }
-    return data || [];
+    return (data || []).map(mapDbAddressToUserAddress);
   },
 
   async getAddressById(addressId: string, userId: string): Promise<UserAddress | null> {
@@ -2032,8 +2037,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("user_addresses")
-      .select("*")
+      .from("user_addresses").select("id, user_id, name, address_line1, address_line2, city, state, postal_code, country, phone, is_default, created_at")
       .eq("id", addressId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -2041,7 +2045,7 @@ export const db = {
       console.error("Error fetching address by id:", error);
       return null;
     }
-    return data || null;
+    return data ? mapDbAddressToUserAddress(data) : null;
   },
 
   async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
@@ -2159,8 +2163,7 @@ export const db = {
     }
 
     const { data, error } = await supabase
-      .from("user_cart")
-      .select("*")
+      .from("user_cart").select("product_id, product_name, price, size, image, color, quantity")
       .eq("user_id", userId);
 
     if (error) {
@@ -2684,8 +2687,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("order_status_history")
-      .select("*")
+      .from("order_status_history").select("id, order_id, status, notes, created_at")
       .eq("order_id", orderId)
       .order("created_at", { ascending: true });
 
@@ -2747,8 +2749,7 @@ export const db = {
     }
 
     const { data: profiles, error: pError } = await supabase
-      .from("profiles")
-      .select("*");
+      .from("profiles").select("id, name, email, phone, role, wallet_balance, loyalty_points, is_blocked, blocked_at, blocked_reason, created_at");
 
     if (pError) {
       console.error("Error fetching profiles:", pError);
@@ -2859,8 +2860,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("shipments")
-      .select("*")
+      .from("shipments").select("id, order_id, shiprocket_order_id, shipment_id, awb_code, courier_name, status, created_at, updated_at")
       .eq("order_id", orderId)
       .maybeSingle();
 
@@ -2882,8 +2882,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("shipment_events")
-      .select("*")
+      .from("shipment_events").select("id, shipment_id, status, activity, location, timestamp")
       .eq("shipment_id", shipmentId)
       .order("timestamp", { ascending: true });
 
@@ -3078,12 +3077,10 @@ export const db = {
     } else {
       const [eventsRes, historyRes] = await Promise.all([
         supabase
-          .from("order_events")
-          .select("*")
+          .from("order_events").select("id, order_id, message, created_at")
           .eq("order_id", orderId),
         supabase
-          .from("order_status_history")
-          .select("*")
+          .from("order_status_history").select("id, order_id, status, notes, created_at")
           .eq("order_id", orderId)
       ]);
 
@@ -3335,7 +3332,7 @@ export const db = {
         'environment variables.'
       );
     }
-    let q = supabase.from("reviews").select("*").order("created_at", { ascending: false });
+    let q = supabase.from("reviews").select("id, product_id, rating, comment, name, location, approved, created_at").order("created_at", { ascending: false });
     if (filter && typeof filter.approved === "boolean") {
       q = q.eq("approved", filter.approved);
     }
@@ -3538,7 +3535,7 @@ export const db = {
         cutoff.setDate(cutoff.getDate() - 30);
         const { count, error } = await supabase
           .from("profiles")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("role", "customer")
           .gte("created_at", cutoff.toISOString());
         if (!error && count !== null) {
@@ -3564,12 +3561,12 @@ export const db = {
 
         const { count: checkoutAttempts } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select("id", { count: "exact", head: true })
           .gte('created_at', date30DaysAgo);
 
         const { count: completedOrders } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select("id", { count: "exact", head: true })
           .eq('status', 'Paid')
           .gte('created_at', date30DaysAgo);
 
@@ -3579,13 +3576,13 @@ export const db = {
 
         const { count: prevCheckoutAttempts } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select("id", { count: "exact", head: true })
           .gte('created_at', date60DaysAgo)
           .lt('created_at', date30DaysAgo);
 
         const { count: prevCompletedOrders } = await supabase
           .from('orders')
-          .select('*', { count: 'exact', head: true })
+          .select("id", { count: "exact", head: true })
           .eq('status', 'Paid')
           .gte('created_at', date60DaysAgo)
           .lt('created_at', date30DaysAgo);
@@ -3864,8 +3861,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("order_notes")
-      .select("*")
+      .from("order_notes").select("id, order_id, created_by, note, created_at")
       .eq("order_id", orderId)
       .order("created_at", { ascending: true });
     if (error) {
@@ -3986,7 +3982,7 @@ export const db = {
 
     const { count, error } = await supabase
       .from("user_cart")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .gte("updated_at", thirtyMinsAgo);
 
     if (error) {

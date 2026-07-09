@@ -28,6 +28,7 @@ export async function getProfileDataAction() {
       }
     };
   } catch (err: any) {
+    console.error('[profile.ts]:', err);
     return { success: false, error: err.message || "Failed to load profile data" };
   }
 }

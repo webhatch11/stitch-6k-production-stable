@@ -98,8 +98,9 @@ export async function POST(req: NextRequest) {
       message: `Successfully processed status update of "${current_status}" for order #${order.id}.`
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[Shiprocket Webhook] Error processing tracking webhook:", error);
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: message || "Internal server error" }, { status: 500 });
   }
 }

@@ -88,9 +88,10 @@ export async function POST(req: NextRequest) {
     const result = await fn(...(Array.isArray(args) ? args : []));
     return NextResponse.json(result);
 
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { success: false, error: e.message || "Internal error" },
+      { success: false, error: message || "Internal error" },
       { status: 500 }
     );
   }

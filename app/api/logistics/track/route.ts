@@ -182,10 +182,11 @@ export async function GET(req: NextRequest) {
       orderEvents: await db.getOrderEvents(order.id),
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error("[Track API] Unhandled exception:", err);
     return NextResponse.json(
-      { success: false, error: err.message || "Internal server error" },
+      { success: false, error: message || "Internal server error" },
       { status: 500 }
     );
   }

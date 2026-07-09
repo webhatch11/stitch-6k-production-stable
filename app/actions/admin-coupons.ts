@@ -130,6 +130,7 @@ export async function getCouponDiscountTotalAction(): Promise<{
     
     return { success: true, total, perCoupon };
   } catch (e: any) {
+    console.error('[admin-coupons.ts]:', e);
     return { success: false, error: e.message };
   }
 }

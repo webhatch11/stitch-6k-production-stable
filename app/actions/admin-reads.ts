@@ -20,6 +20,7 @@ export async function getProductsAction(options?: { includeDeleted?: boolean; tr
     const products = await db.getProducts(options);
     return { success: true, products };
   } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
     return { success: false, error: e.message || "Failed to load products" };
   }
 }
@@ -36,6 +37,7 @@ export async function getOrdersAction(userId?: string): Promise<{
       : await db.getOrders();
     return { success: true, orders };
   } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
     return { success: false, error: e.message || "Failed to load orders" };
   }
 }
@@ -50,6 +52,7 @@ export async function getCustomersAction(): Promise<{
     const customers = await db.getCustomers();
     return { success: true, customers };
   } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
     return { success: false, error: e.message || "Failed to load customers" };
   }
 }
@@ -64,6 +67,7 @@ export async function getCouponsAction(): Promise<{
     const coupons = await db.getCoupons();
     return { success: true, coupons };
   } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
     return { success: false, error: e.message || "Failed to load coupons" };
   }
 }
@@ -78,6 +82,7 @@ export async function getDashboardMetricsAction(): Promise<{
     const metrics = await db.getDashboardMetrics();
     return { success: true, metrics };
   } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
     return { success: false, error: e.message || "Failed to load metrics" };
   }
 }

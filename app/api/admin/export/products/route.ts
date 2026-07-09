@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Products Export Error]:", error);
     return NextResponse.json({ error: "Failed to export products" }, { status: 500 });
   }

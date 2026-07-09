@@ -171,8 +171,9 @@ export async function POST(req: NextRequest) {
       message: `Order #${orderId} successfully dispatched via Shiprocket.`
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[Dispatch API] Unhandled exception:", error);
-    return NextResponse.json({ success: false, error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: message || "Internal server error" }, { status: 500 });
   }
 }

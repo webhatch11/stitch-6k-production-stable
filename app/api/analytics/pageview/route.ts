@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     await db.recordPageView(path, sessionId);
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Log the real error server-side but never leak internals to this public,
     // unauthenticated endpoint.
     console.error("API Pageview Error:", err);

@@ -227,6 +227,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   try {
     savedOrder = await db.saveOrder(orderData);
   } catch (err) {
+    console.error('[checkout.ts]:', err);
     if (couponCode) {
       await db.decrementCouponUsage(couponCode);
     }
@@ -613,6 +614,7 @@ export async function processCodCheckoutAction(payload: {
       amount_to_collect: verifiedFinalPayable
     });
   } catch (err) {
+    console.error('[checkout.ts]:', err);
     if (couponCode) {
       await db.decrementCouponUsage(couponCode);
     }
@@ -656,6 +658,7 @@ export async function validateCouponAction(code: string, baseTotal: number, cart
     const res = await db.validateCoupon(code, baseTotal, user?.id, items);
     return { success: true, res };
   } catch (err: any) {
+    console.error('[checkout.ts]:', err);
     return { success: false, error: err.message || "Failed to validate coupon" };
   }
 }
@@ -665,6 +668,7 @@ export async function verifyStockAction(cart: any[]) {
     const res = await db.verifyStock(cart);
     return res;
   } catch (err: any) {
+    console.error('[checkout.ts]:', err);
     return { success: false, message: err.message || "Failed to verify stock" };
   }
 }

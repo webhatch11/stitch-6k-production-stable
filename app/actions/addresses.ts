@@ -23,6 +23,7 @@ export async function getUserAddressesAction(_userId?: string) {
     const addresses = await db.getUserAddresses(user.id);
     return { success: true, addresses };
   } catch (error: any) {
+    console.error('[addresses.ts]:', new Error("Silent catch caught error"));
     return { success: false, error: error.message || "Failed to fetch addresses" };
   }
 }
@@ -42,6 +43,7 @@ export async function saveUserAddressAction(address: Partial<UserAddress>) {
     const saved = await db.saveUserAddress(validated);
     return { success: true, address: saved };
   } catch (error: any) {
+    console.error('[addresses.ts]:', new Error("Silent catch caught error"));
     if (error.name === "ZodError" || error.issues || error.errors) {
       const list = error.issues || error.errors;
       const messages = list.map((e: any) => e.message).join(". ");
@@ -57,6 +59,7 @@ export async function deleteUserAddressAction(id: string, _userId?: string) {
     await db.deleteUserAddress(id, user.id);
     return { success: true };
   } catch (error: any) {
+    console.error('[addresses.ts]:', new Error("Silent catch caught error"));
     return { success: false, error: error.message || "Failed to delete address" };
   }
 }
@@ -67,6 +70,7 @@ export async function setDefaultUserAddressAction(id: string, _userId?: string) 
     await db.setDefaultUserAddress(id, user.id);
     return { success: true };
   } catch (error: any) {
+    console.error('[addresses.ts]:', new Error("Silent catch caught error"));
     return { success: false, error: error.message || "Failed to set default address" };
   }
 }

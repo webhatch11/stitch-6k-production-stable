@@ -168,10 +168,11 @@ export async function POST(req: NextRequest) {
           refund_status: "initiated",
           refund_reason: "Inventory deduction failed post-payment",
         }).eq("id", dbOrder.id);
-      } catch (e: any) {
-        console.error(`[verify] AUTO-REFUND FAILED, MANUAL INTERVENTION:`, e.message);
+      } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+        console.error(`[verify] AUTO-REFUND FAILED, MANUAL INTERVENTION:`, message);
         // Send alert
-        console.warn(`[ADMIN ALERT] Razorpay auto-refund failed for order ${dbOrder.id}: ${e.message}`);
+        console.warn(`[ADMIN ALERT] Razorpay auto-refund failed for order ${dbOrder.id}: ${message}`);
       }
 
       return NextResponse.json({ success: false, error: "Inventory deduction failed" }, { status: 400 });
@@ -338,7 +339,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "payment", route: "verify" } });
     return NextResponse.json(

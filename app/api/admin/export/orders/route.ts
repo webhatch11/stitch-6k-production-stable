@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Orders Export Error]:", error);
     return NextResponse.json({ error: "Failed to export orders" }, { status: 500 });
   }

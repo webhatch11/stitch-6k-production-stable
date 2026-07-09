@@ -9,6 +9,7 @@ export async function getRevenueTrendAction(days: number) {
     const trend = await db.getRevenueTrend(days);
     return { success: true, data: trend };
   } catch (err: any) {
+    console.error('[admin-analytics.ts]:', err);
     return { success: false, error: err.message || "Failed to load revenue trend" };
   }
 }
@@ -19,6 +20,7 @@ export async function getTopProductsAction(days: number) {
     const products = await db.getTopProducts(days, 8);
     return { success: true, data: products };
   } catch (err: any) {
+    console.error('[admin-analytics.ts]:', err);
     return { success: false, error: err.message || "Failed to load top products" };
   }
 }

@@ -28,10 +28,11 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ signature });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
     console.error("[cloudinary-sign] error:", e);
     return NextResponse.json(
-      { error: e.message || "Failed to sign" },
+      { error: message || "Failed to sign" },
       { status: 500 }
     );
   }

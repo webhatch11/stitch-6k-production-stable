@@ -61,6 +61,7 @@ export async function getSettingAction(key: "hero" | "business" | "flags" | "mar
     const value = await db.getSetting(key);
     return { success: true, value };
   } catch (e: any) {
+    console.error('[admin-settings.ts]:', e);
     return { success: false, error: e.message };
   }
 }
@@ -173,6 +174,7 @@ export async function getReviewsAction(approved?: boolean) {
     const items = await db.getReviews(typeof approved === "boolean" ? { approved } : undefined);
     return { success: true, value: items };
   } catch (e: any) {
+    console.error('[admin-settings.ts]:', e);
     return { success: false, error: e.message };
   }
 }

@@ -327,7 +327,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Webhook processing error:", error);
     Sentry.captureException(error, { tags: { area: "payment", route: "webhook-razorpay" } });
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });

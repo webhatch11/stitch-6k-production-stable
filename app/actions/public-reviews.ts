@@ -33,6 +33,7 @@ export async function submitReviewAction(input: any) {
     revalidatePath("/", "layout");
     return { success: true };
   } catch (err: any) {
+    console.error('[public-reviews.ts]:', err);
     return { success: false, error: err.message };
   }
 }

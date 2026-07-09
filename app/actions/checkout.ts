@@ -5,6 +5,8 @@ import { Product } from "@/lib/types";
 import { getServerUser } from "@/lib/supabase-server";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { calculateShipping } from "@/lib/shipping";
+import { headers } from "next/headers";
+import { CacheService } from "@/lib/cache";
 
 interface CartItem {
   productId?: string;
@@ -669,6 +671,15 @@ export async function getLoyaltyAndWalletAction() {
 export async function validateCouponAction(code: string, baseTotal: number, cartItems?: any[]) {
   try {
     const user = await getServerUser();
+    const headerList = await headers();
+    const ip = headerList.get("x-forwarded-for") || headerList.get("x-real-ip") || "127.0.0.1";
+    const limitKey = user?.id ? `user:${user.id}:coupon` : `ip:${ip}:coupon`;
+
+    const isAllowed = await CacheService.checkRateLimit(limitKey, 5, 60);
+    if (!isAllowed) {
+      return { success: false, error: "Too many coupon attempts. Please try again in a minute." };
+    }
+
     let items = cartItems;
     if (!items && user?.id) {
       items = await db.getUserCart(user.id);

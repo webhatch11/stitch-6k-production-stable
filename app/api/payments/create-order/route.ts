@@ -6,6 +6,7 @@ import { verifyAndPrepareGatewayCheckoutAction } from "@/app/actions/checkout";
 import { z } from "zod";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { getServerUser } from "@/lib/supabase-server";
+import { CacheService } from "@/lib/cache";
 
 const createOrderSchema = z.object({
   cart: z.array(z.any()).min(1),
@@ -43,6 +44,16 @@ export async function POST(req: NextRequest) {
 
     // Never trust a client-supplied userId — bind the payload to the session user.
     const payload = { ...parsed.data, userId: user_id };
+
+    // Rate limit coupon checking if a coupon is provided
+    if (payload.couponCode) {
+      const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "127.0.0.1";
+      const limitKey = user_id ? `user:${user_id}:coupon` : `ip:${ip}:coupon`;
+      const isAllowed = await CacheService.checkRateLimit(limitKey, 5, 60);
+      if (!isAllowed) {
+        return NextResponse.json({ success: false, error: "Too many coupon attempts. Please try again in a minute." }, { status: 429 });
+      }
+    }
 
     // 0. Check if the session user is blocked
     if (supabase) {

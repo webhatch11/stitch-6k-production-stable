@@ -191,5 +191,29 @@ export const CacheService = {
     } catch (e) {
       return false;
     }
+  },
+
+  /**
+   * Rate limits an identifier (e.g., IP address) for a specific action.
+   * Returns true if allowed, false if limit exceeded.
+   */
+  async checkRateLimit(identifier: string, limit: number, windowSecs: number): Promise<boolean> {
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return true; // Pass-through when Redis is disabled
+    }
+    if (redisClient && isRedisAvailable) {
+      const key = `ratelimit:${identifier}`;
+      try {
+        const count = await redisClient.incr(key);
+        if (count === 1) {
+          await redisClient.expire(key, windowSecs);
+        }
+        return count <= limit;
+      } catch (err: any) {
+        console.warn(`[Cache Service] Rate limit check failed for "${identifier}":`, err.message);
+        return true; // Fail-open to avoid blocking users
+      }
+    }
+    return true; // Fallback to pass-through if Redis is offline
   }
 };

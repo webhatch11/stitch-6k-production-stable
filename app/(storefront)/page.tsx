@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
-import HomeClient from "./page-client";
 import { Metadata } from "next";
+import dynamic from "next/dynamic";
+
+const HomeClient = dynamic(() => import("./page-client"), { ssr: true });
 
 export const metadata: Metadata = {
   metadataBase: new URL(

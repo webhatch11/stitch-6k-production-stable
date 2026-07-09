@@ -2,7 +2,9 @@ import React from "react";
 import { getServerUser } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import OrderConfirmedClient from "./OrderConfirmedClient";
+import dynamic from "next/dynamic";
+
+const OrderConfirmedClient = dynamic(() => import("./OrderConfirmedClient"), { ssr: true });
 
 interface PageProps {
   searchParams: Promise<{ orderId?: string }>;

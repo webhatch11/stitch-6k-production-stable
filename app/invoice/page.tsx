@@ -2,7 +2,9 @@ import React, { Suspense } from "react";
 import { getServerUser } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import InvoiceClient from "./InvoiceClient";
+import dynamic from "next/dynamic";
+
+const InvoiceClient = dynamic(() => import("./InvoiceClient"), { ssr: true });
 
 interface InvoicePageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

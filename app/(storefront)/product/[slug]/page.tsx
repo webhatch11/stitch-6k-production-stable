@@ -6,7 +6,9 @@ import React from "react";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import ProductDetailClient from "./ProductDetailClient";
+import dynamic from "next/dynamic";
+
+const ProductDetailClient = dynamic(() => import("./ProductDetailClient"), { ssr: true });
 
 interface PageProps {
   params: Promise<any>;

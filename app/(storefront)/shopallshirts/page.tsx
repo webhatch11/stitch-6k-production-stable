@@ -28,7 +28,9 @@ export const metadata: Metadata = {
 };
 
 import { db } from "@/lib/db";
-import ShopAllShirtsClient from "./ShopAllShirtsClient";
+import dynamic from "next/dynamic";
+
+const ShopAllShirtsClient = dynamic(() => import("./ShopAllShirtsClient"), { ssr: true });
 
 export default async function ShopAllShirtsPage() {
   const products = await db.getProducts();

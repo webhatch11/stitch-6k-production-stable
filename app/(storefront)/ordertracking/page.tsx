@@ -1,7 +1,9 @@
 import React, { Suspense } from "react";
 import { getServerUser } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
-import OrderTrackingClient from "./OrderTrackingClient";
+import dynamic from "next/dynamic";
+
+const OrderTrackingClient = dynamic(() => import("./OrderTrackingClient"), { ssr: true });
 
 export default async function OrderTrackingPage() {
   const user = await getServerUser();

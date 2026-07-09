@@ -4,7 +4,9 @@ export const revalidate = 60;
 
 import React from "react";
 import { db } from "@/lib/db";
-import GenZStreetwearClient from "./GenZStreetwearClient";
+import dynamic from "next/dynamic";
+
+const GenZStreetwearClient = dynamic(() => import("./GenZStreetwearClient"), { ssr: true });
 
 export default async function GenZStreetwearPage() {
   const genzProducts = await db.getProducts({ display_section: "genz" });

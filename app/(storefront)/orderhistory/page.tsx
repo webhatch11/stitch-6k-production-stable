@@ -2,7 +2,9 @@ import React from "react";
 import { getServerUser } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import OrderHistoryClient from "./OrderHistoryClient";
+import dynamic from "next/dynamic";
+
+const OrderHistoryClient = dynamic(() => import("./OrderHistoryClient"), { ssr: true });
 
 export default async function OrderHistoryPage() {
   const user = await getServerUser();

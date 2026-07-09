@@ -3,7 +3,9 @@ import { getServerUser, getServerSupabase } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import MyProfileClient from "./MyProfileClient";
+import dynamic from "next/dynamic";
+
+const MyProfileClient = dynamic(() => import("./MyProfileClient"), { ssr: true });
 
 export default async function MyProfilePage() {
   const user = await getServerUser();

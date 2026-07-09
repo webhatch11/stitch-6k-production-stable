@@ -1005,22 +1005,11 @@ export default function HomeClient({
 
           {/* Hero Content Text Overlay */}
           <div className="relative z-20 max-w-4xl mx-auto px-6 text-center text-white flex flex-col items-center gap-4 animate-premium-text">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#fed488] mb-2 block">
-              Be Original. Be 6K. Wear the Standard.
-            </span>
-            <h1 className="text-4xl md:text-7xl font-headline font-black tracking-[0.25em] uppercase leading-tight mb-2 whitespace-pre-line">
-              {activeSlides[currentHeroSlide]?.title || "PREDEFINING LUXURY"}
-            </h1>
-            {activeSlides[currentHeroSlide]?.desc && (
-              <p className="text-xs md:text-sm max-w-xl opacity-80 uppercase tracking-[0.3em] leading-relaxed mb-6">
-                {activeSlides[currentHeroSlide].desc}
-              </p>
-            )}
             <Link
               href={activeSlides[currentHeroSlide]?.ctaLink || "/shopallshirts"}
-              className="px-10 py-4 bg-white text-black text-[9px] font-black uppercase tracking-[0.25em] hover:bg-[#fed488] transition-all duration-300 shadow-xl hover:shadow-[0_0_20px_rgba(254,212,136,0.4)] rounded-none"
+              className="px-10 py-4 bg-white text-black text-[9px] font-black uppercase tracking-[0.25em] hover:bg-[#fed488] transition-all duration-300 shadow-xl hover:shadow-[0_0_20px_rgba(254,212,136,0.4)] rounded-none mt-12"
             >
-              {activeSlides[currentHeroSlide]?.ctaText || "Shop Collection"}
+              {activeSlides[currentHeroSlide]?.ctaText || "VIEW COLLECTION"}
             </Link>
           </div>
 

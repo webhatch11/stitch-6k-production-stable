@@ -428,6 +428,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                       key={size}
                       disabled={isOutOfStock}
                       onClick={() => setSelectedSize(size)}
+                      aria-label={`Size ${size}, ${sizeStock > 0 ? 'in stock' : 'sold out'}`}
                       className={`py-4 text-xs font-black uppercase tracking-widest btn-active-scale transition-all duration-300 relative ${
                         isOutOfStock
                           ? "border border-outline-variant/40 text-outline size-out-of-stock cursor-not-allowed opacity-35"

@@ -369,6 +369,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                       >
                         <Link
                           href={`/product/${product.slug}`}
+                          style={{ aspectRatio: '3/4' }}
                           className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem] select-none"
                         >
                           {/* Primary Image */}
@@ -502,7 +503,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {recentStore.recentItems.map((item) => (
                 <div key={item.id} className="group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:border-[#fed488]/40 rounded-2xl flex flex-col justify-between transition-all duration-300">
-                  <Link href={`/product/${item.slug}`} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-container select-none block">
+                  <Link href={`/product/${item.slug}`} style={{ aspectRatio: '3/4' }} className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-container select-none block">
                     <ProductImage
                       src={item.image}
                       alt={item.title}

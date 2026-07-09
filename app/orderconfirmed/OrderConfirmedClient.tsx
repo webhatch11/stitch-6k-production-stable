@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { trackPurchase } from "@/lib/analytics";
 
 interface OrderConfirmedClientProps {

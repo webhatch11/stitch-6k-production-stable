@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { useRecentStore } from "@/stores/recentStore";

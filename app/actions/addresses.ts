@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getServerUser } from "@/lib/supabase-server";
-import { UserAddress } from "@/lib/registry";
+import { UserAddress } from "@/lib/types";
 
 import { addressSchema } from "@/lib/schemas/address";
 

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { approveReturnPickupAction, rejectReturnAction, processReturnRefundAction } from "@/app/actions/admin-orders";
 
 import {

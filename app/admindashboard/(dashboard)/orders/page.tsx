@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { getOrdersAction } from "@/app/actions/admin-reads";
 import { bulkUpdateOrderStatusAction } from "@/app/actions/admin-orders";
 
@@ -41,17 +41,6 @@ export default function OrdersLedgerPage() {
 
   useEffect(() => {
     loadOrders();
-
-    // Listen for storage events
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "registry_orders") {
-        loadOrders();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   }, []);
 
   // Reset selected IDs when filter or search changes

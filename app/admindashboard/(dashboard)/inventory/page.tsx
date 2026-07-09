@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import { getProductsAction } from "@/app/actions/admin-reads";
 import {
   deleteProductAction,
@@ -78,17 +78,6 @@ export default function InventoryLedgerPage() {
 
   useEffect(() => {
     loadProducts();
-
-    // Listen for storage events
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "registry_products") {
-        loadProducts();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTrash]);
 

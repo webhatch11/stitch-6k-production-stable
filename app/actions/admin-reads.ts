@@ -8,7 +8,7 @@ import {
   Coupon,
   WalletTransaction,
   LoyaltyTransaction,
-} from "@/lib/registry";
+} from "@/lib/types";
 
 export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<{
   success: boolean;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order, WalletTransaction, LoyaltyTransaction, UserAddress } from "@/lib/registry";
+import { Order, WalletTransaction, LoyaltyTransaction, UserAddress } from "@/lib/types";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getProfileDataAction, updateProfileAction } from "@/app/actions/profile";
 import { useToastStore } from "@/stores/toastStore";
@@ -213,21 +213,6 @@ export default function MyProfileClient({
     if (typeof window !== "undefined" && window.location.hash === "#loyalty") {
       setActiveTab("loyalty");
     }
-
-    // Cross-tab sync listener
-    const handleStorage = async (e: StorageEvent) => {
-      if (
-        e.key === "registry_wallet_balance" ||
-        e.key === "registry_loyalty_points" ||
-        e.key === "registry_orders"
-      ) {
-        await refreshProfileData();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   }, []);
 
   const refreshProfileData = async () => {
@@ -242,7 +227,7 @@ export default function MyProfileClient({
   };
 
   const handleSignOut = async () => {
-    if (isSupabaseConfigured && supabase) {
+    if (isSupabaseConfigured() && supabase) {
       await supabase.auth.signOut();
     } else {
       localStorage.removeItem("mock_user_session");

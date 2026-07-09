@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { UserAddress } from "@/lib/registry";
+import { UserAddress } from "@/lib/types";
 import { getUserAddressesAction, saveUserAddressAction, deleteUserAddressAction, setDefaultUserAddressAction } from "@/app/actions/addresses";
 import { useCheckoutStore } from "@/stores/checkoutStore";
 import { useToastStore } from "@/stores/toastStore";

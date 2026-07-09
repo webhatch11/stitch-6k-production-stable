@@ -104,7 +104,7 @@ export default function AdminLoginPage() {
       }
 
       // 2. Send OTP
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -147,7 +147,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const { data, error } = await supabase.auth.verifyOtp({
           email,
           token: finalCode,
@@ -213,7 +213,7 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -402,7 +402,7 @@ export default function AdminLoginPage() {
         </Link>
 
         {/* Mock mode feedback */}
-        {!isSupabaseConfigured && (
+        {!isSupabaseConfigured() && (
           <div className="border-t border-white/10 pt-6 space-y-2 text-center">
             <div className="flex items-center justify-center gap-2 text-amber-500">
               <span className="material-symbols-outlined text-sm">info</span>

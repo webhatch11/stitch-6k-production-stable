@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { shiprocket } from "@/lib/shiprocket";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { getServerUser } from "@/lib/supabase-server";
-import { ShipmentEvent } from "@/lib/registry";
+import { ShipmentEvent } from "@/lib/types";
 
 // Only the fields the tracking UI needs — never the full order row, which
 // contains the address snapshot, contact details and payment breakdown.

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import * as Sentry from '@sentry/nextjs';
 
 export default function ErrorBoundary({
   error,
@@ -14,6 +15,14 @@ export default function ErrorBoundary({
   useEffect(() => {
     // Log the error to an error reporting service in production
     console.error("Global Error Caught:", error);
+    if (error) {
+      Sentry.captureException(error, {
+        tags: { 
+          component: 'ErrorBoundary',
+          type: 'unhandled_error'
+        }
+      });
+    }
   }, [error]);
 
   return (

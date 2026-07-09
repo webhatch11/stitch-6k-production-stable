@@ -1,4 +1,4 @@
-import { RegistryManager, Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote } from "./registry";
+import { Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote } from "./types";
 import { ShippingRules } from "./shipping";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
@@ -98,7 +98,14 @@ const mapDbProductToProduct = (p: any): Product => {
 async function attachVariantsToProducts(products: Product[]): Promise<Product[]> {
   if (products.length === 0) return products;
   const { supabase, isSupabaseConfigured } = loadService();
-  if (!isSupabaseConfigured || !supabase) return products;
+  if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
   const productIds = products.map((p) => p.id);
   const { data: allVariants } = await supabase
@@ -279,15 +286,12 @@ export const db = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
-      const res = await RegistryManager.getProducts();
-      let filteredRes = options?.display_section
-        ? res.filter(p => p.display_sections?.includes(options.display_section!))
-        : res;
-      if (!options?.includeDeleted) {
-        filteredRes = filteredRes.filter(p => !p.deleted_at && (p.productStatus === "active" || !p.productStatus));
-      }
-      await CacheService.set(cacheKey, filteredRes, 600);
-      return filteredRes;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     let query = supabase
@@ -324,7 +328,12 @@ export const db = {
     await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.saveProduct(product);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const dbPayload = {
       id: product.id || "ART-" + Date.now(),
@@ -429,9 +438,12 @@ export const db = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
-      const res = await RegistryManager.getProductBySlug(slug);
-      if (res) await CacheService.set(cacheKey, res, 600);
-      return res;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("products")
@@ -454,7 +466,12 @@ export const db = {
   async relatedProducts(slug: string): Promise<Product[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.relatedProducts(slug);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const current = await this.getProductBySlug(slug);
     if (!current) return [];
@@ -484,7 +501,12 @@ export const db = {
     await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.deleteProduct(id);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) {
@@ -495,7 +517,14 @@ export const db = {
 
   async softDeleteProduct(id: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const { data: existing } = await supabase
       .from("products")
@@ -523,7 +552,14 @@ export const db = {
 
   async restoreProduct(id: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const { data: existing } = await supabase
       .from("products")
@@ -553,11 +589,12 @@ export const db = {
   async getOrders(userId?: string): Promise<Order[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      const list = await RegistryManager.getOrders();
-      if (userId) {
-        return list.filter((o) => o.customer === userId || o.customer.toLowerCase().includes(userId.toLowerCase()));
-      }
-      return list;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     let query = supabase.from("orders").select("*");
     if (userId) {
@@ -583,9 +620,12 @@ export const db = {
   async getOrderById(orderId: string): Promise<Order | null> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      const list = await RegistryManager.getOrders();
-      const order = list.find((o) => o.id === orderId);
-      return order || null;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("orders")
@@ -603,8 +643,12 @@ export const db = {
   async getOrderByAwb(awb: string): Promise<Order | null> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      const list = await RegistryManager.getOrders();
-      return list.find((o) => o.shiprocketId === awb) || null;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("orders")
@@ -625,25 +669,12 @@ export const db = {
     await CacheService.del("analytics:dashboard");
 
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") {
-        return {
-          id: order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000),
-          customer: order.customer || "Guest Customer",
-          date: order.date || new Date().toLocaleDateString("en-IN"),
-          total: order.total || 0,
-          status: order.status || "Pending",
-          items: order.items || [],
-          originalTotal: order.originalTotal || 0,
-          couponDiscount: order.couponDiscount || 0,
-          couponCode: order.couponCode || "",
-          walletPaid: order.walletPaid || 0,
-          gatewayPaid: order.gatewayPaid || 0,
-          pointsRedeemed: order.pointsRedeemed || 0,
-          pointsDiscount: order.pointsDiscount || 0,
-          pointsEarned: order.pointsEarned || 0,
-        };
-      }
-      return RegistryManager.saveOrder(order);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const orderId = order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000);
@@ -792,9 +823,12 @@ export const db = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
-      const res = await RegistryManager.getDashboardMetrics();
-      await CacheService.set(cacheKey, res, 300);
-      return res;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data, error } = await supabase.rpc("get_dashboard_aggregates");
@@ -825,9 +859,12 @@ export const db = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
-      const res = await RegistryManager.getCoupons();
-      await CacheService.set(cacheKey, res, 86400); // 24 hours
-      return res;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -847,7 +884,12 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.saveCoupon(coupon);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const dbPayload = {
       id: coupon.id || "CPN-" + Date.now(),
@@ -877,7 +919,12 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.deleteCoupon(id);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase.from("coupons").delete().eq("id", id);
     if (error) {
@@ -897,7 +944,14 @@ export const db = {
       return cached;
     }
     
-    if (!isSupabaseConfigured || !supabase) return null;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { data, error } = await supabase
       .from("site_settings")
       .select("value")
@@ -924,7 +978,14 @@ export const db = {
 
   async saveSetting(key: string, value: any): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { error } = await supabase
       .from("site_settings")
       .upsert({ key, value, updated_at: new Date().toISOString() });
@@ -939,7 +1000,12 @@ export const db = {
   async validateCoupon(code: string, cartTotal: number, userId?: string, cartItems?: any[]): Promise<{ valid: boolean; coupon?: Coupon; error?: string; discountAmount?: number; message?: string; freeItems?: any[] }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.validateCoupon(code, cartTotal, userId, cartItems);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -1071,10 +1137,6 @@ export const db = {
           .maybeSingle();
         if (buyProdData?.title) {
           buyProductName = buyProdData.title;
-        } else {
-          const mockProds = RegistryManager.getProducts();
-          const p = mockProds.find(item => item.id === buyProductId);
-          if (p?.title) buyProductName = p.title;
         }
         return {
           valid: false,
@@ -1092,10 +1154,6 @@ export const db = {
           .maybeSingle();
         if (getProdData?.title) {
           getProductName = getProdData.title;
-        } else {
-          const mockProds = RegistryManager.getProducts();
-          const p = mockProds.find(item => item.id === getProductId);
-          if (p?.title) getProductName = p.title;
         }
         return {
           valid: true,
@@ -1136,7 +1194,12 @@ export const db = {
   async incrementCouponUsage(code: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.incrementCouponUsage(code);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase.rpc("coupon_atomic_increment", {
       p_code: code.toUpperCase()
@@ -1152,7 +1215,12 @@ export const db = {
   async decrementCouponUsage(code: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.decrementCouponUsage(code);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("coupons")
@@ -1195,7 +1263,12 @@ export const db = {
   async getWalletBalance(userId?: string): Promise<number> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getWalletBalance();
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return 0;
@@ -1216,7 +1289,12 @@ export const db = {
   async getWalletTransactions(userId?: string): Promise<WalletTransaction[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getWalletTransactions();
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return [];
@@ -1243,7 +1321,12 @@ export const db = {
   async applyWalletDebit(amount: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.applyWalletDebit(amount, orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return { success: false, error: "User authentication required." };
@@ -1268,7 +1351,12 @@ export const db = {
   async applyWalletCredit(amount: number, description: string, orderId: string, userId?: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.applyWalletCredit(amount, description, orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return;
@@ -1285,7 +1373,12 @@ export const db = {
   async getLoyaltyPoints(userId?: string): Promise<number> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getLoyaltyPoints();
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return 0;
@@ -1306,7 +1399,12 @@ export const db = {
   async getLoyaltyTransactions(userId?: string): Promise<LoyaltyTransaction[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getLoyaltyTransactions();
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return [];
@@ -1333,7 +1431,12 @@ export const db = {
   async applyLoyaltyDebit(points: number, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.applyLoyaltyDebit(points, orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return { success: false, error: "User authentication required." };
@@ -1358,7 +1461,12 @@ export const db = {
   async awardLoyaltyPoints(total: number, orderId: string, userId?: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.awardLoyaltyPoints(total, orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const points = Math.floor(total / 10);
     if (points <= 0) return;
@@ -1377,7 +1485,12 @@ export const db = {
   async applyLoyaltyCredit(points: number, description: string, orderId: string, userId?: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.applyLoyaltyCredit(points, description, orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const uid = userId;
     if (!uid) return;
@@ -1397,7 +1510,12 @@ export const db = {
   ): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.requestManualReturn(orderId, payload);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data: orderData, error: orderErr } = await supabase
       .from("orders")
@@ -1426,7 +1544,12 @@ export const db = {
   async approveReturnPickup(orderId: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.approveReturnPickup(orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("orders")
@@ -1439,7 +1562,12 @@ export const db = {
   async processReturnRefund(orderId: string, qualityCheckPassed = true, reason?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.processReturnRefund(orderId, qualityCheckPassed);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: orderData, error: orderErr } = await supabase
@@ -1591,7 +1719,12 @@ export const db = {
   async rejectReturn(orderId: string, rejectReason: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.rejectReturn(orderId, rejectReason);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("orders")
@@ -1607,7 +1740,12 @@ export const db = {
   async cancelOrderAndRefund(orderId: string, reason?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.cancelOrderAndRefund(orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: orderData, error: orderErr } = await supabase
@@ -1740,7 +1878,14 @@ export const db = {
 
   async issueRefund(orderId: string, reason: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const { data: orderData, error } = await supabase
       .from("orders")
@@ -1837,7 +1982,12 @@ export const db = {
   async approvePendingOrder(orderId: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.approvePendingOrder(orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("orders")
@@ -1851,7 +2001,12 @@ export const db = {
   async getUserAddresses(userId: string = "guest"): Promise<UserAddress[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getAddresses(userId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("user_addresses")
@@ -1868,7 +2023,14 @@ export const db = {
 
   async getAddressById(addressId: string, userId: string): Promise<UserAddress | null> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return null;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { data, error } = await supabase
       .from("user_addresses")
       .select("*")
@@ -1885,22 +2047,12 @@ export const db = {
   async saveUserAddress(address: Partial<UserAddress>): Promise<UserAddress> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") {
-        return {
-          id: address.id || "ADDR-" + Date.now(),
-          user_id: address.user_id || "guest",
-          name: address.name || "",
-          phone: address.phone || "",
-          address_line_1: address.address_line_1 || "",
-          address_line_2: address.address_line_2 || "",
-          city: address.city || "",
-          state: address.state || "",
-          postal_code: address.postal_code || "",
-          country: address.country || "India",
-          is_default: address.is_default || false,
-        };
-      }
-      return RegistryManager.saveAddress(address);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const newAddress: UserAddress = {
       id: address.id || "ADDR-" + Date.now(),
@@ -1946,7 +2098,12 @@ export const db = {
   async deleteUserAddress(id: string, userId: string = "guest"): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.deleteAddress(id);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     
     // fetch before delete to check if default (scoped to owner)
@@ -1969,7 +2126,12 @@ export const db = {
   async setDefaultUserAddress(id: string, userId: string = "guest"): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.setDefaultAddress(id, userId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     await supabase
       .from("user_addresses")
@@ -1987,7 +2149,14 @@ export const db = {
   // --- Cart DB Sync ---
   async getUserCart(userId: string): Promise<CartItem[]> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return [];
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const { data, error } = await supabase
       .from("user_cart")
@@ -2019,7 +2188,14 @@ export const db = {
 
   async syncCartToDB(userId: string, items: CartItem[]): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     try {
       if (items.length === 0) {
@@ -2094,7 +2270,14 @@ export const db = {
 
   async addToUserCart(userId: string, item: CartItem): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const pId = item.productId || "unknown";
     const size = item.size || "Default";
@@ -2143,7 +2326,14 @@ export const db = {
     color: string
   ): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     try {
       const { error } = await supabase
@@ -2164,7 +2354,14 @@ export const db = {
 
   async clearUserCart(userId: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     try {
       const { error } = await supabase
@@ -2231,8 +2428,12 @@ export const db = {
   async logDeductionFailure(productId: string, size: string, color: string, quantity: number, orderId?: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      console.warn(`[logDeductionFailure] Supabase not configured. Skip db logging for ${productId} ${size}/${color}`);
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     try {
       const { error } = await supabase.from("deduction_failures").insert({
@@ -2300,7 +2501,14 @@ export const db = {
     addPerVariant: { size: string; color: string; add: number }[]
   ): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     for (const { size, color, add } of addPerVariant) {
       if (add <= 0) continue;
@@ -2383,7 +2591,14 @@ export const db = {
     delta: number
   ): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
 
     const { data: variants, error: fetchErr } = await supabase
       .from("product_variants")
@@ -2461,7 +2676,12 @@ export const db = {
   async getOrderStatusHistory(orderId: string): Promise<OrderStatusHistory[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return RegistryManager.getOrderStatusHistory(orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("order_status_history")
@@ -2486,17 +2706,12 @@ export const db = {
   async addOrderStatusHistory(orderId: string, status: string, updatedBy?: string, metadata?: any): Promise<OrderStatusHistory> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") {
-        return {
-          id: "OSH-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
-          order_id: orderId,
-          status,
-          updated_by: updatedBy || "system",
-          metadata: metadata || {},
-          created_at: new Date().toISOString()
-        };
-      }
-      return RegistryManager.addOrderStatusHistory(orderId, status, updatedBy, metadata);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const entry = {
       order_id: orderId,
@@ -2523,49 +2738,12 @@ export const db = {
   async getCustomers(): Promise<any[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      const orders = await this.getOrders();
-      const customerMap = new Map<string, any>();
-
-      const defaultCustomers = [
-        { name: "Aarav Sharma", email: "aarav.sharma@example.com", wallet_balance: 2500, loyalty_points: 500, ltv: 0, order_count: 0 },
-        { name: "Ananya Patel", email: "ananya.patel@example.com", wallet_balance: 1800, loyalty_points: 320, ltv: 0, order_count: 0 },
-        { name: "Kabir Mehta", email: "kabir.mehta@example.com", wallet_balance: 0, loyalty_points: 150, ltv: 0, order_count: 0 }
-      ];
-
-      for (const c of defaultCustomers) {
-        customerMap.set(c.email, c);
-      }
-
-      for (const order of orders) {
-        const email = `${order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com`;
-        const existing = customerMap.get(email);
-        const orderTotal = order.status !== "Cancelled" && order.status !== "Expired" ? order.total : 0;
-        const orderCount = 1;
-
-        if (existing) {
-          existing.ltv += orderTotal;
-          existing.order_count += orderCount;
-          if (order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest") {
-            existing.wallet_balance = await this.getWalletBalance();
-            existing.loyalty_points = await this.getLoyaltyPoints();
-          }
-        } else {
-          customerMap.set(email, {
-            name: order.customer,
-            email,
-            wallet_balance: order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest"
-              ? await this.getWalletBalance()
-              : Math.floor(Math.random() * 2000),
-            loyalty_points: order.customer.toLowerCase() === "guest customer" || order.customer.toLowerCase() === "guest"
-              ? await this.getLoyaltyPoints()
-              : Math.floor(Math.random() * 400),
-            ltv: orderTotal,
-            order_count: orderCount,
-          });
-        }
-      }
-
-      return Array.from(customerMap.values());
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: profiles, error: pError } = await supabase
@@ -2614,20 +2792,12 @@ export const db = {
   async adjustCustomerBalance(email: string, type: "wallet" | "loyalty", amount: number, description: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (type === "wallet") {
-        if (amount < 0) {
-          await this.applyWalletDebit(Math.abs(amount), "ADMIN-ADJ", "ADMIN-ADJ");
-        } else {
-          await this.applyWalletCredit(amount, description, "ADMIN-ADJ");
-        }
-      } else {
-        if (amount < 0) {
-          await this.applyLoyaltyDebit(Math.abs(amount), "ADMIN-ADJ");
-        } else {
-          await this.applyLoyaltyCredit(amount, description, "ADMIN-ADJ");
-        }
-      }
-      return true;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: profile, error: pError } = await supabase
@@ -2681,8 +2851,12 @@ export const db = {
   async getShipmentByOrderId(orderId: string): Promise<Shipment | null> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") return null;
-      return RegistryManager.getShipmentByOrderId(orderId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("shipments")
@@ -2700,8 +2874,12 @@ export const db = {
   async getShipmentEvents(shipmentId: string): Promise<ShipmentEvent[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") return [];
-      return RegistryManager.getShipmentEvents(shipmentId);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("shipment_events")
@@ -2719,25 +2897,12 @@ export const db = {
   async saveShipment(shipment: Partial<Shipment>): Promise<Shipment> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") {
-        return {
-          id: shipment.id || "SHIP-" + Date.now(),
-          order_id: shipment.order_id || "",
-          shiprocket_order_id: shipment.shiprocket_order_id || "",
-          shipment_id: shipment.shipment_id || "",
-          awb_code: shipment.awb_code || "",
-          courier_name: shipment.courier_name || "",
-          status: shipment.status || "Order Placed",
-          etd: shipment.etd || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-          weight: shipment.weight || 0.4,
-          dimensions_length: shipment.dimensions_length || 30,
-          dimensions_width: shipment.dimensions_width || 22,
-          dimensions_height: shipment.dimensions_height || 5,
-          created_at: shipment.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      }
-      return RegistryManager.saveShipment(shipment);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const payload = {
@@ -2775,17 +2940,12 @@ export const db = {
   async saveShipmentEvent(event: Partial<ShipmentEvent>): Promise<ShipmentEvent> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") {
-        return {
-          id: event.id || "EVT-" + Date.now(),
-          shipment_id: event.shipment_id || "",
-          status: event.status || "",
-          activity: event.activity || "",
-          location: event.location || "",
-          timestamp: event.timestamp || new Date().toISOString()
-        };
-      }
-      return RegistryManager.saveShipmentEvent(event);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const payload = {
@@ -2816,8 +2976,12 @@ export const db = {
   async saveTrackingLog(log: { shipment_id: string; raw_payload: any }): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window === "undefined") return;
-      return RegistryManager.saveTrackingLog(log);
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { error } = await supabase
@@ -2835,7 +2999,12 @@ export const db = {
   async getNextOrderNumber(): Promise<string> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return `TEMP-${Date.now()}`;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase.rpc("get_next_order_number");
     if (error) {
@@ -2848,8 +3017,12 @@ export const db = {
   async createPaymentAuditLog(orderId: string, previousStatus: string | null, newStatus: string, source: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      console.log(`[Offline Payment Audit Log] Order: ${orderId}, ${previousStatus} -> ${newStatus} via ${source}`);
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase.from("payment_audit_logs").insert({
       order_id: orderId,
@@ -2865,17 +3038,12 @@ export const db = {
   async createOrderEvent(orderId: string, event: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      console.log(`[Offline Order Event] Order: ${orderId}, Event: ${event}`);
-      if (typeof window !== "undefined") {
-        try {
-          const events = JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
-          events.push({ event, created_at: new Date().toISOString() });
-          localStorage.setItem(`order_events:${orderId}`, JSON.stringify(events));
-        } catch (e) {
-          console.error("Error writing local storage order events", e);
-        }
-      }
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase.from("order_events").insert({
       order_id: orderId,
@@ -2901,14 +3069,12 @@ export const db = {
     let dbHistory: any[] = [];
 
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window !== "undefined") {
-        try {
-          dbEvents = JSON.parse(localStorage.getItem(`order_events:${orderId}`) || "[]");
-        } catch (e) {
-          dbEvents = [];
-        }
-        dbHistory = RegistryManager.getOrderStatusHistory(orderId);
-      }
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     } else {
       const [eventsRes, historyRes] = await Promise.all([
         supabase
@@ -3147,14 +3313,28 @@ export const db = {
 
   async submitReview(review: { name: string; location: string; rating: number; comment: string }) {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { error } = await supabase.from("reviews").insert([review]);
     return !error;
   },
 
   async getReviews(filter?: { approved?: boolean }) {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return [];
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     let q = supabase.from("reviews").select("*").order("created_at", { ascending: false });
     if (filter && typeof filter.approved === "boolean") {
       q = q.eq("approved", filter.approved);
@@ -3165,21 +3345,42 @@ export const db = {
 
   async updateReviewStatus(id: string, approved: boolean) {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { error } = await supabase.from("reviews").update({ approved }).eq("id", id);
     return !error;
   },
 
   async deleteReview(id: string) {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { error } = await supabase.from("reviews").delete().eq("id", id);
     return !error;
   },
 
   async updateReview(id: string, review: { comment: string }) {
     const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) return false;
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
     const { error } = await supabase.from("reviews").update(review).eq("id", id);
     return !error;
   },
@@ -3655,15 +3856,12 @@ export const db = {
   async getOrderNotes(orderId: string): Promise<OrderNote[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window !== "undefined") {
-        try {
-          const notes = JSON.parse(localStorage.getItem(`order_notes:${orderId}`) || "[]");
-          return notes;
-        } catch (e) {
-          return [];
-        }
-      }
-      return [];
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { data, error } = await supabase
       .from("order_notes")
@@ -3686,24 +3884,12 @@ export const db = {
   async addOrderNote(orderId: string, note: string, createdBy: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window !== "undefined") {
-        try {
-          const notes = JSON.parse(localStorage.getItem(`order_notes:${orderId}`) || "[]");
-          const newNote: OrderNote = {
-            id: "NOTE-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5),
-            orderId,
-            note,
-            createdBy,
-            createdAt: new Date().toISOString()
-          };
-          notes.push(newNote);
-          localStorage.setItem(`order_notes:${orderId}`, JSON.stringify(notes));
-          window.dispatchEvent(new Event("storage"));
-        } catch (e) {
-          console.error("Mock save note error:", e);
-        }
-      }
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("order_notes")
@@ -3721,25 +3907,12 @@ export const db = {
   async deleteOrderNote(noteId: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof window !== "undefined") {
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith("order_notes:")) {
-              const notes = JSON.parse(localStorage.getItem(key) || "[]");
-              const filtered = notes.filter((n: any) => n.id !== noteId);
-              if (notes.length !== filtered.length) {
-                localStorage.setItem(key, JSON.stringify(filtered));
-                window.dispatchEvent(new Event("storage"));
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Mock delete note error:", e);
-        }
-      }
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("order_notes")
@@ -3754,18 +3927,12 @@ export const db = {
   async recordPageView(path: string, sessionId: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof global !== "undefined") {
-        const g = global as any;
-        g.mockPageViews = g.mockPageViews || [];
-        g.mockPageViews.push({
-          path,
-          sessionId,
-          createdAt: new Date().toISOString()
-        });
-        const tenMinsAgo = Date.now() - 600000;
-        g.mockPageViews = g.mockPageViews.filter((pv: any) => new Date(pv.createdAt).getTime() > tenMinsAgo);
-      }
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { error } = await supabase
       .from("page_views")
@@ -3783,14 +3950,12 @@ export const db = {
     const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
 
     if (!isSupabaseConfigured || !supabase) {
-      if (typeof global !== "undefined") {
-        const g = global as any;
-        g.mockPageViews = g.mockPageViews || [];
-        const active = g.mockPageViews.filter((pv: any) => pv.createdAt >= fiveMinutesAgo);
-        const uniqueSessions = new Set(active.map((pv: any) => pv.sessionId));
-        return Math.max(3, uniqueSessions.size);
-      }
-      return 3;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data, error } = await supabase
@@ -3811,7 +3976,12 @@ export const db = {
     const thirtyMinsAgo = new Date(Date.now() - 1800000).toISOString();
 
     if (!isSupabaseConfigured || !supabase) {
-      return 7;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { count, error } = await supabase
@@ -3840,14 +4010,12 @@ export const db = {
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
 
     if (!isSupabaseConfigured || !supabase) {
-      return {
-        grossRevenue: 154000,
-        netRevenue: 141000,
-        totalRefunds: 13000,
-        gstCollected: 16500,
-        ordersCount: 98,
-        avgOrderValue: 1571
-      };
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: orders, error } = await supabase
@@ -3908,11 +4076,12 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
 
     if (!isSupabaseConfigured || !supabase) {
-      return [
-        { monthName: "Jun 2026", grossSales: 124500, gstCollected: 13418, netSales: 111082 },
-        { monthName: "May 2026", grossSales: 98200, gstCollected: 10584, netSales: 87616 },
-        { monthName: "Apr 2026", grossSales: 84600, gstCollected: 9064, netSales: 75536 }
-      ];
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const dateLimit = new Date();
@@ -3971,13 +4140,12 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
 
     if (!isSupabaseConfigured || !supabase) {
-      return [
-        { city: "Chennai", count: 48, revenue: 47040 },
-        { city: "Mumbai", count: 35, revenue: 34300 },
-        { city: "Bangalore", count: 28, revenue: 27440 },
-        { city: "Delhi", count: 22, revenue: 21560 },
-        { city: "Hyderabad", count: 18, revenue: 17640 }
-      ];
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -4022,13 +4190,12 @@ export const db = {
     if (cached) return cached;
 
     if (!isSupabaseConfigured || !supabase) {
-      const res = [
-        { category: "Heritage Wear", revenue: 250000, orderCount: 120, unitsSold: 180, percentage: 50 },
-        { category: "Streetwear", revenue: 150000, orderCount: 80, unitsSold: 120, percentage: 30 },
-        { category: "Accessories", revenue: 100000, orderCount: 50, unitsSold: 70, percentage: 20 },
-      ];
-      await CacheService.set(cacheKey, res, 300);
-      return res;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const { data: productsData, error: prodErr } = await supabase
@@ -4137,11 +4304,12 @@ export const db = {
     const { supabase, isSupabaseConfigured } = loadService();
 
     if (!isSupabaseConfigured || !supabase) {
-      return {
-        totalCustomers: 150,
-        repeatCustomers: 45,
-        repeatRate: 30.0,
-      };
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -4190,10 +4358,12 @@ export const db = {
   async getAdSpend(months: number = 3): Promise<AdSpend[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return [
-        { channel: "google_ads", month: "2026-06-01", spendAmount: 12000, campaignName: "summer_sale", notes: "Google Ads cost" },
-        { channel: "meta_ads", month: "2026-06-01", spendAmount: 8000, campaignName: "festive_apparel", notes: "Facebook Ads cost" }
-      ];
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - months);
@@ -4229,8 +4399,12 @@ export const db = {
   }): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      console.error("[Mock Mode] saveAdSpend:", data);
-      return;
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
     const { channel, month, spendAmount, campaignName, notes } = data;
     const targetMonth = month.endsWith("-01") ? month : `${month}-01`;
@@ -4274,10 +4448,12 @@ export const db = {
   async getROASReport(months: number = 3): Promise<ROASReport[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      return [
-        { channel: "google_ads", month: "2026-06-01", spend: 12000, revenue: 45600, roas: 3.8, roasFormatted: "3.8x" },
-        { channel: "meta_ads", month: "2026-06-01", spend: 8000, revenue: 32800, roas: 4.1, roasFormatted: "4.1x" }
-      ];
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
     }
 
     const spendRecords = await this.getAdSpend(months);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { getUserOrdersAction, requestManualReturnAction } from "@/app/actions/orders";
 import { trackRefund } from "@/lib/analytics";
 
@@ -41,18 +41,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    // Listen for storage events from admin or other tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "registry_orders") {
-        loadOrders();
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
+
 
   useEffect(() => {
     orders.forEach((order) => {

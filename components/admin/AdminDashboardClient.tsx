@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/types";
 import { deleteProductAction } from "@/app/actions/admin-products";
 import { bulkUpdateOrderStatusAction, processReturnRefundAction } from "@/app/actions/admin-orders";
 import { restockVariantAction } from "@/app/actions/admin-products";

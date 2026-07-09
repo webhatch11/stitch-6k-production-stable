@@ -144,7 +144,7 @@ export default function LoginPage() {
         // auth.users via the admin API — the true source of truth.
         // -------------------------------------------------------------------
         let userExists = false;
-        if (isSupabaseConfigured) {
+        if (isSupabaseConfigured()) {
           const { exists } = await checkUserExistsAction(email);
           userExists = exists;
         } else {
@@ -168,7 +168,7 @@ export default function LoginPage() {
         optionsData.phone = phone;
       }
 
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -227,7 +227,7 @@ export default function LoginPage() {
       // here is a genuine auth failure (wrong/expired code) and SHOULD be
       // shown to the user via setErrorMsg.
       // -----------------------------------------------------------------------
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const { error } = await supabase.auth.verifyOtp({
           email,
           token: finalCode,
@@ -291,7 +291,7 @@ export default function LoginPage() {
 
     let userRole = "customer";
     try {
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         // Use getSession() — more reliable immediately after verifyOtp than
         // getUser() which can return null before session cookies are written.
         const { data: sessionData } = await supabase.auth.getSession();
@@ -341,7 +341,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isSupabaseConfigured && supabase) {
+      if (isSupabaseConfigured() && supabase) {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const { error } = await supabase.auth.signInWithOtp({
           email,
@@ -775,7 +775,7 @@ export default function LoginPage() {
           )}
 
           {/* Quick Mock Login Assist card for Development */}
-          {!isSupabaseConfigured && (
+          {!isSupabaseConfigured() && (
             <div className="border-t border-gray-100 pt-6 space-y-2">
               <div className="flex items-center gap-2 text-amber-600">
                 <span className="material-symbols-outlined text-sm">info</span>

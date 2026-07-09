@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coupon } from "@/lib/registry";
+import { Coupon } from "@/lib/types";
 import { getCouponsAction, getProductsAction } from "@/app/actions/admin-reads";
 import { saveCouponAction, deleteCouponAction, getCouponDiscountTotalAction } from "@/app/actions/admin-coupons";
 
@@ -101,17 +101,6 @@ export default function CouponsLedgerPage() {
   useEffect(() => {
     loadCoupons();
     loadProducts();
-
-    // Listen for storage events
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "registry_coupons") {
-        loadCoupons();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   }, []);
 
   const loadCoupons = async () => {

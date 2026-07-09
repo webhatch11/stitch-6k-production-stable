@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
 import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
 import { submitReviewAction } from "@/app/actions/public-reviews";
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import { useCartStore } from "@/stores/cartStore";
 import { useRecentStore } from "@/stores/recentStore";
 import { trackViewProduct, trackAddToCart } from "@/lib/analytics";

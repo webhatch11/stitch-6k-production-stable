@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { supabaseService as supabase } from "@/lib/supabase-service";
 import pkg from "@/package.json";
 
 export const dynamic = "force-dynamic";
@@ -9,29 +8,34 @@ export const dynamic = "force-dynamic";
  * GET /api/health → { status, timestamp, supabase, version }
  */
 export async function GET() {
-  let supabaseStatus: "connected" | "error" = "error";
+  const checks = {
+    supabase: !!(
+      process.env.NEXT_PUBLIC_SUPABASE_URL && 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ),
+    razorpay: !!(
+      process.env.RAZORPAY_KEY_ID &&
+      process.env.RAZORPAY_KEY_SECRET
+    ),
+    cloudinary: !!(
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    ),
+    redis: !!(process.env.REDIS_URL),
+    resend: !!(process.env.RESEND_API_KEY)
+  };
 
-  try {
-    if (supabase) {
-      // Cheap connectivity probe: HEAD count on a small table.
-      const { error } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true });
-      supabaseStatus = error ? "error" : "connected";
-    }
-  } catch {
-    supabaseStatus = "error";
-  }
-
-  const healthy = supabaseStatus === "connected";
+  const allHealthy = Object.values(checks).every(Boolean);
 
   return NextResponse.json(
     {
-      status: healthy ? "ok" : "degraded",
+      status: allHealthy ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
-      supabase: supabaseStatus,
-      version: (pkg as { version?: string }).version || "unknown",
+      checks,
+      version: process.env.npm_package_version || pkg.version || "unknown"
     },
-    { status: healthy ? 200 : 503 }
+    {
+      status: allHealthy ? 200 : 503
+    }
   );
 }

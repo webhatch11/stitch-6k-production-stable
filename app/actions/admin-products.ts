@@ -4,7 +4,7 @@ import { getServerUser } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import { z } from "zod";
 
 const productSchema = z.object({

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 
 interface WishlistState {
   wishlistItems: Product[];

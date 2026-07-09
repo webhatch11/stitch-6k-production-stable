@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { Product } from "@/lib/registry";
+import { Product } from "@/lib/types";
 import { getServerUser } from "@/lib/supabase-server";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { calculateShipping } from "@/lib/shipping";

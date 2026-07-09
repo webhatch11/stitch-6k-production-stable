@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Order, Product } from "@/lib/registry";
+import { Order, Product } from "@/lib/types";
 import { updateOrderToProcessingAction } from "@/app/actions/orders";
 
 interface InvoiceClientProps {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { getCustomersAction, getOrdersAction } from "@/app/actions/admin-reads";
 import { adjustCustomerBalanceAction, blockCustomerAction, unblockCustomerAction } from "@/app/actions/admin-customers";
 

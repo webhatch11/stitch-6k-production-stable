@@ -21,7 +21,7 @@ import { clearCartAction } from "@/app/actions/cart";
 import { createBrowserClient } from "@supabase/ssr";
 import { AddressList } from "@/components/checkout/AddressList";
 import { AddressErrorBoundary } from "@/components/checkout/AddressErrorBoundary";
-import { UserAddress } from "@/lib/registry";
+import { UserAddress } from "@/lib/types";
 import { useToastStore } from "@/stores/toastStore";
 import { PaymentProcessingScreen } from "@/components/checkout/PaymentProcessingScreen";
 import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen";

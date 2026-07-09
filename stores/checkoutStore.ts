@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { UserAddress } from "@/lib/registry";
+import { UserAddress } from "@/lib/types";
 import { useState, useEffect } from "react";
 
 export interface CheckoutState {

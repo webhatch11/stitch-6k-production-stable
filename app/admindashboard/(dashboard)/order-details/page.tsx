@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Order, Product, OrderNote } from "@/lib/registry";
+import { Order, Product, OrderNote } from "@/lib/types";
 import { getOrdersAction, getProductsAction } from "@/app/actions/admin-reads";
 import {
   bulkUpdateOrderStatusAction,
@@ -118,17 +118,6 @@ function OrderDetailsContent() {
 
   useEffect(() => {
     loadOrderDetails();
-
-    // Listen for storage events
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "registry_orders" || e.key === "registry_products") {
-        loadOrderDetails();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   }, [orderId]);
 
   const loadOrderDetails = async () => {

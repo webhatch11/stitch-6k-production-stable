@@ -2,7 +2,7 @@
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
-import { Coupon } from "@/lib/registry";
+import { Coupon } from "@/lib/types";
 import { z } from "zod";
 
 const couponSchema = z

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Order } from "@/lib/registry";
+import { Order } from "@/lib/types";
 import { getOrdersAction } from "@/app/actions/admin-reads";
 
 export default function InvoicesLedgerPage() {
@@ -31,17 +31,6 @@ export default function InvoicesLedgerPage() {
 
   useEffect(() => {
     loadInvoices();
-
-    // Listen for storage events
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === "registry_orders") {
-        loadInvoices();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-    };
   }, []);
 
   const loadInvoices = async () => {

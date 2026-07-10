@@ -2866,6 +2866,21 @@ export const db = {
     });
   },
 
+  async getCustomerProfile(userId: string): Promise<any | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return null;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, email, phone')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) {
+      console.error("Error fetching customer profile:", error);
+      return null;
+    }
+    return data;
+  },
+
   async adjustCustomerBalance(email: string, type: "wallet" | "loyalty", amount: number, description: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {

@@ -96,7 +96,7 @@ export default function CustomerDossierDetailPage({ params }: PageProps) {
       if (ordersRes.success) {
         const customerOrders = (ordersRes.orders || []).filter(
           (o) =>
-            o.customer.toLowerCase().replace(/\s+/g, ".") + "@example.com" === email.toLowerCase() ||
+            o.address_snapshot?.email?.toLowerCase() === email.toLowerCase() ||
             (email.toLowerCase().includes("guest") &&
               (o.customer.toLowerCase() === "guest customer" || o.customer.toLowerCase() === "guest"))
         );

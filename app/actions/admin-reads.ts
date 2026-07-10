@@ -42,6 +42,21 @@ export async function getOrdersAction(userId?: string): Promise<{
   }
 }
 
+export async function getCustomerProfileAction(userId: string): Promise<{
+  success: boolean;
+  profile?: { name: string | null; email: string | null; phone: string | null };
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+    const profile = await db.getCustomerProfile(userId);
+    return { success: true, profile };
+  } catch (e: any) {
+    console.error('[admin-reads.ts]:', e);
+    return { success: false, error: e.message || "Failed to load customer profile" };
+  }
+}
+
 export async function getCustomersAction(): Promise<{
   success: boolean;
   customers?: any[];

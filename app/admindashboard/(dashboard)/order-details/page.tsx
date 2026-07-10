@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Order, Product, OrderNote } from "@/lib/types";
-import { getOrdersAction, getProductsAction } from "@/app/actions/admin-reads";
+import { getOrdersAction, getProductsAction, getCustomerProfileAction } from "@/app/actions/admin-reads";
 import {
   bulkUpdateOrderStatusAction,
   approvePendingOrderAction,
@@ -26,6 +26,7 @@ function OrderDetailsContent() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customerProfile, setCustomerProfile] = useState<{ name: string | null; email: string | null; phone: string | null } | null>(null);
   const [qualityCheck, setQualityCheck] = useState<"passed" | "failed">("passed");
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -122,7 +123,7 @@ function OrderDetailsContent() {
 
   const loadOrderDetails = async () => {
     const ordersRes = await getOrdersAction();
-    let currentOrder = null;
+    let currentOrder: Order | null = null;
     if (ordersRes.success) {
       const list = ordersRes.orders || [];
       const matched = list.find((o) => o.id === orderId) || (list.length > 0 ? list[0] : null);
@@ -133,8 +134,20 @@ function OrderDetailsContent() {
     if (prodsRes.success) setProducts(prodsRes.products || []);
 
     if (currentOrder) {
-      loadEvents((currentOrder as any).id);
-      loadNotes((currentOrder as any).id);
+      loadEvents(currentOrder.id);
+      loadNotes(currentOrder.id);
+      
+      const uId = currentOrder.userId || currentOrder.user_id;
+      if (uId) {
+        const profileRes = await getCustomerProfileAction(uId);
+        if (profileRes.success && profileRes.profile) {
+          setCustomerProfile(profileRes.profile);
+        } else {
+          setCustomerProfile(null);
+        }
+      } else {
+        setCustomerProfile(null);
+      }
     }
   };
 
@@ -839,26 +852,107 @@ function OrderDetailsContent() {
           {/* Customer dossier */}
           <div className="bg-white border border-gray-200 p-8 shadow-sm rounded-none">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-6">Customer Dossier</h3>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="size-12 border border-gray-200 grayscale rounded-none flex items-center justify-center bg-gray-50 text-gray-300">
-                <span className="material-symbols-outlined text-lg">person</span>
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest">{order.customer}</p>
-                <p className="text-[9px] text-gray-400 font-bold lowercase tracking-wider mt-0.5">
-                  {order.customer.toLowerCase().replace(/\s+/g, ".")}@example.com
-                </p>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Delivery Address</p>
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide leading-relaxed italic">
-                Apt 402, Sky-High Residency<br />
-                7th Main, Sector 4, HSR Layout<br />
-                Bengaluru, Karnataka 560102<br />
-                India
-              </p>
-            </div>
+            {(() => {
+              const isFakeEmail = (email: string) => 
+                !email || 
+                email.includes('@example.com') ||
+                email.includes('@placeholder') ||
+                email.includes('@test.com') ||
+                email === 'aditya.singhania@heritage.com';
+
+              const toProperCase = (str: string) => {
+                if (!str) return "";
+                return str.toLowerCase()
+                  .split(' ')
+                  .map(word => {
+                    if (word.startsWith("no:")) {
+                      return "No:" + word.slice(3);
+                    }
+                    if (word === "hsr") return "HSR";
+                    return word.charAt(0).toUpperCase() + word.slice(1);
+                  })
+                  .join(' ');
+              };
+
+              const profileEmail = customerProfile?.email || "";
+              const snapshotEmail = order.address_snapshot?.email || "";
+              let displayEmail = "Email not provided";
+              if (profileEmail && !isFakeEmail(profileEmail)) {
+                displayEmail = profileEmail;
+              } else if (snapshotEmail && !isFakeEmail(snapshotEmail)) {
+                displayEmail = snapshotEmail;
+              }
+
+              const customerName = customerProfile?.name || order.address_snapshot?.name || order.customer;
+              const phone = customerProfile?.phone || order.address_snapshot?.phone || "Not provided";
+
+              const addr = order.address_snapshot;
+
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="size-12 border border-gray-200 grayscale rounded-none flex items-center justify-center bg-gray-50 text-gray-300">
+                      <span className="material-symbols-outlined text-lg">person</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-widest">{customerName}</p>
+                      <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5">
+                        {displayEmail}
+                      </p>
+                      {displayEmail !== "Email not provided" && (
+                        <a 
+                          href={`mailto:${displayEmail}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            color: '#BA7517',
+                            textDecoration: 'none',
+                            marginTop: '8px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          ✉ Contact Customer
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Phone</p>
+                    <p className="text-xs font-bold text-gray-700 tracking-wider">
+                      {phone}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Delivery Address</p>
+                    {addr ? (() => {
+                      const line1 = toProperCase(addr.address_line_1 || addr.addressLine1 || "");
+                      const line2 = toProperCase(addr.address_line_2 || addr.addressLine2 || "");
+                      const city = toProperCase(addr.city || "");
+                      const state = toProperCase(addr.state || "");
+                      const pin = addr.postal_code || addr.postalCode || addr.pincode || "";
+                      const country = toProperCase(addr.country || "India");
+
+                      return (
+                        <p className="text-xs font-semibold text-gray-600 tracking-wide leading-relaxed italic">
+                          {line1}
+                          {line2 && <><br />{line2}</>}
+                          <br />
+                          {city}, {state} - {pin}
+                          <br />
+                          {country}
+                        </p>
+                      );
+                    })() : (
+                      <p className="text-xs text-gray-400 italic">No delivery address snapshotted on order.</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Payment Status Card */}

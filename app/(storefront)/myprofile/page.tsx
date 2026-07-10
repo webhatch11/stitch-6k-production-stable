@@ -13,19 +13,28 @@ export default async function MyProfilePage() {
     redirect("/login");
   }
 
-  let name = "Aditya R.";
-  let email = "aditya.singhania@heritage.com";
-  let phone = "+91 98765 43210";
+  let name = "";
+  let email = "";
+  let phone = "";
 
   const supabase = await getServerSupabase();
   if (supabase) {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (authUser) {
       const metadata = authUser.user_metadata || {};
-      name = metadata.name || "Customer User";
+      name = metadata.name || metadata.full_name || "Customer User";
       email = authUser.email || "";
       phone = metadata.phone || authUser.phone || "Not Provided";
     }
+  }
+
+  // Safe session fallback if authUser query fails
+  if (!email && user?.email) {
+    email = user.email;
+    name = name || user.email.split("@")[0] || "Customer User";
+  }
+  if (!phone) {
+    phone = "Not Provided";
   }
 
   const balance = await db.getWalletBalance(user.id);

@@ -43,34 +43,9 @@ export default function Navbar() {
     };
   }, [supabase]);
 
-  // Sync mock user in development if Supabase not configured
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      const mockSession = localStorage.getItem("mock_user_session");
-      if (mockSession) {
-        const mockProfile = localStorage.getItem("mock_user_profile");
-        if (mockProfile) {
-          const parsed = JSON.parse(mockProfile);
-          setUser({
-            id: parsed.id,
-            email: parsed.email,
-            user_metadata: { full_name: parsed.name },
-          } as any);
-        }
-      } else {
-        setUser(null);
-      }
-    }
-  }, [pathname]);
-
   const handleSignOut = async () => {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       await supabase.auth.signOut();
-    } else {
-      localStorage.removeItem("mock_user_session");
-      localStorage.removeItem("mock_user_profile");
-      document.cookie = "mock_user_session=; path=/; max-age=0";
-      setUser(null);
     }
     useCartStore.getState().clearCart();
     setDropdownOpen(false);

@@ -88,10 +88,43 @@ export async function POST(req: NextRequest) {
     }
 
     if (paymentEntity?.amount && 
-        paymentEntity.amount !== expectedAmount) {
+        expectedAmount &&
+        Number(paymentEntity.amount) < expectedAmount) {
+      
       console.error(
-        `Amount mismatch: paid ${paymentEntity.amount}` +
-        ` expected ${expectedAmount} for order ${dbOrder.id}`
+        '[FRAUD ALERT] Payment amount mismatch:',
+        `paid=${paymentEntity.amount}`,
+        `expected=${expectedAmount}`,
+        `orderId=${dbOrder.id}`
+      );
+      
+      // Capture to Sentry immediately
+      const Sentry = await import('@sentry/nextjs');
+      Sentry.captureEvent({
+        message: 'FRAUD: Payment amount mismatch',
+        level: 'error',
+        extra: {
+          paid: paymentEntity.amount,
+          expected: expectedAmount,
+          orderId: dbOrder.id
+        }
+      });
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Payment amount verification failed.' 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (paymentEntity?.amount && Number(paymentEntity.amount) > expectedAmount) {
+      console.warn(
+        `[Overpayment] Payment amount greater than expected:`,
+        `paid=${paymentEntity.amount}`,
+        `expected=${expectedAmount}`,
+        `orderId=${dbOrder.id}`
       );
     }
 

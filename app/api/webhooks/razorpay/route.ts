@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
           if (!dbOrder) {
             console.log(`[Webhook] No order found for razorpay_order_id=${razorpayOrderId}`);
           } else {
-            const earned = Math.floor(dbOrder.total / 10);
+            const earned = Math.floor(dbOrder.total / 100) * 5; // Business rule: ₹100 spent = 5 points
 
             let isRecoveryMode = false;
             let claimed = null;

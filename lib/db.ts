@@ -1501,7 +1501,7 @@ export const db = {
         'environment variables.'
       );
     }
-    const points = Math.floor(total / 10);
+    const points = Math.floor(total / 100) * 5; // Business rule: ₹100 spent = 5 points (earn rate)
     if (points <= 0) return;
 
     const uid = userId;

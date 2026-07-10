@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
     // Compute earned points before the atomic claim so all 4 columns are written
     // in a single UPDATE statement.
-    const earned = Math.floor(dbOrder.total / 10);
+    const earned = Math.floor(dbOrder.total / 100) * 5; // Business rule: ₹100 spent = 5 points
 
     let claimed = null;
     if (isRecoveryMode) {

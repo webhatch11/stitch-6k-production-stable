@@ -210,13 +210,16 @@ export default function CheckoutPage() {
   const discountedTotal = baseTotal - appliedDiscount;
 
   // Loyalty calculations (max 50% cart value)
+  // Business rule: 1 point = ₹0.50 redemption value | earn rate: ₹100 = 5 points
+  const LOYALTY_POINT_VALUE = 0.5; // ₹0.50 per point
   let loyaltyDiscount = 0;
   let pointsRedeemed = 0;
   if (loyaltyChecked) {
     const maxLoyaltyDiscount = Math.floor(discountedTotal / 2);
-    const availableLoyaltyDiscount = Math.floor(availablePoints / 10);
+    const availableLoyaltyDiscount = Math.floor(availablePoints * LOYALTY_POINT_VALUE);
     loyaltyDiscount = Math.min(maxLoyaltyDiscount, availableLoyaltyDiscount);
-    pointsRedeemed = loyaltyDiscount * 10;
+    // Convert discount back to points count: ₹1 discount = 2 points used (since 1pt = ₹0.50)
+    pointsRedeemed = Math.ceil(loyaltyDiscount / LOYALTY_POINT_VALUE);
   }
 
   const netTotal = discountedTotal - loyaltyDiscount;

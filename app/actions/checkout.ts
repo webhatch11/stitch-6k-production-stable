@@ -129,7 +129,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // Ensure finalPayable is zero
-  const verifiedPointsDiscount = pointsRedeemed * 1; // 1 point = 1 INR discount
+  const verifiedPointsDiscount = pointsRedeemed * 0.5; // 1 point = ₹0.50 discount
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
@@ -254,7 +254,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     orderId: idempotencyKey,
     order: savedOrder,
     walletBalance: dbWalletBalance - walletDeduction,
-    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 10),
+    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 100) * 5,
   };
 }
 
@@ -376,7 +376,7 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     }
   }
 
-  const verifiedPointsDiscount = finalPointsRedeemed * 1;
+  const verifiedPointsDiscount = finalPointsRedeemed * 0.5; // 1 point = ₹0.50 discount
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
@@ -499,7 +499,7 @@ export async function processCodCheckoutAction(payload: {
   }
 
   // A. Verify COD eligibility rules server-side
-  const finalPayable = Math.max(0, netTotal - (finalPointsRedeemed * 1) - finalWalletDeduction);
+  const finalPayable = Math.max(0, netTotal - (finalPointsRedeemed * 0.5) - finalWalletDeduction); // 1 point = ₹0.50
   
   // B. Verify stock first server-side
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
@@ -545,7 +545,7 @@ export async function processCodCheckoutAction(payload: {
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
-  const verifiedPointsDiscount = finalPointsRedeemed * 1;
+  const verifiedPointsDiscount = finalPointsRedeemed * 0.5; // 1 point = ₹0.50 discount
   const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - finalWalletDeduction);
 
   const { evaluateCodRules } = await import("@/lib/codRules");

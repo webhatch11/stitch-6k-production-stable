@@ -2,11 +2,23 @@ import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
 export async function initJobs() {
-  if (process.env.VERCEL === '1' || process.env.VERCEL === 'true') {
+  // ── Guard 1: Never run workers inside Vercel serverless functions ──────────
+  if (process.env.VERCEL === "1" || process.env.VERCEL === "true") {
     console.log(
-      '[Jobs] Vercel serverless detected — ' +
-      'BullMQ workers disabled. ' +
-      'Will activate after VPS deployment.'
+      "[Jobs] Vercel serverless detected — " +
+        "BullMQ workers disabled. " +
+        "Run the separate worker process on VPS."
+    );
+    return;
+  }
+
+  // ── Guard 2: Only schedule/start workers when IS_WORKER=true ──────────────
+  // This prevents Next.js from accidentally spawning worker threads during
+  // page rendering or build. The dedicated worker process sets IS_WORKER=true.
+  if (process.env.IS_WORKER !== "true") {
+    console.log(
+      "[Jobs] Skipping worker init — " +
+        "run the worker process separately with IS_WORKER=true."
     );
     return;
   }
@@ -31,7 +43,7 @@ export async function initJobs() {
 
     // 1. Initialize Shipment Sync repeatable job
     const shipmentQueue = new Queue("shipment-sync", { connection: connection as any });
-    
+
     // Clear old repeatable jobs to avoid duplicates
     const repeatableJobs = await shipmentQueue.getRepeatableJobs();
     for (const job of repeatableJobs) {
@@ -43,9 +55,7 @@ export async function initJobs() {
       "sync_active_shipments",
       {},
       {
-        repeat: {
-          every: 30 * 60 * 1000, // 30 mins
-        },
+        repeat: { every: 30 * 60 * 1000 }, // 30 mins
         removeOnComplete: true,
         removeOnFail: true,
       }
@@ -59,14 +69,11 @@ export async function initJobs() {
       await cleanupQueue.removeRepeatableByKey(job.key);
     }
 
-    // Add cleanup job every 5 minutes
     await cleanupQueue.add(
       "cleanup_expired_reservations",
       {},
       {
-        repeat: {
-          every: 5 * 60 * 1000, // 5 mins
-        },
+        repeat: { every: 5 * 60 * 1000 }, // 5 mins
         removeOnComplete: true,
         removeOnFail: true,
       }
@@ -80,34 +87,28 @@ export async function initJobs() {
       await recoveryQueue.removeRepeatableByKey(job.key);
     }
 
-    // Sweep pending payments every 15 minutes
     await recoveryQueue.add(
       "sweep_pending_payments",
       {},
       {
-        repeat: {
-          every: 15 * 60 * 1000, // 15 mins
-        },
+        repeat: { every: 15 * 60 * 1000 }, // 15 mins
         removeOnComplete: true,
         removeOnFail: true,
       }
     );
 
-    // Clean up old expired orders every 24 hours
     await recoveryQueue.add(
       "cleanup_expired_orders",
       {},
       {
-        repeat: {
-          every: 24 * 60 * 60 * 1000, // 24 hours
-        },
+        repeat: { every: 24 * 60 * 60 * 1000 }, // 24 hours
         removeOnComplete: true,
         removeOnFail: true,
       }
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable payment-recovery jobs (sweep every 15m, cleanup every 24h)");
 
-    // Close temporary connection
+    // Close the temporary scheduling connection (workers use their own connections)
     await connection.quit();
 
   } catch (err: any) {

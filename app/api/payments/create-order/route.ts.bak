@@ -20,7 +20,6 @@ const createOrderSchema = z.object({
   idempotencyKey: z.string().min(1),
   addressId: z.string().optional(),
   userId: z.string().optional(),
-  guestAddress: z.any().optional(),
   utm_source: z.string().nullable().optional(),
   utm_medium: z.string().nullable().optional(),
   utm_campaign: z.string().nullable().optional(),
@@ -29,7 +28,10 @@ const createOrderSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getServerUser();
-    const user_id = user ? user.id : null;
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized: login required." }, { status: 401 });
+    }
+    const user_id = user.id;
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
 
@@ -40,8 +42,8 @@ export async function POST(req: NextRequest) {
     const { idempotencyKey } = parsed.data;
     console.error('[Create Order] idempotencyKey:', idempotencyKey ? (idempotencyKey.slice(0, 8) + '...') : 'undefined');
 
-    // Never trust a client-supplied userId — bind the payload to the session user if logged in.
-    const payload = { ...parsed.data, userId: user_id || undefined };
+    // Never trust a client-supplied userId — bind the payload to the session user.
+    const payload = { ...parsed.data, userId: user_id };
 
     // Rate limit coupon checking if a coupon is provided
     if (payload.couponCode) {
@@ -53,8 +55,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 0. Check if the session user is blocked (only if logged in)
-    if (supabase && user_id) {
+    // 0. Check if the session user is blocked
+    if (supabase) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("is_blocked")
@@ -157,8 +159,8 @@ export async function POST(req: NextRequest) {
       cartItems: checkoutState.cartItems,
       paymentStatus: "PAYMENT_PENDING",
       address_snapshot: checkoutState.addressSnapshot ?? null,
-      userId: user_id || undefined,
-      user_id: user_id || undefined,
+      userId: user_id,
+      user_id: user_id,
       utm_source: parsed.data.utm_source || undefined,
       utm_medium: parsed.data.utm_medium || undefined,
       utm_campaign: parsed.data.utm_campaign || undefined,

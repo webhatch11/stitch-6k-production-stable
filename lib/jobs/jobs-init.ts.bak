@@ -73,40 +73,6 @@ export async function initJobs() {
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable reservation-cleanup sweep job (every 5m)");
 
-    // 3. Initialize Payment Recovery repeatable jobs
-    const recoveryQueue = new Queue("payment-recovery", { connection: connection as any });
-    const recoveryRepeatables = await recoveryQueue.getRepeatableJobs();
-    for (const job of recoveryRepeatables) {
-      await recoveryQueue.removeRepeatableByKey(job.key);
-    }
-
-    // Sweep pending payments every 15 minutes
-    await recoveryQueue.add(
-      "sweep_pending_payments",
-      {},
-      {
-        repeat: {
-          every: 15 * 60 * 1000, // 15 mins
-        },
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-
-    // Clean up old expired orders every 24 hours
-    await recoveryQueue.add(
-      "cleanup_expired_orders",
-      {},
-      {
-        repeat: {
-          every: 24 * 60 * 60 * 1000, // 24 hours
-        },
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-    console.log("[Jobs Init] ✓ Scheduled repeatable payment-recovery jobs (sweep every 15m, cleanup every 24h)");
-
     // Close temporary connection
     await connection.quit();
 

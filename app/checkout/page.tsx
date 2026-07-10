@@ -130,11 +130,7 @@ export default function CheckoutPage() {
 
   const userId = user?.id || null;
 
-  useEffect(() => {
-    if (!loadingUser && !userId) {
-      router.push("/login?redirect=/checkout");
-    }
-  }, [loadingUser, userId, router]);
+  // Redirect to login bypassed to support guest checkouts
 
   // Cart & Calculation States
   const cartItems = useCartStore((state) => state.cartItems);
@@ -465,14 +461,15 @@ export default function CheckoutPage() {
           const res = await processCodCheckoutAction({
             cart,
             couponCode: appliedCouponCode,
-            walletDeduction,
-            pointsRedeemed,
-            loyaltyDiscount,
+            walletDeduction: userId ? walletDeduction : 0,
+            pointsRedeemed: userId ? pointsRedeemed : 0,
+            loyaltyDiscount: userId ? loyaltyDiscount : 0,
             baseTotal,
             netTotal,
             customerName,
             idempotencyKey,
             addressId: selectedAddress?.id,
+            guestAddress: !userId ? selectedAddress : undefined,
             userId,
             pincode: selectedAddress?.postal_code || "",
             utm_source,
@@ -534,14 +531,15 @@ export default function CheckoutPage() {
             body: JSON.stringify({
               cart,
               couponCode: appliedCouponCode,
-              walletDeduction,
-              pointsRedeemed,
-              loyaltyDiscount,
+              walletDeduction: userId ? walletDeduction : 0,
+              pointsRedeemed: userId ? pointsRedeemed : 0,
+              loyaltyDiscount: userId ? loyaltyDiscount : 0,
               baseTotal,
               netTotal,
               customerName,
               idempotencyKey,
               addressId: selectedAddress?.id,
+              guestAddress: !userId ? selectedAddress : undefined,
               userId,
               utm_source,
               utm_medium,

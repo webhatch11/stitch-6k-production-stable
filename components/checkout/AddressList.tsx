@@ -236,6 +236,10 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
   // Fetch addresses and apply priority rules
   const fetchAddresses = useCallback(async (selectId?: string | null) => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await getUserAddressesAction(userId);
@@ -345,7 +349,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
     const dataToSave = {
       ...formData,
-      user_id: userId,
+      user_id: userId || "guest",
     };
 
     // Validate using Zod schema
@@ -353,6 +357,33 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
     if (!validation.success) {
       const errorMsg = validation.error.issues.map((issue) => issue.message).join(". ");
       useToastStore.getState().addToast(`❌ Validation Error: ${errorMsg}`);
+      setFormLoading(false);
+      return;
+    }
+
+    if (!userId) {
+      const guestAddr: UserAddress = {
+        id: "guest-addr",
+        user_id: "guest",
+        name: dataToSave.name || "",
+        phone: dataToSave.phone || "",
+        address_line_1: dataToSave.address_line_1 || "",
+        address_line_2: dataToSave.address_line_2 || "",
+        city: dataToSave.city || "",
+        state: dataToSave.state || "",
+        postal_code: dataToSave.postal_code || "",
+        country: dataToSave.country || "India",
+        is_default: false,
+      };
+
+      setAddresses([guestAddr]);
+      setAddressId(guestAddr.id);
+      if (onAddressSelectedRef.current) onAddressSelectedRef.current(guestAddr);
+      if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(1);
+      setIsAddingInline(false);
+      setEditingAddress(null);
+      useCheckoutStore.getState().setStep(2);
+      useToastStore.getState().addToast("✓ Address set successfully.");
       setFormLoading(false);
       return;
     }
@@ -445,6 +476,15 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
   // Delete Address Callback
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this address?")) {
+      if (!userId) {
+        setAddresses([]);
+        setAddressId(null);
+        localStorage.removeItem("selectedAddressId");
+        if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
+        if (onAddressCountChangeRef.current) onAddressCountChangeRef.current(0);
+        useToastStore.getState().addToast("✓ Address cleared.");
+        return;
+      }
       try {
         const res = await deleteUserAddressAction(id, userId);
         if (res.success) {
@@ -479,6 +519,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
   // Set Default Address Callback
   const handleSetDefault = async (id: string) => {
+    if (!userId) return;
     try {
       const res = await setDefaultUserAddressAction(id, userId);
       if (res.success) {

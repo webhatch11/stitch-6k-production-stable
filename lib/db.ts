@@ -60,7 +60,6 @@ const mapDbProductToProduct = (p: any): Product => {
     image: p.image,
     images: p.images || [],
     isNew: p.is_new,
-    isNewArrival: p.is_new || p.is_new_arrival || false,
     stock: p.stock,
     description: p.description,
     isAtelierExclusive: p.is_agent_exclusive || p.is_atelier_exclusive,
@@ -4636,48 +4635,6 @@ export const db = {
     return Array.from(reportMap.values()).sort(
       (a, b) => b.month.localeCompare(a.month) || a.channel.localeCompare(b.channel)
     );
-  },
-
-  async getProductOrderCount(productIdOrSlug: string): Promise<number> {
-    try {
-      const { supabase, isSupabaseConfigured } = loadService();
-      if (!isSupabaseConfigured || !supabase) return 0;
-
-      let productId = productIdOrSlug;
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdOrSlug);
-      if (!isUuid) {
-        const { data: pData } = await supabase
-          .from('products')
-          .select('id')
-          .eq('slug', productIdOrSlug)
-          .maybeSingle();
-        if (pData) {
-          productId = pData.id;
-        }
-      }
-      
-      const { data } = await supabase
-        .from('orders')
-        .select('id, cart_items')
-        .not('status', 'in', '("cancelled","returned")');
-      
-      if (!data) return 0;
-      
-      let count = 0;
-      data.forEach(order => {
-        const items = order.cart_items || [];
-        const hasProduct = Array.isArray(items) 
-          && items.some((item: any) => 
-            item.productId === productId ||
-            item.id === productId
-          );
-        if (hasProduct) count++;
-      });
-      
-      return count;
-    } catch {
-      return 0;
-    }
   },
 };
 

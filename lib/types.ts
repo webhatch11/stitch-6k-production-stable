@@ -18,7 +18,6 @@ export interface Product {
   image: string;
   images?: string[];
   isNew: boolean;
-  isNewArrival?: boolean;
   stock?: number;
   description?: string;
   details?: {

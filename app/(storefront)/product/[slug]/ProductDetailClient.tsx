@@ -13,10 +13,9 @@ import { trackViewProduct, trackAddToCart } from "@/lib/analytics";
 interface ProductDetailClientProps {
   product: Product;
   recommendations: Product[];
-  orderCount: number;
 }
 
-export default function ProductDetailClient({ product, recommendations, orderCount }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product, recommendations }: ProductDetailClientProps) {
   const router = useRouter();
   const addToCartStore = useCartStore((state) => state.addToCart);
   const addProductToRecent = useRecentStore((state) => state.addProductToRecent);
@@ -36,59 +35,6 @@ export default function ProductDetailClient({ product, recommendations, orderCou
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isZoomed, setIsZoomed] = useState(false);
-
-  // Delivery Estimate State
-  const [pincode, setPincode] = useState('');
-  const [deliveryDate, setDeliveryDate] = useState('');
-
-  const handleCheckDelivery = () => {
-    if (pincode.length !== 6) return;
-    
-    // Calculate delivery date (3-5 business days from today)
-    const today = new Date();
-    const delivery = new Date(today);
-    delivery.setDate(today.getDate() + 4);
-    
-    const formatted = delivery.toLocaleDateString(
-      'en-IN', {
-        weekday: 'long',
-        day: 'numeric', 
-        month: 'long'
-      }
-    );
-    setDeliveryDate(formatted);
-  };
-
-  // Ships today live countdown timer
-  const [shipsTodayText, setShipsTodayText] = useState('Ships today');
-
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = new Date();
-      const cutoff = new Date();
-      cutoff.setHours(17, 0, 0, 0);
-      const diff = cutoff.getTime() - now.getTime();
-      
-      if (diff > 0) {
-        const totalMinutes = Math.floor(diff / (1000 * 60));
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        
-        let timeStr = '';
-        if (hours > 0) {
-          timeStr += `${hours}h `;
-        }
-        timeStr += `${minutes}m`;
-        setShipsTodayText(`Ships today if ordered in the next ${timeStr}`);
-      } else {
-        setShipsTodayText('Ships tomorrow');
-      }
-    };
-    
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 60000); // update every minute
-    return () => clearInterval(interval);
-  }, []);
 
   // Accordion open/close state
   const [accordionOpen, setAccordionOpen] = useState({
@@ -204,13 +150,9 @@ export default function ProductDetailClient({ product, recommendations, orderCou
   };
 
   // Sizing stock calculation
-  const getSizeStock = (size: string) => {
-    return product.sizeStock
-      ? (product.sizeStock[size as keyof typeof product.sizeStock] || 0)
-      : 0;
-  };
-
-  const selectedSizeStock = getSizeStock(selectedSize);
+  const selectedSizeStock = product.sizeStock
+    ? (product.sizeStock[selectedSize as keyof typeof product.sizeStock] || 0)
+    : 0;
 
   const totalStock = product.sizeStock
     ? Object.values(product.sizeStock).reduce((sum, s) => sum + (s || 0), 0)
@@ -349,210 +291,89 @@ export default function ProductDetailClient({ product, recommendations, orderCou
 
           {/* Right Side: Product Information */}
           <div className="lg:col-span-5 flex flex-col space-y-8 sticky top-32 h-fit">
-            <p style={{
-              fontSize: '11px',
-              color: '#BA7517',
-              fontWeight: '500',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              marginBottom: '6px'
-            }}>
-              {product.category || 'PREMIUM SERIES'}
-            </p>
-
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#1a1a1a',
-              lineHeight: 1.2,
-              fontFamily: 'Georgia, serif',
-              marginBottom: '12px'
-            }}>
-              {product.title}
-            </h1>
-
-            {(product.isNewArrival || product.isNew) && (
-              <span style={{
-                display: 'inline-block',
-                border: '1px solid #1a1a1a',
-                padding: '3px 10px',
-                fontSize: '10px',
-                fontWeight: '600',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: '12px'
-              }}>
-                NEW ARRIVAL
-              </span>
-            )}
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '12px'
-            }}>
-              <div style={{ color: '#BA7517', fontSize: '14px' }}>
-                ★★★★★
+            <header className="space-y-4">
+              <div className="flex items-center space-x-2 text-[10px] uppercase tracking-[0.2em] text-outline font-black">
+                <span>Premium Series</span>
+                <span className="text-secondary">•</span>
+                <span>{product.category || "Signature Series"}</span>
               </div>
-              <span style={{ fontSize: '13px', color: '#6b7280' }}>
-                4.8 (126 reviews)
-              </span>
-              <span style={{ color: '#e5e5e5' }}>·</span>
-              {orderCount > 0 && (
-                <span style={{ fontSize: '13px', color: '#6b7280' }}>
-                  {orderCount}+ customers purchased
-                </span>
-              )}
-            </div>
+              
+              <h1 className="text-4xl sm:text-5xl font-black font-headline tracking-tighter text-on-surface leading-[1.05] uppercase">
+                {product.title}
+              </h1>
 
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '10px'
-              }}>
-                <span style={{
-                  fontSize: '32px',
-                  fontWeight: '700',
-                  color: '#1a1a1a'
-                }}>
-                  ₹{product.price}
-                </span>
-                {product.compareAtPrice && 
-                 product.compareAtPrice > product.price && (
-                  <>
-                    <span style={{
-                      fontSize: '16px',
-                      color: '#9ca3af',
-                      textDecoration: 'line-through'
-                    }}>
-                      ₹{product.compareAtPrice}
-                    </span>
-                    <span style={{
-                      fontSize: '13px',
-                      color: '#16a34a',
-                      fontWeight: '600'
-                    }}>
-                      {Math.round(
-                        (1 - product.price / 
-                         product.compareAtPrice) * 100
-                      )}% OFF
-                    </span>
-                  </>
-                )}
-              </div>
-              <p style={{
-                fontSize: '11px',
-                color: '#9ca3af',
-                marginTop: '2px'
-              }}>
-                Inclusive of GST
-              </p>
-            </div>
-
-            <hr style={{ 
-              border: 'none',
-              borderTop: '1px solid #e5e5e5',
-              margin: '16px 0'
-            }} />
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8px',
-              marginBottom: '16px'
-            }}>
-              {[
-                { 
-                  icon: (
-                    <svg width="20" height="20" 
-                      viewBox="0 0 24 24" 
-                      fill="none" stroke="#BA7517" 
-                      strokeWidth="1.5">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                  ),
-                  title: 'Free Shipping',
-                  sub: 'On all orders'
-                },
-                {
-                  icon: (
-                    <svg width="20" height="20"
-                      viewBox="0 0 24 24"
-                      fill="none" stroke="#BA7517"
-                      strokeWidth="1.5">
-                      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  ),
-                  title: '7 Day Returns',
-                  sub: 'No questions asked'
-                },
-                {
-                  icon: (
-                    <svg width="20" height="20"
-                      viewBox="0 0 24 24"
-                      fill="none" stroke="#BA7517"
-                      strokeWidth="1.5">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  ),
-                  title: 'Premium Quality',
-                  sub: '100% Guaranteed'
-                }
-              ].map(badge => (
-                <div key={badge.title} style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '4px'
-                }}>
-                  {badge.icon}
-                  <span style={{
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    color: '#1a1a1a',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}>
-                    {badge.title}
-                  </span>
-                  <span style={{
-                    fontSize: '10px',
-                    color: '#9ca3af'
-                  }}>
-                    {badge.sub}
+              {/* Ratings Overview */}
+              {product.ratings && (
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center text-secondary">
+                    {Array.from({ length: 5 }).map((_, starIdx) => (
+                      <span key={starIdx} className="material-symbols-outlined text-sm">
+                        {starIdx < Math.floor(product.ratings || 5) ? "star" : "star_half"}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-[10px] font-black tracking-widest text-outline">
+                    {product.ratings.toFixed(1)} / 5.0 ({product.reviews?.length || 0} reviews)
                   </span>
                 </div>
-              ))}
-            </div>
+              )}
 
-            <hr style={{ 
-              border: 'none',
-              borderTop: '1px solid #e5e5e5',
-              margin: '16px 0'
-            }} />
-
-            {product.colors && product.colors.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  marginBottom: '8px',
-                  color: '#1a1a1a'
-                }}>
-                  COLOR:{' '}
-                  <span style={{ fontWeight: '400', 
-                    color: '#6b7280' }}>
-                    {selectedColor && 
-                     selectedColor !== 'Default' 
-                      ? selectedColor.toUpperCase() 
-                      : ''}
+              {/* Pricing & Badges */}
+              <div className="flex items-center gap-6 pt-2">
+                <span className="text-3xl font-extrabold text-secondary tracking-tight">
+                  ₹{product.price.toLocaleString("en-IN")}
+                </span>
+                
+                {(() => {
+                  const effectiveComparePrice = product.compareAtPrice || product.comparePrice;
+                  if (effectiveComparePrice && effectiveComparePrice > product.price) {
+                    return (
+                      <>
+                        <span className="text-lg line-through text-gray-400 font-bold">
+                          ₹{effectiveComparePrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-xs font-black text-green-700 uppercase tracking-widest bg-green-50 px-2 py-1 border border-green-200/40">
+                          {Math.round((1 - product.price / effectiveComparePrice) * 100)}% OFF
+                        </span>
+                      </>
+                    );
+                  }
+                  return null;
+                })()}
+                
+                {product.customBadge && (
+                  <span className="bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1">
+                    {product.customBadge}
                   </span>
-                </p>
+                )}
+                
+                {!product.customBadge && product.isNew && (
+                  <span className="bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1">
+                    New Arrival
+                  </span>
+                )}
+              </div>
+
+              {/* Promotional Banner */}
+              <div className="bg-surface-container-low border border-outline-variant/20 p-4 flex items-center space-x-4">
+                <span className="material-symbols-outlined text-secondary animate-pulse">auto_awesome</span>
+                <div className="flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-on-surface">
+                    Limited Artisan Production
+                  </p>
+                  <p className="text-[8px] font-medium uppercase tracking-widest text-outline mt-0.5">
+                    Only 100 units crafted per batch. Pre-washed for extreme softness.
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            {/* Color Swatches */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.2em] font-black text-on-surface-variant">
+                  Select Color: <span className="text-secondary font-black">{selectedColor}</span>
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((color) => (
                     <button
@@ -571,34 +392,30 @@ export default function ProductDetailClient({ product, recommendations, orderCou
               </div>
             )}
 
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{
-                fontSize: '12px',
-                fontWeight: '600',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-                color: '#1a1a1a',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                SIZE:
+            {/* Size Selection */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-end border-b border-outline-variant/10 pb-2">
+                <label className="text-[10px] uppercase tracking-[0.2em] font-black text-on-surface-variant">
+                  Select Size: <span className="text-secondary font-black">{selectedSize}</span>
+                </label>
                 <button
                   onClick={() => setShowSizeGuide(true)}
                   style={{
-                    fontSize: '11px',
-                    color: '#BA7517',
                     background: 'none',
                     border: 'none',
+                    color: '#BA7517',
+                    fontSize: '10px',
+                    fontWeight: '900',
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    textDecoration: 'underline',
                     cursor: 'pointer',
-                    fontWeight: '400',
-                    textDecoration: 'underline'
+                    padding: 0
                   }}
                 >
-                  Size guide
+                  Size Guide
                 </button>
-              </p>
+              </div>
               
               <div className="grid grid-cols-5 gap-2">
                 {["S", "M", "L", "XL", "XXL"].map((size) => {
@@ -630,9 +447,11 @@ export default function ProductDetailClient({ product, recommendations, orderCou
                       }`}
                     >
                       {size}
+                      {/* Red indicator for out of stock sizes */}
                       {isOutOfStock && (
                         <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       )}
+                      {/* Subtly show quick warning dot on sizes if low stock */}
                       {!isOutOfStock && sizeStock > 0 && sizeStock < 5 && (
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       )}
@@ -647,68 +466,23 @@ export default function ProductDetailClient({ product, recommendations, orderCou
                   ✗ This size is out of stock. Please select another size.
                 </p>
               )}
-            </div>
 
-            {selectedSize && (() => {
-              const stock = getSizeStock(selectedSize)
-              return (
-                <>
-                  {stock > 0 && stock <= 5 && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      marginBottom: '8px'
-                    }}>
-                      <div style={{
-                        width: '8px', height: '8px',
-                        borderRadius: '50%',
-                        background: '#f59e0b',
-                        flexShrink: 0
-                      }} />
-                      <span style={{
-                        fontSize: '13px',
-                        color: '#f59e0b',
-                        fontWeight: '500'
-                      }}>
-                        Only {stock} left in stock
-                      </span>
-                    </div>
-                  )}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginBottom: '16px'
-                  }}>
-                    <svg width="14" height="14"
-                      viewBox="0 0 24 24" fill="none"
-                      stroke="#6b7280" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M12 6v6l4 2"/>
-                    </svg>
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#6b7280'
-                    }}>
-                      {shipsTodayText}
-                    </span>
-                  </div>
-                </>
-              )
-            })()}
+              {selectedSizeStock > 0 && selectedSizeStock < 5 && (
+                <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-500 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm animate-pulse">warning</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">
+                    Only {selectedSizeStock} left in size {selectedSize}! Order soon.
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Quantity Selector */}
             {!isProductOutOfStock && (
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  marginBottom: '8px',
-                  color: '#1a1a1a'
-                }}>QUANTITY</p>
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.2em] font-black text-on-surface-variant">
+                  Quantity
+                </label>
                 <div className="flex items-center border border-outline-variant/60 w-32 justify-between">
                   <button
                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
@@ -733,231 +507,47 @@ export default function ProductDetailClient({ product, recommendations, orderCou
               </div>
             )}
 
-            {isProductOutOfStock ? (
-              <button
-                disabled
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  background: '#e5e7eb',
-                  color: '#9ca3af',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  cursor: 'not-allowed',
-                  marginBottom: '16px'
-                }}
-              >
-                SOLD OUT
-              </button>
-            ) : (
-              <>
+            {/* Main Action Buttons */}
+            <div className="flex flex-col space-y-4">
+              {isProductOutOfStock ? (
                 <button
-                  onClick={() => addToCart(true)}
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: '#BA7517',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    marginBottom: '8px'
-                  }}
+                  disabled
+                  className="w-full py-5 bg-outline-variant/25 text-outline cursor-not-allowed font-black uppercase tracking-[0.2em] text-xs"
                 >
-                  BUY NOW
+                  Sold Out
                 </button>
-                <button
-                  onClick={() => addToCart(false)}
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    background: 'transparent',
-                    color: '#1a1a1a',
-                    border: '1.5px solid #1a1a1a',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                    marginBottom: '16px'
-                  }}
-                >
-                  ADD TO CART
-                </button>
-              </>
-            )}
-
-            <div className="conversion-trust-badges" style={{
-              display: 'grid',
-              gap: '4px',
-              paddingTop: '16px',
-              borderTop: '1px solid #e5e5e5',
-              marginBottom: '16px'
-            }}>
-              {[
-                { 
-                  icon: '🔐',
-                  title: 'Secure Payment',
-                  sub: '100% Protected'
-                },
-                {
-                  icon: '🚚',
-                  title: 'COD Available', 
-                  sub: 'Pay on Delivery'
-                },
-                {
-                  icon: '🔄',
-                  title: 'Easy Exchange',
-                  sub: 'Hassle Free'
-                },
-                {
-                  icon: '📦',
-                  title: 'Premium Packaging',
-                  sub: 'Perfectly Packed'
-                }
-              ].map(b => (
-                <div key={b.title} style={{
-                  textAlign: 'center',
-                  padding: '8px 4px'
-                }}>
-                  <div style={{ fontSize: '18px' }}>
-                    {b.icon}
-                  </div>
-                  <div style={{
-                    fontSize: '9px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    lineHeight: 1.3,
-                    marginTop: '4px'
-                  }}>
-                    {b.title}
-                  </div>
-                  <div style={{
-                    fontSize: '9px',
-                    color: '#9ca3af',
-                    lineHeight: 1.3
-                  }}>
-                    {b.sub}
-                  </div>
-                </div>
-              ))}
+              ) : (
+                <>
+                  <button
+                    onClick={() => addToCart(true)}
+                    className="w-full py-5 bg-gradient-to-r from-secondary to-secondary/80 text-white font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-secondary/15 hover:shadow-secondary/25 hover:scale-[1.02] transition-all duration-300 btn-active-scale cursor-pointer"
+                  >
+                    Buy Now
+                  </button>
+                  <button
+                    onClick={() => addToCart(false)}
+                    className="w-full py-5 border border-on-surface text-on-surface font-black uppercase tracking-[0.2em] text-xs hover:bg-on-surface hover:text-surface transition-all duration-300 btn-active-scale cursor-pointer"
+                  >
+                    Add to Cart
+                  </button>
+                </>
+              )}
             </div>
 
-            <div style={{
-              border: '1px solid #e5e5e5',
-              borderRadius: '4px',
-              padding: '16px',
-              marginBottom: '16px'
-            }}>
-              <p style={{
-                fontSize: '11px',
-                fontWeight: '600',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-                color: '#1a1a1a'
-              }}>
-                DELIVERY ESTIMATE
-              </p>
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: '8px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  flex: 1,
-                  border: '1px solid #e5e5e5',
-                  padding: '8px 12px',
-                  borderRadius: '4px'
-                }}>
-                  <svg width="14" height="14"
-                    viewBox="0 0 24 24" fill="none"
-                    stroke="#9ca3af" strokeWidth="2">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-                    <circle cx="12" cy="9" r="2.5"/>
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Enter pincode"
-                    maxLength={6}
-                    value={pincode}
-                    onChange={e => setPincode(
-                      e.target.value.replace(/\D/g, '')
-                    )}
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      fontSize: '13px',
-                      color: '#1a1a1a',
-                      width: '100%',
-                      background: 'transparent'
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={handleCheckDelivery}
-                  style={{
-                    padding: '8px 16px',
-                    background: 'transparent',
-                    border: '1px solid #BA7517',
-                    color: '#BA7517',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    letterSpacing: '0.05em',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  CHECK
-                </button>
+            {/* Trust Badges */}
+            <div className="grid grid-cols-2 gap-4 py-6 border-t border-b border-outline-variant/30 text-outline">
+              <div className="flex items-center space-x-3">
+                <span className="material-symbols-outlined text-secondary text-lg">local_shipping</span>
+                <span className="text-[9px] uppercase tracking-widest font-black leading-tight">
+                  Free Express Shipping
+                </span>
               </div>
-              
-              {deliveryDate && (
-                <div>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    marginBottom: '4px'
-                  }}>
-                    Order now and get it by
-                  </p>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#BA7517'
-                    }}>
-                      {deliveryDate}
-                    </span>
-                    <span style={{
-                      fontSize: '11px',
-                      background: '#dcfce7',
-                      color: '#166534',
-                      padding: '2px 8px',
-                      borderRadius: '20px',
-                      fontWeight: '500'
-                    }}>
-                      On Time Delivery
-                    </span>
-                  </div>
-                </div>
-              )}
+              <div className="flex items-center space-x-3">
+                <span className="material-symbols-outlined text-secondary text-lg">assignment_return</span>
+                <span className="text-[9px] uppercase tracking-widest font-black leading-tight">
+                  Easy 7-day Returns
+                </span>
+              </div>
             </div>
 
             {/* Accordion drawers */}
@@ -1122,51 +712,6 @@ export default function ProductDetailClient({ product, recommendations, orderCou
             </div>
           </div>
         </section>
-
-        <div className="conversion-stats-bar" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          borderTop: '1px solid #e5e5e5',
-          borderBottom: '1px solid #e5e5e5',
-          padding: '24px 0',
-          margin: '32px 0'
-        }}>
-          {[
-            { icon: '😊', number: '1250+', label: 'Happy Customers' },
-            { icon: '⭐', number: '4.8/5', label: 'Average Rating' },
-            { icon: '↩️', number: '7 Days', label: 'Easy Returns' },
-            { icon: '✓', number: '100%', label: '100% Genuine' },
-          ].map((stat, i) => (
-            <div key={stat.label} style={{
-              textAlign: 'center',
-              borderRight: i < 3 ? '1px solid #e5e5e5' : 'none',
-              padding: '0 16px'
-            }}>
-              <div style={{ 
-                fontSize: '20px',
-                marginBottom: '4px'
-              }}>
-                {stat.icon}
-              </div>
-              <div style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#1a1a1a'
-              }}>
-                {stat.number}
-              </div>
-              <div style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                marginTop: '2px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em'
-              }}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* RECOMMENDATIONS */}
         {recommendations.length > 0 && (

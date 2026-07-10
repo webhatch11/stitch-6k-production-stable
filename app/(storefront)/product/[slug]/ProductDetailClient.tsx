@@ -13,9 +13,10 @@ import { trackViewProduct, trackAddToCart } from "@/lib/analytics";
 interface ProductDetailClientProps {
   product: Product;
   recommendations: Product[];
+  orderCount: number;
 }
 
-export default function ProductDetailClient({ product, recommendations }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product, recommendations, orderCount }: ProductDetailClientProps) {
   const router = useRouter();
   const addToCartStore = useCartStore((state) => state.addToCart);
   const addProductToRecent = useRecentStore((state) => state.addProductToRecent);
@@ -150,9 +151,13 @@ export default function ProductDetailClient({ product, recommendations }: Produc
   };
 
   // Sizing stock calculation
-  const selectedSizeStock = product.sizeStock
-    ? (product.sizeStock[selectedSize as keyof typeof product.sizeStock] || 0)
-    : 0;
+  const getSizeStock = (size: string) => {
+    return product.sizeStock
+      ? (product.sizeStock[size as keyof typeof product.sizeStock] || 0)
+      : 0;
+  };
+
+  const selectedSizeStock = getSizeStock(selectedSize);
 
   const totalStock = product.sizeStock
     ? Object.values(product.sizeStock).reduce((sum, s) => sum + (s || 0), 0)
@@ -354,6 +359,30 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                 )}
               </div>
 
+              {orderCount > 0 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  marginTop: '4px'
+                }}>
+                  <span style={{ fontSize: '16px' }}>
+                    👥
+                  </span>
+                  <span style={{
+                    fontSize: '13px',
+                    color: '#6b7280'
+                  }}>
+                    <strong style={{ color: '#1a1a1a' }}>
+                      {orderCount > 10 
+                        ? `${orderCount}+` 
+                        : orderCount}
+                    </strong>
+                    {' customers purchased'}
+                  </span>
+                </div>
+              )}
+
               {/* Promotional Banner */}
               <div className="bg-surface-container-low border border-outline-variant/20 p-4 flex items-center space-x-4">
                 <span className="material-symbols-outlined text-secondary animate-pulse">auto_awesome</span>
@@ -371,6 +400,32 @@ export default function ProductDetailClient({ product, recommendations }: Produc
             {/* Color Swatches */}
             {product.colors && product.colors.length > 0 && (
               <div className="space-y-3">
+                {product.colors && 
+                 product.colors.length > 0 && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: '#6b7280'
+                    }}>
+                      COLOR:
+                    </span>
+                    {' '}
+                    <span style={{
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      color: '#1a1a1a'
+                    }}>
+                      {selectedColor || 
+                       product.colors[0] || 
+                       'DEFAULT'}
+                    </span>
+                  </div>
+                )}
                 <label className="text-[10px] uppercase tracking-[0.2em] font-black text-on-surface-variant">
                   Select Color: <span className="text-secondary font-black">{selectedColor}</span>
                 </label>
@@ -475,6 +530,57 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   </p>
                 </div>
               )}
+
+              {selectedSize && (() => {
+                const stock = getSizeStock(selectedSize)
+                if (stock === 0) return null
+                if (stock <= 2) return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '8px'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#dc2626',
+                      animation: 'pulse 1.5s infinite'
+                    }} />
+                    <span style={{
+                      fontSize: '13px',
+                      color: '#dc2626',
+                      fontWeight: '500'
+                    }}>
+                      Only {stock} left in stock — order soon
+                    </span>
+                  </div>
+                )
+                if (stock <= 5) return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '8px'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#f59e0b'
+                    }} />
+                    <span style={{
+                      fontSize: '13px',
+                      color: '#f59e0b',
+                      fontWeight: '500'
+                    }}>
+                      Only {stock} left in this size
+                    </span>
+                  </div>
+                )
+                return null
+              })()}
             </div>
 
             {/* Quantity Selector */}
@@ -532,6 +638,55 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   </button>
                 </>
               )}
+            </div>
+
+            <div className="conversion-trust-badges" style={{
+              display: 'grid',
+              gap: '8px',
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: '1px solid #e5e5e5'
+            }}>
+              {[
+                { icon: '🔒', title: 'Secure Payment', 
+                  sub: '100% Protected' },
+                { icon: '📦', title: 'Free Shipping', 
+                  sub: 'On all orders' },
+                { icon: '↩️', title: '7 Day Returns', 
+                  sub: 'No questions asked' },
+                { icon: '✨', title: 'Premium Quality', 
+                  sub: '100% Guaranteed' },
+              ].map(badge => (
+                <div key={badge.title} style={{
+                  textAlign: 'center',
+                  padding: '8px 4px'
+                }}>
+                  <div style={{ 
+                    fontSize: '20px',
+                    marginBottom: '4px'
+                  }}>
+                    {badge.icon}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    color: '#1a1a1a',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    lineHeight: 1.3
+                  }}>
+                    {badge.title}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#6b7280',
+                    marginTop: '2px',
+                    lineHeight: 1.3
+                  }}>
+                    {badge.sub}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Trust Badges */}
@@ -712,6 +867,66 @@ export default function ProductDetailClient({ product, recommendations }: Produc
             </div>
           </div>
         </section>
+
+        <div className="conversion-stats-bar" style={{
+          borderTop: '1px solid #e5e5e5',
+          borderBottom: '1px solid #e5e5e5',
+          padding: '24px 0',
+          margin: '32px 0',
+          display: 'grid',
+          gap: '16px'
+        }}>
+          {[
+            { 
+              number: '1250+', 
+              label: 'Happy Customers',
+              icon: '😊'
+            },
+            { 
+              number: '4.8/5', 
+              label: 'Average Rating',
+              icon: '⭐'
+            },
+            { 
+              number: '7 Days', 
+              label: 'Easy Returns',
+              icon: '↩️'
+            },
+            { 
+              number: '100%', 
+              label: 'Premium Quality',
+              icon: '✨'
+            },
+          ].map(stat => (
+            <div key={stat.label} style={{
+              textAlign: 'center'
+            }}>
+              <div style={{ 
+                fontSize: '24px',
+                marginBottom: '4px'
+              }}>
+                {stat.icon}
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1a1a1a',
+                letterSpacing: '-0.02em'
+              }}>
+                {stat.number}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '2px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* RECOMMENDATIONS */}
         {recommendations.length > 0 && (

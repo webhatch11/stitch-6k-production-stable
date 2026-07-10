@@ -4636,5 +4636,47 @@ export const db = {
       (a, b) => b.month.localeCompare(a.month) || a.channel.localeCompare(b.channel)
     );
   },
+
+  async getProductOrderCount(productIdOrSlug: string): Promise<number> {
+    try {
+      const { supabase, isSupabaseConfigured } = loadService();
+      if (!isSupabaseConfigured || !supabase) return 0;
+
+      let productId = productIdOrSlug;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productIdOrSlug);
+      if (!isUuid) {
+        const { data: pData } = await supabase
+          .from('products')
+          .select('id')
+          .eq('slug', productIdOrSlug)
+          .maybeSingle();
+        if (pData) {
+          productId = pData.id;
+        }
+      }
+      
+      const { data } = await supabase
+        .from('orders')
+        .select('id, cart_items')
+        .not('status', 'in', '("cancelled","returned")');
+      
+      if (!data) return 0;
+      
+      let count = 0;
+      data.forEach(order => {
+        const items = order.cart_items || [];
+        const hasProduct = Array.isArray(items) 
+          && items.some((item: any) => 
+            item.productId === productId ||
+            item.id === productId
+          );
+        if (hasProduct) count++;
+      });
+      
+      return count;
+    } catch {
+      return 0;
+    }
+  },
 };
 

@@ -404,3 +404,28 @@ h1, h2, h3, h4, h5, h6 {
 .group:hover .animate-shipping-slide {
   animation: shipping-slide 0.6s ease-in-out;
 }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.conversion-trust-badges {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 640px) {
+  .conversion-trust-badges {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+.conversion-stats-bar {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 640px) {
+  .conversion-stats-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+

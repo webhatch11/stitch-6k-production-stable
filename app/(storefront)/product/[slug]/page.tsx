@@ -68,7 +68,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await db.getProductBySlug(slug);
+  const [product, orderCount] = await Promise.all([
+    db.getProductBySlug(slug),
+    db.getProductOrderCount(slug)
+  ]);
 
   if (!product) {
     notFound();
@@ -109,7 +112,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         // of the JSON-LD block (stored XSS via admin-editable content).
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <ProductDetailClient product={product} recommendations={recommendations} />
+      <ProductDetailClient product={product} recommendations={recommendations} orderCount={orderCount} />
     </>
   );
 }

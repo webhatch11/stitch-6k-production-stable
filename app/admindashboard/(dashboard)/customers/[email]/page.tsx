@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Order } from "@/lib/types";
 import { getCustomersAction, getOrdersAction } from "@/app/actions/admin-reads";
 import { adjustCustomerBalanceAction, blockCustomerAction, unblockCustomerAction } from "@/app/actions/admin-customers";
+import { redirect } from "next/navigation";
 
 interface CustomerData {
   name: string;
@@ -26,6 +27,12 @@ interface PageProps {
 }
 
 export default function CustomerDossierDetailPage({ params }: PageProps) {
+  // Customers module — Phase 2
+  // Uncomment when client activates
+  if (process.env.NEXT_PUBLIC_ENABLE_CUSTOMERS !== 'true') {
+    redirect('/admindashboard');
+  }
+
   const resolvedParams = React.use(params);
   const email = decodeURIComponent(resolvedParams.email);
 

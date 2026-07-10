@@ -6,17 +6,17 @@ ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_return_fields;
 ALTER TABLE public.orders ADD CONSTRAINT chk_orders_return_fields CHECK (
     (status NOT IN ('Return Requested', 'Returned', 'Return Rejected')) OR 
     (return_reason IS NOT NULL AND refund_option IS NOT NULL AND return_request_date IS NOT NULL)
-);
+) NOT VALID;
 
 ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_return_reject;
 ALTER TABLE public.orders ADD CONSTRAINT chk_orders_return_reject CHECK (
     (status <> 'Return Rejected') OR (return_reject_reason IS NOT NULL)
-);
+) NOT VALID;
 
 ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS chk_orders_refund_option;
 ALTER TABLE public.orders ADD CONSTRAINT chk_orders_refund_option CHECK (
     refund_option IS NULL OR refund_option IN ('wallet', 'original_source')
-);
+) NOT VALID;
 
 -- 2. Composite indexes for high performance query lookups
 -- Speed up active user order filtering by (user_id, status)

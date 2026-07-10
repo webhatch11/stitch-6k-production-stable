@@ -151,11 +151,11 @@ export async function POST(req: NextRequest) {
       pointsRedeemed: checkoutState.pointsRedeemed,
       pointsDiscount: checkoutState.pointsDiscount,
       pointsEarned: 0, // Earned later on success
-      status: "PAYMENT_PENDING",
+      status: "Payment Pending",
       items: checkoutState.items,
       idempotencyKey: payload.idempotencyKey,
       cartItems: checkoutState.cartItems,
-      paymentStatus: "PAYMENT_PENDING",
+      paymentStatus: "Payment Pending",
       address_snapshot: checkoutState.addressSnapshot ?? null,
       userId: user_id || undefined,
       user_id: user_id || undefined,
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
     if (supabase) {
       await supabase.from("orders").update({
         razorpay_order_id: rzpOrder.id,
-        payment_status: "PAYMENT_PENDING"
+        payment_status: "Payment Pending"
       }).eq("id", sequentialOrderId);
 
       await supabase.from("payments").insert({

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     if (generatedSignature !== razorpay_signature) {
       await supabase.from("payment_logs").insert({
         payment_id: null,
-        previous_status: "PAYMENT_PENDING",
+        previous_status: "Payment Pending",
         new_status: "FAILED_SIGNATURE",
         metadata: { razorpay_payment_id, razorpay_order_id }
       });
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
           razorpay_payment_id,   // ← store on orders row — required for refunds
         })
         .eq("id", dbOrder.id)
-        .eq("status", "PAYMENT_PENDING")
+        .eq("status", "Payment Pending")
         .select("id")
         .maybeSingle();
 
@@ -302,7 +302,7 @@ export async function POST(req: NextRequest) {
 
     // g. Payment audit log
     try {
-      await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "Paid", "verify_route");
+      await db.createPaymentAuditLog(dbOrder.id, "Payment Pending", "Paid", "verify_route");
     } catch (e) {
       console.error("[verify] createPaymentAuditLog failed:", e);
     }

@@ -3624,7 +3624,7 @@ export const db = {
           recentCount += 1;
         }
 
-        if (["confirmed", "processing", "packed"].includes(status)) {
+        if (["paid", "confirmed", "processing", "packed", "shipped", "out for delivery"].includes(status)) {
           pendingCount += 1;
         }
 

@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
                   razorpay_payment_id: razorpayPaymentId,
                 })
                 .eq("id", dbOrder.id)
-                .eq("status", "PAYMENT_PENDING")
+                .eq("status", "Payment Pending")
                 .select("id")
                 .maybeSingle();
 
@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
 
               // g. Payment audit log
               try {
-                await db.createPaymentAuditLog(dbOrder.id, "PAYMENT_PENDING", "Paid", "webhook");
+                await db.createPaymentAuditLog(dbOrder.id, "Payment Pending", "Paid", "webhook");
               } catch (e) {
                 console.error("[webhook] createPaymentAuditLog failed:", e);
               }
@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
               status: "FAILED"
             });
 
-            await db.createPaymentAuditLog(orderId, "PAYMENT_PENDING", "FAILED", "webhook");
+            await db.createPaymentAuditLog(orderId, "Payment Pending", "FAILED", "webhook");
             await db.createOrderEvent(orderId, "Payment Failed");
 
             await supabase.from("orders").update({

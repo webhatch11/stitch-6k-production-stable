@@ -21,7 +21,7 @@ export const reservationCleanupWorker = new Worker(
       const { data: pendingOrders, error: fetchError } = await supabase
         .from("orders")
         .select("id, razorpay_order_id, status, wallet_paid, points_redeemed, idempotency_key")
-        .eq("status", "PAYMENT_PENDING")
+        .eq("status", "Payment Pending")
         .lt("created_at", fifteenMinutesAgo);
 
       if (fetchError) {
@@ -40,19 +40,19 @@ export const reservationCleanupWorker = new Worker(
               }
             }
 
-            console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking EXPIRED and releasing reservation.`);
+            console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking Cancelled and releasing reservation.`);
 
             await db.saveOrder({
               id: order.id,
-              status: "EXPIRED"
+              status: "Cancelled"
             });
 
-            await db.createPaymentAuditLog(order.id, "PAYMENT_PENDING", "EXPIRED", "cleanup_worker");
-            await db.createOrderEvent(order.id, "Order Expired");
+            await db.createPaymentAuditLog(order.id, "Payment Pending", "Cancelled", "cleanup_worker");
+            await db.createOrderEvent(order.id, "Order Cancelled");
 
             await supabase
               .from("orders")
-              .update({ payment_status: "EXPIRED", status: "EXPIRED" })
+              .update({ payment_status: "EXPIRED", status: "Cancelled" })
               .eq("id", order.id);
 
             if (order.idempotency_key) {

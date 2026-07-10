@@ -40,11 +40,11 @@ export const paymentRecoveryWorker = new Worker(
             }
 
             // Order is truly abandoned or failed.
-            console.log(`[Payment Recovery] Marking order ${order.id} as EXPIRED and restoring inventory.`);
+            console.log(`[Payment Recovery] Marking order ${order.id} as Cancelled and restoring inventory.`);
             
-            // Mark EXPIRED
-            await supabase.from("orders").update({ payment_status: "EXPIRED", status: "EXPIRED" }).eq("id", order.id);
-            await db.saveOrder({ id: order.id, status: "EXPIRED" });
+            // Mark Cancelled
+            await supabase.from("orders").update({ payment_status: "EXPIRED", status: "Cancelled" }).eq("id", order.id);
+            await db.saveOrder({ id: order.id, status: "Cancelled" });
 
             // Restore Inventory
             if (Array.isArray(order.cart_items) && order.cart_items.length > 0) {
@@ -65,7 +65,7 @@ export const paymentRecoveryWorker = new Worker(
               await supabase.from("payment_logs").insert({
                 payment_id: payment.id,
                 previous_status: "CREATED",
-                new_status: "EXPIRED",
+                new_status: "Cancelled",
                 metadata: { source: "payment_recovery_worker" }
               });
               await supabase.from("payments").update({ status: "EXPIRED" }).eq("id", payment.id);
@@ -77,7 +77,7 @@ export const paymentRecoveryWorker = new Worker(
         }
       }
     } else if (job.name === "cleanup_expired_orders") {
-      console.log("[Payment Recovery Worker] Cleaning up old EXPIRED orders...");
+      console.log("[Payment Recovery Worker] Cleaning up old Cancelled orders...");
       if (!supabase) return;
       
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -85,7 +85,7 @@ export const paymentRecoveryWorker = new Worker(
       await supabase
         .from("orders")
         .delete()
-        .eq("status", "EXPIRED")
+        .eq("status", "Cancelled")
         .lt("created_at", twentyFourHoursAgo);
     }
   },

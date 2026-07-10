@@ -141,7 +141,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     if (orderEvents && orderEvents.length > 0) {
       return orderEvents.map((evt: any) => {
         let icon = "inventory_2";
-        const evLower = evt.event.toLowerCase();
+        const evLower = (evt.event || "").toLowerCase();
         if (evLower.includes("created")) icon = "inventory_2";
         else if (evLower.includes("pending")) icon = "pending";
         else if (evLower.includes("successful") || evLower.includes("success") || evLower.includes("paid")) icon = "check_circle";
@@ -151,15 +151,19 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
         else if (evLower.includes("awb") || evLower.includes("dispatched") || evLower.includes("shipped")) icon = "local_shipping";
         else if (evLower.includes("delivered")) icon = "check_circle";
 
+        const parsedDate = evt.created_at ? new Date(evt.created_at) : null;
+
         return {
-          title: evt.event,
-          dateStr: new Date(evt.created_at).toLocaleString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          title: evt.event || "Event",
+          dateStr: parsedDate && !isNaN(parsedDate.getTime()) 
+            ? parsedDate.toLocaleString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Date unavailable",
           desc: `Stitch 6K System log for order lifecycle transition.`,
           icon,
           active: true,
@@ -170,22 +174,26 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     if (shipmentEvents && shipmentEvents.length > 0) {
       return shipmentEvents.map((ev: any) => {
         let icon = "local_shipping";
-        const statusLower = ev.status.toLowerCase();
+        const statusLower = (ev.status || "").toLowerCase();
         if (statusLower.includes("placed")) icon = "inventory_2";
         else if (statusLower.includes("packed")) icon = "package_2";
         else if (statusLower.includes("out for delivery") || statusLower.includes("out_for_delivery")) icon = "hail";
         else if (statusLower.includes("delivered")) icon = "check_circle";
         else if (statusLower.includes("returned")) icon = "assignment_return";
 
+        const parsedDate = ev.timestamp ? new Date(ev.timestamp) : null;
+
         return {
-          title: ev.activity,
-          dateStr: new Date(ev.timestamp).toLocaleString("en-IN", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          title: ev.activity || "Activity",
+          dateStr: parsedDate && !isNaN(parsedDate.getTime())
+            ? parsedDate.toLocaleString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "Date unavailable",
           desc: ev.location ? `Facility Location: ${ev.location}` : "Routing through logistics network",
           icon,
           active: true,
@@ -300,11 +308,14 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
 
   const getExpectedDateText = (order: Order) => {
     if (shipment && shipment.etd) {
-      return new Date(shipment.etd).toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-        year: "numeric"
-      }).toUpperCase();
+      const parsedEtd = new Date(shipment.etd);
+      if (!isNaN(parsedEtd.getTime())) {
+        return parsedEtd.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        }).toUpperCase();
+      }
     }
     const parsedDate = getOrderDate(order.date);
     let daysToAdd = 5;
@@ -533,20 +544,20 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                       <Image
                         src={matchedProduct?.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200"}
                         className="object-cover"
-                        alt={matchedOrder.items[0]}
+                        alt={matchedOrder?.items?.[0] || "Shirt"}
                         fill
                         sizes="80px"
                       />
                     </div>
                     <div>
-                      <h4 className="font-headline font-black text-xl uppercase tracking-tighter">{matchedOrder.items[0]}</h4>
+                      <h4 className="font-headline font-black text-xl uppercase tracking-tighter">{matchedOrder?.items?.[0] || "Product Item"}</h4>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-outline mt-1">
                         {matchedProduct?.category || "Custom Series"} • Reserve
                       </p>
-                      <p className="font-headline font-black text-xl mt-4 text-on-surface">₹{matchedOrder.total.toLocaleString("en-IN")}</p>
+                      <p className="font-headline font-black text-xl mt-4 text-on-surface">₹{(matchedOrder?.total ?? 0).toLocaleString("en-IN")}</p>
                     </div>
                   </div>
-                  {matchedOrder.shiprocketId && (
+                  {matchedOrder?.shiprocketId && (
                     <div className="mt-6 pt-6 border-t border-outline-variant/20 flex flex-col gap-2">
                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
                         <span className="text-outline">Courier Partner</span>

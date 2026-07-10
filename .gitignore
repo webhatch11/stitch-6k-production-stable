@@ -47,3 +47,7 @@ next-env.d.ts
 /scratch/db.js
 /scratch/supabase.js
 
+# backup files and one-off scripts — never commit
+*.bak
+/refactor.js
+/scratch/*.js

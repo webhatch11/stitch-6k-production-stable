@@ -2,7 +2,6 @@ import React from "react";
 import { getServerUser, getServerSupabase } from "@/lib/supabase-server";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import dynamic from "next/dynamic";
 
 const MyProfileClient = dynamic(() => import("./MyProfileClient"), { ssr: true });

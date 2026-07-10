@@ -1,3 +1,10 @@
 {
-  "regions": ["bom1"]
+  "regions": ["bom1"],
+  "functions": {
+    "app/api/payments/verify/route.ts": { "maxDuration": 30 },
+    "app/api/payments/create-order/route.ts": { "maxDuration": 20 },
+    "app/api/logistics/dispatch-order/route.ts": { "maxDuration": 20 },
+    "app/api/webhooks/razorpay/route.ts": { "maxDuration": 15 },
+    "app/api/webhooks/shiprocket/route.ts": { "maxDuration": 15 }
+  }
 }

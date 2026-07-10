@@ -60,6 +60,7 @@ const mapDbProductToProduct = (p: any): Product => {
     image: p.image,
     images: p.images || [],
     isNew: p.is_new,
+    isNewArrival: p.is_new || p.is_new_arrival || false,
     stock: p.stock,
     description: p.description,
     isAtelierExclusive: p.is_agent_exclusive || p.is_atelier_exclusive,

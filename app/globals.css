@@ -426,6 +426,19 @@ h1, h2, h3, h4, h5, h6 {
   .conversion-stats-bar {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+  .conversion-stats-bar > div {
+    border-right: none !important;
+  }
+  .conversion-stats-bar > div:nth-child(odd) {
+    border-right: 1px solid #e5e5e5 !important;
+  }
+  .conversion-stats-bar > div:nth-child(-n+2) {
+    border-bottom: 1px solid #e5e5e5 !important;
+    padding-bottom: 16px !important;
+  }
+  .conversion-stats-bar > div:nth-child(n+3) {
+    padding-top: 16px !important;
+  }
 }
 
 

@@ -2,6 +2,29 @@
 
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
+import * as Sentry from "@sentry/nextjs";
+import { supabaseService as supabase } from "@/lib/supabase-service";
+
+async function getCustomerEmailForOrder(order: any): Promise<string> {
+  let customerEmail = "";
+  if (order.address_snapshot) {
+    const snap = typeof order.address_snapshot === "string"
+      ? JSON.parse(order.address_snapshot)
+      : order.address_snapshot;
+    customerEmail = snap.email || "";
+  }
+  if (!customerEmail && (order.userId || order.user_id) && supabase) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", order.userId || order.user_id)
+      .maybeSingle();
+    if (profile?.email) {
+      customerEmail = profile.email;
+    }
+  }
+  return customerEmail;
+}
 
 const ALLOWED_STATUSES = [
   "Payment Pending",
@@ -41,6 +64,69 @@ export async function bulkUpdateOrderStatusAction(
         count++;
         o.status = newStatus;
         await db.saveOrder(o);
+
+        // Fail-safe email dispatch triggered by status transition
+        if (newStatus === "Cancelled") {
+          db.getOrderById(o.id).then(async (order) => {
+            if (!order) return;
+            const email = await getCustomerEmailForOrder(order);
+            if (email) {
+              const { sendOrderCancelledEmail } = await import("@/lib/email");
+              const wPaid = order.walletPaid || 0;
+              const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+              const refundDetails = gPaid > 0 && wPaid > 0
+                ? `₹${gPaid.toLocaleString("en-IN")} bank refund and ₹${wPaid.toLocaleString("en-IN")} store wallet credit`
+                : (gPaid > 0 ? `₹${gPaid.toLocaleString("en-IN")} bank refund` : `₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
+
+              await sendOrderCancelledEmail({
+                id: order.id,
+                customerName: order.customer || "Valued Customer",
+                customerEmail: email,
+                cancelReason: "Status updated to Cancelled by admin",
+                refundAmount: order.total,
+                refundDetails,
+              });
+            }
+          }).catch((err) => {
+            console.error(`[Email Dispatch Error] bulkCancel for ${o.id}:`, err);
+            Sentry.captureException(err, { extra: { orderId: o.id, emailType: "order_cancelled_bulk" } });
+          });
+        } else if (newStatus === "Returned") {
+          db.getOrderById(o.id).then(async (order) => {
+            if (!order) return;
+            const email = await getCustomerEmailForOrder(order);
+            if (email) {
+              const { sendReturnAcceptedEmail } = await import("@/lib/email");
+              await sendReturnAcceptedEmail({
+                id: order.id,
+                customerName: order.customer || "Valued Customer",
+                customerEmail: email,
+                refundAmount: order.total,
+                refundOption: (order as any).refund_option || "bank",
+              });
+            }
+          }).catch((err) => {
+            console.error(`[Email Dispatch Error] bulkReturn for ${o.id}:`, err);
+            Sentry.captureException(err, { extra: { orderId: o.id, emailType: "return_accepted_bulk" } });
+          });
+        } else if (newStatus === "Return Rejected") {
+          db.getOrderById(o.id).then(async (order) => {
+            if (!order) return;
+            const email = await getCustomerEmailForOrder(order);
+            if (email) {
+              const { sendReturnRejectedEmail } = await import("@/lib/email");
+              await sendReturnRejectedEmail({
+                id: order.id,
+                customerName: order.customer || "Valued Customer",
+                customerEmail: email,
+                rejectReason: "Status updated to Return Rejected by admin",
+              });
+            }
+          }).catch((err) => {
+            console.error(`[Email Dispatch Error] bulkReject for ${o.id}:`, err);
+            Sentry.captureException(err, { extra: { orderId: o.id, emailType: "return_rejected_bulk" } });
+          });
+        }
       }
     }
     return { success: true, count };
@@ -61,6 +147,60 @@ export async function approvePendingOrderAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   try {
     const success = await db.approvePendingOrder(orderId);
+    if (success) {
+      db.getOrderById(orderId).then(async (order) => {
+        if (!order) return;
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendOrderConfirmationEmail } = await import("@/lib/email");
+          const rawItems = order.cartItems || (order as any).cart_items || [];
+          const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
+          for (const item of rawItems) {
+            const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
+            if (groupedMap.has(key)) {
+              groupedMap.get(key)!.quantity += 1;
+            } else {
+              groupedMap.set(key, {
+                productName: item.productName || item.title || "Product",
+                size: item.size || "Free Size",
+                quantity: item.quantity || 1,
+                price: item.price || 0,
+              });
+            }
+          }
+          const emailItems = Array.from(groupedMap.values());
+          const addr = order.address_snapshot;
+          const addressStr = addr
+            ? [
+                addr.name,
+                addr.phone,
+                addr.address_line_1 || addr.address,
+                addr.address_line_2,
+                addr.city,
+                addr.postal_code || addr.pincode,
+                addr.state,
+                addr.country
+              ]
+                .filter(Boolean)
+                .join(", ")
+            : "No address details available";
+
+          await sendOrderConfirmationEmail({
+            id: order.id,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            items: emailItems,
+            total: order.total,
+            address: addressStr,
+          });
+        }
+      }).catch((err) => {
+        console.error("[Email Dispatch Error] approvePendingOrder:", err);
+        Sentry.captureException(err, {
+          extra: { orderId, emailType: "order_approved_confirmation" }
+        });
+      });
+    }
     return { success: !!success };
   } catch (e: any) {
     console.error("[approvePendingOrderAction]", e);
@@ -77,6 +217,34 @@ export async function cancelOrderAndRefundAction(
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
     const success = await db.cancelOrderAndRefund(orderId, reason.trim());
+    if (success) {
+      db.getOrderById(orderId).then(async (order) => {
+        if (!order) return;
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendOrderCancelledEmail } = await import("@/lib/email");
+          const wPaid = order.walletPaid || 0;
+          const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+          const refundDetails = gPaid > 0 && wPaid > 0
+            ? `₹${gPaid.toLocaleString("en-IN")} bank refund and ₹${wPaid.toLocaleString("en-IN")} store wallet credit`
+            : (gPaid > 0 ? `₹${gPaid.toLocaleString("en-IN")} bank refund` : `₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
+
+          await sendOrderCancelledEmail({
+            id: order.id,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            cancelReason: reason.trim(),
+            refundAmount: order.total,
+            refundDetails,
+          });
+        }
+      }).catch((err) => {
+        console.error("[Email Dispatch Error] cancelOrderAndRefund:", err);
+        Sentry.captureException(err, {
+          extra: { orderId, emailType: "order_cancelled" }
+        });
+      });
+    }
     return { success: !!success };
   } catch (e: any) {
     console.error("[cancelOrderAndRefundAction]", e);
@@ -123,13 +291,39 @@ export async function approveReturnPickupAction(
 
       const pickup = await shiprocket.createReversePickup(orderId, customerAddress, items);
 
+      let finalAwb = pickup.awb || "";
+      let finalPickupScheduled = pickup.pickupScheduled || new Date().toISOString();
+
       if (pickup.success && pickup.awb) {
         await db.saveOrder({
           id: orderId,
           returnAwb: pickup.awb,
           returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString()
         });
+        finalAwb = pickup.awb;
+        finalPickupScheduled = pickup.pickupScheduled || finalPickupScheduled;
       }
+
+      // Send pickup scheduled email to customer
+      db.getOrderById(orderId).then(async (latestOrder) => {
+        if (!latestOrder) return;
+        const email = await getCustomerEmailForOrder(latestOrder);
+        if (email) {
+          const { sendReturnPickupScheduledEmail } = await import("@/lib/email");
+          await sendReturnPickupScheduledEmail({
+            id: latestOrder.id,
+            customerName: latestOrder.customer || "Valued Customer",
+            customerEmail: email,
+            awb: latestOrder.returnAwb || finalAwb || "Scheduled",
+            pickupDate: latestOrder.returnPickupScheduled || finalPickupScheduled,
+          });
+        }
+      }).catch((err) => {
+        console.error("[Email Dispatch Error] approveReturnPickup:", err);
+        Sentry.captureException(err, {
+          extra: { orderId, emailType: "return_pickup_scheduled" }
+        });
+      });
     }
     return { success: !!success };
   } catch (e: any) {
@@ -148,6 +342,27 @@ export async function processReturnRefundAction(
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
     const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
+    if (success) {
+      db.getOrderById(orderId).then(async (order) => {
+        if (!order) return;
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendReturnAcceptedEmail } = await import("@/lib/email");
+          await sendReturnAcceptedEmail({
+            id: order.id,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            refundAmount: order.total,
+            refundOption: (order as any).refund_option || "bank",
+          });
+        }
+      }).catch((err) => {
+        console.error("[Email Dispatch Error] processReturnRefund:", err);
+        Sentry.captureException(err, {
+          extra: { orderId, emailType: "return_accepted" }
+        });
+      });
+    }
     return { success: !!success };
   } catch (e: any) {
     console.error("[processReturnRefundAction]", e);
@@ -184,6 +399,26 @@ export async function rejectReturnAction(
   if (!reason?.trim()) return { success: false, error: "Rejection reason is required" };
   try {
     const success = await db.rejectReturn(orderId, reason);
+    if (success) {
+      db.getOrderById(orderId).then(async (order) => {
+        if (!order) return;
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendReturnRejectedEmail } = await import("@/lib/email");
+          await sendReturnRejectedEmail({
+            id: order.id,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            rejectReason: reason,
+          });
+        }
+      }).catch((err) => {
+        console.error("[Email Dispatch Error] rejectReturn:", err);
+        Sentry.captureException(err, {
+          extra: { orderId, emailType: "return_rejected" }
+        });
+      });
+    }
     return { success: !!success };
   } catch (e: any) {
     console.error("[rejectReturnAction]", e);

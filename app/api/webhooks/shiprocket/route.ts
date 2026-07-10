@@ -66,13 +66,6 @@ export async function POST(req: NextRequest) {
     if (newStatus !== order.status) {
       order.status = newStatus;
       await db.saveOrder(order);
-
-      if (supabase) {
-        await supabase
-          .from("orders")
-          .update({ status: newStatus })
-          .eq("id", order.id);
-      }
     }
 
     // Add status history entry

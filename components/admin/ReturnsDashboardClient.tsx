@@ -455,6 +455,11 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                         }`}>
                           {o.status === "Returned" ? "Returned" : "Rejected"}
                         </span>
+                        {(o as any).refund_status === "manual_review_required" && (
+                          <span className="block mt-1.5 text-[8px] font-black text-red-700 bg-red-50 border border-red-200 px-1 py-0.5 uppercase text-center tracking-wider">
+                            ⚠️ Review Required
+                          </span>
+                        )}
                       </td>
                       <td className="px-8 py-6">
                         {o.status === "Returned"

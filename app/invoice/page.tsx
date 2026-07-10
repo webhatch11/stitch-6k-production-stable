@@ -42,6 +42,11 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
     redirect("/orderhistory");
   }
 
+  // Payment pending restriction: invoices are not generated/accessible until payment is complete
+  if (matchedOrder.status?.toLowerCase() === "payment pending") {
+    redirect("/orderhistory?error=payment_pending");
+  }
+
   const allProducts = await db.getProducts();
 
   const pointsDiscount = matchedOrder.pointsDiscount || 0;

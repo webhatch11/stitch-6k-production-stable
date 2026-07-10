@@ -54,19 +54,23 @@ export async function requestManualReturnAction(orderId: string, payload: {
       return { success: false, error: "Only delivered orders are eligible for return." };
     }
     const deliveredAtStr = (order as any).deliveredAt || (order as any).delivered_at;
-    if (deliveredAtStr) {
-      const deliveredAt = new Date(deliveredAtStr);
-      const daysSinceDelivery = Math.floor(
-        (Date.now() - deliveredAt.getTime()) / 
-        (1000 * 60 * 60 * 24)
-      );
-      const RETURN_WINDOW_DAYS = 7;
-      if (daysSinceDelivery > RETURN_WINDOW_DAYS) {
-        return {
-          success: false,
-          error: `Return window closed. Returns must be requested within 7 days of delivery. This order was delivered ${daysSinceDelivery} days ago.`
-        };
-      }
+    if (!deliveredAtStr) {
+      return {
+        success: false,
+        error: "Return window validation failed due to a missing delivery timestamp. Please contact support via support@the6k.com or call +91 93636 93004 to request manual processing."
+      };
+    }
+    const deliveredAt = new Date(deliveredAtStr);
+    const daysSinceDelivery = Math.floor(
+      (Date.now() - deliveredAt.getTime()) / 
+      (1000 * 60 * 60 * 24)
+    );
+    const RETURN_WINDOW_DAYS = 7;
+    if (daysSinceDelivery > RETURN_WINDOW_DAYS) {
+      return {
+        success: false,
+        error: `Return window closed. Returns must be requested within 7 days of delivery. This order was delivered ${daysSinceDelivery} days ago.`
+      };
     }
     const success = await db.requestManualReturn(orderId, payload);
     if (success) {

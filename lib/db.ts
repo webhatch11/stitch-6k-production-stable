@@ -1608,6 +1608,20 @@ export const db = {
       .maybeSingle();
 
     if (orderErr || !orderData) return false;
+    if (orderData.status === "Returned") return false;
+
+    // Atomic claim: set refund_status = "pending" only when it is currently NULL.
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({ refund_status: "pending" })
+      .eq("id", orderId)
+      .is("refund_status", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimErr || !claimed) {
+      return false; // Another call already claimed, or a refund is already in progress
+    }
 
     const walletPaid = Number(orderData.wallet_paid || 0);
     const gatewayPaid = Number(orderData.gateway_paid || 0);
@@ -1627,7 +1641,11 @@ export const db = {
       })
       .eq("id", orderId);
 
-    if (orderUpdateErr) return false;
+    if (orderUpdateErr) {
+      // Revert claim on update failure
+      await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
+      return false;
+    }
 
     // 2. QC passed → restock variant inventory from cart_items JSONB.
     if (qualityCheckPassed) {
@@ -1720,6 +1738,15 @@ export const db = {
               .eq("id", orderId);
           }
         }
+      } else {
+        // Wallet-only or free order: set terminal status
+        await supabase
+          .from("orders")
+          .update({
+            refund_status: walletPaid > 0 ? "wallet_only" : "processed",
+            refunded_at: new Date().toISOString(),
+          })
+          .eq("id", orderId);
       }
     }
 
@@ -1787,6 +1814,19 @@ export const db = {
     if (orderErr || !orderData) return false;
     if (orderData.status === "Cancelled") return false;
 
+    // Atomic claim: set refund_status = "pending" only when it is currently NULL.
+    const { data: claimed, error: claimErr } = await supabase
+      .from("orders")
+      .update({ refund_status: "pending" })
+      .eq("id", orderId)
+      .is("refund_status", null)
+      .select("id")
+      .maybeSingle();
+
+    if (claimErr || !claimed) {
+      return false; // Another call already claimed, or a refund is already in progress
+    }
+
     const walletPaid = Number(orderData.wallet_paid || 0);
     const gatewayPaid = Number(orderData.gateway_paid || 0);
     const totalRefundAmount = walletPaid + gatewayPaid;
@@ -1803,7 +1843,11 @@ export const db = {
       })
       .eq("id", orderId);
 
-    if (updateErr) return false;
+    if (updateErr) {
+      // Revert claim on update failure
+      await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
+      return false;
+    }
 
     // 2. Restock variant inventory from cart_items JSONB (has productId, size, color, quantity).
     // Falls back to a warning for legacy orders without cart_items.
@@ -1880,6 +1924,15 @@ export const db = {
           // Don't return false — status update + wallet refund already succeeded
         }
       }
+    } else {
+      // Wallet-only or free order: set terminal status
+      await supabase
+        .from("orders")
+        .update({
+          refund_status: walletPaid > 0 ? "wallet_only" : "processed",
+          refunded_at: new Date().toISOString(),
+        })
+        .eq("id", orderId);
     }
 
     // 5. Revoke earned loyalty points (via RPC → profiles.loyalty_points)

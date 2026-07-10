@@ -418,7 +418,7 @@ export const db = {
       }));
       const { error: varErr } = await supabase
         .from("product_variants")
-        .upsert(variantRows, { onConflict: "product_id,size,color" });
+        .upsert(variantRows, { onConflict: "product_id,size" });
       if (varErr) {
         console.error("Error upserting product variants:", varErr);
       }
@@ -735,7 +735,7 @@ export const db = {
     if (order.items !== undefined) dbPayload.items = order.items;
     if (order.originalTotal !== undefined) dbPayload.original_total = order.originalTotal;
     if (order.couponDiscount !== undefined) dbPayload.coupon_discount = order.couponDiscount;
-    if (order.couponCode !== undefined) dbPayload.coupon_code = order.couponCode;
+    if (order.couponCode !== undefined) dbPayload.coupon_code = order.couponCode ? order.couponCode.trim().toUpperCase() : "";
     if (order.walletPaid !== undefined) dbPayload.wallet_paid = order.walletPaid;
     if (order.gatewayPaid !== undefined) dbPayload.gateway_paid = order.gatewayPaid;
     if (order.pointsRedeemed !== undefined) dbPayload.points_redeemed = order.pointsRedeemed;
@@ -784,7 +784,7 @@ export const db = {
         items: order.items || [],
         original_total: order.originalTotal || 0,
         coupon_discount: order.couponDiscount || 0,
-        coupon_code: order.couponCode || "",
+        coupon_code: order.couponCode ? order.couponCode.trim().toUpperCase() : "",
         wallet_paid: order.walletPaid || 0,
         gateway_paid: order.gatewayPaid || 0,
         points_redeemed: order.pointsRedeemed || 0,
@@ -3367,7 +3367,7 @@ export const db = {
         'environment variables.'
       );
     }
-    let q = supabase.from("reviews").select("id, product_id, rating, comment, name, location, approved, created_at").order("created_at", { ascending: false });
+    let q = supabase.from("reviews").select("id, rating, comment, name, location, approved, created_at").order("created_at", { ascending: false });
     if (filter && typeof filter.approved === "boolean") {
       q = q.eq("approved", filter.approved);
     }

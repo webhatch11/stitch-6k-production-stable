@@ -18,9 +18,8 @@ try {
     });
 
     redisClient.on("error", (err) => {
-      console.error("[Cache Service] Redis connection error, failing early:", err.message);
-      // Fail early if Redis is offline to prevent split-brain cache states
-      throw new Error(`[Cache Service] FATAL: Redis connection failed: ${err.message}`);
+      console.warn("[Cache Service] Redis connection offline:", err.message);
+      isRedisAvailable = false;
     });
 
     redisClient.on("connect", () => {

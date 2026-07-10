@@ -641,6 +641,7 @@ function OrderDetailsContent() {
                     <tr key={index} className="group">
                       <td className="p-8 w-32">
                         <div className="size-20 bg-gray-50 border border-gray-200 p-1 rounded-none flex items-center justify-center grayscale overflow-hidden group-hover:grayscale-0 transition-all">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={prod.image} className="w-full h-full object-cover" alt={prod.title} />
                         </div>
                       </td>

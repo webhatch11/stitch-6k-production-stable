@@ -363,20 +363,25 @@ export async function POST(req: NextRequest) {
               .join(", ")
           : "No address details available";
 
-        await sendOrderConfirmationEmail({
+        sendOrderConfirmationEmail({
           id: dbOrder.id,
           customerName: dbOrder.customer || "Valued Customer",
           customerEmail,
           items: groupedItems,
           total: Number(dbOrder.total || 0),
           address: addressStr
-        });
-        console.log(`[Email] Order confirmation email successfully sent for order #${dbOrder.id} to ${customerEmail}`);
+        })
+          .then(() => {
+            console.log(`[Email] Order confirmation email successfully sent for order #${dbOrder.id} to ${customerEmail}`);
+          })
+          .catch((emailError) => {
+            console.error("[Email] Order confirmation email failed:", emailError);
+          });
       } else {
         console.warn(`[Email] Could not resolve customer email for order #${dbOrder.id}. Email sending skipped.`);
       }
-    } catch (emailError) {
-      console.error("[Email] Order confirmation email failed:", emailError);
+    } catch (e) {
+      console.error("[Email] Preparation for order confirmation email failed:", e);
     }
 
     // Run server-side tracking in parallel (non-blocking)

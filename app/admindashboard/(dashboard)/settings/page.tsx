@@ -494,6 +494,7 @@ export default function SettingsDashboardPage() {
                 {heroImage ? (
                   <div className="space-y-4">
                     <div className="relative w-full max-w-md h-48 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={heroImage} alt="Hero preview" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex gap-4">
@@ -612,6 +613,7 @@ export default function SettingsDashboardPage() {
 
                         {isFilled ? (
                           <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={url}
                               alt={`Slide ${index + 1}`}
@@ -1015,6 +1017,7 @@ export default function SettingsDashboardPage() {
                 {offerBgImageUrl ? (
                   <div className="space-y-4">
                     <div className="relative w-full max-w-md h-36 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={offerBgImageUrl} alt="Offer Box preview" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex gap-4">
@@ -1389,6 +1392,7 @@ export default function SettingsDashboardPage() {
                           </label>
                           {item.image_url ? (
                             <div className="flex items-center gap-3">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={item.image_url} className="w-12 h-16 object-cover border border-gray-200 rounded-md" alt="Category thumbnail" />
                               <div className="flex flex-col gap-1">
                                 <button

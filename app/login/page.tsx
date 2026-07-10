@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { 
   Mail, 
@@ -376,7 +377,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-4 group">
             <div className="w-10 h-10 rounded-full bg-white/5 p-1.5 flex items-center justify-center border border-white/10 shadow-md">
-              <img src="/assets/logo.png" alt="6K Logo" className="max-w-full max-h-full object-contain filter invert" />
+              <Image src="/assets/logo.png" alt="6K Logo" width={40} height={40} className="max-w-full max-h-full object-contain filter invert" />
             </div>
             <div>
               <h1 className="text-white text-[11px] font-black tracking-[0.25em] uppercase leading-none">Stitch 6K</h1>
@@ -461,7 +462,7 @@ export default function LoginPage() {
         <div className="flex md:hidden items-center justify-between w-full pb-4 border-b border-gray-100">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#0a0a0a] p-1 flex items-center justify-center">
-              <img src="/assets/logo.png" alt="6K Logo" className="max-w-full max-h-full object-contain filter invert" />
+              <Image src="/assets/logo.png" alt="6K Logo" width={32} height={32} className="max-w-full max-h-full object-contain filter invert" />
             </div>
             <span className="text-[10px] font-black uppercase tracking-wider text-black">Stitch 6K</span>
           </Link>
@@ -490,7 +491,7 @@ export default function LoginPage() {
           {/* Centered Logo (desktop only) */}
           <div className="hidden md:flex justify-center">
             <div className="w-12 h-12 rounded-full bg-gray-50 p-2.5 flex items-center justify-center border border-gray-100 shadow-sm">
-              <img src="/assets/logo.png" alt="6K Logo" className="max-w-full max-h-full object-contain" />
+              <Image src="/assets/logo.png" alt="6K Logo" width={48} height={48} className="max-w-full max-h-full object-contain" />
             </div>
           </div>
 

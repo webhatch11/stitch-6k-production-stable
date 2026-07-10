@@ -149,6 +149,7 @@ export default function BestSellersPage() {
                       </td>
                       <td className="px-8 py-6">
                         <div className="size-14 bg-gray-50 border border-gray-200 p-0.5 rounded-none flex items-center justify-center grayscale overflow-hidden group-hover:grayscale-0 transition-all">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={item.image} className="w-full h-full object-cover" alt={item.title} />
                         </div>
                       </td>

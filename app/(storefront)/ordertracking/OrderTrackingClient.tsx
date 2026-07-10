@@ -246,7 +246,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     milestones.push({
       title: "Out for Delivery",
       dateStr: formatTimelineDate(orderDate, 3, "09:00 AM"),
-      desc: "Shiprocket delivery agent Sunil K. (+91 90876 XXXXX) is out for delivery to your address.",
+      desc: "A delivery agent is out for delivery to your address.",
       icon: "hail",
       active: isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
     });

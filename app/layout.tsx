@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Stitch 6K | Predefining Luxury",
     description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India.",
-    url: "https://6kthebrand.com",
+    url: "https://the6k.com",
     siteName: "Stitch 6K",
     images: [
       {

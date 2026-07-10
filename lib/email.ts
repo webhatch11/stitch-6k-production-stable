@@ -15,7 +15,7 @@ export async function sendOrderConfirmationEmail(order: {
   total: number;
   address: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@webhatch.dev";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">

@@ -216,7 +216,7 @@ export const CacheService = {
         return count <= limit;
       } catch (err: any) {
         console.warn(`[Cache Service] Rate limit check failed for "${identifier}":`, err.message);
-        return true; // Fail-open to avoid blocking users
+        return false; // Fail-closed on Redis error — prevents brute-force during outage
       }
     }
     return true; // Fallback to pass-through if Redis is offline

@@ -710,6 +710,7 @@ export default function AdminDashboardClient({
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
                           <div className="size-10 bg-gray-50 overflow-hidden border border-gray-200 grayscale p-1 flex items-center justify-center">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.image} className="w-full h-full object-cover" alt={p.title} />
                           </div>
                           <span className="text-[11px] font-black uppercase tracking-tight font-bold">{p.title}</span>

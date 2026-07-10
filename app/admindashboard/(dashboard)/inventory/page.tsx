@@ -365,6 +365,7 @@ export default function InventoryLedgerPage() {
                         <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden transition-all ${
                           stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"
                         }`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                         </div>
                       </td>
@@ -514,6 +515,7 @@ export default function InventoryLedgerPage() {
                     <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden shrink-0 transition-all ${
                       stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"
                     }`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={pImage} className="w-full h-full object-cover" alt={p.title} />
                     </div>
                     <div className="flex-1 min-w-0">

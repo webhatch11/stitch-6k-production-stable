@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Order, Product } from "@/lib/types";
 import { updateOrderToProcessingAction } from "@/app/actions/orders";
 
@@ -100,9 +101,11 @@ export default function InvoiceClient({
         {/* Watermark Logo */}
         <div className="absolute top-0 right-0 opacity-[0.03] -translate-y-1/2 translate-x-1/2 pointer-events-none">
           <div className="w-8 h-8 rounded-full bg-[#faf9f8] p-1 flex items-center justify-center shadow-sm border border-[#775a19]/15">
-            <img 
+            <Image 
               src="/assets/logo.png" 
               alt="6K Logo" 
+              width={32}
+              height={32}
               className="max-w-full max-h-full object-contain"
               draggable={false}
             />

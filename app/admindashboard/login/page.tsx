@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Mail, Check, ArrowRight } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -233,9 +234,11 @@ export default function AdminLoginPage() {
         {/* logo and Header */}
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-white/5 p-2.5 flex items-center justify-center border border-[#BA7517]/25 shadow-md mb-6">
-            <img 
+            <Image 
               src="/assets/logo.png" 
               alt="6K Logo" 
+              width={64}
+              height={64}
               className="max-w-full max-h-full object-contain filter invert" 
               draggable={false}
             />

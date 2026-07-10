@@ -900,7 +900,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_usage, expiry_date, is_first_order")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, usage_count, max_usage, expiry_date")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1040,7 +1040,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_usage, expiry_date, is_first_order")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, usage_count, max_usage, expiry_date")
       .eq("code", code.toUpperCase())
       .maybeSingle();
 
@@ -1254,7 +1254,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, max_discount_amount, limit_per_user, usage_count, max_usage, expiry_date, is_first_order")
+      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, usage_count, max_usage, expiry_date")
       .eq("code", code.toUpperCase())
       .maybeSingle();
 

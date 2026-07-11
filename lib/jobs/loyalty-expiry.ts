@@ -12,11 +12,18 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
  * Runs daily to sweep expired credit transactions and deduct them from user balances.
  * Points expire 12 months from the date they are earned.
  *
- * Safety rules:
- * - Only deducts min(expiredPoints, storedBalance) to avoid negative balances
- * - Marks each processed row with expired_processed timestamp (idempotent)
- * - Processes in batches of 200 users to avoid long-running transactions
+ * Each user is processed by the loyalty_atomic_expire_user() Postgres function,
+ * which — in a single locked transaction — claims that user's expired/unswept
+ * credit rows (idempotent), decrements the balance without a read-modify-write
+ * race, and writes the expiry debit ledger row. The worker only enumerates
+ * users and drains the full backlog across iterations.
  */
+const USER_BATCH = 200;      // users processed per iteration
+const MAX_ITERATIONS = 100;  // hard cap: up to 20k users/run, prevents spinning
+
+// Shape of the loyalty_atomic_expire_user() RPC result.
+type ExpireResult = { success: boolean; deducted?: number; new_balance?: number; error?: string };
+
 export const loyaltyExpiryWorker = new Worker(
   "loyalty-expiry",
   async (job) => {
@@ -29,108 +36,72 @@ export const loyaltyExpiryWorker = new Worker(
 
     console.log("[Loyalty Expiry Worker] Starting expiry sweep...");
 
-    const now = new Date().toISOString();
+    // Fixed cutoff for this run; rows that expire mid-run are handled next run.
+    const cutoff = new Date().toISOString();
+    const failedUsers = new Set<string>();
+    let totalUsers = 0;
+    let totalDeducted = 0;
+    let iterations = 0;
 
-    // Fetch expired credit transactions that haven't been processed yet
-    const { data: expiredRows, error: fetchErr } = await supabase
-      .from("loyalty_transactions")
-      .select("id, user_id, points, expires_at")
-      .eq("type", "credit")
-      .lt("expires_at", now)
-      .is("expired_processed", null)
-      .limit(500);
+    while (iterations++ < MAX_ITERATIONS) {
+      // Find users that still have expired, unswept credit rows.
+      const { data: rows, error: fetchErr } = await supabase
+        .from("loyalty_transactions")
+        .select("user_id")
+        .eq("type", "credit")
+        .lt("expires_at", cutoff)
+        .is("expired_processed", null)
+        .limit(2000);
 
-    if (fetchErr) {
-      console.error("[Loyalty Expiry Worker] Fetch error:", fetchErr);
-      Sentry.captureException(fetchErr, { tags: { queue: "loyalty-expiry" } });
-      return;
-    }
+      if (fetchErr) {
+        console.error("[Loyalty Expiry Worker] Fetch error:", fetchErr);
+        Sentry.captureException(fetchErr, { tags: { queue: "loyalty-expiry" } });
+        break;
+      }
 
-    if (!expiredRows || expiredRows.length === 0) {
-      console.log("[Loyalty Expiry Worker] No expired points found.");
-      return;
-    }
+      if (!rows || rows.length === 0) break; // backlog drained
 
-    // Aggregate expired points per user
-    const userExpiredMap = new Map<string, number>();
-    const txIds: string[] = [];
+      // Distinct users not already known to fail this run.
+      const userIds = Array.from(new Set(rows.map((r) => r.user_id as string)))
+        .filter((u) => !failedUsers.has(u))
+        .slice(0, USER_BATCH);
 
-    for (const row of expiredRows) {
-      txIds.push(row.id);
-      const current = userExpiredMap.get(row.user_id) || 0;
-      userExpiredMap.set(row.user_id, current + Number(row.points));
-    }
+      if (userIds.length === 0) break; // only previously-failed users remain
 
-    console.log(`[Loyalty Expiry Worker] Found ${expiredRows.length} expired rows for ${userExpiredMap.size} users.`);
+      let progressed = false;
+      for (const userId of userIds) {
+        const { data, error: rpcErr } = await supabase.rpc(
+          "loyalty_atomic_expire_user",
+          { p_user_id: userId }
+        );
+        const res = data as ExpireResult | null;
 
-    // Process each user
-    for (const [userId, expiredPoints] of userExpiredMap) {
-      try {
-        // Get current stored balance
-        const { data: profile, error: profileErr } = await supabase
-          .from("profiles")
-          .select("loyalty_points")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (profileErr || !profile) {
-          console.warn(`[Loyalty Expiry Worker] Could not fetch profile for ${userId}`);
+        if (rpcErr || !res || res.success !== true) {
+          failedUsers.add(userId);
+          console.error(`[Loyalty Expiry Worker] RPC failed for ${userId}:`, rpcErr || res);
+          Sentry.captureException(rpcErr || new Error("loyalty_atomic_expire_user returned failure"), {
+            tags: { queue: "loyalty-expiry" },
+            extra: { userId, result: res },
+          });
           continue;
         }
 
-        const storedBalance = Number(profile.loyalty_points);
-        // Only deduct what's actually in the balance (safety guard against negative)
-        const deduction = Math.min(expiredPoints, storedBalance);
-
-        if (deduction <= 0) {
-          console.log(`[Loyalty Expiry Worker] No deduction needed for ${userId} (balance=${storedBalance})`);
-        } else {
-          const newBalance = storedBalance - deduction;
-          const { error: updateErr } = await supabase
-            .from("profiles")
-            .update({ loyalty_points: newBalance })
-            .eq("id", userId);
-
-          if (updateErr) {
-            console.error(`[Loyalty Expiry Worker] Balance update failed for ${userId}:`, updateErr);
-            continue;
-          }
-
-          // Log expiry as a debit transaction for user-facing history
-          await supabase.from("loyalty_transactions").insert({
-            id: `LTX-EXP-${userId.slice(0, 8)}-${Date.now()}`,
-            user_id: userId,
-            date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-            points: deduction,
-            type: "debit",
-            description: `${deduction} points expired (12-month validity)`,
-          });
-
-          console.log(`[Loyalty Expiry Worker] Deducted ${deduction} expired pts for user ${userId} (balance: ${storedBalance} → ${newBalance})`);
-        }
-      } catch (err) {
-        console.error(`[Loyalty Expiry Worker] Error processing user ${userId}:`, err);
-        Sentry.captureException(err, {
-          tags: { queue: "loyalty-expiry" },
-          extra: { userId, expiredPoints },
-        });
+        progressed = true;
+        totalUsers++;
+        totalDeducted += Number(res.deducted || 0);
       }
+
+      // If a whole batch made no progress (e.g. all RPCs failing), stop rather
+      // than re-fetching the same rows forever.
+      if (!progressed) break;
     }
 
-    // Mark all processed rows as expired_processed (idempotent sweep)
-    const sweepTime = new Date().toISOString();
-    const { error: markErr } = await supabase
-      .from("loyalty_transactions")
-      .update({ expired_processed: sweepTime })
-      .in("id", txIds);
-
-    if (markErr) {
-      console.error("[Loyalty Expiry Worker] Failed to mark rows as processed:", markErr);
-    } else {
-      console.log(`[Loyalty Expiry Worker] Marked ${txIds.length} rows as expired_processed.`);
+    console.log(
+      `[Loyalty Expiry Worker] Sweep complete. Users processed: ${totalUsers}, points expired: ${totalDeducted}, failed users: ${failedUsers.size}.`
+    );
+    if (failedUsers.size > 0) {
+      console.warn(`[Loyalty Expiry Worker] ${failedUsers.size} users failed and will retry next run.`);
     }
-
-    console.log("[Loyalty Expiry Worker] Expiry sweep complete.");
   },
   { connection: connection as any }
 );

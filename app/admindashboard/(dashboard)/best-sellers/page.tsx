@@ -141,7 +141,7 @@ export default function BestSellersPage() {
                   return (
                     <tr
                       key={item.productId}
-                      onClick={() => router.push(`/admindashboard/add-product?id=${item.productId}`)}
+                      onClick={() => router.push(`/admindashboard/add-product?edit=${item.productId}`)}
                       className="group hover:bg-[#fcfcfc] transition-colors cursor-pointer"
                     >
                       <td className="px-8 py-6 text-center text-xs font-black text-gray-400 group-hover:text-primary transition-colors">

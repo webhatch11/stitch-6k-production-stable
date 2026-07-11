@@ -120,18 +120,18 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
     let orders: any[] = [];
     let products: any[] = [];
 
+    // Fetch products using standard db client helper to populate variants and map fields correctly
+    try {
+      products = await db.getProducts({ includeDeleted: true });
+    } catch (e) {
+      console.warn("[getBestSellersAction] failed to load products via db.getProducts, using fallback...", e);
+      products = [];
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       const ordersRes = await db.getOrders();
       orders = ordersRes || [];
-      const prodsRes = await db.getProducts();
-      products = prodsRes || [];
     } else {
-      const { data: dbProducts, error: prodErr } = await supabase
-        .from("products")
-        .select("*");
-      if (prodErr) throw prodErr;
-      products = dbProducts || [];
-
       let query = supabase.from("orders").select("*");
       if (dateRange === "7d") {
         const cutOff = new Date();

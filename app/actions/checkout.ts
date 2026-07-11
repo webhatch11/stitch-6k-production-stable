@@ -275,7 +275,6 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   idempotencyKey: string;
   addressId?: string;
   userId?: string;
-  guestAddress?: any;
 }) {
   const {
     cart,
@@ -288,56 +287,42 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
-    guestAddress,
   } = payload;
 
-  // Identity comes from the server session if available. If no session is present,
-  // we treat this as a guest session (bypass wallet/points deductions).
+  // Identity comes from the server session only. Checkout requires login.
   const user = await getServerUser();
-  const userId = user ? user.id : undefined;
-
-  if (user && payload.userId && payload.userId !== user.id) {
+  if (!user) {
+    return { success: false, error: "Unauthorized: login required for checkout." };
+  }
+  if (payload.userId && payload.userId !== user.id) {
     return { success: false, error: "Security Alert: session/user mismatch." };
   }
+  const userId = user.id;
 
-  // Guests cannot use wallet or loyalty points deductions.
-  const finalWalletDeduction = user ? walletDeduction : 0;
-  const finalPointsRedeemed = user ? pointsRedeemed : 0;
+  const finalWalletDeduction = walletDeduction;
+  const finalPointsRedeemed = pointsRedeemed;
 
-  // 0. Resolve and snapshot delivery address
-  let addressSnapshot: any = null;
-  if (userId && addressId) {
-    const addr = await db.getAddressById(addressId, userId);
-    if (!addr) {
-      return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
-    }
-    let email = user?.email || "";
-    if (supabase) {
-      try {
-        const authResult = await supabase.auth.admin.getUserById(userId);
-        if (authResult.data?.user?.email) {
-          email = authResult.data.user.email;
-        }
-      } catch (err) {
-        console.error("[Checkout] admin getUserById error:", err);
-      }
-    }
-    addressSnapshot = { ...addr, email };
-  } else if (guestAddress) {
-    addressSnapshot = {
-      name: guestAddress.name,
-      phone: guestAddress.phone,
-      address_line_1: guestAddress.address_line_1,
-      address_line_2: guestAddress.address_line_2 || "",
-      city: guestAddress.city,
-      state: guestAddress.state,
-      postal_code: guestAddress.postal_code,
-      country: guestAddress.country || "India",
-      email: guestAddress.email || "guest@6kthebrand.com",
-    };
-  } else {
+  // 0. Resolve and snapshot delivery address (must be one of the user's saved addresses)
+  if (!addressId) {
     return { success: false, error: "Delivery address details are required for checkout." };
   }
+  let addressSnapshot: any = null;
+  const addr = await db.getAddressById(addressId, userId);
+  if (!addr) {
+    return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
+  }
+  let email = user.email || "";
+  if (supabase) {
+    try {
+      const authResult = await supabase.auth.admin.getUserById(userId);
+      if (authResult.data?.user?.email) {
+        email = authResult.data.user.email;
+      }
+    } catch (err) {
+      console.error("[Checkout] admin getUserById error:", err);
+    }
+  }
+  addressSnapshot = { ...addr, email };
 
   // A. Verify stock first
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
@@ -367,17 +352,15 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   const verifiedNetTotal = Math.max(0, verifiedSubtotal - verifiedCouponDiscount);
 
-  // Validate balances (only if logged in)
-  if (user) {
-    const dbWalletBalance = await db.getWalletBalance(userId!);
-    const dbLoyaltyPoints = await db.getLoyaltyPoints(userId!);
+  // Validate balances
+  const dbWalletBalance = await db.getWalletBalance(userId);
+  const dbLoyaltyPoints = await db.getLoyaltyPoints(userId);
 
-    if (finalWalletDeduction > dbWalletBalance) {
-      return { success: false, error: "Security Alert: Wallet deduction exceeds available balance." };
-    }
-    if (finalPointsRedeemed > dbLoyaltyPoints) {
-      return { success: false, error: "Security Alert: Loyalty points redeemed exceed available points." };
-    }
+  if (finalWalletDeduction > dbWalletBalance) {
+    return { success: false, error: "Security Alert: Wallet deduction exceeds available balance." };
+  }
+  if (finalPointsRedeemed > dbLoyaltyPoints) {
+    return { success: false, error: "Security Alert: Loyalty points redeemed exceed available points." };
   }
 
   const verifiedPointsDiscount = finalPointsRedeemed * 0.5; // 1 point = ₹0.50 discount
@@ -432,7 +415,6 @@ export async function processCodCheckoutAction(payload: {
   addressId?: string;
   userId?: string;
   pincode: string;
-  guestAddress?: any;
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
@@ -449,58 +431,46 @@ export async function processCodCheckoutAction(payload: {
     idempotencyKey,
     addressId,
     pincode,
-    guestAddress,
     utm_source,
     utm_medium,
     utm_campaign,
   } = payload;
 
-  // Identity from server session only — COD checkout can debit wallet/points.
+  // Identity from server session only. Checkout requires login.
   const user = await getServerUser();
-  if (user && payload.userId && payload.userId !== user.id) {
+  if (!user) {
+    return { success: false, error: "Unauthorized: login required for checkout." };
+  }
+  if (payload.userId && payload.userId !== user.id) {
     return { success: false, error: "Security Alert: session/user mismatch." };
   }
-  const userId = user ? user.id : undefined;
-  const user_id = user ? user.id : undefined;
+  const userId = user.id;
+  const user_id = user.id;
 
-  // Guests cannot use wallet or loyalty points deductions.
-  const finalWalletDeduction = user ? walletDeduction : 0;
-  const finalPointsRedeemed = user ? pointsRedeemed : 0;
+  const finalWalletDeduction = walletDeduction;
+  const finalPointsRedeemed = pointsRedeemed;
 
-  // 0. Resolve and snapshot delivery address
-  let addressSnapshot: any = null;
-  if (addressId && userId) {
-    const addr = await db.getAddressById(addressId, userId);
-    if (!addr) {
-      return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
-    }
-    let email = user?.email || "";
-    if (supabase) {
-      try {
-        const authResult = await supabase.auth.admin.getUserById(userId);
-        if (authResult.data?.user?.email) {
-          email = authResult.data.user.email;
-        }
-      } catch (err) {
-        console.error("[Checkout] admin getUserById error:", err);
-      }
-    }
-    addressSnapshot = { ...addr, email };
-  } else if (guestAddress) {
-    addressSnapshot = {
-      name: guestAddress.name,
-      phone: guestAddress.phone,
-      address_line_1: guestAddress.address_line_1,
-      address_line_2: guestAddress.address_line_2 || "",
-      city: guestAddress.city,
-      state: guestAddress.state,
-      postal_code: guestAddress.postal_code,
-      country: guestAddress.country || "India",
-      email: guestAddress.email || "guest@6kthebrand.com",
-    };
-  } else {
+  // 0. Resolve and snapshot delivery address (must be one of the user's saved addresses)
+  if (!addressId) {
     return { success: false, error: "Delivery address details are required for checkout." };
   }
+  let addressSnapshot: any = null;
+  const addr = await db.getAddressById(addressId, userId);
+  if (!addr) {
+    return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
+  }
+  let email = user.email || "";
+  if (supabase) {
+    try {
+      const authResult = await supabase.auth.admin.getUserById(userId);
+      if (authResult.data?.user?.email) {
+        email = authResult.data.user.email;
+      }
+    } catch (err) {
+      console.error("[Checkout] admin getUserById error:", err);
+    }
+  }
+  addressSnapshot = { ...addr, email };
 
   // A. Verify COD eligibility rules server-side
   const finalPayable = Math.max(0, netTotal - (finalPointsRedeemed * 0.5) - finalWalletDeduction); // 1 point = ₹0.50

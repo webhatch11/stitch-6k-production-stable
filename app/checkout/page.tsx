@@ -130,7 +130,7 @@ export default function CheckoutPage() {
 
   const userId = user?.id || null;
 
-  // Redirect to login bypassed to support guest checkouts
+  // Checkout is login-gated by middleware (proxy.ts); userId is always present here.
 
   // Cart & Calculation States
   const cartItems = useCartStore((state) => state.cartItems);
@@ -474,7 +474,6 @@ export default function CheckoutPage() {
             customerName,
             idempotencyKey,
             addressId: selectedAddress?.id,
-            guestAddress: !userId ? selectedAddress : undefined,
             userId,
             pincode: selectedAddress?.postal_code || "",
             utm_source,
@@ -544,7 +543,6 @@ export default function CheckoutPage() {
               customerName,
               idempotencyKey,
               addressId: selectedAddress?.id,
-              guestAddress: !userId ? selectedAddress : undefined,
               userId,
               utm_source,
               utm_medium,

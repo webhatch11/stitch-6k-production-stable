@@ -20,7 +20,6 @@ const createOrderSchema = z.object({
   idempotencyKey: z.string().min(1),
   addressId: z.string().optional(),
   userId: z.string().optional(),
-  guestAddress: z.any().optional(),
   utm_source: z.string().nullable().optional(),
   utm_medium: z.string().nullable().optional(),
   utm_campaign: z.string().nullable().optional(),
@@ -29,7 +28,10 @@ const createOrderSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await getServerUser();
-    const user_id = user ? user.id : null;
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized: login required for checkout." }, { status: 401 });
+    }
+    const user_id = user.id;
     const body = await req.json();
     const parsed = createOrderSchema.safeParse(body);
 

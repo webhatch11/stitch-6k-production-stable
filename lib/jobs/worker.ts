@@ -42,6 +42,7 @@ import "./payment-recovery";
 import "./reservation-cleanup";
 import "./shipment-retry";
 import "./shipment-sync";
+import "./loyalty-expiry";
 
 // Schedule all repeatable jobs into their queues
 import { initJobs } from "./jobs-init";

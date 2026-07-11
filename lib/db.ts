@@ -31,22 +31,11 @@ function loadService(): { supabase: ServiceModule["supabaseService"] | null; isS
   };
 }
 
-// Initialize BullMQ background jobs on server start
-if (typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build") {
-  const globalAny = global as any;
-  if (!globalAny.jobsInitialized) {
-    globalAny.jobsInitialized = true;
-    import("./jobs/jobs-init").then(({ initJobs }) => {
-      initJobs().catch((err) => console.warn("Failed to initialize background jobs:", err.message));
-    });
-    // Import workers to start listening
-    import("./jobs/reservation-cleanup").catch(() => {});
-    import("./jobs/shipment-retry").catch(() => {});
-    import("./jobs/shipment-sync").catch(() => {});
-    import("./jobs/payment-recovery").catch(() => {});
-    import("./jobs/loyalty-expiry").catch(() => {});
-  }
-}
+// NOTE: BullMQ job scheduling and workers run ONLY in the dedicated worker
+// process (lib/jobs/worker.ts, started via `npm run worker` with IS_WORKER=true).
+// The web/Next.js process is a pure producer — it enqueues jobs (e.g. via
+// dispatchFulfillment) but must never instantiate Workers, otherwise a
+// separately-deployed worker would double-process every queue.
 
 // Helper mappings for Database compatibility
 const mapDbProductToProduct = (p: any): Product => {

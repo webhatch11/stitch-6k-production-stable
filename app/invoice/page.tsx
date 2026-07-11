@@ -55,6 +55,9 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
   const originalTotal = matchedOrder.originalTotal !== undefined ? matchedOrder.originalTotal : (matchedOrder.total + pointsDiscount + couponDiscount);
   const finalGatewayAmount = matchedOrder.gatewayPaid !== undefined ? matchedOrder.gatewayPaid : Math.max(0, matchedOrder.total - walletPaid);
 
+  const businessSettings = await db.getSetting("business");
+  const gstin = businessSettings?.gst_no || "33BFOPT4938Q1ZE";
+
   return (
     <InvoiceClient
       initialOrder={matchedOrder}
@@ -64,6 +67,7 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
       pointsDiscount={pointsDiscount}
       walletPaid={walletPaid}
       couponDiscount={couponDiscount}
+      gstin={gstin}
     />
   );
 }

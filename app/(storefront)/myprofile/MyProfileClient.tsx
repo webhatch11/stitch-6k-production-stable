@@ -756,18 +756,32 @@ export default function MyProfileClient({
                     <div>
                       <p className="text-outline text-[10px] uppercase font-bold tracking-widest mb-1">Loyalty Points Balance</p>
                       <h3 className="text-on-surface font-headline font-extrabold text-4xl" id="loyaltyPointsDisplay">
-                        {loyaltyPoints} pts
+                        {loyaltyPoints.toLocaleString()} pts
                       </h3>
                     </div>
                     <span className="material-symbols-outlined text-secondary text-3xl">workspace_premium</span>
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs text-outline leading-relaxed uppercase tracking-wider font-semibold opacity-70">
-                      Earn rate: 1 point per ₹10 spent. Redeem at 10 points = ₹1.
+                      Earn: ₹100 spent = 5 pts &nbsp;|&nbsp; Redeem: 100 pts = ₹50 &nbsp;|&nbsp; Valid: 12 months
                     </p>
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">
-                      Current redemption value: ₹{(loyaltyPoints / 10).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      Redemption value: ₹{(loyaltyPoints * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </p>
+                    {/* 30-day expiry warning */}
+                    {(() => {
+                      const soonExpiring = loyaltyTxs
+                        .filter(t => t.type === "credit" && t.expiresAt && new Date(t.expiresAt) > new Date())
+                        .sort((a, b) => new Date(a.expiresAt!).getTime() - new Date(b.expiresAt!).getTime())[0];
+                      if (!soonExpiring) return null;
+                      const daysLeft = Math.ceil((new Date(soonExpiring.expiresAt!).getTime() - Date.now()) / 86400000);
+                      if (daysLeft > 30) return null;
+                      return (
+                        <div className="text-[10px] text-red-600 bg-red-50 border border-red-100 px-3 py-2 mt-2 uppercase tracking-wider font-bold">
+                          ⚠️ {soonExpiring.points} pts expire in {daysLeft} day{daysLeft !== 1 ? "s" : ""}!
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -820,12 +834,7 @@ export default function MyProfileClient({
                     Loyalty Log
                   </h2>
                   <div className="overflow-x-auto bg-white border border-outline-variant/25 rounded-none">
-                    <table className="w-full text-left border-collapse table-fixed min-w-[500px]">
-                      <colgroup>
-                        <col className="w-[25%]" />
-                        <col className="w-[55%]" />
-                        <col className="w-[20%]" />
-                      </colgroup>
+                    <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
                           <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Date</th>
@@ -842,7 +851,24 @@ export default function MyProfileClient({
                           loyaltyTxs.map((tx) => (
                             <tr key={tx.id} className="hover:bg-surface-container-lowest transition-colors">
                               <td className="p-4 text-outline font-semibold">{tx.date}</td>
-                              <td className="p-4 font-bold uppercase tracking-tight">{tx.description}</td>
+                              <td className="p-4">
+                                <p className="font-bold uppercase tracking-tight">{tx.description}</p>
+                                {/* Show expiry date on credit rows */}
+                                {tx.type === "credit" && tx.expiresAt && (
+                                  <p className={`text-[9px] font-semibold mt-0.5 uppercase tracking-wider ${
+                                    new Date(tx.expiresAt) < new Date()
+                                      ? "text-red-500"
+                                      : Math.ceil((new Date(tx.expiresAt).getTime() - Date.now()) / 86400000) <= 30
+                                      ? "text-amber-600"
+                                      : "text-outline opacity-60"
+                                  }`}>
+                                    {new Date(tx.expiresAt) < new Date()
+                                      ? "Expired"
+                                      : `Expires: ${new Date(tx.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                                    }
+                                  </p>
+                                )}
+                              </td>
                               <td className={`p-4 text-right font-bold ${tx.type === "credit" ? "text-green-700" : "text-red-700"}`}>
                                 {tx.type === "credit" ? "+" : "-"} {tx.points.toLocaleString()}
                               </td>

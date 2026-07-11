@@ -174,6 +174,8 @@ export interface LoyaltyTransaction {
   type: "credit" | "debit";
   description: string;
   idempotencyKey?: string;
+  expiresAt?: string | null;        // Set on credit rows: 12 months from earn date
+  expiredProcessed?: string | null; // Set by nightly expiry sweep job when points are expired
 }
 
 export interface UserAddress {

@@ -151,9 +151,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Order in failed state, cannot reprocess" }, { status: 400 });
     }
 
-    // Compute earned points before the atomic claim so all 4 columns are written
-    // in a single UPDATE statement.
-    const earned = Math.floor(dbOrder.total / 100) * 5; // Business rule: ₹100 spent = 5 points
+    // Compute earned points using net total (original_total minus coupon_discount),
+    // excluding shipping — matches the earn rule: ₹100 net spend = 5 points.
+    const earnBase = Math.max(0, (dbOrder.original_total || 0) - (dbOrder.coupon_discount || 0));
+    const earned = Math.floor(earnBase / 100) * 5; // Business rule: ₹100 spent = 5 points
 
     let claimed = null;
     if (isRecoveryMode) {
@@ -268,9 +269,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // e. Award loyalty points
+    // e. Award loyalty points — use earnBase (net spend, no shipping)
     try {
-      await db.awardLoyaltyPoints(dbOrder.total, dbOrder.id, dbOrder.user_id);
+      await db.awardLoyaltyPoints(earnBase, dbOrder.id, dbOrder.user_id);
     } catch (e) {
       console.error("[verify] awardLoyaltyPoints failed:", e);
     }

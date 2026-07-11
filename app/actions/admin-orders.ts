@@ -341,19 +341,61 @@ export async function processReturnRefundAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
+    // Fetch order before processing so we have points data
+    const order = await db.getOrderById(orderId);
     const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
     if (success) {
-      db.getOrderById(orderId).then(async (order) => {
-        if (!order) return;
-        const email = await getCustomerEmailForOrder(order);
+      // --- BUG-006 Fix: Reverse loyalty points on return ---
+      if (order && (order.userId || order.user_id)) {
+        const uid = (order.userId || order.user_id)!;
+
+        // 1. Reverse earned points (user should not keep points from a returned order)
+        if (order.pointsEarned > 0) {
+          try {
+            if (supabase) {
+              await supabase.rpc("loyalty_atomic_debit", {
+                p_user_id: uid,
+                p_points: order.pointsEarned,
+                p_idempotency_key: `RETURN-EARN-REV-${orderId}`,
+                p_desc: `Points reversed for returned Order #${orderId}`,
+              });
+            }
+          } catch (e) {
+            console.error(`[processReturnRefundAction] Failed to reverse earned points for ${orderId}:`, e);
+            Sentry.captureException(e, { extra: { orderId, action: "reverse_earned_points" } });
+          }
+        }
+
+        // 2. Refund redeemed points (user spent points, return them)
+        if (order.pointsRedeemed > 0) {
+          try {
+            if (supabase) {
+              await supabase.rpc("loyalty_atomic_credit", {
+                p_user_id: uid,
+                p_points: order.pointsRedeemed,
+                p_idempotency_key: `RETURN-REDEEM-REF-${orderId}`,
+                p_desc: `Redeemed points refunded for returned Order #${orderId}`,
+              });
+            }
+          } catch (e) {
+            console.error(`[processReturnRefundAction] Failed to refund redeemed points for ${orderId}:`, e);
+            Sentry.captureException(e, { extra: { orderId, action: "refund_redeemed_points" } });
+          }
+        }
+      }
+      // --- End BUG-006 Fix ---
+
+      db.getOrderById(orderId).then(async (latestOrder) => {
+        if (!latestOrder) return;
+        const email = await getCustomerEmailForOrder(latestOrder);
         if (email) {
           const { sendReturnAcceptedEmail } = await import("@/lib/email");
           await sendReturnAcceptedEmail({
-            id: order.id,
-            customerName: order.customer || "Valued Customer",
+            id: latestOrder.id,
+            customerName: latestOrder.customer || "Valued Customer",
             customerEmail: email,
-            refundAmount: order.total,
-            refundOption: (order as any).refund_option || "bank",
+            refundAmount: latestOrder.total,
+            refundOption: (latestOrder as any).refund_option || "bank",
           });
         }
       }).catch((err) => {

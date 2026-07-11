@@ -108,6 +108,23 @@ export async function initJobs() {
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable payment-recovery jobs (sweep every 15m, cleanup every 24h)");
 
+    // 4. Loyalty Points Expiry — daily sweep to deduct expired points
+    const loyaltyExpiryQueue = new Queue("loyalty-expiry", { connection: connection as any });
+    const loyaltyRepeatables = await loyaltyExpiryQueue.getRepeatableJobs();
+    for (const job of loyaltyRepeatables) {
+      await loyaltyExpiryQueue.removeRepeatableByKey(job.key);
+    }
+    await loyaltyExpiryQueue.add(
+      "expire_loyalty_points",
+      {},
+      {
+        repeat: { every: 24 * 60 * 60 * 1000 }, // Run once every 24 hours
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    console.log("[Jobs Init] ✓ Scheduled loyalty-expiry sweep job (every 24h)");
+
     // Close the temporary scheduling connection (workers use their own connections)
     await connection.quit();
 

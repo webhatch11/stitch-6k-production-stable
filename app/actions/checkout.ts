@@ -190,7 +190,11 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // Award new loyalty points
-  await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId);
+  try {
+    await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId);
+  } catch (e) {
+    console.error('[checkout.ts] awardLoyaltyPoints (wallet) failed:', e);
+  }
 
   // F. Save Order server-side
   const orderData = {
@@ -211,7 +215,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     gatewayPaid: 0,
     pointsRedeemed: pointsRedeemed,
     pointsDiscount: verifiedPointsDiscount,
-    pointsEarned: Math.floor(verifiedNetTotal / 10),
+    pointsEarned: Math.floor(verifiedNetTotal / 100) * 5, // Business rule: ₹100 spent = 5 points
     status: "Paid via Wallet",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({
@@ -611,7 +615,11 @@ export async function processCodCheckoutAction(payload: {
 
   // Award new loyalty points (only if logged in)
   if (user) {
-    await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId!);
+    try {
+      await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId!);
+    } catch (e) {
+      console.error('[checkout.ts] awardLoyaltyPoints (COD) failed:', e);
+    }
   }
 
   // F. Save Order server-side
@@ -633,7 +641,7 @@ export async function processCodCheckoutAction(payload: {
     gatewayPaid: 0,
     pointsRedeemed: finalPointsRedeemed,
     pointsDiscount: verifiedPointsDiscount,
-    pointsEarned: user ? Math.floor(verifiedNetTotal / 10) : 0,
+    pointsEarned: user ? Math.floor(verifiedNetTotal / 100) * 5 : 0, // Business rule: ₹100 spent = 5 points
     status: "Order Placed",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({

@@ -44,6 +44,7 @@ if (typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-productio
     import("./jobs/shipment-retry").catch(() => {});
     import("./jobs/shipment-sync").catch(() => {});
     import("./jobs/payment-recovery").catch(() => {});
+    import("./jobs/loyalty-expiry").catch(() => {});
   }
 }
 
@@ -1408,20 +1409,32 @@ export const db = {
         'environment variables.'
       );
     }
-    const uid = userId;
-    if (!uid) return 0;
+    if (!userId) return 0;
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("loyalty_points")
-      .eq("id", uid)
-      .maybeSingle();
+    // Fetch stored balance and expired-but-not-yet-swept points in parallel
+    const [profileRes, expiredRes] = await Promise.all([
+      supabase.from("profiles").select("loyalty_points").eq("id", userId).maybeSingle(),
+      supabase
+        .from("loyalty_transactions")
+        .select("points")
+        .eq("user_id", userId)
+        .eq("type", "credit")
+        .lt("expires_at", new Date().toISOString())
+        .is("expired_processed", null)
+    ]);
 
-    if (error) {
-      console.error("Error fetching loyalty points from Supabase:", error);
+    if (profileRes.error || !profileRes.data) {
+      console.error("Error fetching loyalty points from Supabase:", profileRes.error);
       return 0;
     }
-    return data ? Number(data.loyalty_points) : 0;
+
+    const storedBalance = Number(profileRes.data.loyalty_points);
+    // Subtract expired points that the nightly job hasn't swept yet
+    const expiredUnprocessed = (expiredRes.data || []).reduce(
+      (sum: number, row: any) => sum + Number(row.points), 0
+    );
+
+    return Math.max(0, storedBalance - expiredUnprocessed);
   },
 
   async getLoyaltyTransactions(userId?: string): Promise<LoyaltyTransaction[]> {
@@ -1434,12 +1447,13 @@ export const db = {
         'environment variables.'
       );
     }
-    const uid = userId;
-    if (!uid) return [];
+    if (!userId) return [];
 
     const { data, error } = await supabase
-      .from("loyalty_transactions").select("id, user_id, points, type, description, created_at")
-      .eq("user_id", uid)
+      .from("loyalty_transactions")
+      // MINOR-003: select `date` column (formatted string) + created_at + expires_at
+      .select("id, user_id, points, type, description, date, created_at, expires_at")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1448,10 +1462,11 @@ export const db = {
     }
     return (data || []).map(row => ({
       id: row.id,
-      date: row.created_at || "",
+      date: row.date || row.created_at || "",  // prefer formatted date, fall back to ISO
       points: Number(row.points),
       type: row.type as "credit" | "debit",
       description: row.description || "",
+      expiresAt: row.expires_at || null,
     }));
   },
 
@@ -1501,18 +1516,29 @@ export const db = {
         'environment variables.'
       );
     }
-    const points = Math.floor(total / 100) * 5; // Business rule: ₹100 spent = 5 points (earn rate)
+    // Caller should pass netTotal (original_total - coupon_discount), NOT total-with-shipping
+    // Business rule: ₹100 net spend = 5 points
+    const points = Math.floor(total / 100) * 5;
     if (points <= 0) return;
 
     const uid = userId;
     if (!uid) return;
 
-    await supabase.rpc("loyalty_atomic_credit", {
+    const { data, error } = await supabase.rpc("loyalty_atomic_credit", {
       p_user_id: uid,
       p_points: points,
       p_idempotency_key: "EARNED-" + orderId,
       p_desc: `Earned on Order #${orderId}`
     });
+
+    if (error) {
+      console.error("[awardLoyaltyPoints] RPC error:", error, "orderId:", orderId);
+    } else if (data && !data.success) {
+      // 'Duplicate transaction' is expected when both verify + webhook fire — not a real error
+      if (data.error !== 'Duplicate transaction') {
+        console.error("[awardLoyaltyPoints] Failed:", data.error, "orderId:", orderId);
+      }
+    }
   },
 
   async applyLoyaltyCredit(points: number, description: string, orderId: string, userId?: string): Promise<void> {

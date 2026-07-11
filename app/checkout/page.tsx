@@ -215,10 +215,12 @@ export default function CheckoutPage() {
   let loyaltyDiscount = 0;
   let pointsRedeemed = 0;
   if (loyaltyChecked) {
+    // Cap = 50% of discounted subtotal (shipping not yet computed at this point in render)
+    // Server performs final validation against netTotal including shipping
     const maxLoyaltyDiscount = Math.floor(discountedTotal / 2);
     const availableLoyaltyDiscount = Math.floor(availablePoints * LOYALTY_POINT_VALUE);
     loyaltyDiscount = Math.min(maxLoyaltyDiscount, availableLoyaltyDiscount);
-    // Convert discount back to points count: ₹1 discount = 2 points used (since 1pt = ₹0.50)
+    // Convert discount back to points: ₹1 discount = 2 points (since 1pt = ₹0.50)
     pointsRedeemed = Math.ceil(loyaltyDiscount / LOYALTY_POINT_VALUE);
   }
 

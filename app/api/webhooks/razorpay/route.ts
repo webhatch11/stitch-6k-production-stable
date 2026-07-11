@@ -191,9 +191,10 @@ export async function POST(req: NextRequest) {
                 }
               }
 
-              // e. Award loyalty points
+              // e. Award loyalty points — use net total (no shipping) to match earn rule
               try {
-                await db.awardLoyaltyPoints(dbOrder.total, dbOrder.id, dbOrder.user_id);
+                const webhookEarnBase = Math.max(0, (dbOrder.original_total || 0) - (dbOrder.coupon_discount || 0));
+                await db.awardLoyaltyPoints(webhookEarnBase, dbOrder.id, dbOrder.user_id);
               } catch (e) {
                 console.error("[webhook] awardLoyaltyPoints failed:", e);
               }

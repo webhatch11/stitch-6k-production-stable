@@ -10,14 +10,19 @@ import {
   LoyaltyTransaction,
 } from "@/lib/types";
 
-export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<{
+export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string; adminView?: boolean }): Promise<{
   success: boolean;
   products?: Product[];
   error?: string;
 }> {
   try {
     await requireAdmin();
-    const products = await db.getProducts(options);
+    // For non-trash views pass adminView:true so draft/archived products are
+    // visible in the admin ledger (not filtered out like the customer storefront).
+    const resolvedOptions = options?.trashedOnly
+      ? options
+      : { adminView: true, ...options };
+    const products = await db.getProducts(resolvedOptions);
     return { success: true, products };
   } catch (e: any) {
     console.error('[admin-reads.ts]:', e);

@@ -388,8 +388,17 @@ function AddProductContent() {
         stock: sizeStockMap[size],
       }));
 
+    // In edit mode, sync the UI stock inputs (stockS/M/L/XL/XXL) and the
+    // current basePrice back into each variant before saving. The variants
+    // array retains all other fields (color, sku, id) from the DB snapshot.
+    const editVariants = variants.map((v) => ({
+      ...v,
+      price: basePrice,
+      stock: sizeStockMap[v.size] ?? v.stock,
+    }));
+
     const finalVariants = editProductId
-      ? variants
+      ? editVariants
       : (variants.length > 0 ? variants : autoVariants);
 
     const input = {

@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { Order } from "@/lib/types";
 import { approveReturnPickupAction, rejectReturnAction, processReturnRefundAction } from "@/app/actions/admin-orders";
 
+const refundOptionDisplay: Record<string, string> = {
+  'wallet': 'Store Wallet',
+  'original_source': 'Bank / Original Payment',
+  'bank': 'Bank Account'
+};
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -315,7 +321,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                         </span>
                       </td>
                       <td className="px-8 py-6 text-gray-600 truncate max-w-[150px]">{o.returnReason}</td>
-                      <td className="px-8 py-6 text-gray-600">{o.refundOption === "wallet" ? "Wallet" : "Original Payment"}</td>
+                      <td className="px-8 py-6 text-gray-600">{refundOptionDisplay[o.refundOption || ""] || o.refundOption || "Original Payment"}</td>
                       <td className="px-8 py-6">₹{o.total.toLocaleString("en-IN")}</td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
@@ -468,7 +474,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       </td>
                       <td className="px-8 py-6 text-gray-600">
                         {o.status === "Returned"
-                          ? (o.refundOption === "wallet" ? "Wallet" : "Razorpay Gateway")
+                          ? (refundOptionDisplay[o.refundOption || ""] || o.refundOption || "Razorpay Gateway")
                           : "—"}
                       </td>
                       <td className="px-8 py-6 text-gray-500">

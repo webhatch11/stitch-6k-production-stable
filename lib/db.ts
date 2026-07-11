@@ -1241,7 +1241,15 @@ export const db = {
       console.error("Error executing atomic coupon increment:", error);
       return false;
     }
-    return data === true;
+    // RPC returns JSON object { success: boolean, error?: string }
+    const success = (data && typeof data === 'object' && 'success' in data)
+      ? (data as any).success === true
+      : false;
+
+    if (success) {
+      await CacheService.del("settings:coupons");
+    }
+    return success;
   },
 
   async decrementCouponUsage(code: string): Promise<boolean> {
@@ -1280,6 +1288,7 @@ export const db = {
       console.error("Error updating coupon usage count on Supabase:", updateErr);
       return false;
     }
+    await CacheService.del("settings:coupons");
     return true;
   },
 
@@ -1591,7 +1600,7 @@ export const db = {
         return_reason: payload.reason,
         return_details: payload.details,
         return_image: payload.image,
-        refund_option: payload.refundOption,
+        refund_option: payload.refundOption === "bank" ? "original_source" : payload.refundOption,
         return_request_date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       })
       .eq("id", orderId);

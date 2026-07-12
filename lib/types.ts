@@ -57,6 +57,8 @@ export interface Product {
   }[];
   isGenz?: boolean;
   deleted_at?: string | null;
+  deletedAt?: string | null;
+  scheduledPermanentDeletionAt?: string | null;
   variants?: ProductVariant[];
   display_sections?: string[];
   compareAtPrice?: number | null;

@@ -8,6 +8,7 @@ import { getProductsAction } from "@/app/actions/admin-reads";
 import {
   deleteProductAction,
   restoreProductAction,
+  permanentlyDeleteProductAction,
   restockVariantAction,
   adjustProductSizeAction,
 } from "@/app/actions/admin-products";
@@ -25,8 +26,9 @@ export default function InventoryLedgerPage() {
   const [exportingFormat, setExportingFormat] = useState<"csv" | "xlsx" | null>(null);
 
   // Custom Modal States
-  const [modalType, setModalType] = useState<"delete" | "restock" | null>(null);
+  const [modalType, setModalType] = useState<"delete" | "permanent_delete" | "restock" | null>(null);
   const [targetProduct, setTargetProduct] = useState<Product | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
   const [restockQty, setRestockQty] = useState("10");
   const [selectedSize, setSelectedSize] = useState<"S" | "M" | "L" | "XL" | "XXL" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,19 +95,42 @@ export default function InventoryLedgerPage() {
 
   const handleDeleteProduct = (p: Product) => {
     setTargetProduct(p);
+    setDeleteReason("");
     setModalType("delete");
+  };
+
+  const handlePermanentlyDeleteProduct = (p: Product) => {
+    setTargetProduct(p);
+    setDeleteReason("");
+    setModalType("permanent_delete");
   };
 
   const confirmDeleteProduct = async () => {
     if (!targetProduct) return;
-    const res = await deleteProductAction(targetProduct.id);
+    const res = await deleteProductAction(targetProduct.id, deleteReason || undefined);
     if (!res.success) {
       triggerToast(res.error || "Failed to delete product");
       return;
     }
-    triggerToast("Product removed successfully");
+    triggerToast("Product moved to trash successfully");
     setModalType(null);
     setTargetProduct(null);
+    setDeleteReason("");
+    router.refresh();
+    await loadProducts();
+  };
+
+  const confirmPermanentlyDeleteProduct = async () => {
+    if (!targetProduct) return;
+    const res = await permanentlyDeleteProductAction(targetProduct.id, deleteReason || undefined);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to permanently delete product");
+      return;
+    }
+    triggerToast("Product permanently deleted from database and Cloudinary");
+    setModalType(null);
+    setTargetProduct(null);
+    setDeleteReason("");
     router.refresh();
     await loadProducts();
   };
@@ -454,22 +479,32 @@ export default function InventoryLedgerPage() {
                       <td className="p-6 text-right">
                         <div className="flex justify-end gap-2">
                           {isDeleted ? (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const result = await restoreProductAction(p.id);
-                                if (result.success) {
-                                  router.refresh();
-                                  const r = await getProductsAction({ trashedOnly: showTrash });
-                                  if (r.success) setProducts(r.products || []);
-                                } else {
-                                  triggerToast(result.error || "Failed to restore");
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
-                            >
-                              Restore
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const result = await restoreProductAction(p.id);
+                                  if (result.success) {
+                                    router.refresh();
+                                    const r = await getProductsAction({ trashedOnly: showTrash });
+                                    if (r.success) setProducts(r.products || []);
+                                    triggerToast("Product restored back to active inventory");
+                                  } else {
+                                    triggerToast(result.error || "Failed to restore");
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
+                              >
+                                Restore
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handlePermanentlyDeleteProduct(p)}
+                                className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-none cursor-pointer rounded-none"
+                              >
+                                Purge
+                              </button>
+                            </>
                           ) : (
                             <>
                               <Link
@@ -593,24 +628,42 @@ export default function InventoryLedgerPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                  <div className="flex justify-end items-center gap-3 pt-2 border-t border-gray-100">
                     {isDeleted ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const result = await restoreProductAction(p.id);
-                          if (result.success) {
-                            router.refresh();
-                            const r = await getProductsAction({ trashedOnly: showTrash });
-                            if (r.success) setProducts(r.products || []);
-                          } else {
-                            triggerToast(result.error || "Failed to restore");
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
-                      >
-                        Restore
-                      </button>
+                      <>
+                        {p.scheduledPermanentDeletionAt && (() => {
+                          const daysLeft = Math.max(0, Math.ceil((new Date(p.scheduledPermanentDeletionAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                          return (
+                            <span className="text-[9px] font-black uppercase tracking-wider text-red-500/80 mr-auto">
+                              Purge in {daysLeft}d
+                            </span>
+                          );
+                        })()}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const result = await restoreProductAction(p.id);
+                            if (result.success) {
+                              router.refresh();
+                              const r = await getProductsAction({ trashedOnly: showTrash });
+                              if (r.success) setProducts(r.products || []);
+                              triggerToast("Product restored back to active inventory");
+                            } else {
+                              triggerToast(result.error || "Failed to restore");
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-colors border-none cursor-pointer rounded-none"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handlePermanentlyDeleteProduct(p)}
+                          className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-colors border-none cursor-pointer rounded-none"
+                        >
+                          Purge
+                        </button>
+                      </>
                     ) : (
                       <>
                         <Link
@@ -692,13 +745,23 @@ export default function InventoryLedgerPage() {
                 <div className="space-y-2">
                   <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Remove Product</h3>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
-                    Are you sure you want to remove <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span> from the inventory?
+                    Are you sure you want to move <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span> to trash? It will be deleted permanently in 7 days.
                   </p>
+                </div>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">Deletion Reason (optional)</label>
+                  <input
+                    type="text"
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    placeholder="e.g. Discontinued style, out of print"
+                    className="w-full bg-white border border-gray-200 p-2 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none rounded-none"
+                  />
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setModalType(null)}
+                    onClick={() => { setModalType(null); setDeleteReason(""); }}
                     className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
                   >
                     Cancel
@@ -709,6 +772,48 @@ export default function InventoryLedgerPage() {
                     className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
                   >
                     Remove
+                  </button>
+                </div>
+              </>
+            )}
+            {modalType === "permanent_delete" && (
+              <>
+                <div className="mx-auto w-12 h-12 rounded-full border border-red-300 bg-red-100 flex items-center justify-center text-red-600">
+                  <span className="material-symbols-outlined text-xl">warning</span>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Purge Product</h3>
+                  <p className="text-[10px] text-red-600 uppercase tracking-widest font-black leading-relaxed">
+                    WARNING: This action is permanent and cannot be undone.
+                  </p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+                    Are you sure you want to permanently delete <span className="text-[#0a0a0a] font-black">"{targetProduct?.title}"</span>? Database records, stock, and Cloudinary media will be wiped completely.
+                  </p>
+                </div>
+                <div className="space-y-1.5 text-left">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">Purge Reason (optional)</label>
+                  <input
+                    type="text"
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    placeholder="e.g. Immediate privacy request, copyright"
+                    className="w-full bg-white border border-gray-200 p-2 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none rounded-none"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setModalType(null); setDeleteReason(""); }}
+                    className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmPermanentlyDeleteProduct}
+                    className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+                  >
+                    Purge Now
                   </button>
                 </div>
               </>

@@ -123,7 +123,22 @@ export async function initJobs() {
         removeOnFail: true,
       }
     );
-    console.log("[Jobs Init] ✓ Scheduled loyalty-expiry sweep job (every 24h)");
+    // 5. Product Deletion Cleanup — daily sweep to permanently delete expired products from trash
+    const productCleanupQueue = new Queue("product-cleanup", { connection: connection as any });
+    const productCleanupRepeatables = await productCleanupQueue.getRepeatableJobs();
+    for (const job of productCleanupRepeatables) {
+      await productCleanupQueue.removeRepeatableByKey(job.key);
+    }
+    await productCleanupQueue.add(
+      "cleanup_expired_products",
+      {},
+      {
+        repeat: { every: 24 * 60 * 60 * 1000 }, // Run once every 24 hours
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    console.log("[Jobs Init] ✓ Scheduled product-cleanup sweep job (every 24h)");
 
     // Close the temporary scheduling connection (workers use their own connections)
     await connection.quit();

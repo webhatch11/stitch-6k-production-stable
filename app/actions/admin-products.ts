@@ -94,13 +94,13 @@ export async function saveProductAction(input: unknown) {
   }
 }
 
-export async function deleteProductAction(id: string) {
+export async function deleteProductAction(id: string, reason?: string) {
   try {
-    await requireAdmin();
+    const adminUser = await requireAdmin();
     if (!id || typeof id !== "string") {
       return { success: false, error: "Invalid product ID" };
     }
-    const ok = await db.softDeleteProduct(id);
+    const ok = await db.softDeleteProduct(id, adminUser.id, adminUser.email, reason);
     if (!ok) return { success: false, error: "Product not found" };
     revalidatePath("/admindashboard/inventory");
     revalidatePath("/shopallshirts");
@@ -115,11 +115,11 @@ export async function deleteProductAction(id: string) {
 
 export async function restoreProductAction(id: string) {
   try {
-    await requireAdmin();
+    const adminUser = await requireAdmin();
     if (!id || typeof id !== "string") {
       return { success: false, error: "Invalid product ID" };
     }
-    const ok = await db.restoreProduct(id);
+    const ok = await db.restoreProduct(id, adminUser.id, adminUser.email);
     if (!ok) return { success: false, error: "Product not found" };
     revalidatePath("/admindashboard/inventory");
     revalidatePath("/shopallshirts");
@@ -129,6 +129,24 @@ export async function restoreProductAction(id: string) {
   } catch (e: any) {
     console.error('[admin-products.ts]:', e);
     return { success: false, error: e.message || "Failed to restore product" };
+  }
+}
+
+export async function permanentlyDeleteProductAction(id: string, reason?: string) {
+  try {
+    const adminUser = await requireAdmin();
+    if (!id || typeof id !== "string") {
+      return { success: false, error: "Invalid product ID" };
+    }
+    await db.permanentlyDeleteProduct(id, adminUser.id, adminUser.email, reason);
+    revalidatePath("/admindashboard/inventory");
+    revalidatePath("/shopallshirts");
+    revalidatePath("/genz");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (e: any) {
+    console.error('[admin-products.ts]:', e);
+    return { success: false, error: e.message || "Failed to permanently delete product" };
   }
 }
 

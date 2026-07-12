@@ -43,6 +43,7 @@ import "./reservation-cleanup";
 import "./shipment-retry";
 import "./shipment-sync";
 import "./loyalty-expiry";
+import "./product-cleanup";
 
 // Schedule all repeatable jobs into their queues
 import { initJobs } from "./jobs-init";

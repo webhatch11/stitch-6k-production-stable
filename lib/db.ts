@@ -77,6 +77,8 @@ const mapDbProductToProduct = (p: any): Product => {
     ratings: p.ratings ? Number(p.ratings) : undefined,
     reviews: p.reviews || [],
     deleted_at: p.deleted_at || null,
+    deletedAt: p.deleted_at || null,
+    scheduledPermanentDeletionAt: p.scheduled_permanent_deletion_at || null,
     display_sections: p.display_sections || [],
     compareAtPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.compare_price ? Number(p.compare_price) : null),
     weightGrams: p.weight_grams || null,
@@ -505,9 +507,28 @@ export const db = {
     return [...sameCategory, ...diffCategory].slice(0, 4);
   },
 
+  async logProductAudit(
+    action: 'soft_delete' | 'restore' | 'permanent_delete',
+    productId: string,
+    productTitle: string,
+    adminUserId?: string,
+    adminUserEmail?: string,
+    reason?: string
+  ): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return;
+    await supabase.from("product_audit_logs").insert({
+      action,
+      product_id: productId,
+      product_title: productTitle,
+      admin_user_id: adminUserId || null,
+      admin_user_email: adminUserEmail || 'system',
+      reason: reason || null,
+    });
+  },
+
   async deleteProduct(id: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    // Invalidate caches
     await CacheService.del("products:list");
     await CacheService.delPattern("products:slug:*");
 
@@ -526,7 +547,7 @@ export const db = {
     }
   },
 
-  async softDeleteProduct(id: string): Promise<boolean> {
+  async softDeleteProduct(id: string, adminUserId?: string, adminUserEmail?: string, reason?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -539,16 +560,28 @@ export const db = {
 
     const { data: existing } = await supabase
       .from("products")
-      .select("slug")
+      .select("title, slug")
       .eq("id", id)
       .maybeSingle();
 
+    if (!existing) return false;
+
+    // Calculate deletion scheduled time: NOW + 7 days
+    const deletionTime = new Date();
+    deletionTime.setDate(deletionTime.getDate() + 7);
+
     const { error } = await supabase
       .from("products")
-      .update({ deleted_at: new Date().toISOString() })
+      .update({
+        deleted_at: new Date().toISOString(),
+        scheduled_permanent_deletion_at: deletionTime.toISOString()
+      })
       .eq("id", id);
 
     if (error) return false;
+
+    // Write audit log
+    await this.logProductAudit('soft_delete', id, existing.title, adminUserId, adminUserEmail, reason);
 
     await CacheService.del("products:list");
     await CacheService.del("products:list:all");
@@ -561,7 +594,7 @@ export const db = {
     return true;
   },
 
-  async restoreProduct(id: string): Promise<boolean> {
+  async restoreProduct(id: string, adminUserId?: string, adminUserEmail?: string): Promise<boolean> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -574,16 +607,24 @@ export const db = {
 
     const { data: existing } = await supabase
       .from("products")
-      .select("slug")
+      .select("title, slug")
       .eq("id", id)
       .maybeSingle();
 
+    if (!existing) return false;
+
     const { error } = await supabase
       .from("products")
-      .update({ deleted_at: null })
+      .update({
+        deleted_at: null,
+        scheduled_permanent_deletion_at: null
+      })
       .eq("id", id);
 
     if (error) return false;
+
+    // Write audit log
+    await this.logProductAudit('restore', id, existing.title, adminUserId, adminUserEmail);
 
     await CacheService.del("products:list");
     await CacheService.del("products:list:all");
@@ -594,6 +635,72 @@ export const db = {
     await CacheService.delPattern("products:slug:*");
 
     return true;
+  },
+
+  async permanentlyDeleteProduct(id: string, adminUserId?: string, adminUserEmail?: string, reason?: string): Promise<void> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Database connection not configured.');
+    }
+
+    // 1. Fetch details of target product to get title, images, and public IDs
+    const { data: product, error: fetchErr } = await supabase
+      .from("products")
+      .select("title, image, images")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (fetchErr || !product) {
+      throw new Error(fetchErr?.message || "Product not found for permanent deletion.");
+    }
+
+    // 2. Extract Cloudinary image URLs and parse public IDs
+    const imageUrls: string[] = [];
+    if (product.image) imageUrls.push(product.image);
+    if (product.images && Array.isArray(product.images)) {
+      imageUrls.push(...product.images);
+    }
+
+    const publicIds = imageUrls
+      .map(url => {
+        // Extract public ID from format: https://res.cloudinary.com/cloud_name/image/upload/v12345/folder/public_id.ext
+        const match = url.match(/\/image\/upload\/(?:v\d+\/)?([^.]+)/);
+        return match ? match[1] : null;
+      })
+      .filter((id): id is string => !!id);
+
+    // 3. Delete from Cloudinary
+    if (publicIds.length > 0) {
+      const { cloudinary } = await import("./cloudinary");
+      for (const publicId of publicIds) {
+        try {
+          await cloudinary.uploader.destroy(publicId);
+        } catch (cloudinaryErr) {
+          console.error(`[Cloudinary Cleanup] Failed to delete asset "${publicId}":`, cloudinaryErr);
+          // Don't halt execution, log and retry or proceed so we don't leave db hanging
+        }
+      }
+    }
+
+    // 4. Cascade delete product record (triggers variant deletion cascade)
+    const { error: deleteErr } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
+
+    if (deleteErr) {
+      console.error("[permanentlyDeleteProduct] Database delete failed:", deleteErr);
+      throw deleteErr;
+    }
+
+    // 5. Write audit log
+    await this.logProductAudit('permanent_delete', id, product.title, adminUserId, adminUserEmail, reason);
+
+    // 6. Clear Redis Cache
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.del("products:list:trashed");
+    await CacheService.delPattern("products:slug:*");
   },
 
   // --- Orders ---

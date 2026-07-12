@@ -905,13 +905,14 @@ export const db = {
       return [];
     }
     const res = (data || []).map(mapDbCouponToCoupon);
-    await CacheService.set(cacheKey, res, 86400); // 24 hours
+    await CacheService.set(cacheKey, res, 60); // Cache for 60 seconds instead of 24 hours
     return res;
   },
 
   async saveCoupon(coupon: Partial<Coupon>): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
+    await CacheService.delPattern("analytics:coupons:*");
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
         'Database connection not configured. ' +
@@ -947,6 +948,7 @@ export const db = {
   async deleteCoupon(id: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     await CacheService.del("settings:coupons");
+    await CacheService.delPattern("analytics:coupons:*");
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
         'Database connection not configured. ' +
@@ -1244,6 +1246,7 @@ export const db = {
 
     if (success) {
       await CacheService.del("settings:coupons");
+      await CacheService.delPattern("analytics:coupons:*");
     }
     return success;
   },
@@ -1258,34 +1261,42 @@ export const db = {
         'environment variables.'
       );
     }
-    const { data, error } = await supabase
-      .from("coupons").select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, usage_count, max_usage, expiry_date")
-      .eq("code", code.toUpperCase())
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("coupon_atomic_decrement", {
+      p_code: code.toUpperCase()
+    });
 
-    if (error || !data) {
-      console.error("Error fetching coupon to decrement usage:", error);
+    if (error) {
+      console.error("Error executing atomic coupon decrement:", error);
+      // Fallback: manually update usage count decrement
+      const { data: cData } = await supabase
+        .from("coupons")
+        .select("id, usage_count")
+        .eq("code", code.toUpperCase())
+        .maybeSingle();
+
+      if (cData) {
+        const cur = cData.usage_count || 0;
+        await supabase
+          .from("coupons")
+          .update({ usage_count: Math.max(0, cur - 1) })
+          .eq("id", cData.id);
+        
+        await CacheService.del("settings:coupons");
+        await CacheService.delPattern("analytics:coupons:*");
+        return true;
+      }
       return false;
     }
 
-    const currentUsage = data.usage_count !== undefined ? Number(data.usage_count) : 0;
-    const newUsage = Math.max(0, currentUsage - 1);
+    const success = (data && typeof data === 'object' && 'success' in data)
+      ? (data as any).success === true
+      : false;
 
-    const updatePayload: any = {
-      usage_count: newUsage
-    };
-
-    const { error: updateErr } = await supabase
-      .from("coupons")
-      .update(updatePayload)
-      .eq("code", code.toUpperCase());
-
-    if (updateErr) {
-      console.error("Error updating coupon usage count on Supabase:", updateErr);
-      return false;
+    if (success) {
+      await CacheService.del("settings:coupons");
+      await CacheService.delPattern("analytics:coupons:*");
     }
-    await CacheService.del("settings:coupons");
-    return true;
+    return success;
   },
 
   // --- Wallet ---

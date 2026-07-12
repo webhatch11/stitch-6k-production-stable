@@ -377,6 +377,7 @@ function OrderDetailsContent() {
     } else {
       res = await issueRefundAction(order.id, refundReason.trim());
     }
+    setRefundLoading(true);
     setRefundLoading(false);
     if (res.success) {
       closeRefundModal();
@@ -410,59 +411,46 @@ function OrderDetailsContent() {
     gatewayText = order.total === 0 ? "Internal Store Wallet" : "Razorpay & Wallet";
   }
 
-  // Build split refund HTML indicators
-  const renderRefundBreakdown = () => {
-    let prefix = "Requested Refund:";
-    let successColor = "text-blue-700";
-
-    if (s.includes("transit")) {
-      prefix = "Pending Refund:";
-      successColor = "text-yellow-700 font-bold";
-    } else if (s === "returned") {
-      prefix = "Refund Status:";
-      successColor = "text-green-700 font-extrabold";
+  const getStatusPillStyles = () => {
+    if (s === "delivered") return "style={{ backgroundColor: 'var(--bg-success)', color: 'var(--text-success)' }}";
+    if (s === "shipped" || s === "processing" || s.includes("pending") || s.includes("audit") || s === "paid") {
+      return "style={{ backgroundColor: 'var(--bg-warning)', color: 'var(--text-warning)' }}";
     }
-
-    return (
-      <div className="space-y-1.5 mt-2">
-        {order.refundOption === "wallet" ? (
-          <div className={`font-bold ${successColor}`}>{prefix} ₹{(gatewayPaid + walletPaid).toLocaleString("en-IN")} to Store Wallet</div>
-        ) : (
-          <>
-            {gatewayPaid > 0 && (
-              <div className={`font-bold ${successColor}`}>{prefix} ₹{gatewayPaid.toLocaleString("en-IN")} to Bank Account</div>
-            )}
-            {walletPaid > 0 && (
-              <div className={`font-bold ${successColor}`}>
-                {s === "returned" ? "Refunded" : "To be refunded"}: ₹{walletPaid.toLocaleString("en-IN")} to Store Wallet
-              </div>
-            )}
-          </>
-        )}
-
-        {pointsRedeemed > 0 && (
-          <div className="text-green-700 font-bold">
-            {s === "returned" ? "Restored" : "To be restored"}: {pointsRedeemed.toLocaleString("en-IN")} Loyalty Points
-          </div>
-        )}
-
-        {couponDiscount > 0 && (
-          <div className="text-red-600 font-bold">
-            Voided: ₹{couponDiscount.toLocaleString("en-IN")} Coupon Discount (Code: {order.couponCode || "N/A"})
-          </div>
-        )}
-      </div>
-    );
+    if (s === "cancelled" || s.includes("return")) {
+      return "style={{ backgroundColor: 'var(--bg-danger)', color: 'var(--text-danger)' }}";
+    }
+    return "style={{ backgroundColor: 'var(--surface-1)', color: 'var(--text-secondary)' }}";
   };
 
-  const getStatusPillColor = () => {
-    if (s.includes("transit") || s === "shipped") return "bg-primary text-white";
-    if (s.includes("audit") || s.includes("pending") || s.includes("processing") || s === "paid") {
-      return "bg-[#fed488] text-primary font-bold";
+  const getStatusPillInlineStyle = () => {
+    if (s === "delivered") return { backgroundColor: "var(--bg-success)", color: "var(--text-success)" };
+    if (s === "shipped" || s === "processing" || s.includes("pending") || s.includes("audit") || s === "paid") {
+      return { backgroundColor: "var(--bg-warning)", color: "var(--text-warning)" };
     }
-    if (s === "delivered") return "bg-green-600 text-white";
-    if (s === "returned") return "bg-red-600 text-white";
-    return "bg-gray-500 text-white";
+    if (s === "cancelled" || s.includes("return")) {
+      return { backgroundColor: "var(--bg-danger)", color: "var(--text-danger)" };
+    }
+    return { backgroundColor: "var(--surface-1)", color: "var(--text-secondary)" };
+  };
+
+  const getLogisticsStatusDotClass = () => {
+    if (s === "returned" || s === "cancelled") return "bg-red-500";
+    if (s === "delivered") return "bg-green-500";
+    return "bg-amber-500";
+  };
+
+  const toProperCase = (str: string) => {
+    if (!str) return "";
+    return str.toLowerCase()
+      .split(' ')
+      .map(word => {
+        if (word.startsWith("no:")) {
+          return "No:" + word.slice(3);
+        }
+        if (word === "hsr") return "HSR";
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
   };
 
   return (
@@ -490,7 +478,10 @@ function OrderDetailsContent() {
             <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">
               Order #{order.id}
             </h2>
-            <span className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-none ${getStatusPillColor()}`}>
+            <span
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-none"
+              style={getStatusPillInlineStyle()}
+            >
               {order.status}
             </span>
           </div>
@@ -514,108 +505,33 @@ function OrderDetailsContent() {
         </div>
       </header>
 
-      {/* Returns Warning Banner */}
-      {s.includes("return") && (
-        <div
-          className={`mb-12 border p-6 flex items-start gap-4 rounded-none ${
-            s === "return requested"
-              ? "bg-blue-50 border-blue-200 text-blue-800"
-              : s === "return in transit"
-              ? "bg-yellow-50 border-yellow-200 text-yellow-800"
-              : s === "return rejected"
-              ? "bg-gray-50 border-gray-200 text-gray-800"
-              : "bg-red-50 border-red-200 text-red-800"
-          }`}
-        >
-          <span className="material-symbols-outlined text-2xl">
-            {s === "return requested"
-              ? "info"
-              : s === "return in transit"
-              ? "local_shipping"
-              : s === "return rejected"
-              ? "cancel"
-              : "warning"}
-          </span>
-          <div className="w-full">
-            <h4 className="text-xs font-black uppercase tracking-widest">
-              Return Request Activity: {order.status}
-            </h4>
-            <p className="text-xs mt-2 font-medium">
-              Registered Date: <span className="font-bold">{order.returnDate || order.returnRequestDate || order.date}</span>
-            </p>
-            <p className="text-xs mt-1 font-semibold italic text-black/70">
-              Reason: "{order.returnReason || "No details provided"}"
-            </p>
-            {order.returnDetails && (
-              <p className="text-[10px] mt-1 font-medium opacity-80">
-                Merchant Notes: {order.returnDetails}
-              </p>
-            )}
-
-            {renderRefundBreakdown()}
-
-            {order.returnImage && order.returnImage !== "No image provided" && (
-              <div className="mt-4">
-                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-1 inline-block border border-blue-200/50 rounded-none">
-                  Attached Verification Photo: {order.returnImage}
-                </span>
-              </div>
-            )}
-
-            {/* Return AWB display */}
-            {(order.returnAwb || order.return_awb) && (
-              <div className="mt-6 pt-6 border-t border-black/10 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[9px] text-[#0a0a0a] font-black uppercase tracking-widest block mb-1">
-                      Return Pickup AWB
-                    </span>
-                    <span className="font-mono text-xs font-bold text-[#0a0a0a] bg-black/5 px-2 py-1 select-all">
-                      {order.returnAwb || order.return_awb}
-                    </span>
-                    {(order.returnAwb || order.return_awb || "").startsWith("MOCK-") && (
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1 italic">
-                        (Mock — real AWB after Shiprocket credentials configured)
-                      </span>
-                    )}
-                  </div>
-                  <a
-                    href={`https://shiprocket.co/tracking/${order.returnAwb || order.return_awb}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-[#0a0a0a] text-white hover:bg-secondary transition-all px-4 py-2.5 text-[9px] font-black uppercase tracking-widest self-start rounded-none"
-                  >
-                    <span className="material-symbols-outlined text-sm">local_shipping</span>
-                    Track Return
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Main Grid columns */}
-      <div className="grid grid-cols-12 gap-12">
-        {/* Left Side: Order details summary */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-12">
-          <div className="bg-white border border-gray-200 p-10 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-12 rounded-none">
+      {/* Main Grid: 2 columns layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+        
+        {/* Left Column (Main Details) */}
+        <div className="flex flex-col gap-8">
+          
+          {/* 1. Order Meta Strip */}
+          <div
+            className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Logistics Status</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Logistics Status</p>
               <div className="flex items-center gap-2">
-                <span
-                  className={`size-2 rounded-full ${
-                    s === "returned" ? "bg-red-500" : s === "cancelled" ? "bg-gray-500" : s === "delivered" ? "bg-green-500" : "bg-amber-500"
-                  }`}
-                ></span>
-                <p className="text-xs font-black uppercase tracking-widest">{order.status}</p>
+                <span className={`size-2 rounded-full ${getLogisticsStatusDotClass()}`}></span>
+                <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{order.status}</p>
               </div>
               {(s === "shipped" || s === "delivered" || s.includes("transit")) && (
-                <div className="mt-2">
+                <div className="mt-1">
                   <Link
                     href={`/ordertracking?orderId=${order.id}`}
                     target="_blank"
-                    className="text-[9px] font-black text-secondary hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1 mt-1"
+                    className="text-[9px] font-black text-secondary hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[10px]">local_shipping</span>
                     AWB: SR-{order.id.replace("ORD-", "")} (Track)
@@ -624,49 +540,56 @@ function OrderDetailsContent() {
               )}
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Order Date</p>
-              <p className="text-xs font-black uppercase tracking-widest">{order.date}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Order Date</p>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{order.date}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Payment Gateway</p>
-              <p className="text-xs font-black uppercase tracking-widest">{gatewayText}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Payment Gateway</p>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{gatewayText}</p>
             </div>
           </div>
 
-          {/* Table summary */}
-          <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
-            <div className="p-8 border-b border-gray-200 bg-[#fafafa]">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0a0a0a]">
+          {/* 2. Ordered Items Card */}
+          <div
+            className="overflow-hidden"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <div className="p-6 border-b border-gray-200/50 bg-[#fafafa]/5">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: "var(--text-primary)" }}>
                 Ordered Items ({order.items.length})
               </h3>
             </div>
             <table className="w-full text-left">
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100/50">
                 {order.items.map((itemName, index) => {
-                const prod = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase()) || {
-                  id: "N/A",
-                  title: itemName,
-                  price: itemName.includes("Linen") ? 14500 : 1450,
-                  image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200",
-                  category: "Cotton",
-                };
+                  const prod = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase()) || {
+                    id: "N/A",
+                    title: itemName,
+                    price: itemName.includes("Linen") ? 14500 : 1450,
+                    image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200",
+                    category: "Cotton",
+                  };
                   return (
                     <tr key={index} className="group">
-                      <td className="p-8 w-32">
-                        <div className="size-20 bg-gray-50 border border-gray-200 p-1 rounded-none flex items-center justify-center grayscale overflow-hidden group-hover:grayscale-0 transition-all">
+                      <td className="p-6 w-28">
+                        <div className="size-16 bg-gray-50 border border-gray-200 p-1 rounded-none flex items-center justify-center grayscale overflow-hidden group-hover:grayscale-0 transition-all">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={prod.image} className="w-full h-full object-cover" alt={prod.title} />
                         </div>
                       </td>
-                      <td className="p-8">
+                      <td className="p-6">
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase tracking-tight">{prod.title}</span>
+                          <span className="text-[11px] font-black uppercase tracking-tight" style={{ color: "var(--text-primary)" }}>{prod.title}</span>
                           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
                             SKU: {prod.id || "N/A"} • Qty: 01
                           </span>
                         </div>
                       </td>
-                      <td className="p-8 text-right font-headline font-black text-sm">
+                      <td className="p-6 text-right font-headline font-black text-sm" style={{ color: "var(--text-primary)" }}>
                         ₹{(prod.price || 0).toLocaleString("en-IN")}.00
                       </td>
                     </tr>
@@ -674,94 +597,219 @@ function OrderDetailsContent() {
                 })}
               </tbody>
             </table>
-
-            {/* Valuation recap matrix */}
-            <div className="p-8 bg-[#fafafa] border-t border-gray-200 flex flex-col gap-3">
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                <span>Subtotal (Original Price)</span>
-                <span>₹{originalTotal.toLocaleString("en-IN")}.00</span>
-              </div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
-                  <span>Coupon Discount ({order.couponCode || "N/A"})</span>
-                  <span>-₹{couponDiscount.toLocaleString("en-IN")}.00</span>
-                </div>
-              )}
-              {pointsDiscount > 0 && (
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
-                  <span>Loyalty Discount ({order.pointsRedeemed} pts)</span>
-                  <span>-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400 border-t border-gray-200/50 pt-2">
-                <span>Net Total</span>
-                <span>₹{order.total.toLocaleString("en-IN")}.00</span>
-              </div>
-              {walletPaid > 0 && (
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-secondary">
-                  <span>Paid via Store Wallet</span>
-                  <span>-₹{walletPaid.toLocaleString("en-IN")}.00</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200 text-primary">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                  {finalGatewayAmount === 0 ? "Total Paid (Wallet)" : "Grand Total / Gateway Paid"}
-                </span>
-                <span className="text-2xl font-headline font-black tracking-tighter text-[#0a0a0a]">
-                  ₹{(finalGatewayAmount === 0 ? walletPaid : finalGatewayAmount).toLocaleString("en-IN")}.00
-                </span>
-              </div>
-              {order.pointsEarned > 0 && (
-                <div className="mt-2 text-right">
-                  <span className="px-3 py-1 bg-green-50 text-green-700 text-[8px] font-black uppercase tracking-widest rounded-none border border-green-200/50">
-                    +{order.pointsEarned} Loyalty Points Awarded
-                  </span>
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Activity Timeline */}
-          <div className="p-8 border border-gray-200 bg-white">
-            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary mb-6">
+          {/* 3. Financial Recap Card */}
+          <div
+            className="p-6 flex flex-col gap-3"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <span>Subtotal (Original Price)</span>
+              <span style={{ color: "var(--text-primary)" }}>₹{originalTotal.toLocaleString("en-IN")}.00</span>
+            </div>
+            {couponDiscount > 0 && (
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
+                <span>Coupon Discount ({order.couponCode || "N/A"})</span>
+                <span>-₹{couponDiscount.toLocaleString("en-IN")}.00</span>
+              </div>
+            )}
+            {pointsDiscount > 0 && (
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
+                <span>Loyalty Discount ({order.pointsRedeemed} pts)</span>
+                <span>-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
+              </div>
+            )}
+            {order.shippingAmount !== undefined && order.shippingAmount > 0 && (
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                <span>Shipping</span>
+                <span style={{ color: "var(--text-primary)" }}>₹{order.shippingAmount.toLocaleString("en-IN")}.00</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400 border-t border-gray-200/20 pt-2">
+              <span>Net Total</span>
+              <span style={{ color: "var(--text-primary)" }}>₹{order.total.toLocaleString("en-IN")}.00</span>
+            </div>
+            {walletPaid > 0 && (
+              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-secondary">
+                <span>Paid via Store Wallet</span>
+                <span>-₹{walletPaid.toLocaleString("en-IN")}.00</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-4 border-t border-gray-200/20 text-primary">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--text-secondary)" }}>
+                {finalGatewayAmount === 0 ? "Total Paid (Wallet)" : "Grand Total / Gateway Paid"}
+              </span>
+              <span className="text-2xl font-headline font-black tracking-tighter" style={{ color: "var(--text-primary)" }}>
+                ₹{(finalGatewayAmount === 0 ? walletPaid : finalGatewayAmount).toLocaleString("en-IN")}.00
+              </span>
+            </div>
+            {order.pointsEarned > 0 && (
+              <div className="mt-2 text-right">
+                <span className="px-3 py-1 bg-green-50/5 text-green-700 text-[8px] font-black uppercase tracking-widest rounded-none border border-green-200/10">
+                  +{order.pointsEarned} Loyalty Points Awarded
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Returns Banner (Conditional placement here in the left stack) */}
+          {s.includes("return") && (
+            <div
+              className="border p-6 flex items-start gap-4 rounded-none"
+              style={{
+                backgroundColor: s === "return requested" ? "var(--bg-warning)" : s === "return in transit" ? "var(--bg-warning)" : "var(--bg-danger)",
+                borderColor: s === "return rejected" ? "var(--border)" : "var(--border-strong)"
+              }}
+            >
+              <span className="material-symbols-outlined text-2xl" style={{ color: s.includes("rejected") ? "var(--text-secondary)" : "var(--text-danger)" }}>
+                {s === "return requested"
+                  ? "info"
+                  : s === "return in transit"
+                  ? "local_shipping"
+                  : s === "return rejected"
+                  ? "cancel"
+                  : "warning"}
+              </span>
+              <div className="w-full">
+                <h4 className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>
+                  Return Request Activity: {order.status}
+                </h4>
+                <p className="text-xs mt-2 font-medium" style={{ color: "var(--text-secondary)" }}>
+                  Registered Date: <span className="font-bold">{order.returnDate || order.returnRequestDate || order.date}</span>
+                </p>
+                <p className="text-xs mt-1 font-semibold italic" style={{ color: "var(--text-primary)" }}>
+                  Reason: "{order.returnReason || "No details provided"}"
+                </p>
+                {order.returnDetails && (
+                  <p className="text-[10px] mt-1 font-medium opacity-80" style={{ color: "var(--text-secondary)" }}>
+                    Merchant Notes: {order.returnDetails}
+                  </p>
+                )}
+
+                {/* Split refund breakdown display */}
+                <div className="space-y-1.5 mt-2 text-xs">
+                  {order.refundOption === "wallet" ? (
+                    <div className="font-bold" style={{ color: "var(--text-primary)" }}>Pending Wallet Refund: ₹{(gatewayPaid + walletPaid).toLocaleString("en-IN")}</div>
+                  ) : (
+                    <>
+                      {gatewayPaid > 0 && (
+                        <div className="font-bold" style={{ color: "var(--text-primary)" }}>Refund to Bank: ₹{gatewayPaid.toLocaleString("en-IN")}</div>
+                      )}
+                      {walletPaid > 0 && (
+                        <div className="font-bold" style={{ color: "var(--text-primary)" }}>Refund to Wallet: ₹{walletPaid.toLocaleString("en-IN")}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {order.returnImage && order.returnImage !== "No image provided" && (
+                  <div className="mt-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest bg-black/5 px-3 py-1 inline-block border border-black/10 rounded-none" style={{ color: "var(--text-primary)" }}>
+                      Attached Photo: {order.returnImage}
+                    </span>
+                  </div>
+                )}
+
+                {/* Return AWB display */}
+                {(order.returnAwb || order.return_awb) && (
+                  <div className="mt-6 pt-6 border-t border-black/10 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-widest block mb-1" style={{ color: "var(--text-secondary)" }}>
+                          Return Pickup AWB
+                        </span>
+                        <span className="font-mono text-xs font-bold bg-black/5 px-2 py-1 select-all" style={{ color: "var(--text-primary)" }}>
+                          {order.returnAwb || order.return_awb}
+                        </span>
+                        {(order.returnAwb || order.return_awb || "").startsWith("MOCK-") && (
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1 italic">
+                            (Mock Reverse Logistic Routing)
+                          </span>
+                        )}
+                      </div>
+                      <a
+                        href={`https://shiprocket.co/tracking/${order.returnAwb || order.return_awb}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-[#0a0a0a] text-white hover:bg-secondary transition-all px-4 py-2.5 text-[9px] font-black uppercase tracking-widest self-start rounded-none"
+                      >
+                        <span className="material-symbols-outlined text-sm">local_shipping</span>
+                        Track Return
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 5. Activity Timeline Card */}
+          <div
+            className="p-8"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>
               Activity Timeline
             </h3>
             {eventsLoading ? (
               <p className="text-xs text-gray-400 italic">Loading events…</p>
             ) : orderEvents.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No events recorded.</p>
+              <p className="text-xs text-gray-400 italic">No activity recorded yet</p>
             ) : (
-              <ol className="relative border-l-2 border-gray-200 pl-6 space-y-6">
-                {orderEvents.map((ev) => (
-                  <li key={ev.id} className="relative">
-                    <span className="absolute -left-[31px] top-1 w-3 h-3 bg-primary border-2 border-white rounded-full" />
-                    <div className="text-[9px] font-black uppercase tracking-widest text-gray-500">
-                      {new Date(ev.created_at).toLocaleString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                    <div className="text-sm font-bold text-primary mt-1">
-                      {ev.description}
-                    </div>
-                    {ev.actor && (
-                      <div className="text-[10px] text-gray-400 mt-1 italic">
-                        by {ev.actor}
+              <div className="relative pl-6 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-200/20">
+                {orderEvents.map((ev, index) => {
+                  let dotColor = "bg-green-500"; // Past events
+                  if (index === 0) {
+                    dotColor = "bg-blue-500"; // Most recent event
+                  }
+                  
+                  return (
+                    <div key={ev.id || index} className="relative flex flex-col gap-1">
+                      <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-white/10 ${dotColor}`} />
+                      <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                        {new Date(ev.created_at).toLocaleString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
                       </div>
-                    )}
-                  </li>
-                ))}
-              </ol>
+                      <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                        {ev.description || ev.message}
+                      </div>
+                      {ev.actor && (
+                        <div className="text-[10px] text-gray-400 italic">
+                          by {ev.actor}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          {/* Internal Notes Section */}
-          <div className="p-8 border border-gray-200 bg-white">
+          {/* 6. Internal Notes Card */}
+          <div
+            className="p-8"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
             <div className="mb-6">
-              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-primary">
+              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em]" style={{ color: "var(--text-primary)" }}>
                 Internal Notes
               </h3>
               <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
@@ -790,9 +838,9 @@ function OrderDetailsContent() {
                     return `${diffDays}d ago`;
                   };
                   return (
-                    <div key={note.id} className="p-4 bg-gray-50 border border-gray-100 flex justify-between gap-4 animate-fade-in">
+                    <div key={note.id} className="p-4 flex justify-between gap-4 animate-fade-in" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)" }}>
                       <div className="space-y-1 w-full">
-                        <p className="text-xs font-semibold text-primary font-mono whitespace-pre-wrap leading-relaxed select-text">
+                        <p className="text-xs font-semibold font-mono whitespace-pre-wrap leading-relaxed select-text" style={{ color: "var(--text-primary)" }}>
                           {note.note}
                         </p>
                         <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5 pt-1">
@@ -816,9 +864,9 @@ function OrderDetailsContent() {
             )}
 
             {/* Add Note Form */}
-            <form onSubmit={(e) => { e.preventDefault(); handleAddNote(); }} className="space-y-3 pt-6 border-t border-dashed border-gray-100">
+            <form onSubmit={(e) => { e.preventDefault(); handleAddNote(); }} className="space-y-3 pt-6 border-t border-dashed border-gray-200/20">
               <div className="flex justify-between items-baseline">
-                <label className="text-[9px] font-black uppercase tracking-widest text-[#0a0a0a]">
+                <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>
                   Add Note
                 </label>
                 <span className={`text-[9px] font-black uppercase tracking-widest ${
@@ -832,26 +880,42 @@ function OrderDetailsContent() {
                 value={newNoteText}
                 onChange={(e) => setNewNoteText(e.target.value)}
                 maxLength={500}
-                className="w-full bg-white border border-gray-200 p-4 text-xs font-semibold outline-none focus:border-primary rounded-none h-24 resize-none"
+                className="w-full p-4 text-xs font-semibold outline-none focus:border-primary rounded-none h-24 resize-none"
+                style={{
+                  backgroundColor: "var(--surface-1)",
+                  border: "0.5px solid var(--border)",
+                  color: "var(--text-primary)"
+                }}
               />
               <button
                 type="submit"
                 disabled={!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting}
-                className={`bg-primary text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-secondary transition-all rounded-none cursor-pointer border-none font-bold ${
-                  (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "opacity-55 cursor-not-allowed bg-gray-400" : ""
-                }`}
+                className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer border-none font-bold`}
+                style={{
+                  backgroundColor: (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "var(--surface-1)" : "var(--text-primary)",
+                  color: (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "var(--text-muted)" : "var(--surface-2)"
+                }}
               >
                 {noteSubmitting ? "Adding..." : "Add Note"}
               </button>
             </form>
           </div>
+
         </div>
 
-        {/* Right Side: Action panel */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-8">
-          {/* Customer dossier */}
-          <div className="bg-white border border-gray-200 p-8 shadow-sm rounded-none">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-6">Customer Dossier</h3>
+        {/* Right Column (Sidebar Panels) */}
+        <div className="flex flex-col gap-8">
+          
+          {/* 1. Customer Dossier Card */}
+          <div
+            className="p-8"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Customer Dossier</h3>
             {(() => {
               const isFakeEmail = (email: string) => 
                 !email || 
@@ -859,20 +923,6 @@ function OrderDetailsContent() {
                 email.includes('@placeholder') ||
                 email.includes('@test.com') ||
                 email === 'aditya.singhania@heritage.com';
-
-              const toProperCase = (str: string) => {
-                if (!str) return "";
-                return str.toLowerCase()
-                  .split(' ')
-                  .map(word => {
-                    if (word.startsWith("no:")) {
-                      return "No:" + word.slice(3);
-                    }
-                    if (word === "hsr") return "HSR";
-                    return word.charAt(0).toUpperCase() + word.slice(1);
-                  })
-                  .join(' ');
-              };
 
               const profileEmail = customerProfile?.email || "";
               const snapshotEmail = order.address_snapshot?.email || "";
@@ -885,43 +935,60 @@ function OrderDetailsContent() {
 
               const customerName = customerProfile?.name || order.address_snapshot?.name || order.customer;
               const phone = customerProfile?.phone || order.address_snapshot?.phone || "Not provided";
-
               const addr = order.address_snapshot;
 
               return (
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
-                    <div className="size-12 border border-gray-200 grayscale rounded-none flex items-center justify-center bg-gray-50 text-gray-300">
+                    <div className="size-12 border border-gray-200/50 grayscale rounded-none flex items-center justify-center bg-gray-50/5 text-gray-400">
                       <span className="material-symbols-outlined text-lg">person</span>
                     </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-widest">{customerName}</p>
-                      <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5">
+                      <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{customerName}</p>
+                      <p className="text-[10px] font-bold tracking-wider mt-0.5" style={{ color: "var(--text-secondary)" }}>
                         {displayEmail}
                       </p>
-                      {displayEmail !== "Email not provided" && (
-                        <a 
-                          href={`mailto:${displayEmail}`}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '12px',
-                            color: '#BA7517',
-                            textDecoration: 'none',
-                            marginTop: '8px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          ✉ Contact Customer
-                        </a>
-                      )}
                     </div>
+                  </div>
+
+                  {/* Call and Email Action Buttons */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    {displayEmail && displayEmail !== "Email not provided" ? (
+                      <a
+                        href={`mailto:${displayEmail}`}
+                        className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1.5 transition-all"
+                        style={{
+                          backgroundColor: "var(--surface-1)",
+                          border: "0.5px solid var(--border)",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        ✉ Email
+                      </a>
+                    ) : (
+                      <span className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center opacity-40 select-none" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-muted)" }}>✉ Email</span>
+                    )}
+
+                    {phone && phone !== "Not provided" ? (
+                      <a
+                        href={`tel:${phone}`}
+                        className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1.5 transition-all"
+                        style={{
+                          backgroundColor: "var(--surface-1)",
+                          border: "0.5px solid var(--border)",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        📞 Call
+                      </a>
+                    ) : (
+                      <span className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center opacity-40 select-none" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-muted)" }}>📞 Call</span>
+                    )}
                   </div>
                   
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Phone</p>
-                    <p className="text-xs font-bold text-gray-700 tracking-wider">
+                    <p className="text-xs font-bold tracking-wider" style={{ color: "var(--text-primary)" }}>
                       {phone}
                     </p>
                   </div>
@@ -937,7 +1004,7 @@ function OrderDetailsContent() {
                       const country = toProperCase(addr.country || "India");
 
                       return (
-                        <p className="text-xs font-semibold text-gray-600 tracking-wide leading-relaxed italic">
+                        <p className="text-xs font-semibold tracking-wide leading-relaxed italic" style={{ color: "var(--text-secondary)" }}>
                           {line1}
                           {line2 && <><br />{line2}</>}
                           <br />
@@ -955,56 +1022,84 @@ function OrderDetailsContent() {
             })()}
           </div>
 
-          {/* Payment Status Card */}
-          <div className="bg-white border border-gray-200 p-8 shadow-sm rounded-none">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-6">Payment Status</h3>
+          {/* 2. Payment Status Card (Refund Banner nested inside) */}
+          <div
+            className="p-8"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Payment Status</h3>
             {(() => {
               const isPending = order.status.toLowerCase() === "payment pending";
               const totalAmount = order.total || 0;
               const wPaid = order.walletPaid || 0;
               const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, totalAmount - wPaid);
 
-              if (isPending) {
-                return (
-                  <div className="space-y-4">
+              return (
+                <div className="space-y-4">
+                  {isPending ? (
                     <div className="flex items-center gap-2 text-amber-600 font-bold text-xs uppercase tracking-wider">
                       <span className="material-symbols-outlined text-sm">pending_actions</span>
                       <span>⏳ Awaiting Payment</span>
                     </div>
-                    <div className="pt-2 border-t border-dashed border-gray-100 flex justify-between items-center">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Amount Due</span>
-                      <span className="text-sm font-headline font-black text-[#775a19]">₹{totalAmount.toLocaleString("en-IN")}.00</span>
+                  ) : (
+                    <div className="flex items-center gap-2 text-green-700 font-bold text-xs uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-sm">check_circle</span>
+                      <span>✓ Payment Confirmed</span>
                     </div>
-                  </div>
-                );
-              }
+                  )}
 
-              return (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-green-700 font-bold text-xs uppercase tracking-wider">
-                    <span className="material-symbols-outlined text-sm">check_circle</span>
-                    <span>✓ Payment Confirmed</span>
-                  </div>
-                  <div className="space-y-2 pt-2 border-t border-dashed border-gray-100 text-xs">
+                  <div className="space-y-2 pt-2 border-t border-dashed border-gray-200/20 text-xs">
                     <div className="flex justify-between items-center">
                       <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Razorpay Gateway</span>
-                      <span className="font-semibold text-primary">₹{gPaid.toLocaleString("en-IN")}.00</span>
+                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>₹{gPaid.toLocaleString("en-IN")}.00</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Store Wallet</span>
-                      <span className="font-semibold text-primary">₹{wPaid.toLocaleString("en-IN")}.00</span>
+                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>₹{wPaid.toLocaleString("en-IN")}.00</span>
                     </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100 font-black">
-                      <span className="text-[10px] uppercase tracking-widest text-[#0a0a0a]">Total Paid</span>
-                      <span className="text-sm font-headline text-[#775a19]">₹{totalAmount.toLocaleString("en-IN")}.00</span>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100/10 font-black">
+                      <span className="text-[10px] uppercase tracking-widest text-[#0a0a0a]" style={{ color: "var(--text-secondary)" }}>Total Paid</span>
+                      <span className="text-sm font-headline" style={{ color: "var(--text-primary)" }}>₹{totalAmount.toLocaleString("en-IN")}.00</span>
                     </div>
                   </div>
+
                   {(order.razorpay_payment_id || order.id) && (
-                    <div className="pt-3 border-t border-dashed border-gray-100 space-y-1 text-[9px] text-gray-400 font-mono">
+                    <div className="pt-3 border-t border-dashed border-gray-200/10 space-y-1 text-[9px] text-gray-400 font-mono">
                       {order.razorpay_payment_id && (
                         <p className="truncate">Payment ID: {order.razorpay_payment_id}</p>
                       )}
                       <p className="truncate">Order Ref: {order.id}</p>
+                    </div>
+                  )}
+
+                  {/* NESTED REFUND ALERT: warning styled block */}
+                  {order.refund_status && (
+                    <div
+                      className="pt-4 border-t border-dashed border-gray-200/20"
+                      style={{
+                        backgroundColor: "var(--bg-warning)",
+                        border: "0.5px solid var(--border-warning)",
+                        borderRadius: "var(--radius)",
+                        padding: "12px 14px",
+                        marginTop: "16px"
+                      }}
+                    >
+                      <h4 className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: "var(--text-warning)" }}>
+                        Refund: {order.refund_status.replace(/_/g, " ").toUpperCase()}
+                      </h4>
+                      {order.refund_amount !== undefined && (
+                        <p className="text-[10px] font-bold" style={{ color: "var(--text-warning)" }}>Amount: ₹{order.refund_amount.toLocaleString("en-IN")}</p>
+                      )}
+                      {order.refund_reason && (
+                        <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-warning)" }}>Reason: {order.refund_reason}</p>
+                      )}
+                      {order.refund_id && (
+                        <p className="text-[9px] font-mono mt-0.5 opacity-80" style={{ color: "var(--text-warning)" }}>ID: {order.refund_id}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1012,215 +1107,174 @@ function OrderDetailsContent() {
             })()}
           </div>
 
-          {/* Action station container */}
-          <div className="bg-primary text-white p-8 shadow-2xl rounded-none">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#fed488] mb-8">Administrative Actions</h3>
+          {/* 3. Administrative Actions Card (Titles changed and action buttons styled cleanly) */}
+          <div
+            className="p-8"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "12px"
+            }}
+          >
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Actions</h3>
 
-            {/* CASE 1: Standard Order Flows */}
-            {!s.includes("return") && s !== "returned" && s !== "cancelled" && (
-              <div className="space-y-6">
-                {s === "payment pending" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
-                      Warning: Payment stuck in bank portal or verification is pending.
-                    </div>
-                    <button
-                      onClick={handleApprovePendingOrder}
-                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    >
-                      <span className="material-symbols-outlined text-sm">payments</span> Clear Bank Clearance
-                    </button>
-                    <button
-                      onClick={() => openRefundModal("cancel")}
-                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
-                    >
-                      Cancel Order
-                    </button>
-                  </div>
-                )}
-
-                {s === "paid" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
-                      Awaiting invoice generation to begin processing.
-                    </div>
-                    <Link
-                      href={`/invoice?orderId=${order.id}`}
-                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none text-center"
-                    >
-                      <span className="material-symbols-outlined text-sm">print</span> Print Invoice &amp; Process
-                    </Link>
-                    <button
-                      onClick={() => openRefundModal("cancel")}
-                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
-                    >
-                      Cancel Order (Refund)
-                    </button>
-                  </div>
-                )}
-
-                {s === "processing" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
-                      Order is processing. Ready to dispatch.
-                    </div>
-                    <button
-                      onClick={handleShiprocketShip}
-                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    >
-                      <span className="material-symbols-outlined text-sm">local_shipping</span> Ship via Shiprocket
-                    </button>
-                    <button
-                      onClick={() => openRefundModal("cancel")}
-                      className="w-full text-red-400 hover:text-red-500 py-4 text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border border-transparent cursor-pointer"
-                    >
-                      Cancel Order (Stock Issue)
-                    </button>
-                  </div>
-                )}
-
-                {s === "shipped" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-[#fed488] font-bold uppercase tracking-wider leading-relaxed">
-                      Dispatched AWB: <span className="font-mono text-white">{order.shiprocketId}</span>
-                    </div>
-                    <button
-                      onClick={() => handleUpdateStatus("Delivered")}
-                      className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    >
-                      <span className="material-symbols-outlined text-sm">check_circle</span> Mark as Delivered
-                    </button>
-                  </div>
-                )}
-
-                {s === "delivered" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white/5 border border-white/10 text-xs text-green-400 font-bold uppercase tracking-wider text-center">
-                      Delivered successfully.
-                    </div>
-                    {order.status === "Delivered" && !order.refund_status && (
-                      <button
-                        onClick={() => openRefundModal("issue")}
-                        className="w-full bg-[#fed488] text-primary py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                      >
-                        <span className="material-symbols-outlined text-sm">payments</span> Issue Refund
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* CASE 2: Return Requested Actions */}
-            {s === "return requested" && (
-              <div className="space-y-4">
-                <button
-                  onClick={handleApprovePickup}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                >
-                  Approve & Schedule Pickup
-                </button>
-                <button
-                  onClick={() => setRejectModalOpen(true)}
-                  className="w-full text-red-500 border border-red-500/30 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-red-500/10 transition-all bg-transparent rounded-none cursor-pointer"
-                >
-                  Reject Return Request
-                </button>
-              </div>
-            )}
-
-            {/* CASE 3: Return In Transit Actions */}
-            {s === "return in transit" && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-white/70">
-                    Quality Audit Status
-                  </label>
-                  <select
-                    value={qualityCheck}
-                    onChange={(e) => setQualityCheck(e.target.value as any)}
-                    className="w-full bg-white/10 text-white border border-white/20 px-3 py-3 text-[10px] font-black tracking-widest uppercase focus:border-[#fed488] focus:ring-0 rounded-none cursor-pointer"
+            <div className="space-y-4">
+              {/* Contextual actions display */}
+              {s === "payment pending" && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleApprovePendingOrder}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
                   >
-                    <option className="text-[#0a0a0a] font-bold" value="passed">
-                      QC: Passed (Restock Item)
-                    </option>
-                    <option className="text-[#0a0a0a] font-bold" value="failed">
-                      QC: Failed (Do Not Restock)
-                    </option>
-                  </select>
+                    Clear bank clearance
+                  </button>
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
+                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
+                  >
+                    Cancel order
+                  </button>
                 </div>
-                <button
-                  onClick={() => openRefundModal("return")}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none mt-2"
-                >
-                  Confirm Receipt & Refund
-                </button>
-              </div>
-            )}
+              )}
 
-            {/* CASE 4: Complete/Archived states disabled */}
-            {(s === "returned" || s === "cancelled" || s === "return rejected") && (
-              <div className="text-center py-6 text-white/50 text-[10px] font-black uppercase tracking-widest">
-                No active actions available for {order.status} orders.
-              </div>
-            )}
+              {s === "paid" && (
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href={`/invoice?orderId=${order.id}`}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none text-center"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                  >
+                    Print invoice &amp; process
+                  </Link>
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
+                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
+                  >
+                    Cancel order (refund)
+                  </button>
+                </div>
+              )}
 
-            <div className="mt-8 pt-8 border-t border-white/10">
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] leading-relaxed">
-                <span className="material-symbols-outlined text-xs align-middle mr-1.5">warning</span>
-                Merchant actions directly update local inventory values and client ledgers.
+              {s === "processing" && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleShiprocketShip}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                  >
+                    Ship via Shiprocket
+                  </button>
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
+                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
+                  >
+                    Cancel order (stock issue)
+                  </button>
+                </div>
+              )}
+
+              {s === "shipped" && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => handleUpdateStatus("Delivered")}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                  >
+                    Mark as delivered
+                  </button>
+                </div>
+              )}
+
+              {s === "delivered" && (
+                <div className="flex flex-col gap-3">
+                  {!order.refund_status && (
+                    <button
+                      onClick={() => openRefundModal("issue")}
+                      className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                      style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                    >
+                      Issue refund
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {s === "return requested" && (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleApprovePickup}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                  >
+                    Approve &amp; schedule pickup
+                  </button>
+                  <button
+                    onClick={() => setRejectModalOpen(true)}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
+                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
+                  >
+                    Reject return
+                  </button>
+                </div>
+              )}
+
+              {s === "return in transit" && (
+                <div className="flex flex-col gap-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                      Quality Audit Status
+                    </label>
+                    <select
+                      value={qualityCheck}
+                      onChange={(e) => setQualityCheck(e.target.value as any)}
+                      className="w-full px-3 py-3 text-[10px] font-black tracking-widest uppercase focus:border-secondary focus:ring-0 rounded-none cursor-pointer"
+                      style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-primary)" }}
+                    >
+                      <option className="text-[#0a0a0a] font-bold" value="passed">
+                        QC: Passed (Restock Item)
+                      </option>
+                      <option className="text-[#0a0a0a] font-bold" value="failed">
+                        QC: Failed (Do Not Restock)
+                      </option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => openRefundModal("return")}
+                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none mt-2"
+                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
+                  >
+                    Confirm receipt &amp; refund
+                  </button>
+                </div>
+              )}
+
+              {/* Disabled states */}
+              {(s === "returned" || s === "cancelled" || s === "return rejected") && (
+                <div className="text-center py-6 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                  No active actions available for {order.status} orders.
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-200/20">
+              <p className="text-[9px] text-gray-400 uppercase tracking-wider leading-relaxed">
+                ⚠️ Shipping sync updates inventory. Cancellation voids payment and releases stock.
               </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Refund Status Display */}
-      {order.refund_status && (
-        <div className={`mt-12 border p-6 flex items-start gap-4 rounded-none ${
-          order.refund_status === "processed"
-            ? "bg-green-50 border-green-200 text-green-800"
-            : order.refund_status === "initiated"
-            ? "bg-blue-50 border-blue-200 text-blue-800"
-            : order.refund_status === "wallet_only"
-            ? "bg-purple-50 border-purple-200 text-purple-800"
-            : "bg-red-50 border-red-200 text-red-800"
-        }`}>
-          <span className="material-symbols-outlined text-2xl">
-            {order.refund_status === "processed"
-              ? "check_circle"
-              : order.refund_status === "initiated"
-              ? "pending"
-              : order.refund_status === "wallet_only"
-              ? "account_balance_wallet"
-              : "error"}
-          </span>
-          <div>
-            <h4 className="text-xs font-black uppercase tracking-widest mb-2">
-              Refund Status: {order.refund_status.replace(/_/g, " ").toUpperCase()}
-            </h4>
-            {order.refund_amount !== undefined && (
-              <p className="text-xs font-bold">Amount: ₹{order.refund_amount.toLocaleString("en-IN")}</p>
-            )}
-            {order.refund_reason && (
-              <p className="text-xs font-medium mt-1">Reason: {order.refund_reason}</p>
-            )}
-            {order.refund_id && (
-              <p className="text-[10px] font-mono mt-1 opacity-70">Refund ID: {order.refund_id}</p>
-            )}
-            {order.refunded_at && (
-              <p className="text-[10px] mt-1 opacity-70">
-                Processed: {new Date(order.refunded_at).toLocaleString("en-IN")}
-              </p>
-            )}
-          </div>
         </div>
-      )}
+
+      </div>
 
       {/* Reject Modal */}
       {rejectModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full border border-gray-200 shadow-2xl relative rounded-none text-left">
+          <div className="bg-white p-8 max-w-md w-full border border-gray-200/50 shadow-2xl relative rounded-none text-left">
             <h3 className="font-headline text-2xl font-black uppercase tracking-tight mb-4 text-primary">
               Reject Return
             </h3>
@@ -1258,7 +1312,7 @@ function OrderDetailsContent() {
       {/* Refund Modal */}
       {refundModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full border border-gray-200 shadow-2xl relative rounded-none text-left">
+          <div className="bg-white p-8 max-w-md w-full border border-gray-200/50 shadow-2xl relative rounded-none text-left">
             <h3 className="font-headline text-2xl font-black uppercase tracking-tight mb-2 text-primary">
               {refundActionType === "cancel"
                 ? "Cancel & Refund"

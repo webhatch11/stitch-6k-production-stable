@@ -11,6 +11,7 @@ import {
   restockVariantAction,
   adjustProductSizeAction,
 } from "@/app/actions/admin-products";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
 export default function InventoryLedgerPage() {
   const router = useRouter();
@@ -176,8 +177,8 @@ export default function InventoryLedgerPage() {
   // Filter products based on search keyword and active status tab
   const filteredProducts = products.filter((p) => {
     // Tab filter logic
-    if (currentFilter === "inStock" && (p.stock || 0) <= 10) return false;
-    if (currentFilter === "lowStock" && ((p.stock || 0) <= 0 || (p.stock || 0) > 10)) return false;
+    if (currentFilter === "inStock" && (p.stock || 0) <= LOW_STOCK_THRESHOLD) return false;
+    if (currentFilter === "lowStock" && ((p.stock || 0) <= 0 || (p.stock || 0) > LOW_STOCK_THRESHOLD)) return false;
     if (currentFilter === "outOfStock" && (p.stock || 0) > 0) return false;
 
     // Search query logic
@@ -201,13 +202,13 @@ export default function InventoryLedgerPage() {
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   const getStockStatusStyle = (stock: number) => {
-    if (stock > 10) return "bg-green-50 text-green-700 border border-green-200/50";
+    if (stock > LOW_STOCK_THRESHOLD) return "bg-green-50 text-green-700 border border-green-200/50";
     if (stock > 0) return "bg-yellow-50 text-yellow-700 border border-yellow-200/50";
     return "bg-red-50 text-red-700 border border-red-200/50";
   };
 
   const getStockStatusText = (stock: number) => {
-    if (stock > 10) return "In Stock";
+    if (stock > LOW_STOCK_THRESHOLD) return "In Stock";
     if (stock > 0) return "Low Stock";
     return "Out of Stock";
   };

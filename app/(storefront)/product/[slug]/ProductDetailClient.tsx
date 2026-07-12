@@ -9,6 +9,7 @@ import { Product } from "@/lib/types";
 import { useCartStore } from "@/stores/cartStore";
 import { useRecentStore } from "@/stores/recentStore";
 import { trackViewProduct, trackAddToCart } from "@/lib/analytics";
+import { LOW_STOCK_THRESHOLD, LOW_STOCK_SIZE_THRESHOLD, URGENT_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
 interface ProductDetailClientProps {
   product: Product;
@@ -452,7 +453,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                         <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       )}
                       {/* Subtly show quick warning dot on sizes if low stock */}
-                      {!isOutOfStock && sizeStock > 0 && sizeStock < 5 && (
+                      {!isOutOfStock && sizeStock > 0 && sizeStock <= LOW_STOCK_SIZE_THRESHOLD && (
                         <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"></span>
                       )}
                     </button>
@@ -467,7 +468,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                 </p>
               )}
 
-              {selectedSizeStock > 0 && selectedSizeStock < 5 && (
+              {selectedSizeStock > 0 && selectedSizeStock <= URGENT_STOCK_THRESHOLD && (
                 <div className="p-3 bg-red-950/20 border border-red-900/30 text-red-500 flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm animate-pulse">warning</span>
                   <p className="text-[10px] font-black uppercase tracking-widest leading-none">
@@ -736,7 +737,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                 if (rec.stock !== undefined && rec.stock <= 0) {
                   badgeText = "Sold Out";
                   badgeColorClass = "text-red-700 border-red-200";
-                } else if (rec.stock !== undefined && rec.stock > 0 && rec.stock <= 10) {
+                } else if (rec.stock !== undefined && rec.stock > 0 && rec.stock <= LOW_STOCK_THRESHOLD) {
                   badgeText = "Low Stock";
                   badgeColorClass = "text-red-700 border-red-200";
                 } else if (rec.customBadge) {

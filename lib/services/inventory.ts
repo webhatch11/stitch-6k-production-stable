@@ -1,4 +1,5 @@
 import { ProductVariant, InventoryReservation, StockAuditLog } from "../../types/inventory";
+import { LOW_STOCK_THRESHOLD } from "../inventory-config";
 
 type ServiceModule = typeof import("../supabase-service");
 let _serviceMod: ServiceModule | null = null;
@@ -356,7 +357,7 @@ export const InventoryService = {
   /**
    * Check for items that are low in stock
    */
-  async checkLowStockAlerts(threshold = 5): Promise<{ sku: string; size: string; stock: number }[]> {
+  async checkLowStockAlerts(threshold = LOW_STOCK_THRESHOLD): Promise<{ sku: string; size: string; stock: number }[]> {
     const alerts: { sku: string; size: string; stock: number }[] = [];
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
@@ -387,7 +388,9 @@ export const InventoryService = {
         XXL: p.size_stock_xxl || 0,
       };
       for (const [size, stock] of Object.entries(sizeStock)) {
-        if (stock !== undefined && stock <= threshold) {
+        // stock > 0 guard: zero-stock sizes are "Out of Stock", not "Low Stock".
+        // Including them in low-stock alerts creates false positives.
+        if (stock !== undefined && stock > 0 && stock <= threshold) {
           alerts.push({
             sku: `${p.id}-${size}`,
             size,

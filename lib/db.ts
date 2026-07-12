@@ -4,6 +4,7 @@ import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
 import { CartItem } from "@/stores/cartStore";
+import { PRODUCT_CACHE_TTL_SECS, PRODUCT_LIST_CACHE_TTL_SECS } from "./inventory-config";
 
 const DEFAULT_PICKUP_LOCATION = 
   process.env.SHIPROCKET_PICKUP_LOCATION || 
@@ -329,7 +330,7 @@ export const db = {
     }
     const mapped = (data || []).map(mapDbProductToProduct);
     const res = await attachVariantsToProducts(mapped);
-    await CacheService.set(cacheKey, res, 600);
+    await CacheService.set(cacheKey, res, PRODUCT_LIST_CACHE_TTL_SECS);
     return res;
   },
 
@@ -470,7 +471,7 @@ export const db = {
     const mapped = data ? mapDbProductToProduct(data) : undefined;
     if (!mapped) return undefined;
     const [res] = await attachVariantsToProducts([mapped]);
-    await CacheService.set(cacheKey, res, 600);
+    await CacheService.set(cacheKey, res, PRODUCT_CACHE_TTL_SECS);
     return res;
   },
 

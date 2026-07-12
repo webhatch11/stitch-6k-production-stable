@@ -9,6 +9,7 @@ import {
   WalletTransaction,
   LoyaltyTransaction,
 } from "@/lib/types";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
 export async function getProductsAction(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string; adminView?: boolean }): Promise<{
   success: boolean;
@@ -215,7 +216,7 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
           const totalStock = variants.reduce((sum: number, v: any) => sum + Number(v.stock || 0), 0);
           if (totalStock === 0) {
             stockStatus = "Out of Stock";
-          } else if (totalStock < 10) {
+          } else if (totalStock > 0 && totalStock <= LOW_STOCK_THRESHOLD) {
             stockStatus = "Low Stock";
           } else {
             stockStatus = "In Stock";

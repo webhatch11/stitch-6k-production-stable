@@ -8,6 +8,7 @@ import { deleteProductAction } from "@/app/actions/admin-products";
 import { bulkUpdateOrderStatusAction, processReturnRefundAction } from "@/app/actions/admin-orders";
 import { restockVariantAction } from "@/app/actions/admin-products";
 import { getRevenueTrendAction, getTopProductsAction } from "@/app/actions/admin-analytics";
+import { LOW_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
 import {
   ResponsiveContainer,
@@ -210,7 +211,11 @@ export default function AdminDashboardClient({
     return "bg-gray-50 text-gray-700 border border-gray-200/50";
   };
 
-  const lowStockProducts = products.filter((p) => (p.stock || 0) <= 15);
+  // stock > 0 guard: out-of-stock products belong in a separate alert,
+  // not in the "Low Stock Warnings" panel (which is a restock nudge).
+  const lowStockProducts = products.filter(
+    (p) => (p.stock || 0) > 0 && (p.stock || 0) <= LOW_STOCK_THRESHOLD
+  );
 
   return (
     <div className="p-8 lg:p-16">
@@ -663,7 +668,7 @@ export default function AdminDashboardClient({
           <div>
             <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] text-[#0a0a0a]">Low Stock Warnings</h3>
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 italic">
-              Active products requiring immediate restock (15 or fewer units remaining).
+              Active products requiring immediate restock ({LOW_STOCK_THRESHOLD} or fewer units remaining).
             </p>
           </div>
           <Link

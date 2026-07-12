@@ -2226,21 +2226,13 @@ export const db = {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error('Database connection not configured.');
     }
-    const { data } = await supabase
-      .from('orders')
-      .select('id')
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    let nextSeq = 1;
-    if (data && data[0]) {
-      const lastId = data[0].id;
-      const match = lastId.match(/(\d+)$/);
-      if (match) nextSeq = parseInt(match[1]) + 1;
+    const { data, error } = await supabase.rpc('get_next_order_sequence');
+    if (error) {
+      console.error('Error generating sequence ID:', error);
+      throw error;
     }
-
+    const sequence = String(data).padStart(5, '0');
     const prefix = paymentMethod === 'razorpay' ? 'RPO' : 'WPO';
-    const sequence = String(nextSeq).padStart(5, '0');
     return `6K-${prefix}-${sequence}`;
   },
 

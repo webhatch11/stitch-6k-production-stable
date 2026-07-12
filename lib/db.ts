@@ -815,7 +815,10 @@ export const db = {
       );
     }
 
-    const orderId = order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000);
+    let orderId = order.id || "ORD-" + Math.floor(Math.random() * 9000 + 1000);
+
+    // If it's a completely new order (no order.id starting with '6K-' exists, or it doesn't exist in DB):
+    const isNew = !order.id || (!order.id.startsWith("6K-"));
 
     // Check if order exists
     const { data: existingOrder, error: fetchError } = await supabase
@@ -828,10 +831,14 @@ export const db = {
     }
 
     const isExisting = !!existingOrder;
+    if (!isExisting && isNew) {
+      const pm = (order.gatewayPaid && order.gatewayPaid > 0) || order.razorpay_payment_id || (order as any).razorpay_order_id ? 'razorpay' : 'wallet';
+      orderId = await this.generateOrderId(pm);
+    }
 
     // Build DB payload with only defined fields (partial update/insert)
     const dbPayload: any = {};
-    if (order.id !== undefined) dbPayload.id = orderId;
+    dbPayload.id = orderId;
     if (order.customer !== undefined) dbPayload.customer = order.customer;
     if (order.date !== undefined) dbPayload.date = order.date;
     if (order.total !== undefined) dbPayload.total = order.total;
@@ -2211,21 +2218,278 @@ export const db = {
   },
 
   async approvePendingOrder(orderId: string): Promise<boolean> {
+    return this.runPostPaymentSideEffects(orderId);
+  },
+
+  async generateOrderId(paymentMethod: 'razorpay' | 'wallet'): Promise<string> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
-      throw new Error(
-        'Database connection not configured. ' +
-        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
-        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
-        'environment variables.'
-      );
+      throw new Error('Database connection not configured.');
     }
-    const { error } = await supabase
+    const { data } = await supabase
+      .from('orders')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    let nextSeq = 1;
+    if (data && data[0]) {
+      const lastId = data[0].id;
+      const match = lastId.match(/(\d+)$/);
+      if (match) nextSeq = parseInt(match[1]) + 1;
+    }
+
+    const prefix = paymentMethod === 'razorpay' ? 'RPO' : 'WPO';
+    const sequence = String(nextSeq).padStart(5, '0');
+    return `6K-${prefix}-${sequence}`;
+  },
+
+  async verifyRazorpayPayment(orderId: string): Promise<{ success: boolean; status: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Database connection not configured.');
+    }
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (!order.razorpay_payment_id) throw new Error('No Razorpay payment ID found on this order');
+
+    const { razorpay } = require("./razorpay") as typeof import("./razorpay");
+    const payment = await razorpay.payments.fetch(order.razorpay_payment_id) as any;
+    if (payment.status === 'captured') {
+      await this.approvePendingOrder(orderId);
+      return { success: true, status: 'activated' };
+    }
+    if (payment.status === 'failed') {
+      await supabase.from("orders").update({
+        status: "Failed",
+        payment_status: "Failed"
+      }).eq("id", orderId);
+
+      await this.releaseReservation(order.idempotencyKey || orderId);
+      await this.addOrderStatusHistory(order.idempotencyKey || orderId, "Failed", "System (Payment Verification)", {
+        payment_status: "Failed",
+        reason: "Payment failed on gateway check"
+      });
+      return { success: true, status: 'failed' };
+    }
+    return { success: true, status: payment.status };
+  },
+
+  async verifyRazorpayRefund(orderId: string): Promise<{ status: string; processedAt?: string }> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Database connection not configured.');
+    }
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (!order.refund_id) throw new Error('No refund ID found on this order');
+
+    const { razorpay } = require("./razorpay") as typeof import("./razorpay");
+    const refund = await razorpay.refunds.fetch(order.refund_id) as any;
+    
+    let dbRefundStatus = refund.status;
+    let refundedAt: string | undefined = undefined;
+
+    if (refund.status === 'processed') {
+      dbRefundStatus = 'credited';
+      refundedAt = refund.processed_at ? new Date(Number(refund.processed_at) * 1000).toISOString() : new Date().toISOString();
+    } else if (refund.status === 'failed') {
+      dbRefundStatus = 'failed';
+    }
+
+    await supabase.from("orders").update({
+      refund_status: dbRefundStatus as any,
+      refunded_at: refundedAt || new Date().toISOString()
+    }).eq("id", orderId);
+
+    return { status: refund.status, processedAt: refund.processed_at ? String(refund.processed_at) : undefined };
+  },
+
+  async runPostPaymentSideEffects(orderId: string, razorpayPaymentId?: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    const dbOrder = await this.getOrderById(orderId);
+    if (!dbOrder) return false;
+
+    const earned = Math.floor(dbOrder.total / 100) * 5; // ₹100 = 5 points
+
+    const updatePayload: any = {
+      status: "Paid",
+      payment_status: "Paid",
+      points_earned: earned
+    };
+    if (razorpayPaymentId) {
+      updatePayload.razorpay_payment_id = razorpayPaymentId;
+    }
+
+    const { error: updateErr } = await supabase
       .from("orders")
-      .update({ status: "Paid" })
+      .update(updatePayload)
       .eq("id", orderId);
 
-    return !error;
+    if (updateErr) {
+      console.error("[runPostPaymentSideEffects] status update failed:", updateErr);
+      return false;
+    }
+
+    // a. Deduct inventory stock
+    let deductSuccess = false;
+    try {
+      const { data: currentRes } = await supabase
+        .from("inventory_reservations")
+        .select("status")
+        .eq("session_id", dbOrder.idempotencyKey || orderId)
+        .maybeSingle();
+
+      if (currentRes?.status === "fulfilled") {
+        deductSuccess = true;
+      } else {
+        deductSuccess = await this.deductStock(dbOrder.cartItems || [], dbOrder.idempotencyKey || orderId);
+      }
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] deductStock failed:", e);
+    }
+
+    // b. Increment coupon usage
+    if (dbOrder.couponCode) {
+      try {
+        await this.incrementCouponUsage(dbOrder.couponCode);
+      } catch (e) {
+        console.error("[runPostPaymentSideEffects] incrementCouponUsage failed:", e);
+      }
+    }
+
+    // c. Debit wallet
+    if (dbOrder.walletPaid && dbOrder.walletPaid > 0) {
+      try {
+        await this.applyWalletDebit(dbOrder.walletPaid, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+      } catch (e) {
+        console.error("[runPostPaymentSideEffects] applyWalletDebit failed:", e);
+      }
+    }
+
+    // d. Debit loyalty points
+    if (dbOrder.pointsRedeemed && dbOrder.pointsRedeemed > 0) {
+      try {
+        await this.applyLoyaltyDebit(dbOrder.pointsRedeemed, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+      } catch (e) {
+        console.error("[runPostPaymentSideEffects] applyLoyaltyDebit failed:", e);
+      }
+    }
+
+    // e. Award loyalty points
+    try {
+      const webhookEarnBase = Math.max(0, (dbOrder.originalTotal || 0) - (dbOrder.couponDiscount || 0));
+      await this.awardLoyaltyPoints(webhookEarnBase, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] awardLoyaltyPoints failed:", e);
+    }
+
+    // f. Update payments record
+    try {
+      const { data: payment } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("order_id", dbOrder.id)
+        .maybeSingle();
+
+      if (payment) {
+        await supabase.from("payments").update({
+          status: "CAPTURED"
+        }).eq("id", payment.id);
+
+        await supabase.from("payment_logs").insert({
+          payment_id: payment.id,
+          previous_status: "CREATED",
+          new_status: "CAPTURED",
+          metadata: { source: "verification", razorpay_payment_id: dbOrder.razorpay_payment_id }
+        });
+      }
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] payments update failed:", e);
+    }
+
+    // g. Payment audit log
+    try {
+      await this.createPaymentAuditLog(dbOrder.id, "Payment Pending", "Paid", "verification");
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] createPaymentAuditLog failed:", e);
+    }
+
+    // h. Order event / status history
+    try {
+      await this.createOrderEvent(dbOrder.id, "Payment Successful");
+      await this.addOrderStatusHistory(dbOrder.idempotencyKey || orderId, "Paid", "System (Post Payment)", {
+        status_changed_to: "Paid"
+      });
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] createOrderEvent/history failed:", e);
+    }
+
+    // i. Dispatch fulfillment
+    try {
+      await this.dispatchFulfillment(dbOrder.id);
+    } catch (e) {
+      console.error("[runPostPaymentSideEffects] dispatchFulfillment failed:", e);
+    }
+
+    // j. Send Order Confirmation Email
+    try {
+      let customerEmail = dbOrder.address_snapshot?.email || "";
+      if (!customerEmail && (dbOrder.userId || dbOrder.user_id) && supabase) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", dbOrder.userId || dbOrder.user_id)
+          .maybeSingle();
+        if (profile?.email) {
+          customerEmail = profile.email;
+        }
+      }
+
+      if (customerEmail) {
+        const { sendOrderConfirmationEmail } = await import("@/lib/email");
+        
+        // Group cart items to compute quantities for duplicates
+        const rawItems = dbOrder.cartItems || [];
+        const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
+        for (const item of rawItems) {
+          const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
+          if (groupedMap.has(key)) {
+            groupedMap.get(key)!.quantity += 1;
+          } else {
+            groupedMap.set(key, {
+              productName: item.productName || item.title || "Product",
+              size: item.size || "Free Size",
+              quantity: 1,
+              price: Number(item.price || 0),
+            });
+          }
+        }
+        const groupedItems = Array.from(groupedMap.values());
+
+        const addr = dbOrder.address_snapshot;
+        const addressStr = addr
+          ? [addr.name, addr.phone, addr.address_line_1, addr.address_line_2, `${addr.city} - ${addr.postal_code}`, addr.state, addr.country]
+              .filter(Boolean)
+              .join(", ")
+          : "No address details available";
+
+        await sendOrderConfirmationEmail({
+          id: dbOrder.id,
+          customerName: dbOrder.customer || "Valued Customer",
+          customerEmail,
+          items: groupedItems,
+          total: Number(dbOrder.total || 0),
+          address: addressStr
+        });
+      }
+    } catch (emailError) {
+      console.error("[Email] Order confirmation email failed:", emailError);
+    }
+
+    return true;
   },
 
   // --- Addresses ---
@@ -3280,21 +3544,7 @@ export const db = {
   },
 
   async getNextOrderNumber(): Promise<string> {
-    const { supabase, isSupabaseConfigured } = loadService();
-    if (!isSupabaseConfigured || !supabase) {
-      throw new Error(
-        'Database connection not configured. ' +
-        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
-        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
-        'environment variables.'
-      );
-    }
-    const { data, error } = await supabase.rpc("get_next_order_number");
-    if (error) {
-      console.error("Error getting next order number from DB:", error);
-      return `TEMP-${Date.now()}`;
-    }
-    return data;
+    return this.generateOrderId('razorpay');
   },
 
   async createPaymentAuditLog(orderId: string, previousStatus: string | null, newStatus: string, source: string): Promise<void> {

@@ -17,6 +17,8 @@ import {
   addOrderNoteAction,
   deleteOrderNoteAction,
   getOrderNotesAction,
+  verifyPaymentAction,
+  verifyRefundAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -30,6 +32,41 @@ function OrderDetailsContent() {
   const [qualityCheck, setQualityCheck] = useState<"passed" | "failed">("passed");
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [verifyingRefund, setVerifyingRefund] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+
+  const handleVerifyRefund = async () => {
+    if (!order || verifyingRefund) return;
+    setVerifyingRefund(true);
+    const res = await verifyRefundAction(order.id);
+    setVerifyingRefund(false);
+    if (res.success) {
+      triggerToast(`Refund status updated: ${res.status}`);
+      await loadOrderDetails();
+    } else {
+      triggerToast(res.error || "Failed to verify refund");
+    }
+  };
+
+  const handleVerifyPayment = async () => {
+    if (!order || verifyingPayment) return;
+    setVerifyingPayment(true);
+    const res = await verifyPaymentAction(order.id);
+    setVerifyingPayment(false);
+    if (res.success) {
+      if (res.status === "activated") {
+        triggerToast("Payment confirmed. Order activated.");
+        await loadOrderDetails();
+      } else if (res.status === "failed") {
+        triggerToast("Payment failed. Order cancelled.");
+        await loadOrderDetails();
+      } else {
+        triggerToast(`Payment status: ${res.status}. No changes made.`);
+      }
+    } else {
+      triggerToast(res.error || "Failed to verify payment");
+    }
+  };
 
   // Timeline events state
   const [orderEvents, setOrderEvents] = useState<any[]>([]);
@@ -1060,6 +1097,38 @@ function OrderDetailsContent() {
                       )}
                     </div>
                   )}
+
+                  {order.refund_id && (
+                    <div className="mt-4 pt-4 border-t border-dashed border-gray-200/10 flex items-center justify-between gap-3">
+                      <button
+                        onClick={handleVerifyRefund}
+                        disabled={verifyingRefund}
+                        className="px-4 py-2 bg-[#16161a] border border-gray-800 hover:bg-[#222228] text-white text-[10px] font-bold uppercase tracking-wider rounded-[4px] cursor-pointer disabled:opacity-40"
+                      >
+                        {verifyingRefund ? "Verifying..." : "Verify refund"}
+                      </button>
+                      {(() => {
+                        const status = order.refund_status?.toLowerCase();
+                        let badgeBg = "var(--bg-warning)";
+                        let badgeColor = "var(--text-warning)";
+                        if (status === "credited" || status === "processed") {
+                          badgeBg = "var(--bg-success)";
+                          badgeColor = "var(--text-success)";
+                        } else if (status === "failed") {
+                          badgeBg = "var(--bg-danger)";
+                          badgeColor = "var(--text-danger)";
+                        }
+                        return (
+                          <span
+                            className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-[4px]"
+                            style={{ backgroundColor: badgeBg, color: badgeColor }}
+                          >
+                            {order.refund_status || "Pending"}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1190,10 +1259,11 @@ function OrderDetailsContent() {
             {s === "payment pending" && (
               <div className="mt-4">
                 <button
-                  onClick={handleApprovePendingOrder}
-                  className="w-full py-2.5 text-[9px] font-bold uppercase bg-green-600 text-white rounded-[4px] hover:bg-green-700 cursor-pointer border-none"
+                  onClick={handleVerifyPayment}
+                  disabled={verifyingPayment}
+                  className="w-full py-2.5 text-[10px] font-bold uppercase tracking-wider text-white bg-green-700 hover:bg-green-600 rounded-[6px] transition-all cursor-pointer border-none disabled:opacity-40"
                 >
-                  Clear Bank Clearance
+                  {verifyingPayment ? "Verifying..." : "Verify payment"}
                 </button>
               </div>
             )}

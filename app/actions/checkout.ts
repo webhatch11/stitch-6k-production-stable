@@ -144,7 +144,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   if (existingOrder) {
     return { 
       success: true, 
-      orderId: idempotencyKey, 
+      orderId: existingOrder.id, 
       order: existingOrder,
       alreadyExists: true,
       message: "Order already processed."
@@ -255,7 +255,7 @@ export async function processWalletPointsCheckoutAction(payload: {
 
   return {
     success: true,
-    orderId: idempotencyKey,
+    orderId: savedOrder.id,
     order: savedOrder,
     walletBalance: dbWalletBalance - walletDeduction,
     loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 100) * 5,
@@ -538,7 +538,7 @@ export async function processCodCheckoutAction(payload: {
   if (existingOrder) {
     return { 
       success: true, 
-      orderId: idempotencyKey, 
+      orderId: existingOrder.id, 
       order: existingOrder,
       alreadyExists: true,
       message: "Order already processed."
@@ -660,7 +660,7 @@ export async function processCodCheckoutAction(payload: {
 
   return {
     success: true,
-    orderId: idempotencyKey,
+    orderId: savedOrder.id,
     order: savedOrder,
     walletBalance: updatedWallet,
     loyaltyPoints: updatedLoyalty,

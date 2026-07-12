@@ -94,9 +94,6 @@ export async function POST(req: NextRequest) {
           if (!dbOrder) {
             console.log(`[Webhook] No order found for razorpay_order_id=${razorpayOrderId}`);
           } else {
-            const earned = Math.floor(dbOrder.total / 100) * 5; // Business rule: ₹100 spent = 5 points
-
-            let isRecoveryMode = false;
             let claimed = null;
 
             if (dbOrder.status === "Paid") {
@@ -108,7 +105,6 @@ export async function POST(req: NextRequest) {
 
               if (resData && resData.status !== "fulfilled") {
                 console.warn(`[Webhook] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
-                isRecoveryMode = true;
                 claimed = { id: dbOrder.id };
               }
             }
@@ -119,7 +115,7 @@ export async function POST(req: NextRequest) {
                 .update({
                   status: "Paid",
                   payment_status: "Paid",
-                  points_earned: earned,
+                  points_earned: Math.floor(dbOrder.total / 100) * 5,
                   razorpay_payment_id: razorpayPaymentId,
                 })
                 .eq("id", dbOrder.id)
@@ -138,170 +134,7 @@ export async function POST(req: NextRequest) {
               console.log(`[Webhook] Order ${dbOrder.id} already claimed by another process, skipping side effects`);
             } else {
               // We won the race or are recovering. Run side effects in order.
-              // Failures here are logged but do NOT roll back PAID status — the
-              // customer's payment is captured and reverting risks a second charge.
-
-              // a. Deduct inventory stock
-              let deductSuccess = false;
-              try {
-                const { data: currentRes } = await supabase
-                  .from("inventory_reservations")
-                  .select("status")
-                  .eq("session_id", dbOrder.idempotency_key)
-                  .maybeSingle();
-
-                if (currentRes?.status === "fulfilled") {
-                  deductSuccess = true;
-                } else {
-                  deductSuccess = await db.deductStock(dbOrder.cart_items || [], dbOrder.idempotency_key);
-                }
-              } catch (e) {
-                console.error("[webhook] deductStock failed:", e);
-              }
-              if (!deductSuccess) {
-                console.error(`[webhook] DEDUCT FAILED post-payment for order ${dbOrder.id}`);
-                console.warn(`[ADMIN ALERT] Webhook inventory deduction failed for order ${dbOrder.id}`);
-                // do not change status
-              }
-
-              // b. Increment coupon usage
-              if (dbOrder.coupon_code && !isRecoveryMode) {
-                try {
-                  await db.incrementCouponUsage(dbOrder.coupon_code);
-                } catch (e) {
-                  console.error("[webhook] incrementCouponUsage failed:", e);
-                }
-              }
-
-              // c. Debit wallet
-              if (dbOrder.wallet_paid > 0) {
-                try {
-                  await db.applyWalletDebit(dbOrder.wallet_paid, dbOrder.id, dbOrder.user_id);
-                } catch (e) {
-                  console.error("[webhook] applyWalletDebit failed:", e);
-                }
-              }
-
-              // d. Debit loyalty points
-              if (dbOrder.points_redeemed > 0) {
-                try {
-                  await db.applyLoyaltyDebit(dbOrder.points_redeemed, dbOrder.id, dbOrder.user_id);
-                } catch (e) {
-                  console.error("[webhook] applyLoyaltyDebit failed:", e);
-                }
-              }
-
-              // e. Award loyalty points — use net total (no shipping) to match earn rule
-              try {
-                const webhookEarnBase = Math.max(0, (dbOrder.original_total || 0) - (dbOrder.coupon_discount || 0));
-                await db.awardLoyaltyPoints(webhookEarnBase, dbOrder.id, dbOrder.user_id);
-              } catch (e) {
-                console.error("[webhook] awardLoyaltyPoints failed:", e);
-              }
-
-              // f. Update payments record
-              try {
-                const { data: payment } = await supabase
-                  .from("payments")
-                  .select("id")
-                  .eq("order_id", dbOrder.id)
-                  .maybeSingle();
-
-                if (payment) {
-                  await supabase.from("payments").update({
-                    razorpay_payment_id: razorpayPaymentId,
-                    status: "CAPTURED"
-                  }).eq("id", payment.id);
-
-                  await supabase.from("payment_logs").insert({
-                    payment_id: payment.id,
-                    previous_status: "CREATED",
-                    new_status: "CAPTURED",
-                    metadata: { event: eventName, source: "webhook", razorpay_payment_id: razorpayPaymentId }
-                  });
-                }
-              } catch (e) {
-                console.error("[webhook] payments update failed:", e);
-              }
-
-              // g. Payment audit log
-              try {
-                await db.createPaymentAuditLog(dbOrder.id, "Payment Pending", "Paid", "webhook");
-              } catch (e) {
-                console.error("[webhook] createPaymentAuditLog failed:", e);
-              }
-
-              // h. Order event
-              try {
-                await db.createOrderEvent(dbOrder.id, "Payment Successful");
-              } catch (e) {
-                console.error("[webhook] createOrderEvent failed:", e);
-              }
-
-              // i. Dispatch fulfillment
-              try {
-                await db.dispatchFulfillment(dbOrder.id);
-              } catch (e) {
-                console.error("[webhook] dispatchFulfillment failed:", e);
-              }
-
-              // j. Send Order Confirmation Email
-              try {
-                let customerEmail = dbOrder.address_snapshot?.email || "";
-                if (!customerEmail && dbOrder.user_id && supabase) {
-                  const { data: profile } = await supabase
-                    .from("profiles")
-                    .select("email")
-                    .eq("id", dbOrder.user_id)
-                    .maybeSingle();
-                  if (profile?.email) {
-                    customerEmail = profile.email;
-                  }
-                }
-
-                if (customerEmail) {
-                  const { sendOrderConfirmationEmail } = await import("@/lib/email");
-                  
-                  // Group cart items to compute quantities for duplicates
-                  const rawItems = dbOrder.cart_items || [];
-                  const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
-                  for (const item of rawItems) {
-                    const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
-                    if (groupedMap.has(key)) {
-                      groupedMap.get(key)!.quantity += 1;
-                    } else {
-                      groupedMap.set(key, {
-                        productName: item.productName || item.title || "Product",
-                        size: item.size || "Free Size",
-                        quantity: 1,
-                        price: Number(item.price || 0),
-                      });
-                    }
-                  }
-                  const groupedItems = Array.from(groupedMap.values());
-
-                  const addr = dbOrder.address_snapshot;
-                  const addressStr = addr
-                    ? [addr.name, addr.phone, addr.address_line_1, addr.address_line_2, `${addr.city} - ${addr.postal_code}`, addr.state, addr.country]
-                        .filter(Boolean)
-                        .join(", ")
-                    : "No address details available";
-
-                  await sendOrderConfirmationEmail({
-                    id: dbOrder.id,
-                    customerName: dbOrder.customer || "Valued Customer",
-                    customerEmail,
-                    items: groupedItems,
-                    total: Number(dbOrder.total || 0),
-                    address: addressStr
-                  });
-                  console.log(`[Email] Webhook order confirmation email successfully sent for order #${dbOrder.id} to ${customerEmail}`);
-                } else {
-                  console.warn(`[Email] Webhook could not resolve customer email for order #${dbOrder.id}. Email sending skipped.`);
-                }
-              } catch (emailError) {
-                console.error("[Email] Webhook order confirmation email failed:", emailError);
-              }
+              await db.runPostPaymentSideEffects(dbOrder.id, razorpayPaymentId);
             }
           }
         }

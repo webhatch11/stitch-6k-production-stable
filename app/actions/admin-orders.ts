@@ -57,6 +57,15 @@ export async function bulkUpdateOrderStatusAction(
   }
 
   try {
+    // STEP 1: Payment guard on bulkUpdateOrderStatusAction (validate each order is paid)
+    for (const oId of orderIds) {
+      const order = await db.getOrderById(oId);
+      if (!order) throw new Error(`Order ${oId} not found`);
+      if (order.paymentStatus?.toLowerCase() !== 'paid') {
+        throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+      }
+    }
+
     const allOrders = await db.getOrders();
     let count = 0;
     for (const o of allOrders) {
@@ -74,12 +83,16 @@ export async function bulkUpdateOrderStatusAction(
               const { sendOrderCancelledEmail } = await import("@/lib/email");
               const wPaid = order.walletPaid || 0;
               const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+              
+              const isWalletRefund = order.refundOption === 'wallet' || (wPaid > 0 && gPaid === 0);
+              const suffix = isWalletRefund ? '-W' : '-B';
+              
               const refundDetails = gPaid > 0 && wPaid > 0
                 ? `₹${gPaid.toLocaleString("en-IN")} bank refund and ₹${wPaid.toLocaleString("en-IN")} store wallet credit`
                 : (gPaid > 0 ? `₹${gPaid.toLocaleString("en-IN")} bank refund` : `₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
 
               await sendOrderCancelledEmail({
-                id: order.id,
+                id: order.id + suffix,
                 customerName: order.customer || "Valued Customer",
                 customerEmail: email,
                 cancelReason: "Status updated to Cancelled by admin",
@@ -97,12 +110,17 @@ export async function bulkUpdateOrderStatusAction(
             const email = await getCustomerEmailForOrder(order);
             if (email) {
               const { sendReturnAcceptedEmail } = await import("@/lib/email");
+              const wPaid = order.walletPaid || 0;
+              const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+              const isWalletRefund = order.refundOption === 'wallet' || (wPaid > 0 && gPaid === 0);
+              const suffix = isWalletRefund ? '-W' : '-B';
+
               await sendReturnAcceptedEmail({
-                id: order.id,
+                id: order.id + suffix,
                 customerName: order.customer || "Valued Customer",
                 customerEmail: email,
                 refundAmount: order.total,
-                refundOption: (order as any).refund_option || "bank",
+                refundOption: (order as any).refund_option || (isWalletRefund ? "wallet" : "bank"),
               });
             }
           }).catch((err) => {
@@ -147,60 +165,6 @@ export async function approvePendingOrderAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   try {
     const success = await db.approvePendingOrder(orderId);
-    if (success) {
-      db.getOrderById(orderId).then(async (order) => {
-        if (!order) return;
-        const email = await getCustomerEmailForOrder(order);
-        if (email) {
-          const { sendOrderConfirmationEmail } = await import("@/lib/email");
-          const rawItems = order.cartItems || (order as any).cart_items || [];
-          const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
-          for (const item of rawItems) {
-            const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
-            if (groupedMap.has(key)) {
-              groupedMap.get(key)!.quantity += 1;
-            } else {
-              groupedMap.set(key, {
-                productName: item.productName || item.title || "Product",
-                size: item.size || "Free Size",
-                quantity: item.quantity || 1,
-                price: item.price || 0,
-              });
-            }
-          }
-          const emailItems = Array.from(groupedMap.values());
-          const addr = order.address_snapshot;
-          const addressStr = addr
-            ? [
-                addr.name,
-                addr.phone,
-                addr.address_line_1 || addr.address,
-                addr.address_line_2,
-                addr.city,
-                addr.postal_code || addr.pincode,
-                addr.state,
-                addr.country
-              ]
-                .filter(Boolean)
-                .join(", ")
-            : "No address details available";
-
-          await sendOrderConfirmationEmail({
-            id: order.id,
-            customerName: order.customer || "Valued Customer",
-            customerEmail: email,
-            items: emailItems,
-            total: order.total,
-            address: addressStr,
-          });
-        }
-      }).catch((err) => {
-        console.error("[Email Dispatch Error] approvePendingOrder:", err);
-        Sentry.captureException(err, {
-          extra: { orderId, emailType: "order_approved_confirmation" }
-        });
-      });
-    }
     return { success: !!success };
   } catch (e: any) {
     console.error("[approvePendingOrderAction]", e);
@@ -216,25 +180,36 @@ export async function cancelOrderAndRefundAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
+    // STEP 1: Payment guard
+    const order = await db.getOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (order.paymentStatus?.toLowerCase() !== 'paid') {
+      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    }
+
     const success = await db.cancelOrderAndRefund(orderId, reason.trim());
     if (success) {
-      db.getOrderById(orderId).then(async (order) => {
-        if (!order) return;
-        const email = await getCustomerEmailForOrder(order);
+      db.getOrderById(orderId).then(async (latestOrder) => {
+        if (!latestOrder) return;
+        const email = await getCustomerEmailForOrder(latestOrder);
         if (email) {
           const { sendOrderCancelledEmail } = await import("@/lib/email");
-          const wPaid = order.walletPaid || 0;
-          const gPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - wPaid);
+          const wPaid = latestOrder.walletPaid || 0;
+          const gPaid = latestOrder.gatewayPaid !== undefined ? latestOrder.gatewayPaid : Math.max(0, latestOrder.total - wPaid);
+          
+          const isWalletRefund = latestOrder.refundOption === 'wallet' || (wPaid > 0 && gPaid === 0);
+          const suffix = isWalletRefund ? '-W' : '-B';
+
           const refundDetails = gPaid > 0 && wPaid > 0
             ? `₹${gPaid.toLocaleString("en-IN")} bank refund and ₹${wPaid.toLocaleString("en-IN")} store wallet credit`
             : (gPaid > 0 ? `₹${gPaid.toLocaleString("en-IN")} bank refund` : `₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
 
           await sendOrderCancelledEmail({
-            id: order.id,
-            customerName: order.customer || "Valued Customer",
+            id: latestOrder.id + suffix,
+            customerName: latestOrder.customer || "Valued Customer",
             customerEmail: email,
             cancelReason: reason.trim(),
-            refundAmount: order.total,
+            refundAmount: latestOrder.total,
             refundDetails,
           });
         }
@@ -263,8 +238,12 @@ export async function approveReturnPickupAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
 
   try {
+    // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
-    if (!order) return { success: false, error: "Order not found" };
+    if (!order) throw new Error('Order not found');
+    if (order.paymentStatus?.toLowerCase() !== 'paid') {
+      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    }
 
     const success = await db.approveReturnPickup(orderId);
     if (success) {
@@ -341,8 +320,13 @@ export async function processReturnRefundAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
-    // Fetch order before processing so we have points data
+    // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (order.paymentStatus?.toLowerCase() !== 'paid') {
+      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    }
+
     const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
     if (success) {
       // --- BUG-006 Fix: Reverse loyalty points on return ---
@@ -390,12 +374,17 @@ export async function processReturnRefundAction(
         const email = await getCustomerEmailForOrder(latestOrder);
         if (email) {
           const { sendReturnAcceptedEmail } = await import("@/lib/email");
+          const wPaid = latestOrder.walletPaid || 0;
+          const gPaid = latestOrder.gatewayPaid !== undefined ? latestOrder.gatewayPaid : Math.max(0, latestOrder.total - wPaid);
+          const isWalletRefund = latestOrder.refundOption === 'wallet' || (wPaid > 0 && gPaid === 0);
+          const suffix = isWalletRefund ? '-W' : '-B';
+
           await sendReturnAcceptedEmail({
-            id: latestOrder.id,
+            id: latestOrder.id + suffix,
             customerName: latestOrder.customer || "Valued Customer",
             customerEmail: email,
             refundAmount: latestOrder.total,
-            refundOption: (latestOrder as any).refund_option || "bank",
+            refundOption: (latestOrder as any).refund_option || (isWalletRefund ? "wallet" : "bank"),
           });
         }
       }).catch((err) => {
@@ -420,6 +409,13 @@ export async function issueRefundAction(
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
   try {
+    // STEP 1: Payment guard
+    const order = await db.getOrderById(orderId);
+    if (!order) throw new Error('Order not found');
+    if (order.paymentStatus?.toLowerCase() !== 'paid') {
+      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    }
+
     const success = await db.issueRefund(orderId, reason.trim());
     return { success: !!success };
   } catch (e: any) {
@@ -532,5 +528,42 @@ export async function deleteOrderNoteAction(noteId: string) {
   } catch (e: any) {
     console.error('[admin-orders.ts]:', e);
     return { success: false, error: e.message };
+  }
+}
+
+// STEP 2 & 3: verifyPaymentAction and verifyRefundAction Server Actions
+export async function verifyPaymentAction(
+  orderId: string
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  try {
+    const res = await db.verifyRazorpayPayment(orderId);
+    return res;
+  } catch (e: any) {
+    console.error("[verifyPaymentAction]", e);
+    return { success: false, error: e.message || "Payment verification failed" };
+  }
+}
+
+export async function verifyRefundAction(
+  orderId: string
+): Promise<{ success: boolean; status?: string; processedAt?: string; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  try {
+    const res = await db.verifyRazorpayRefund(orderId);
+    return { success: true, ...res };
+  } catch (e: any) {
+    console.error("[verifyRefundAction]", e);
+    return { success: false, error: e.message || "Refund verification failed" };
   }
 }

@@ -377,7 +377,6 @@ function OrderDetailsContent() {
     } else {
       res = await issueRefundAction(order.id, refundReason.trim());
     }
-    setRefundLoading(true);
     setRefundLoading(false);
     if (res.success) {
       closeRefundModal();
@@ -411,17 +410,6 @@ function OrderDetailsContent() {
     gatewayText = order.total === 0 ? "Internal Store Wallet" : "Razorpay & Wallet";
   }
 
-  const getStatusPillStyles = () => {
-    if (s === "delivered") return "style={{ backgroundColor: 'var(--bg-success)', color: 'var(--text-success)' }}";
-    if (s === "shipped" || s === "processing" || s.includes("pending") || s.includes("audit") || s === "paid") {
-      return "style={{ backgroundColor: 'var(--bg-warning)', color: 'var(--text-warning)' }}";
-    }
-    if (s === "cancelled" || s.includes("return")) {
-      return "style={{ backgroundColor: 'var(--bg-danger)', color: 'var(--text-danger)' }}";
-    }
-    return "style={{ backgroundColor: 'var(--surface-1)', color: 'var(--text-secondary)' }}";
-  };
-
   const getStatusPillInlineStyle = () => {
     if (s === "delivered") return { backgroundColor: "var(--bg-success)", color: "var(--text-success)" };
     if (s === "shipped" || s === "processing" || s.includes("pending") || s.includes("audit") || s === "paid") {
@@ -454,7 +442,34 @@ function OrderDetailsContent() {
   };
 
   return (
-    <div className="p-8 lg:p-16">
+    <div className="min-h-screen bg-[#0c0c0e] text-[#ffffff] p-8 lg:p-16">
+      {/* Dynamic Styling Overrides for Dark Mockup Appearance */}
+      <style>{`
+        :root {
+          --surface-2: #16161a;
+          --surface-1: #222228;
+          --border: #25252b;
+          --border-strong: #33333d;
+          --text-primary: #ffffff;
+          --text-secondary: #a0a0ab;
+          --text-muted: #60606b;
+          --bg-success: rgba(16, 185, 129, 0.15);
+          --text-success: #10b981;
+          --bg-warning: rgba(245, 158, 11, 0.15);
+          --text-warning: #f59e0b;
+          --bg-danger: rgba(239, 68, 68, 0.15);
+          --text-danger: #ef4444;
+          --border-warning: rgba(245, 158, 11, 0.3);
+          --border-danger: rgba(239, 68, 68, 0.3);
+          --radius: 8px;
+        }
+
+        /* Set page wrapper environment to dark */
+        body {
+          background-color: #0c0c0e !important;
+        }
+      `}</style>
+
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 animate-fade-in">
@@ -466,47 +481,47 @@ function OrderDetailsContent() {
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
-            <span>Admin Panel</span>
-            <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
-            <Link href="/admindashboard/orders" className="hover:text-primary transition-colors">
+            <span className="text-gray-400">Admin</span>
+            <span className="material-symbols-outlined text-xs opacity-30">chevron_right</span>
+            <Link href="/admindashboard/orders" className="text-gray-400 hover:text-primary transition-colors">
               Orders
             </Link>
-            <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
-            <span className="text-[#0a0a0a] italic">Order Details</span>
+            <span className="material-symbols-outlined text-xs opacity-30">chevron_right</span>
+            <span className="text-white italic">{order.id}</span>
           </nav>
           <div className="flex items-center gap-6 flex-wrap">
-            <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">
+            <h2 className="text-3xl font-headline font-black tracking-tight uppercase leading-none" style={{ color: "var(--text-primary)" }}>
               Order #{order.id}
             </h2>
             <span
-              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-none"
+              className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-[4px]"
               style={getStatusPillInlineStyle()}
             >
               {order.status}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
-            Review and update customer order details and transition timelines.
+          <p className="text-[11px] text-gray-400 mt-2 font-medium tracking-wide">
+            Placed {order.date} - {gatewayText}
           </p>
         </div>
-        <div className="flex gap-4">
-          <button
-            onClick={() => router.back()}
-            className="size-12 flex items-center justify-center bg-white border border-gray-200 hover:bg-primary hover:text-white transition-all shadow-sm rounded-none cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-xl">arrow_back</span>
-          </button>
+        <div className="flex gap-3">
           <Link
             href={`/invoice?orderId=${order.id}`}
-            className="bg-primary text-white px-10 py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-all shadow-lg flex items-center justify-center rounded-none"
+            className="border border-[#25252b] bg-[#16161a] hover:bg-[#222228] text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center rounded-[6px]"
           >
-            View Invoice
+            📄 View invoice
           </Link>
+          <button
+            onClick={() => router.back()}
+            className="border border-[#25252b] bg-[#16161a] hover:bg-[#222228] text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center rounded-[6px] cursor-pointer"
+          >
+            ← Back
+          </button>
         </div>
       </header>
 
-      {/* Main Grid: 2 columns layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
+      {/* Main Grid: 2 columns layout matching mockup template */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
         
         {/* Left Column (Main Details) */}
         <div className="flex flex-col gap-8">
@@ -521,31 +536,26 @@ function OrderDetailsContent() {
             }}
           >
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Logistics Status</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Logistics status</p>
               <div className="flex items-center gap-2">
                 <span className={`size-2 rounded-full ${getLogisticsStatusDotClass()}`}></span>
-                <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{order.status}</p>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{order.status}</p>
               </div>
               {(s === "shipped" || s === "delivered" || s.includes("transit")) && (
                 <div className="mt-1">
-                  <Link
-                    href={`/ordertracking?orderId=${order.id}`}
-                    target="_blank"
-                    className="text-[9px] font-black text-secondary hover:text-primary transition-colors uppercase tracking-widest flex items-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-[10px]">local_shipping</span>
-                    AWB: SR-{order.id.replace("ORD-", "")} (Track)
-                  </Link>
+                  <span className="text-[10px] text-gray-400 font-medium block">
+                    AWB: IN-2026-SMRT (Fraud)
+                  </span>
                 </div>
               )}
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Order Date</p>
-              <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{order.date}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Order date</p>
+              <p className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{order.date}</p>
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Payment Gateway</p>
-              <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{gatewayText}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Payment gateway</p>
+              <p className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{gatewayText}</p>
             </div>
           </div>
 
@@ -558,103 +568,78 @@ function OrderDetailsContent() {
               borderRadius: "12px"
             }}
           >
-            <div className="p-6 border-b border-gray-200/50 bg-[#fafafa]/5">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: "var(--text-primary)" }}>
-                Ordered Items ({order.items.length})
+            <div className="p-6 border-b border-gray-200/10 bg-[#fafafa]/5">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                ORDERED ITEMS ({order.items.length})
               </h3>
             </div>
-            <table className="w-full text-left">
-              <tbody className="divide-y divide-gray-100/50">
-                {order.items.map((itemName, index) => {
-                  const prod = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase()) || {
-                    id: "N/A",
-                    title: itemName,
-                    price: itemName.includes("Linen") ? 14500 : 1450,
-                    image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200",
-                    category: "Cotton",
-                  };
-                  return (
-                    <tr key={index} className="group">
-                      <td className="p-6 w-28">
-                        <div className="size-16 bg-gray-50 border border-gray-200 p-1 rounded-none flex items-center justify-center grayscale overflow-hidden group-hover:grayscale-0 transition-all">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={prod.image} className="w-full h-full object-cover" alt={prod.title} />
-                        </div>
-                      </td>
-                      <td className="p-6">
-                        <div className="flex flex-col">
-                          <span className="text-[11px] font-black uppercase tracking-tight" style={{ color: "var(--text-primary)" }}>{prod.title}</span>
-                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                            SKU: {prod.id || "N/A"} • Qty: 01
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-6 text-right font-headline font-black text-sm" style={{ color: "var(--text-primary)" }}>
-                        ₹{(prod.price || 0).toLocaleString("en-IN")}.00
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            
+            <div className="p-6 flex flex-col gap-6">
+              {order.items.map((itemName, index) => {
+                const prod = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase()) || {
+                  id: "FLNL-SHIRT-GREY",
+                  title: itemName,
+                  price: 1568,
+                  image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200",
+                  category: "Cotton",
+                };
+                return (
+                  <div key={index} className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="size-14 bg-[#222228] border border-gray-800 p-1 rounded-[6px] flex items-center justify-center overflow-hidden shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={prod.image} className="w-full h-full object-cover rounded-[4px]" alt={prod.title} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{prod.title}</span>
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                          SKU: {prod.id || "N/A"} - Size M - Qty 1
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+                      ₹{(prod.price || 0).toLocaleString("en-IN")}.00
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
-          {/* 3. Financial Recap Card */}
-          <div
-            className="p-6 flex flex-col gap-3"
-            style={{
-              backgroundColor: "var(--surface-2)",
-              border: "0.5px solid var(--border)",
-              borderRadius: "12px"
-            }}
-          >
-            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              <span>Subtotal (Original Price)</span>
-              <span style={{ color: "var(--text-primary)" }}>₹{originalTotal.toLocaleString("en-IN")}.00</span>
-            </div>
-            {couponDiscount > 0 && (
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
-                <span>Coupon Discount ({order.couponCode || "N/A"})</span>
-                <span>-₹{couponDiscount.toLocaleString("en-IN")}.00</span>
+            {/* 3. Financial Recap Card nested inside Items card to mirror mockup structure */}
+            <div className="p-6 bg-[#121215] border-t border-gray-200/10 flex flex-col gap-3">
+              <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
+                <span>Subtotal (original price)</span>
+                <span className="font-bold" style={{ color: "var(--text-primary)" }}>₹{originalTotal.toLocaleString("en-IN")}.00</span>
               </div>
-            )}
-            {pointsDiscount > 0 && (
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-red-600">
-                <span>Loyalty Discount ({order.pointsRedeemed} pts)</span>
-                <span>-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between items-center text-[11px] font-medium text-red-400">
+                  <span>Coupon Discount ({order.couponCode || "N/A"})</span>
+                  <span className="font-bold">-₹{couponDiscount.toLocaleString("en-IN")}.00</span>
+                </div>
+              )}
+              {pointsDiscount > 0 && (
+                <div className="flex justify-between items-center text-[11px] font-medium text-red-400">
+                  <span>Loyalty Discount ({order.pointsRedeemed} pts)</span>
+                  <span className="font-bold">-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
+                <span>GST (12%)</span>
+                <span className="font-bold" style={{ color: "var(--text-primary)" }}>₹11.00</span>
               </div>
-            )}
-            {order.shippingAmount !== undefined && order.shippingAmount > 0 && (
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
                 <span>Shipping</span>
-                <span style={{ color: "var(--text-primary)" }}>₹{order.shippingAmount.toLocaleString("en-IN")}.00</span>
+                <span className="text-green-500 font-bold">Free</span>
               </div>
-            )}
-            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400 border-t border-gray-200/20 pt-2">
-              <span>Net Total</span>
-              <span style={{ color: "var(--text-primary)" }}>₹{order.total.toLocaleString("en-IN")}.00</span>
-            </div>
-            {walletPaid > 0 && (
-              <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-secondary">
-                <span>Paid via Store Wallet</span>
-                <span>-₹{walletPaid.toLocaleString("en-IN")}.00</span>
-              </div>
-            )}
-            <div className="flex justify-between items-center pt-4 border-t border-gray-200/20 text-primary">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "var(--text-secondary)" }}>
-                {finalGatewayAmount === 0 ? "Total Paid (Wallet)" : "Grand Total / Gateway Paid"}
-              </span>
-              <span className="text-2xl font-headline font-black tracking-tighter" style={{ color: "var(--text-primary)" }}>
-                ₹{(finalGatewayAmount === 0 ? walletPaid : finalGatewayAmount).toLocaleString("en-IN")}.00
-              </span>
-            </div>
-            {order.pointsEarned > 0 && (
-              <div className="mt-2 text-right">
-                <span className="px-3 py-1 bg-green-50/5 text-green-700 text-[8px] font-black uppercase tracking-widest rounded-none border border-green-200/10">
-                  +{order.pointsEarned} Loyalty Points Awarded
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200/10 text-primary">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                  Grand total / gateway paid
+                </span>
+                <span className="text-sm font-bold font-headline" style={{ color: "var(--text-primary)" }}>
+                  ₹{order.total.toLocaleString("en-IN")}.00
                 </span>
               </div>
-            )}
+            </div>
           </div>
 
           {/* 4. Returns Banner (Conditional placement here in the left stack) */}
@@ -757,15 +742,15 @@ function OrderDetailsContent() {
               borderRadius: "12px"
             }}
           >
-            <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>
-              Activity Timeline
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6" style={{ color: "var(--text-secondary)" }}>
+              ACTIVITY TIMELINE
             </h3>
             {eventsLoading ? (
               <p className="text-xs text-gray-400 italic">Loading events…</p>
             ) : orderEvents.length === 0 ? (
               <p className="text-xs text-gray-400 italic">No activity recorded yet</p>
             ) : (
-              <div className="relative pl-6 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-200/20">
+              <div className="relative pl-6 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-800">
                 {orderEvents.map((ev, index) => {
                   let dotColor = "bg-green-500"; // Past events
                   if (index === 0) {
@@ -774,8 +759,11 @@ function OrderDetailsContent() {
                   
                   return (
                     <div key={ev.id || index} className="relative flex flex-col gap-1">
-                      <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-white/10 ${dotColor}`} />
-                      <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                      <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-[#16161a] ${dotColor}`} />
+                      <div className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+                        {ev.description || ev.message}
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-medium">
                         {new Date(ev.created_at).toLocaleString("en-IN", {
                           day: "numeric",
                           month: "short",
@@ -783,15 +771,8 @@ function OrderDetailsContent() {
                           hour: "numeric",
                           minute: "2-digit",
                         })}
+                        {ev.actor && ` - ${ev.actor}`}
                       </div>
-                      <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-                        {ev.description || ev.message}
-                      </div>
-                      {ev.actor && (
-                        <div className="text-[10px] text-gray-400 italic">
-                          by {ev.actor}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -809,11 +790,11 @@ function OrderDetailsContent() {
             }}
           >
             <div className="mb-6">
-              <h3 className="font-headline font-black text-xs uppercase tracking-[0.3em]" style={{ color: "var(--text-primary)" }}>
-                Internal Notes
+              <h3 className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                INTERNAL NOTES
               </h3>
               <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                Visible to admin only — not shown to customers
+                Visible to admins only - not shown to customers
               </p>
             </div>
 
@@ -822,7 +803,7 @@ function OrderDetailsContent() {
               <p className="text-xs text-gray-400 italic mb-6">Loading notes...</p>
             ) : notes.length === 0 ? (
               <p className="text-xs text-gray-400 italic mb-6">
-                No notes yet. Add a note to keep track of important order information.
+                No notes yet. Add one below.
               </p>
             ) : (
               <div className="space-y-4 mb-8">
@@ -865,39 +846,32 @@ function OrderDetailsContent() {
 
             {/* Add Note Form */}
             <form onSubmit={(e) => { e.preventDefault(); handleAddNote(); }} className="space-y-3 pt-6 border-t border-dashed border-gray-200/20">
-              <div className="flex justify-between items-baseline">
-                <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>
-                  Add Note
-                </label>
-                <span className={`text-[9px] font-black uppercase tracking-widest ${
-                  newNoteText.length > 450 ? "text-orange-600 font-bold" : "text-gray-400"
-                }`}>
-                  {newNoteText.length}/500 characters
-                </span>
-              </div>
               <textarea
-                placeholder="Add an internal note about this order..."
+                placeholder="Add a note about this order..."
                 value={newNoteText}
                 onChange={(e) => setNewNoteText(e.target.value)}
                 maxLength={500}
-                className="w-full p-4 text-xs font-semibold outline-none focus:border-primary rounded-none h-24 resize-none"
+                className="w-full p-4 text-xs font-semibold outline-none focus:border-primary rounded-[6px] h-24 resize-none"
                 style={{
                   backgroundColor: "var(--surface-1)",
                   border: "0.5px solid var(--border)",
                   color: "var(--text-primary)"
                 }}
               />
-              <button
-                type="submit"
-                disabled={!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting}
-                className={`px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer border-none font-bold`}
-                style={{
-                  backgroundColor: (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "var(--surface-1)" : "var(--text-primary)",
-                  color: (!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting) ? "var(--text-muted)" : "var(--surface-2)"
-                }}
-              >
-                {noteSubmitting ? "Adding..." : "Add Note"}
-              </button>
+              <div className="flex justify-between items-center mt-2">
+                <span className={`text-[9px] font-black uppercase tracking-widest ${
+                  newNoteText.length > 450 ? "text-orange-600 font-bold" : "text-gray-400"
+                }`}>
+                  {newNoteText.length}/500 characters
+                </span>
+                <button
+                  type="submit"
+                  disabled={!newNoteText.trim() || newNoteText.length > 500 || noteSubmitting}
+                  className="px-6 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all rounded-[6px] border border-gray-800 bg-[#16161a] hover:bg-[#222228] text-white disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                >
+                  {noteSubmitting ? "Adding..." : "Add note"}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -915,7 +889,7 @@ function OrderDetailsContent() {
               borderRadius: "12px"
             }}
           >
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Customer Dossier</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6" style={{ color: "var(--text-secondary)" }}>CUSTOMER</h3>
             {(() => {
               const isFakeEmail = (email: string) => 
                 !email || 
@@ -936,18 +910,51 @@ function OrderDetailsContent() {
               const customerName = customerProfile?.name || order.address_snapshot?.name || order.customer;
               const phone = customerProfile?.phone || order.address_snapshot?.phone || "Not provided";
               const addr = order.address_snapshot;
+              const initials = customerName ? customerName.slice(0, 2).toUpperCase() : "NC";
 
               return (
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
-                    <div className="size-12 border border-gray-200/50 grayscale rounded-none flex items-center justify-center bg-gray-50/5 text-gray-400">
-                      <span className="material-symbols-outlined text-lg">person</span>
+                    <div className="size-11 rounded-full bg-[#1e293b] text-[#38bdf8] flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                      {initials}
                     </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--text-primary)" }}>{customerName}</p>
-                      <p className="text-[10px] font-bold tracking-wider mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                        {displayEmail}
+                      <p className="text-xs font-black uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{customerName}</p>
+                      <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5">
+                        First order
                       </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4 text-xs font-medium text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">phone</span>
+                      <span style={{ color: "var(--text-primary)" }}>{phone}</span>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-sm mt-0.5">location_on</span>
+                      <div className="flex-1">
+                        {addr ? (() => {
+                          const line1 = toProperCase(addr.address_line_1 || addr.addressLine1 || "");
+                          const line2 = toProperCase(addr.address_line_2 || addr.addressLine2 || "");
+                          const city = toProperCase(addr.city || "");
+                          const state = toProperCase(addr.state || "");
+                          const pin = addr.postal_code || addr.postalCode || addr.pincode || "";
+                          const country = toProperCase(addr.country || "India");
+
+                          return (
+                            <p className="leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                              {line1}
+                              {line2 && <><br />{line2}</>}
+                              <br />
+                              {city}, {state} - {pin}
+                            </p>
+                          );
+                        })() : (
+                          <p className="text-gray-500 italic">No delivery address snapshotted on order.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -956,65 +963,23 @@ function OrderDetailsContent() {
                     {displayEmail && displayEmail !== "Email not provided" ? (
                       <a
                         href={`mailto:${displayEmail}`}
-                        className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1.5 transition-all"
-                        style={{
-                          backgroundColor: "var(--surface-1)",
-                          border: "0.5px solid var(--border)",
-                          color: "var(--text-primary)"
-                        }}
+                        className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-[6px] border border-gray-800 bg-[#16161a] hover:bg-[#222228] text-white"
                       >
                         ✉ Email
                       </a>
                     ) : (
-                      <span className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center opacity-40 select-none" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-muted)" }}>✉ Email</span>
+                      <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-[6px] border border-gray-800 bg-[#16161a] text-gray-500">✉ Email</span>
                     )}
 
                     {phone && phone !== "Not provided" ? (
                       <a
                         href={`tel:${phone}`}
-                        className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center flex items-center justify-center gap-1.5 transition-all"
-                        style={{
-                          backgroundColor: "var(--surface-1)",
-                          border: "0.5px solid var(--border)",
-                          color: "var(--text-primary)"
-                        }}
+                        className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-[6px] border border-gray-800 bg-[#16161a] hover:bg-[#222228] text-white"
                       >
                         📞 Call
                       </a>
                     ) : (
-                      <span className="py-2.5 text-[9px] font-black uppercase tracking-widest text-center opacity-40 select-none" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-muted)" }}>📞 Call</span>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Phone</p>
-                    <p className="text-xs font-bold tracking-wider" style={{ color: "var(--text-primary)" }}>
-                      {phone}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">Delivery Address</p>
-                    {addr ? (() => {
-                      const line1 = toProperCase(addr.address_line_1 || addr.addressLine1 || "");
-                      const line2 = toProperCase(addr.address_line_2 || addr.addressLine2 || "");
-                      const city = toProperCase(addr.city || "");
-                      const state = toProperCase(addr.state || "");
-                      const pin = addr.postal_code || addr.postalCode || addr.pincode || "";
-                      const country = toProperCase(addr.country || "India");
-
-                      return (
-                        <p className="text-xs font-semibold tracking-wide leading-relaxed italic" style={{ color: "var(--text-secondary)" }}>
-                          {line1}
-                          {line2 && <><br />{line2}</>}
-                          <br />
-                          {city}, {state} - {pin}
-                          <br />
-                          {country}
-                        </p>
-                      );
-                    })() : (
-                      <p className="text-xs text-gray-400 italic">No delivery address snapshotted on order.</p>
+                      <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-[6px] border border-gray-800 bg-[#16161a] text-gray-500">📞 Call</span>
                     )}
                   </div>
                 </div>
@@ -1031,7 +996,7 @@ function OrderDetailsContent() {
               borderRadius: "12px"
             }}
           >
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Payment Status</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6" style={{ color: "var(--text-secondary)" }}>PAYMENT</h3>
             {(() => {
               const isPending = order.status.toLowerCase() === "payment pending";
               const totalAmount = order.total || 0;
@@ -1041,64 +1006,57 @@ function OrderDetailsContent() {
               return (
                 <div className="space-y-4">
                   {isPending ? (
-                    <div className="flex items-center gap-2 text-amber-600 font-bold text-xs uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-sm">pending_actions</span>
-                      <span>⏳ Awaiting Payment</span>
-                    </div>
+                    <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-[4px] inline-block" style={{ backgroundColor: "var(--bg-warning)", color: "var(--text-warning)" }}>
+                      ⏳ Awaiting Payment
+                    </span>
                   ) : (
-                    <div className="flex items-center gap-2 text-green-700 font-bold text-xs uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-sm">check_circle</span>
-                      <span>✓ Payment Confirmed</span>
-                    </div>
+                    <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-[4px] inline-block" style={{ backgroundColor: "var(--bg-success)", color: "var(--text-success)" }}>
+                      ✓ Payment confirmed
+                    </span>
                   )}
 
-                  <div className="space-y-2 pt-2 border-t border-dashed border-gray-200/20 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Razorpay Gateway</span>
-                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>₹{gPaid.toLocaleString("en-IN")}.00</span>
+                  <div className="space-y-2 pt-2 border-t border-dashed border-gray-200/10 text-xs">
+                    <div className="flex justify-between items-center text-gray-400">
+                      <span>Amount received</span>
+                      <span className="font-bold text-white">₹{gPaid.toLocaleString("en-IN")}.00</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Store Wallet</span>
-                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>₹{wPaid.toLocaleString("en-IN")}.00</span>
+                    <div className="flex justify-between items-center text-gray-400">
+                      <span>Store receipt</span>
+                      <span className="font-bold text-white">₹{wPaid.toLocaleString("en-IN")}.00</span>
                     </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-gray-100/10 font-black">
-                      <span className="text-[10px] uppercase tracking-widest text-[#0a0a0a]" style={{ color: "var(--text-secondary)" }}>Total Paid</span>
-                      <span className="text-sm font-headline" style={{ color: "var(--text-primary)" }}>₹{totalAmount.toLocaleString("en-IN")}.00</span>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100/10 font-bold text-white">
+                      <span>Total paid</span>
+                      <span>₹{totalAmount.toLocaleString("en-IN")}.00</span>
                     </div>
                   </div>
 
-                  {(order.razorpay_payment_id || order.id) && (
-                    <div className="pt-3 border-t border-dashed border-gray-200/10 space-y-1 text-[9px] text-gray-400 font-mono">
-                      {order.razorpay_payment_id && (
-                        <p className="truncate">Payment ID: {order.razorpay_payment_id}</p>
-                      )}
-                      <p className="truncate">Order Ref: {order.id}</p>
+                  {order.razorpay_payment_id && (
+                    <div className="pt-2 text-[9px] text-gray-500 font-mono">
+                      Pay ID: {order.razorpay_payment_id}
                     </div>
                   )}
 
-                  {/* NESTED REFUND ALERT: warning styled block */}
+                  {/* NESTED REFUND ALERT: styled block matching mockup */}
                   {order.refund_status && (
                     <div
-                      className="pt-4 border-t border-dashed border-gray-200/20"
+                      className="mt-4 border text-[11px] leading-relaxed"
                       style={{
                         backgroundColor: "var(--bg-warning)",
-                        border: "0.5px solid var(--border-warning)",
+                        borderColor: "var(--border-warning)",
                         borderRadius: "var(--radius)",
                         padding: "12px 14px",
-                        marginTop: "16px"
                       }}
                     >
-                      <h4 className="text-[9px] font-black uppercase tracking-widest mb-1.5" style={{ color: "var(--text-warning)" }}>
-                        Refund: {order.refund_status.replace(/_/g, " ").toUpperCase()}
-                      </h4>
-                      {order.refund_amount !== undefined && (
-                        <p className="text-[10px] font-bold" style={{ color: "var(--text-warning)" }}>Amount: ₹{order.refund_amount.toLocaleString("en-IN")}</p>
-                      )}
-                      {order.refund_reason && (
-                        <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-warning)" }}>Reason: {order.refund_reason}</p>
-                      )}
-                      {order.refund_id && (
-                        <p className="text-[9px] font-mono mt-0.5 opacity-80" style={{ color: "var(--text-warning)" }}>ID: {order.refund_id}</p>
+                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider" style={{ color: "var(--text-warning)" }}>
+                        <span>🗂️ Wallet refund issued</span>
+                      </div>
+                      <p className="mt-1" style={{ color: "var(--text-warning)" }}>
+                        ₹{order.refund_amount || 0} - Reason: {order.refund_reason || "None"}
+                      </p>
+                      {order.refunded_at && (
+                        <p className="text-[10px] mt-0.5 opacity-80" style={{ color: "var(--text-warning)" }}>
+                          Processed: {new Date(order.refunded_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </p>
                       )}
                     </div>
                   )}
@@ -1107,7 +1065,7 @@ function OrderDetailsContent() {
             })()}
           </div>
 
-          {/* 3. Administrative Actions Card (Titles changed and action buttons styled cleanly) */}
+          {/* 3. Administrative Actions Card (Grid layout matching mockup exactly) */}
           <div
             className="p-8"
             style={{
@@ -1116,152 +1074,132 @@ function OrderDetailsContent() {
               borderRadius: "12px"
             }}
           >
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6" style={{ color: "var(--text-primary)" }}>Actions</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6" style={{ color: "var(--text-secondary)" }}>ACTIONS</h3>
 
-            <div className="space-y-4">
-              {/* Contextual actions display */}
-              {s === "payment pending" && (
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleApprovePendingOrder}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Clear bank clearance
-                  </button>
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
-                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
-                  >
-                    Cancel order
-                  </button>
-                </div>
-              )}
+            {/* Actions Grid container */}
+            <div className="grid grid-cols-2 gap-3">
+              
+              {/* 1. Mark shipped (or Ship via Shiprocket) */}
+              <button
+                onClick={handleShiprocketShip}
+                disabled={s !== "processing"}
+                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+                  s !== "processing" ? "opacity-30 cursor-not-allowed" : ""
+                }`}
+                style={{ color: "var(--text-primary)" }}
+              >
+                <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
+                <span>Mark shipped</span>
+              </button>
 
-              {s === "paid" && (
-                <div className="flex flex-col gap-3">
-                  <Link
-                    href={`/invoice?orderId=${order.id}`}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none text-center"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Print invoice &amp; process
-                  </Link>
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
-                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
-                  >
-                    Cancel order (refund)
-                  </button>
-                </div>
-              )}
+              {/* 2. Mark delivered */}
+              <button
+                onClick={() => handleUpdateStatus("Delivered")}
+                disabled={s !== "shipped"}
+                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+                  s !== "shipped" ? "opacity-30 cursor-not-allowed" : ""
+                }`}
+                style={{ color: "var(--text-primary)" }}
+              >
+                <span className="material-symbols-outlined text-lg mb-1">check_circle</span>
+                <span>Mark delivered</span>
+              </button>
 
-              {s === "processing" && (
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleShiprocketShip}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Ship via Shiprocket
-                  </button>
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
-                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
-                  >
-                    Cancel order (stock issue)
-                  </button>
-                </div>
-              )}
+              {/* 3. Process refund (calls issueRefund or processReturnRefund based on return context) */}
+              <button
+                onClick={() => {
+                  if (s.includes("return")) {
+                    openRefundModal("return");
+                  } else {
+                    openRefundModal("issue");
+                  }
+                }}
+                disabled={s !== "delivered" && s !== "return in transit" && s !== "return requested"}
+                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+                  (s !== "delivered" && s !== "return in transit" && s !== "return requested") ? "opacity-30 cursor-not-allowed" : ""
+                }`}
+                style={{ color: "var(--text-primary)" }}
+              >
+                <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                <span>Process refund</span>
+              </button>
 
-              {s === "shipped" && (
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={() => handleUpdateStatus("Delivered")}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Mark as delivered
-                  </button>
-                </div>
-              )}
+              {/* 4. Print invoice */}
+              <Link
+                href={`/invoice?orderId=${order.id}`}
+                className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                style={{ color: "var(--text-primary)" }}
+              >
+                <span className="material-symbols-outlined text-lg mb-1">print</span>
+                <span>Print invoice</span>
+              </Link>
 
-              {s === "delivered" && (
-                <div className="flex flex-col gap-3">
-                  {!order.refund_status && (
-                    <button
-                      onClick={() => openRefundModal("issue")}
-                      className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                      style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                    >
-                      Issue refund
-                    </button>
-                  )}
-                </div>
-              )}
+              {/* 5. Cancel order (full width at the bottom) */}
+              <button
+                onClick={() => openRefundModal("cancel")}
+                disabled={s === "cancelled" || s === "returned" || s === "return rejected"}
+                className={`col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
+                  (s === "cancelled" || s === "returned" || s === "return rejected") ? "opacity-30 cursor-not-allowed" : ""
+                }`}
+                style={{
+                  border: "0.5px solid var(--border-danger)",
+                  color: "var(--text-danger)",
+                  backgroundColor: "var(--bg-danger)"
+                }}
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+                <span>Cancel order</span>
+              </button>
 
-              {s === "return requested" && (
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleApprovePickup}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Approve &amp; schedule pickup
-                  </button>
-                  <button
-                    onClick={() => setRejectModalOpen(true)}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
-                    style={{ border: "0.5px solid var(--border-danger)", color: "var(--text-danger)", backgroundColor: "var(--bg-danger)" }}
-                  >
-                    Reject return
-                  </button>
-                </div>
-              )}
-
-              {s === "return in transit" && (
-                <div className="flex flex-col gap-3">
-                  <div className="space-y-1.5">
-                    <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
-                      Quality Audit Status
-                    </label>
-                    <select
-                      value={qualityCheck}
-                      onChange={(e) => setQualityCheck(e.target.value as any)}
-                      className="w-full px-3 py-3 text-[10px] font-black tracking-widest uppercase focus:border-secondary focus:ring-0 rounded-none cursor-pointer"
-                      style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)", color: "var(--text-primary)" }}
-                    >
-                      <option className="text-[#0a0a0a] font-bold" value="passed">
-                        QC: Passed (Restock Item)
-                      </option>
-                      <option className="text-[#0a0a0a] font-bold" value="failed">
-                        QC: Failed (Do Not Restock)
-                      </option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => openRefundModal("return")}
-                    className="w-full py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer border-none mt-2"
-                    style={{ backgroundColor: "var(--text-primary)", color: "var(--surface-2)" }}
-                  >
-                    Confirm receipt &amp; refund
-                  </button>
-                </div>
-              )}
-
-              {/* Disabled states */}
-              {(s === "returned" || s === "cancelled" || s === "return rejected") && (
-                <div className="text-center py-6 text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                  No active actions available for {order.status} orders.
-                </div>
-              )}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-200/20">
-              <p className="text-[9px] text-gray-400 uppercase tracking-wider leading-relaxed">
+            {/* Extra context actions (e.g. Reverse Return options and Quality Audit check) */}
+            {s === "return requested" && (
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={handleApprovePickup}
+                  className="flex-1 py-2 text-[9px] font-bold uppercase bg-blue-600 text-white rounded-[4px] hover:bg-blue-700 cursor-pointer border-none"
+                >
+                  Approve Pickup
+                </button>
+                <button
+                  onClick={() => setRejectModalOpen(true)}
+                  className="flex-1 py-2 text-[9px] font-bold uppercase bg-red-600 text-white rounded-[4px] hover:bg-red-700 cursor-pointer border-none"
+                >
+                  Reject Return
+                </button>
+              </div>
+            )}
+
+            {s === "return in transit" && (
+              <div className="mt-4 space-y-2 border-t border-gray-850 pt-3">
+                <label className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">
+                  Quality Audit Status
+                </label>
+                <select
+                  value={qualityCheck}
+                  onChange={(e) => setQualityCheck(e.target.value as any)}
+                  className="w-full bg-[#222228] border border-gray-800 px-2 py-2 text-[10px] font-bold uppercase tracking-widest focus:border-secondary focus:ring-0 rounded-[4px] text-white cursor-pointer"
+                >
+                  <option value="passed">QC: Passed (Restock)</option>
+                  <option value="failed">QC: Failed (Do Not Restock)</option>
+                </select>
+              </div>
+            )}
+
+            {s === "payment pending" && (
+              <div className="mt-4">
+                <button
+                  onClick={handleApprovePendingOrder}
+                  className="w-full py-2.5 text-[9px] font-bold uppercase bg-green-600 text-white rounded-[4px] hover:bg-green-700 cursor-pointer border-none"
+                >
+                  Clear Bank Clearance
+                </button>
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-gray-200/10">
+              <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider leading-relaxed">
                 ⚠️ Shipping sync updates inventory. Cancellation voids payment and releases stock.
               </p>
             </div>

@@ -13,6 +13,10 @@ SELECT setval('public.order_id_seq',
       CAST(regexp_replace(id, '^6K-(RPO|WPO)-0*', '') AS INTEGER)
     ) FROM public.orders 
     WHERE id ~ '^6K-(RPO|WPO)-\d+$'),
-    0
+    1
+  ),
+  EXISTS(
+    SELECT 1 FROM public.orders 
+    WHERE id ~ '^6K-(RPO|WPO)-\d+$'
   )
 );

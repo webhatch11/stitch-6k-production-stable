@@ -279,13 +279,15 @@ export interface ROASReport {
 
 export const db = {
   // --- Products ---
-  async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string }): Promise<Product[]> {
+  async getProducts(options?: { includeDeleted?: boolean; trashedOnly?: boolean; display_section?: string; adminView?: boolean }): Promise<Product[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     let cacheKey = options?.trashedOnly
       ? "products:list:trashed"
       : options?.includeDeleted
         ? "products:list:all"
-        : "products:list";
+        : options?.adminView
+          ? "products:list:admin"
+          : "products:list";
     if (options?.display_section) {
       cacheKey += `:section:${options.display_section}`;
     }
@@ -307,7 +309,11 @@ export const db = {
 
     if (options?.trashedOnly) {
       query = query.not("deleted_at", "is", null);
+    } else if (options?.adminView) {
+      // Admin view: show all non-deleted (active, draft, archived) but not trashed
+      query = query.is("deleted_at", null);
     } else if (!options?.includeDeleted) {
+      // Storefront: only active products
       query = query.is("deleted_at", null).or("product_status.eq.active,product_status.is.null");
     }
 
@@ -2682,6 +2688,9 @@ export const db = {
       }
     }
 
+    // Recalculate and synchronize parent product stock fields
+    await this.syncProductTotalStock(productId);
+
     await CacheService.del("products:list");
     await CacheService.del("products:list:all");
     await CacheService.delPattern("products:slug:*");
@@ -2712,17 +2721,16 @@ export const db = {
     if (fetchErr) return false;
 
     if (variants && variants.length > 0) {
-      // Spread delta evenly across colors; for a single color this is exact
-      for (const v of variants) {
-        const newStock = Math.max(0, v.stock + delta);
-        const { error } = await supabase
-          .from("product_variants")
-          .update({ stock: newStock })
-          .eq("id", v.id);
-        if (error) {
-          console.error("adjustVariantStockBySize error:", error);
-          return false;
-        }
+      // Update the size variant (at most one due to UNIQUE size constraint)
+      const v = variants[0];
+      const newStock = Math.max(0, v.stock + delta);
+      const { error } = await supabase
+        .from("product_variants")
+        .update({ stock: newStock })
+        .eq("id", v.id);
+      if (error) {
+        console.error("adjustVariantStockBySize error:", error);
+        return false;
       }
     } else {
       // Fallback: update legacy column on products table
@@ -2749,30 +2757,72 @@ export const db = {
         console.error("adjustVariantStockBySize product fallback update error:", prodUpdateErr);
         return false;
       }
+    }
 
-      // Recalculate total product stock
-      const { data: updatedProd } = await supabase
+    // Sync total product stock and size stock columns
+    await this.syncProductTotalStock(productId);
+
+    await CacheService.del("products:list");
+    await CacheService.del("products:list:all");
+    await CacheService.delPattern("products:slug:*");
+    return true;
+  },
+
+  async syncProductTotalStock(productId: string): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+
+    // Fetch all variants for this product
+    const { data: variants } = await supabase
+      .from("product_variants")
+      .select("size, stock")
+      .eq("product_id", productId);
+
+    if (variants && variants.length > 0) {
+      // Derive sizeStock and total stock
+      const derivedSizeStock: Record<string, number> = { s: 0, m: 0, l: 0, xl: 0, xxl: 0 };
+      for (const v of variants) {
+        const sizeKey = (v.size || "S").toLowerCase();
+        derivedSizeStock[sizeKey] = (derivedSizeStock[sizeKey] || 0) + (v.stock || 0);
+      }
+      const totalStock = Object.values(derivedSizeStock).reduce((sum, n) => sum + n, 0);
+
+      const { error } = await supabase
+        .from("products")
+        .update({
+          stock: totalStock,
+          size_stock_s: derivedSizeStock.s,
+          size_stock_m: derivedSizeStock.m,
+          size_stock_l: derivedSizeStock.l,
+          size_stock_xl: derivedSizeStock.xl,
+          size_stock_xxl: derivedSizeStock.xxl,
+        })
+        .eq("id", productId);
+
+      if (error) {
+        console.error("syncProductTotalStock update error:", error);
+        return false;
+      }
+    } else {
+      // Fallback: recalculate stock from existing size_stock columns
+      const { data: product } = await supabase
         .from("products")
         .select("size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl")
         .eq("id", productId)
         .single();
 
-      if (updatedProd) {
-        const newTotalStock = (updatedProd.size_stock_s || 0) +
-                              (updatedProd.size_stock_m || 0) +
-                              (updatedProd.size_stock_l || 0) +
-                              (updatedProd.size_stock_xl || 0) +
-                              (updatedProd.size_stock_xxl || 0);
+      if (product) {
+        const totalStock = (product.size_stock_s || 0) +
+                           (product.size_stock_m || 0) +
+                           (product.size_stock_l || 0) +
+                           (product.size_stock_xl || 0) +
+                           (product.size_stock_xxl || 0);
         await supabase
           .from("products")
-          .update({ stock: newTotalStock })
+          .update({ stock: totalStock })
           .eq("id", productId);
       }
     }
-
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
-    await CacheService.delPattern("products:slug:*");
     return true;
   },
 

@@ -139,59 +139,6 @@ interface FavoriteProduct {
   colors?: string[];
 }
 
-const favoriteProducts: FavoriteProduct[] = [
-  {
-    id: "fav-1",
-    name: "Charcoal Oxford",
-    category: "Premium Cotton",
-    price: "₹3,999",
-    tag: "Atelier",
-    link: "/product/luxury-black-shirt",
-    image: "/assets/model_black_shirt.png",
-    verticalText: "CHARCOAL OXFORD"
-  },
-  {
-    id: "fav-2",
-    name: "Desert Sand",
-    category: "Linen Blend",
-    price: "₹4,999",
-    tag: "Popular",
-    link: "/product/belgian-linen-overshirt",
-    image: "/assets/model_beige_shirt.png",
-    verticalText: "DESERT SAND"
-  },
-  {
-    id: "fav-3",
-    name: "White Atelier",
-    category: "Signature Series",
-    price: "₹8,999",
-    tag: "NEW",
-    link: "/product/the-altitude-shirt",
-    image: "/assets/model_white_shirt.png",
-    verticalText: "THE ATELIER"
-  },
-  {
-    id: "fav-4",
-    name: "Olive Linen",
-    category: "Breathable Linen",
-    price: "₹3,499",
-    tag: "Trending",
-    link: "/product/olive-heritage",
-    image: "/assets/model_olive_shirt.png",
-    verticalText: "OLIVE LINEN"
-  },
-  {
-    id: "fav-5",
-    name: "Navy Street",
-    category: "Smart Casual",
-    price: "₹5,999",
-    tag: "Exclusive",
-    link: "/product/navy-atelier",
-    image: "/assets/model_navy_shirt.png",
-    verticalText: "NAVY STREET"
-  }
-];
-
 interface FavoriteStyleItem {
   id: string;
   name: string;
@@ -201,81 +148,6 @@ interface FavoriteStyleItem {
   colors: string[];
   slug: string;
 }
-
-const favoriteStyles: FavoriteStyleItem[] = [
-  {
-    id: "fav-style-1",
-    name: "Tamil Nadu Floral Resort",
-    price: "₹6,499",
-    image: "/assets/floral_resort_shirt.png",
-    badge: "New",
-    colors: ["#ffd1d1", "#ffffff", "#775a19"],
-    slug: "atelier-oxford"
-  },
-  {
-    id: "fav-style-2",
-    name: "Monochrome Geometric",
-    price: "₹6,499",
-    image: "/assets/geometric_resort_shirt.png",
-    badge: "Limited",
-    colors: ["#1a1c1c", "#ffffff", "#dadad9"],
-    slug: "sustainable-art"
-  },
-  {
-    id: "fav-style-3",
-    name: "Teal Crane Handloom",
-    price: "₹6,999",
-    image: "/assets/teal_crane_shirt.png",
-    badge: "Bestseller",
-    colors: ["#005f73", "#e5e2e1", "#ffffff"],
-    slug: "everyday-luxury"
-  },
-  {
-    id: "fav-style-4",
-    name: "Nautical Striped Resort",
-    price: "₹6,499",
-    image: "/assets/striped_resort_shirt.png",
-    badge: "Sale",
-    colors: ["#bfdbfe", "#ffffff", "#e5e2e1"],
-    slug: "crafted-comfort"
-  },
-  {
-    id: "fav-style-5",
-    name: "Classic Ivory Cotton",
-    price: "₹5,999",
-    image: "/assets/folded_white_shirt.png",
-    badge: "New",
-    colors: ["#ffffff", "#e5e2e1", "#e9c176"],
-    slug: "atelier-white"
-  },
-  {
-    id: "fav-style-6",
-    name: "Atelier Crimson Linen",
-    price: "₹5,999",
-    image: "/assets/folded_crimson_shirt.png",
-    badge: "Bestseller",
-    colors: ["#ba1a1a", "#e5e2e1", "#ffffff"],
-    slug: "royal-crimson"
-  },
-  {
-    id: "fav-style-7",
-    name: "Olive Handwoven Loom",
-    price: "₹5,999",
-    image: "/assets/folded_olive_shirt.png",
-    badge: "Limited",
-    colors: ["#3d4a3e", "#ffffff", "#e5e2e1"],
-    slug: "atelier-olive"
-  },
-  {
-    id: "fav-style-8",
-    name: "Midnight Navy Oxford",
-    price: "₹5,999",
-    image: "/assets/hanging_navy_shirt.png",
-    badge: "Sale",
-    colors: ["#0d1b2a", "#ffffff", "#775a19"],
-    slug: "classic-navy"
-  }
-];
 
 interface ShirtCategoryItem {
   id: string;
@@ -386,43 +258,37 @@ export default function HomeClient({
   const addToCartStore = useCartStore((state) => state.addToCart);
 
   // Map database products to the layout formats
-  const activeNewArrivals: FavoriteProduct[] = newArrivals && newArrivals.length > 0
-    ? newArrivals.map((p) => ({
-        id: p.id,
-        name: p.title,
-        category: p.category,
-        price: `₹${p.price.toLocaleString("en-IN")}`,
-        tag: p.customBadge || (p.isNew ? "NEW" : ""),
-        link: `/product/${p.slug}`,
-        image: p.image || "/assets/model_black_shirt.png",
-        verticalText: p.title.toUpperCase(),
-        colors: p.colors || [],
-      }))
-    : favoriteProducts;
+  const activeNewArrivals: FavoriteProduct[] = (newArrivals || []).map((p) => ({
+    id: p.id,
+    name: p.title,
+    category: p.category,
+    price: `₹${p.price.toLocaleString("en-IN")}`,
+    tag: p.customBadge || (p.isNew ? "NEW" : ""),
+    link: `/product/${p.slug}`,
+    image: p.image || "/assets/model_black_shirt.png",
+    verticalText: p.title.toUpperCase(),
+    colors: p.colors || [],
+  }));
 
-  const activeBestsellers: FavoriteStyleItem[] = bestsellers && bestsellers.length > 0
-    ? bestsellers.map((p) => ({
-        id: p.id,
-        name: p.title,
-        price: `₹${p.price.toLocaleString("en-IN")}`,
-        image: p.image || "/assets/folded_white_shirt.png",
-        badge: p.customBadge || (p.bestseller ? "Bestseller" : (p.isNew ? "New" : "")),
-        colors: p.colors || [],
-        slug: p.slug || "",
-      }))
-    : favoriteStyles;
+  const activeBestsellers: FavoriteStyleItem[] = (bestsellers || []).map((p) => ({
+    id: p.id,
+    name: p.title,
+    price: `₹${p.price.toLocaleString("en-IN")}`,
+    image: p.image || "/assets/folded_white_shirt.png",
+    badge: p.customBadge || (p.bestseller ? "Bestseller" : (p.isNew ? "New" : "")),
+    colors: p.colors || [],
+    slug: p.slug || "",
+  }));
 
-  const activeExclusives: FavoriteStyleItem[] = exclusives && exclusives.length > 0
-    ? exclusives.map((p) => ({
-        id: p.id,
-        name: p.title,
-        price: `₹${p.price.toLocaleString("en-IN")}`,
-        image: p.image || "/assets/folded_white_shirt.png",
-        badge: p.customBadge || "Exclusive",
-        colors: p.colors || [],
-        slug: p.slug || "",
-      }))
-    : [];
+  const activeExclusives: FavoriteStyleItem[] = (exclusives || []).map((p) => ({
+    id: p.id,
+    name: p.title,
+    price: `₹${p.price.toLocaleString("en-IN")}`,
+    image: p.image || "/assets/folded_white_shirt.png",
+    badge: p.customBadge || "Exclusive",
+    colors: p.colors || [],
+    slug: p.slug || "",
+  }));
   
   // Favorite products active index state for 3D Coverflow slider
   const [activeFavIndex, setActiveFavIndex] = useState(Math.max(0, Math.min(2, activeNewArrivals.length - 1)));
@@ -1143,7 +1009,14 @@ export default function HomeClient({
             </motion.div>
 
             {/* 3D Coverflow Slider */}
-            <motion.div
+            {activeNewArrivals.length === 0 ? (
+              <div className="flex justify-center items-center py-10 px-4 w-full text-center">
+                <p className="text-base text-neutral-500 font-medium">
+                  New arrivals coming soon.
+                </p>
+              </div>
+            ) : (
+              <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -1410,6 +1283,7 @@ export default function HomeClient({
                 })}
               </div>
             </motion.div>
+            )}
           </div>
         </section>
 
@@ -1438,7 +1312,14 @@ export default function HomeClient({
             </motion.div>
 
             {/* Products Grid */}
-            <motion.div
+            {activeBestsellers.length === 0 ? (
+              <div className="flex justify-center items-center py-20 w-full text-center">
+                <p className="text-base text-neutral-500 font-medium">
+                  No products available yet.
+                </p>
+              </div>
+            ) : (
+              <motion.div
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -1494,6 +1375,7 @@ export default function HomeClient({
                 </Link>
               ))}
             </motion.div>
+            )}
 
             {/* Bottom Button */}
             <div className="flex justify-center mt-16">

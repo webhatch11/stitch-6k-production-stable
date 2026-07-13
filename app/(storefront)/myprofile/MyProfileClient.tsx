@@ -13,6 +13,8 @@ import {
   deleteUserAddressAction, 
   setDefaultUserAddressAction 
 } from "@/app/actions/addresses";
+import { useWishlistStore } from "@/stores/wishlistStore";
+import ProductImage from "@/components/ProductImage";
 
 interface MyProfileClientProps {
   userName: string;
@@ -38,8 +40,10 @@ export default function MyProfileClient({
   initialRecentOrders,
 }: MyProfileClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"profile" | "loyalty">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "wishlist">("profile");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const wishlistStore = useWishlistStore();
+  const wishlistItems = wishlistStore.wishlistItems;
 
   // States
   const [walletBalance, setWalletBalance] = useState(initialWalletBalance);
@@ -234,7 +238,7 @@ export default function MyProfileClient({
     router.push("/login");
   };
 
-  const handleTabSwitch = (tabName: "profile" | "loyalty") => {
+  const handleTabSwitch = (tabName: "profile" | "loyalty" | "wishlist") => {
     setActiveTab(tabName);
     setSidebarOpen(false);
   };
@@ -305,6 +309,16 @@ export default function MyProfileClient({
             >
               <span className="material-symbols-outlined text-[20px]">wallet</span>
               Loyalty & Wallet
+            </button>
+
+            <button
+              onClick={() => handleTabSwitch("wishlist")}
+              className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer text-left rounded-none border-none ${
+                activeTab === "wishlist" ? "bg-black text-white" : "hover:bg-gray-100 bg-transparent text-on-surface"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">favorite</span>
+              My Wishlist
             </button>
 
             <Link
@@ -880,6 +894,80 @@ export default function MyProfileClient({
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB 3: WISHLIST */}
+          {activeTab === "wishlist" && (
+            <div className="flex flex-col gap-12 animate-fade-in">
+              <div className="flex flex-col gap-2 border-l-4 border-secondary pl-6">
+                <p className="text-secondary text-xs font-bold tracking-[0.3em] uppercase">Your Favorites</p>
+                <h1 className="text-on-surface text-5xl font-headline font-extrabold tracking-tighter">MY WISHLIST</h1>
+              </div>
+
+              {wishlistItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 bg-white border border-outline-variant/20 text-center gap-4">
+                  <span className="material-symbols-outlined text-[#775a19] text-5xl">favorite_border</span>
+                  <p className="text-sm font-black uppercase tracking-wider text-neutral-850">
+                    Your wishlist is empty. Start saving items you love.
+                  </p>
+                  <Link
+                    href="/shopallshirts"
+                    className="px-8 py-3.5 bg-black hover:bg-[#fed488] hover:text-black text-white text-xs font-black uppercase tracking-widest rounded-none border-none transition-all cursor-pointer"
+                  >
+                    Browse Collections
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  {wishlistItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-[0_20px_40px_rgba(119,90,25,0.06)] transition-all duration-500 rounded-[1.5rem] flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem]">
+                        <Link href={`/product/${item.slug}`} className="block w-full h-full relative">
+                          <ProductImage
+                            src={item.image}
+                            alt={item.title}
+                            fill
+                            className="object-cover transition-transform duration-[1.2s] group-hover:scale-105"
+                            sizes="(max-width: 768px) 50vw, 30vw"
+                          />
+                        </Link>
+                        {/* Remove button */}
+                        <button
+                          onClick={() => {
+                            wishlistStore.removeFromWishlist(item.id);
+                            useToastStore.getState().addToast("✓ Removed from wishlist");
+                          }}
+                          className="absolute top-2 right-2 bg-black/75 backdrop-blur-md p-1.5 rounded-full border border-white/10 text-white z-20 hover:text-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-sm font-black">close</span>
+                        </button>
+                      </div>
+                      <div className="pt-4 px-2 pb-2">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="space-y-1">
+                            <Link
+                              href={`/product/${item.slug}`}
+                              className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer block"
+                            >
+                              {item.title}
+                            </Link>
+                            <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">
+                              {item.category}
+                            </p>
+                          </div>
+                          <p className="font-headline font-black text-secondary text-xs shrink-0">
+                            ₹{item.price.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
+import { useWishlistStore } from "@/stores/wishlistStore";
 import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
 import { Product } from "@/lib/types";
@@ -256,6 +257,7 @@ export default function HomeClient({
 }) {
   const pathname = usePathname();
   const addToCartStore = useCartStore((state) => state.addToCart);
+  const wishlistStore = useWishlistStore();
 
   // Map database products to the layout formats
   const activeNewArrivals: FavoriteProduct[] = (newArrivals || []).map((p) => ({
@@ -1348,6 +1350,37 @@ export default function HomeClient({
                       {item.badge}
                     </div>
 
+                    {/* Wishlist Heart Icon */}
+                    {(() => {
+                      const originalProduct = (bestsellers || []).find(p => p.id === item.id);
+                      if (!originalProduct) return null;
+                      const isInWish = wishlistStore.isInWishlist(originalProduct.id);
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (isInWish) {
+                              wishlistStore.removeFromWishlist(originalProduct.id);
+                              showAtelierToast("Removed from wishlist");
+                            } else {
+                              wishlistStore.addToWishlist(originalProduct);
+                              showAtelierToast("Added to wishlist");
+                            }
+                          }}
+                          className="absolute top-2 right-2 z-20 hover:scale-110 active:scale-95 transition-all cursor-pointer bg-transparent border-none p-1"
+                          style={{
+                            color: isInWish ? "#ef4444" : "#ffffff",
+                            filter: isInWish ? "none" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                          }}
+                        >
+                          <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isInWish ? "'FILL' 1" : "'FILL' 0" }}>
+                            {isInWish ? "favorite" : "favorite_border"}
+                          </span>
+                        </button>
+                      );
+                    })()}
+
                     {/* Color Dots Indicator */}
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-black/5 shadow-sm">
                       {item.colors.map((color, cIdx) => (
@@ -1444,6 +1477,37 @@ export default function HomeClient({
                       <div className="absolute top-4 left-4 bg-secondary text-black border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
                         {item.badge}
                       </div>
+
+                      {/* Wishlist Heart Icon */}
+                      {(() => {
+                        const originalProduct = (exclusives || []).find(p => p.id === item.id);
+                        if (!originalProduct) return null;
+                        const isInWish = wishlistStore.isInWishlist(originalProduct.id);
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (isInWish) {
+                                wishlistStore.removeFromWishlist(originalProduct.id);
+                                showAtelierToast("Removed from wishlist");
+                              } else {
+                                wishlistStore.addToWishlist(originalProduct);
+                                showAtelierToast("Added to wishlist");
+                              }
+                            }}
+                            className="absolute top-2 right-2 z-20 hover:scale-110 active:scale-95 transition-all cursor-pointer bg-transparent border-none p-1"
+                            style={{
+                              color: isInWish ? "#ef4444" : "#ffffff",
+                              filter: isInWish ? "none" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                            }}
+                          >
+                            <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isInWish ? "'FILL' 1" : "'FILL' 0" }}>
+                              {isInWish ? "favorite" : "favorite_border"}
+                            </span>
+                          </button>
+                        );
+                      })()}
 
                       {/* Color Dots Indicator */}
                       <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-white/5 shadow-sm">

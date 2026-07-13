@@ -16,8 +16,8 @@ export const useRecentStore = create<RecentState>()(
         set((state) => {
           // Remove duplicates
           const filtered = state.recentItems.filter((item) => item.id !== product.id);
-          // Keep only the last 4 items
-          const updated = [product, ...filtered].slice(0, 4);
+          // Keep only the last 6 items
+          const updated = [product, ...filtered].slice(0, 6);
           return { recentItems: updated };
         });
       },

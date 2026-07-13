@@ -20,6 +20,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
   const router = useRouter();
   const addToCartStore = useCartStore((state) => state.addToCart);
   const addProductToRecent = useRecentStore((state) => state.addProductToRecent);
+  const recentItems = useRecentStore((state) => state.recentItems);
 
   const [animateCart, setAnimateCart] = useState(false);
 
@@ -797,6 +798,66 @@ export default function ProductDetailClient({ product, recommendations }: Produc
             </div>
           </section>
         )}
+
+        {/* RECENTLY VIEWED */}
+        {recentItems.length > 1 && (
+          <section className="mt-24 pt-16 border-t border-outline-variant/10">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-secondary">Your History</span>
+                <h2 className="text-3xl font-black font-headline tracking-tighter uppercase mt-2">Recently Viewed</h2>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-xs font-bold text-outline uppercase tracking-widest">History</span>
+              </div>
+            </div>
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-neutral-200">
+              {recentItems
+                .filter((item: Product) => item.id !== product.id)
+                .slice(0, 5)
+                .map((rec: Product) => {
+                  const primaryImg = rec.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800";
+                  const secondaryImg = rec.images && rec.images.length > 1 ? rec.images[1] : primaryImg;
+
+                  return (
+                    <div key={rec.id} className="min-w-[200px] md:min-w-[240px] flex-shrink-0 group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
+                      <Link href={`/product/${rec.slug}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10">
+                        <div className="absolute inset-0">
+                          <ProductImage
+                            className="object-cover transition-all duration-[1000ms] group-hover:scale-105"
+                            src={primaryImg}
+                            alt={rec.title}
+                            fill
+                            sizes="(max-w-400px) 50vw, 300px"
+                          />
+                        </div>
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1200ms] scale-[1.05] group-hover:scale-100">
+                          <ProductImage
+                            className="object-cover"
+                            src={secondaryImg}
+                            alt={`${rec.title} Detail`}
+                            fill
+                            sizes="(max-w-400px) 50vw, 300px"
+                          />
+                        </div>
+                      </Link>
+                      <div className="pt-4 px-2 pb-2">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="space-y-1">
+                            <Link href={`/product/${rec.slug}`} className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer block">
+                              {rec.title}
+                            </Link>
+                            <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">{rec.category} • Atelier Series</p>
+                          </div>
+                          <p className="font-headline font-black text-secondary text-xs shrink-0">₹{rec.price.toLocaleString("en-IN")}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Sticky Buy Bar for Mobile */}
@@ -887,7 +948,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
             <table style={{
               width: '100%',
               borderCollapse: 'collapse',
-              fontSize: '14px'
+              fontSize: '12px'
             }}>
               <thead>
                 <tr style={{
@@ -895,54 +956,74 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                   color: '#ffffff'
                 }}>
                   <th style={{
-                    padding: '10px 16px',
+                    padding: '8px 4px',
                     textAlign: 'center',
                     fontWeight: '500',
                     letterSpacing: '0.05em',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     textTransform: 'uppercase'
                   }}>
                     Size
                   </th>
                   <th style={{
-                    padding: '10px 16px',
+                    padding: '8px 4px',
                     textAlign: 'center',
                     fontWeight: '500',
                     letterSpacing: '0.05em',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     textTransform: 'uppercase'
                   }}>
-                    Chest
+                    Chest (in)
                   </th>
                   <th style={{
-                    padding: '10px 16px',
+                    padding: '8px 4px',
                     textAlign: 'center',
                     fontWeight: '500',
                     letterSpacing: '0.05em',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     textTransform: 'uppercase'
                   }}>
-                    Length
+                    Waist (in)
                   </th>
                   <th style={{
-                    padding: '10px 16px',
+                    padding: '8px 4px',
                     textAlign: 'center',
                     fontWeight: '500',
                     letterSpacing: '0.05em',
-                    fontSize: '12px',
+                    fontSize: '10px',
                     textTransform: 'uppercase'
                   }}>
-                    Shoulder
+                    Length (in)
+                  </th>
+                  <th style={{
+                    padding: '8px 4px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '10px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Chest (cm)
+                  </th>
+                  <th style={{
+                    padding: '8px 4px',
+                    textAlign: 'center',
+                    fontWeight: '500',
+                    letterSpacing: '0.05em',
+                    fontSize: '10px',
+                    textTransform: 'uppercase'
+                  }}>
+                    Waist (cm)
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  { size: 'S (Est)', chest: 38, length: 28,   shoulder: 17   },
-                  { size: 'M',       chest: 42, length: 29.5, shoulder: 18.5 },
-                  { size: 'L',       chest: 46, length: 30,   shoulder: 19   },
-                  { size: 'XL',      chest: 47, length: 31,   shoulder: 20   },
-                  { size: 'XXL',     chest: 51, length: 32,   shoulder: 21   },
+                  { size: 'S', chestIn: '36-38', waistIn: '30-32', lengthIn: '28', chestCm: '91-96', waistCm: '76-81' },
+                  { size: 'M', chestIn: '38-40', waistIn: '32-34', lengthIn: '29', chestCm: '96-101', waistCm: '81-86' },
+                  { size: 'L', chestIn: '40-42', waistIn: '34-36', lengthIn: '30', chestCm: '101-106', waistCm: '86-91' },
+                  { size: 'XL', chestIn: '42-44', waistIn: '36-38', lengthIn: '31', chestCm: '106-111', waistCm: '91-96' },
+                  { size: 'XXL', chestIn: '44-46', waistIn: '38-40', lengthIn: '32', chestCm: '111-116', waistCm: '96-101' },
                 ].map((row, i) => (
                   <tr
                     key={row.size}
@@ -953,7 +1034,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                     }}
                   >
                     <td style={{
-                      padding: '12px 16px',
+                      padding: '10px 4px',
                       textAlign: 'center',
                       fontWeight: '600',
                       color: '#1a1a1a'
@@ -961,30 +1042,56 @@ export default function ProductDetailClient({ product, recommendations }: Produc
                       {row.size}
                     </td>
                     <td style={{
-                      padding: '12px 16px',
+                      padding: '10px 4px',
                       textAlign: 'center',
                       color: '#374151'
                     }}>
-                      {row.chest}
+                      {row.chestIn}
                     </td>
                     <td style={{
-                      padding: '12px 16px',
+                      padding: '10px 4px',
                       textAlign: 'center',
                       color: '#374151'
                     }}>
-                      {row.length}
+                      {row.waistIn}
                     </td>
                     <td style={{
-                      padding: '12px 16px',
+                      padding: '10px 4px',
                       textAlign: 'center',
                       color: '#374151'
                     }}>
-                      {row.shoulder}
+                      {row.lengthIn}
+                    </td>
+                    <td style={{
+                      padding: '10px 4px',
+                      textAlign: 'center',
+                      color: '#374151'
+                    }}>
+                      {row.chestCm}
+                    </td>
+                    <td style={{
+                      padding: '10px 4px',
+                      textAlign: 'center',
+                      color: '#374151'
+                    }}>
+                      {row.waistCm}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Tip text */}
+            <p style={{
+              fontSize: '11px',
+              color: '#775a19',
+              fontWeight: 'bold',
+              marginTop: '1.25rem',
+              textAlign: 'center',
+              lineHeight: '1.4'
+            }}>
+              Tip: If you're between sizes, size up for a relaxed fit or size down for a tailored look.
+            </p>
 
             {/* How to measure tip */}
             <div style={{

@@ -292,11 +292,9 @@ export default function LoginPage() {
           }
         }
       } else {
-        const mockProfile = localStorage.getItem("mock_user_profile");
-        if (mockProfile) {
-          const parsed = JSON.parse(mockProfile);
-          userRole = parsed.role || "customer";
-        }
+        console.error('Supabase not configured. Authentication unavailable.');
+        setErrorMsg('Authentication service unavailable. Please contact support.');
+        return;
       }
     } catch (profileErr: any) {
       // Profile fetch failed — log it but DO NOT block the redirect.

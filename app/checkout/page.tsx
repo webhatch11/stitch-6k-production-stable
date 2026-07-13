@@ -441,14 +441,7 @@ export default function CheckoutPage() {
           localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
         }
 
-        // Sync order history locally if in offline mode
-        try {
-          const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
-          localOrders.unshift(res.order);
-          localStorage.setItem("orders_history", JSON.stringify(localOrders));
-        } catch (e) {
-          console.error(e);
-        }
+
 
         // Clear cart
         useCartStore.getState().clearCart();
@@ -494,13 +487,7 @@ export default function CheckoutPage() {
             localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
           }
 
-          try {
-            const localOrders = JSON.parse(localStorage.getItem("orders_history") || "[]");
-            localOrders.unshift(res.order);
-            localStorage.setItem("orders_history", JSON.stringify(localOrders));
-          } catch (e) {
-            console.error(e);
-          }
+
 
           useCartStore.getState().clearCart();
           clearCartAction().catch(() => {});

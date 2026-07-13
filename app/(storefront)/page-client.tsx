@@ -41,7 +41,6 @@ interface HeroSlide {
   weave: string;
   time: string;
   rarity: string;
-  registryId: string;
   ctaLink: string;
   bgImage: string;
   frontImage: string;
@@ -57,7 +56,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Stretch-Knit",
     time: "40 Hours",
     rarity: "80 Items",
-    registryId: "MOTION-6K",
     ctaLink: "/shopallshirts",
     bgImage: "/assets/pure_motion_6k.png",
     frontImage: "/assets/pure_motion_6k.png",
@@ -71,7 +69,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Silk-Linen",
     time: "32 Hours",
     rarity: "150 Items",
-    registryId: "MARBLE-001",
     ctaLink: "/product/luxury-black-shirt",
     bgImage: "/assets/hero_showroom_marble.webp",
     frontImage: "/assets/hero_showroom_marble.webp",
@@ -85,7 +82,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Premium Cotton",
     time: "18 Hours",
     rarity: "500 Items",
-    registryId: "WHITE-002",
     ctaLink: "/shopallshirts",
     bgImage: "/assets/hero_showroom_white.webp",
     frontImage: "/assets/hero_showroom_white.webp",
@@ -99,7 +95,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Linen Fabric",
     time: "24 Hours",
     rarity: "300 Items",
-    registryId: "NAVY-003",
     ctaLink: "/shopallshirts",
     bgImage: "/assets/hero_navy_street.webp",
     frontImage: "/assets/hero_navy_street.webp",
@@ -113,7 +108,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Spring Cotton",
     time: "20 Hours",
     rarity: "200 Items",
-    registryId: "SPRING-004",
     ctaLink: "/shopallshirts",
     bgImage: "/assets/hero_spring_street.webp",
     frontImage: "/assets/hero_spring_street.webp",
@@ -127,7 +121,6 @@ const heroSlides: HeroSlide[] = [
     weave: "Breezy Linen",
     time: "28 Hours",
     rarity: "100 Items",
-    registryId: "BEACH-005",
     ctaLink: "/shopallshirts",
     bgImage: "/assets/hero_beach_custom.webp",
     frontImage: "/assets/hero_beach_custom.webp",

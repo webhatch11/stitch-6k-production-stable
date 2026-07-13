@@ -37,7 +37,7 @@ export default function CancellationPolicyPage() {
           <h3 className="text-on-surface font-black text-lg mb-4">3. Contact for Cancellations</h3>
           <p>
             To request a cancellation, please email us immediately with your order details at:
-            <br />Email: 6kthebrand@gmail.com
+            <br />Email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
             <br />Phone: +91 93636 93004
           </p>
         </section>

@@ -371,13 +371,9 @@ export async function POST(req: NextRequest) {
           items: groupedItems,
           total: Number(dbOrder.total || 0),
           address: addressStr
-        })
-          .then(() => {
-            console.log(`[Email] Order confirmation email successfully sent for order #${dbOrder.id} to ${customerEmail}`);
-          })
-          .catch((emailError) => {
-            console.error("[Email] Order confirmation email failed:", emailError);
-          });
+        }).catch((emailError) => {
+          console.error("[Email] Order confirmation email failed:", emailError);
+        });
       } else {
         console.warn(`[Email] Could not resolve customer email for order #${dbOrder.id}. Email sending skipped.`);
       }

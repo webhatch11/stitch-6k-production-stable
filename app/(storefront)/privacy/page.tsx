@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <h3 className="text-on-surface font-black text-lg mb-4">4. Contact Coordinates</h3>
           <p>
             If you have questions regarding this policy or want to update your stored data, contact us at:
-            <br />Email: 6kthebrand@gmail.com
+            <br />Email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
             <br />Phone: +91 93636 93004
             <br />Address: JRT TEXTILES (6K Brand), 1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar, Tiruchirappalli – 620018, Tamil Nadu
           </p>

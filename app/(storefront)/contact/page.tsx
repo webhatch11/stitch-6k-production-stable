@@ -19,7 +19,7 @@ export default function ContactPage() {
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">
           <h3 className="text-on-surface font-black text-lg mb-4">Atelier Concierge</h3>
           <p>
-            Email: 6kthebrand@gmail.com
+            Email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
             <br />
             Phone: +91 93636 93004 (Mon–Sat 10AM–7PM IST)
           </p>

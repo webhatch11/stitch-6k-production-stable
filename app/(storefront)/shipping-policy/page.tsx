@@ -49,7 +49,7 @@ export default function ShippingPolicyPage() {
           <h3 className="text-on-surface font-black text-lg mb-4">5. Contact Support</h3>
           <p>
             For any queries regarding shipping or delivery timelines, contact us at:
-            <br />Email: 6kthebrand@gmail.com
+            <br />Email: {process.env.NEXT_PUBLIC_SUPPORT_EMAIL}
             <br />Phone: +91 93636 93004
           </p>
         </section>

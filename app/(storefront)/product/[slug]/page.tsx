@@ -86,7 +86,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     "sku": product.id,
     "offers": {
       "@type": "Offer",
-      "url": `https://6kthebrand.com/product/${product.slug}`,
+      "url": `${process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"}/product/${product.slug}`,
       "priceCurrency": "INR",
       "price": product.price,
       "itemCondition": "https://schema.org/NewCondition",

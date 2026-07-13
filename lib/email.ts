@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
 export async function sendOrderConfirmationEmail(order: {
   id: string;
@@ -62,7 +63,7 @@ export async function sendOrderConfirmationEmail(order: {
       <p style="color: #9ca3af; font-size: 12px;">
         — 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
-        6kthebrand@gmail.com | +91 93636 93004
+        ${supportEmail} | +91 93636 93004
       </p>
     </div>
   `;
@@ -75,11 +76,7 @@ export async function sendOrderConfirmationEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver order confirmation email to ${order.customerEmail} via Resend. Check API Key or Domain verification status. Error:`, err.message || err);
-    console.warn(`[Email Sandbox Fallback] Printing email HTML to console for reference:`);
-    console.log(`=== ORDER CONFIRMATION EMAIL FOR ${order.customerEmail} ===`);
-    console.log(htmlContent);
-    console.log(`=======================================================`);
+    console.error(`[Email Error] Failed to deliver order confirmation email to ${order.customerEmail} via Resend. Error:`, err.message || err);
     throw err;
   }
 }
@@ -124,7 +121,7 @@ export async function sendReturnAcceptedEmail(order: {
       <p style="color: #9ca3af; font-size: 12px;">
         — 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
-        6kthebrand@gmail.com | +91 93636 93004
+        ${supportEmail} | +91 93636 93004
       </p>
     </div>
   `;
@@ -138,10 +135,6 @@ export async function sendReturnAcceptedEmail(order: {
     });
   } catch (err: any) {
     console.error(`[Email Error] Failed to deliver return approved email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    console.warn(`[Email Sandbox Fallback] Printing email HTML to console:`);
-    console.log(`=== RETURN APPROVED EMAIL FOR ${order.customerEmail} ===`);
-    console.log(htmlContent);
-    console.log(`===================================================`);
     throw err;
   }
 }
@@ -179,7 +172,7 @@ export async function sendReturnRejectedEmail(order: {
       <p style="color: #9ca3af; font-size: 12px;">
         — 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
-        6kthebrand@gmail.com | +91 93636 93004
+        ${supportEmail} | +91 93636 93004
       </p>
     </div>
   `;
@@ -193,10 +186,6 @@ export async function sendReturnRejectedEmail(order: {
     });
   } catch (err: any) {
     console.error(`[Email Error] Failed to deliver return rejected email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    console.warn(`[Email Sandbox Fallback] Printing email HTML to console:`);
-    console.log(`=== RETURN REJECTED EMAIL FOR ${order.customerEmail} ===`);
-    console.log(htmlContent);
-    console.log(`===================================================`);
     throw err;
   }
 }
@@ -245,7 +234,7 @@ export async function sendOrderCancelledEmail(order: {
       <p style="color: #9ca3af; font-size: 12px;">
         — 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
-        6kthebrand@gmail.com | +91 93636 93004
+        ${supportEmail} | +91 93636 93004
       </p>
     </div>
   `;
@@ -259,10 +248,6 @@ export async function sendOrderCancelledEmail(order: {
     });
   } catch (err: any) {
     console.error(`[Email Error] Failed to deliver cancellation email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    console.warn(`[Email Sandbox Fallback] Printing email HTML to console:`);
-    console.log(`=== ORDER CANCELLED EMAIL FOR ${order.customerEmail} ===`);
-    console.log(htmlContent);
-    console.log(`===================================================`);
     throw err;
   }
 }
@@ -311,7 +296,7 @@ export async function sendReturnPickupScheduledEmail(order: {
       <p style="color: #9ca3af; font-size: 12px;">
         — 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
-        6kthebrand@gmail.com | +91 93636 93004
+        ${supportEmail} | +91 93636 93004
       </p>
     </div>
   `;
@@ -325,10 +310,6 @@ export async function sendReturnPickupScheduledEmail(order: {
     });
   } catch (err: any) {
     console.error(`[Email Error] Failed to deliver return pickup scheduled email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    console.warn(`[Email Sandbox Fallback] Printing email HTML to console:`);
-    console.log(`=== RETURN PICKUP SCHEDULED EMAIL FOR ${order.customerEmail} ===`);
-    console.log(htmlContent);
-    console.log(`===========================================================`);
     throw err;
   }
 }

@@ -425,7 +425,7 @@ export const shiprocket = {
         pickup_country: "India",
         pickup_pincode: customerAddress.pincode,
         shipping_customer_name: "JRT TEXTILES",
-        shipping_phone: "9363693004",
+        shipping_phone: process.env.SHIPROCKET_PICKUP_PHONE || "9363693004",
         shipping_address: "1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar",
         shipping_city: "Tiruchirappalli",
         shipping_country: "India",

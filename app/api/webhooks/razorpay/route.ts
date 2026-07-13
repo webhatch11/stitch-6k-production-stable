@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (existingLog) {
-        console.log(`[Webhook] Event ${eventId} already processed. Skipping.`);
+        // Event already processed, skip
         return NextResponse.json({ success: true, message: "Already processed" });
       }
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (!dbOrder) {
-            console.log(`[Webhook] No order found for razorpay_order_id=${razorpayOrderId}`);
+            // No order found for razorpay_order_id
           } else {
             let claimed = null;
 
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
             }
 
             if (!claimed) {
-              console.log(`[Webhook] Order ${dbOrder.id} already claimed by another process, skipping side effects`);
+              // Order already claimed by another process, skipping side effects
             } else {
               // We won the race or are recovering. Run side effects in order.
               await db.runPostPaymentSideEffects(dbOrder.id, razorpayPaymentId);
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
         
         // Idempotency: skip if already in terminal state
         if (order.refund_status === "processed" || order.refund_status === "failed") {
-          console.log(`[Webhook refund] order ${order.id} already in terminal state ${order.refund_status}`);
+          // Order already in terminal state
           if (supabase) {
             await supabase.from("webhook_logs").update({ processed: true }).eq("event_id", eventId);
           }
@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
           })
           .eq("id", order.id);
         
-        console.log(`[Webhook refund] order ${order.id} → ${newStatus}`);
+        // Refund state updated
         if (supabase) {
           await supabase.from("webhook_logs").update({ processed: true }).eq("event_id", eventId);
         }

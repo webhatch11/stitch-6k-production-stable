@@ -632,10 +632,9 @@ export default function ProductDetailClient({ product, recommendations }: Produc
               </div>
             </div>
 
-            {/* WhatsApp Contact */}
             <a
               className="flex items-center justify-center space-x-3 py-4 bg-surface-container-low border border-outline-variant/20 hover:bg-surface-container transition-all duration-300"
-              href="https://wa.me/919363693004"
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_PHONE || "919363693004"}`}
               target="_blank"
               rel="noopener noreferrer"
             >

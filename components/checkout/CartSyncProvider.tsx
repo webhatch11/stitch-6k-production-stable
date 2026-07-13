@@ -3,21 +3,38 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCartStore, mergeCarts } from "@/stores/cartStore";
-import { getCartAction, syncCartAction } from "@/app/actions/cart";
+import { getCartAction, syncCartAction, validateCartAction } from "@/app/actions/cart";
 
 export function CartSyncProvider() {
-  const lastUserId = useRef<string | null>(null);
+  const lastUserId = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     const syncCart = async (userId: string | null) => {
       // Synchronously set the lastUserId at the start to prevent concurrent syncs
       if (userId === lastUserId.current) return;
+      
+      const isLogout = lastUserId.current !== undefined && lastUserId.current !== null && userId === null;
       lastUserId.current = userId;
 
-      if (!userId) {
-        // User logged out, clear cart if it is not already empty
+      if (isLogout) {
         if (useCartStore.getState().cartItems.length > 0) {
           useCartStore.getState().clearCart();
+        }
+        return;
+      }
+
+      if (!userId) {
+        // Guest user: validate local storage cart items to remove deleted/ghost products
+        try {
+          const localItems = useCartStore.getState().cartItems;
+          if (localItems.length > 0) {
+            const validated = await validateCartAction(localItems);
+            if (validated.length !== localItems.length) {
+              useCartStore.setState({ cartItems: validated });
+            }
+          }
+        } catch (err) {
+          console.error("Error validating guest cart:", err);
         }
         return;
       }
@@ -26,10 +43,13 @@ export function CartSyncProvider() {
         const dbItems = await getCartAction() || [];
         const localItems = useCartStore.getState().cartItems;
 
-        if (dbItems.length > 0 && localItems.length === 0) {
+        // Validate local cart items before sync
+        const activeLocal = await validateCartAction(localItems);
+
+        if (dbItems.length > 0 && activeLocal.length === 0) {
           useCartStore.setState({ cartItems: dbItems });
-        } else if (localItems.length > 0) {
-          const merged = mergeCarts(localItems, dbItems);
+        } else {
+          const merged = mergeCarts(activeLocal, dbItems);
           await syncCartAction(merged);
           useCartStore.setState({ cartItems: merged });
         }

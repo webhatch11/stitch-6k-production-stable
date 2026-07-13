@@ -45,3 +45,14 @@ export async function getCartAction(): Promise<CartItem[]> {
   if (!user) return [];
   return await db.getUserCart(user.id);
 }
+
+export async function validateCartAction(items: CartItem[]): Promise<CartItem[]> {
+  if (!items || items.length === 0) return [];
+  const productIds = Array.from(new Set(items.map(item => item.productId).filter((id): id is string => !!id)));
+  if (productIds.length === 0) return items;
+
+  const activeProducts = await db.getActiveProductIds(productIds);
+  const activeSet = new Set(activeProducts);
+
+  return items.filter(item => !item.productId || activeSet.has(item.productId));
+}

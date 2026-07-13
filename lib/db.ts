@@ -529,7 +529,7 @@ export const db = {
 
   async deleteProduct(id: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    await CacheService.del("products:list");
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
@@ -583,12 +583,7 @@ export const db = {
     // Write audit log
     await this.logProductAudit('soft_delete', id, existing.title, adminUserId, adminUserEmail, reason);
 
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
-    await CacheService.del("products:list:trashed");
-    if (existing?.slug) {
-      await CacheService.del(`products:slug:${existing.slug}`);
-    }
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
 
     return true;
@@ -626,12 +621,7 @@ export const db = {
     // Write audit log
     await this.logProductAudit('restore', id, existing.title, adminUserId, adminUserEmail);
 
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
-    await CacheService.del("products:list:trashed");
-    if (existing?.slug) {
-      await CacheService.del(`products:slug:${existing.slug}`);
-    }
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
 
     return true;
@@ -697,10 +687,25 @@ export const db = {
     await this.logProductAudit('permanent_delete', id, product.title, adminUserId, adminUserEmail, reason);
 
     // 6. Clear Redis Cache
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
-    await CacheService.del("products:list:trashed");
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
+  },
+
+  async getActiveProductIds(productIds: string[]): Promise<string[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    
+    const { data, error } = await supabase
+      .from("products")
+      .select("id")
+      .in("id", productIds)
+      .is("deleted_at", null);
+
+    if (error) {
+      console.error("Error validating product IDs:", error);
+      return [];
+    }
+    return (data || []).map(p => p.id);
   },
 
   // --- Orders ---
@@ -2652,8 +2657,17 @@ export const db = {
       return [];
     }
 
+    if (!data || data.length === 0) return [];
+
+    const productIds = Array.from(new Set(data.map(row => row.product_id)));
+    const activeProducts = await this.getActiveProductIds(productIds);
+    const activeSet = new Set(activeProducts);
+
     const items: CartItem[] = [];
-    for (const row of data || []) {
+    for (const row of data) {
+      if (!activeSet.has(row.product_id)) {
+        continue;
+      }
       const item: CartItem = {
         productId: row.product_id,
         productName: row.product_name,

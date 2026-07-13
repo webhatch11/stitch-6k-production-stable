@@ -22,7 +22,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState("Wrong size");
   const [returnDetails, setReturnDetails] = useState("");
-  const [refundOption, setRefundOption] = useState("bank");
+  const [refundOption, setRefundOption] = useState("wallet");
   const [uploadedImageName, setUploadedImageName] = useState("");
 
   // Toast Alerts
@@ -136,7 +136,12 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     setSelectedOrderId(orderId);
     setReturnReason("Size does not fit");
     setReturnDetails("");
-    setRefundOption("bank");
+    // Smart-default: if the order had any gateway payment, default to "bank";
+    // wallet-only orders default to "wallet" so refund goes back to wallet.
+    const orderForModal = orders.find((o) => o.id === orderId);
+    setRefundOption(
+      orderForModal && orderForModal.gatewayPaid > 0 ? "bank" : "wallet"
+    );
     setUploadedImageName("");
     setReturnModalOpen(true);
   };

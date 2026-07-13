@@ -329,45 +329,9 @@ export async function processReturnRefundAction(
 
     const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
     if (success) {
-      // --- BUG-006 Fix: Reverse loyalty points on return ---
-      if (order && (order.userId || order.user_id)) {
-        const uid = (order.userId || order.user_id)!;
-
-        // 1. Reverse earned points (user should not keep points from a returned order)
-        if (order.pointsEarned > 0) {
-          try {
-            if (supabase) {
-              await supabase.rpc("loyalty_atomic_debit", {
-                p_user_id: uid,
-                p_points: order.pointsEarned,
-                p_idempotency_key: `RETURN-EARN-REV-${orderId}`,
-                p_desc: `Points reversed for returned Order #${orderId}`,
-              });
-            }
-          } catch (e) {
-            console.error(`[processReturnRefundAction] Failed to reverse earned points for ${orderId}:`, e);
-            Sentry.captureException(e, { extra: { orderId, action: "reverse_earned_points" } });
-          }
-        }
-
-        // 2. Refund redeemed points (user spent points, return them)
-        if (order.pointsRedeemed > 0) {
-          try {
-            if (supabase) {
-              await supabase.rpc("loyalty_atomic_credit", {
-                p_user_id: uid,
-                p_points: order.pointsRedeemed,
-                p_idempotency_key: `RETURN-REDEEM-REF-${orderId}`,
-                p_desc: `Redeemed points refunded for returned Order #${orderId}`,
-              });
-            }
-          } catch (e) {
-            console.error(`[processReturnRefundAction] Failed to refund redeemed points for ${orderId}:`, e);
-            Sentry.captureException(e, { extra: { orderId, action: "refund_redeemed_points" } });
-          }
-        }
-      }
-      // --- End BUG-006 Fix ---
+      // Loyalty point reversal is handled atomically inside db.processReturnRefund
+      // (applyLoyaltyDebit for pointsEarned, applyLoyaltyCredit for pointsRedeemed).
+      // Do NOT call loyalty RPCs here to avoid double-counting.
 
       db.getOrderById(orderId).then(async (latestOrder) => {
         if (!latestOrder) return;

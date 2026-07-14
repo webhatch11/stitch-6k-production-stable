@@ -35,8 +35,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing required parameters: awb or current_status" }, { status: 400 });
     }
 
-    console.log(`[Shiprocket Webhook] Received tracking update for AWB: ${awb}, Status: ${current_status}`);
-
     // Find the order matching the AWB number (indexed lookup)
     const order = await db.getOrderByAwb(awb);
 

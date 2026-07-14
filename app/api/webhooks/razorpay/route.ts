@@ -110,12 +110,13 @@ export async function POST(req: NextRequest) {
             }
 
             if (!claimed) {
+              const loyaltyConfig = await db.getLoyaltyConfig();
               const { data: claimedRow, error: claimErr } = await supabase
                 .from("orders")
                 .update({
                   status: "Paid",
                   payment_status: "Paid",
-                  points_earned: Math.floor(dbOrder.total / 100) * 5,
+                  points_earned: Math.floor(dbOrder.total / 100) * loyaltyConfig.pointsPer100,
                   razorpay_payment_id: razorpayPaymentId,
                 })
                 .eq("id", dbOrder.id)

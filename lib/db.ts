@@ -1705,8 +1705,9 @@ export const db = {
       );
     }
     // Caller should pass netTotal (original_total - coupon_discount), NOT total-with-shipping
-    // Business rule: ₹100 net spend = 5 points
-    const points = Math.floor(total / 100) * 5;
+    // Business rule: configurable via site_settings (pointsPer100)
+    const loyaltyConfig = await this.getLoyaltyConfig();
+    const points = Math.floor(total / 100) * loyaltyConfig.pointsPer100;
     if (points <= 0) return;
 
     const uid = userId;
@@ -2362,7 +2363,9 @@ export const db = {
     const dbOrder = await this.getOrderById(orderId);
     if (!dbOrder) return false;
 
-    const earned = Math.floor(dbOrder.total / 100) * 5; // ₹100 = 5 points
+    // Fetch loyalty config once — used for both points_earned snapshot and awardLoyaltyPoints
+    const loyaltyConfig = await this.getLoyaltyConfig();
+    const earned = Math.floor(dbOrder.total / 100) * loyaltyConfig.pointsPer100;
 
     const updatePayload: any = {
       status: "Paid",

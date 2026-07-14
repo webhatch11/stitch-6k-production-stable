@@ -1149,6 +1149,26 @@ export const db = {
     return data.value;
   },
 
+  async getLoyaltyConfig(): Promise<{
+    pointsPer100: number,
+    rupeesPerPoint: number,
+    minRedeemPoints: number
+  }> {
+    try {
+      const val = await this.getSetting("loyalty_config");
+      if (val) {
+        return {
+          pointsPer100: typeof val.points_per_100 === "number" ? val.points_per_100 : 5,
+          rupeesPerPoint: typeof val.rupees_per_point === "number" ? val.rupees_per_point : 0.5,
+          minRedeemPoints: typeof val.min_redeem_points === "number" ? val.min_redeem_points : 100,
+        };
+      }
+    } catch (e) {
+      console.error("Error reading loyalty config:", e);
+    }
+    return { pointsPer100: 5, rupeesPerPoint: 0.5, minRedeemPoints: 100 };
+  },
+
   async getShippingRules(): Promise<ShippingRules> {
     const setting = await this.getSetting('shipping_rules');
     return {

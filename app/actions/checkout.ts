@@ -62,6 +62,10 @@ export async function processWalletPointsCheckoutAction(payload: {
   const userId = user.id;
   const user_id = user.id;
 
+  const loyaltyConfig = await db.getLoyaltyConfig();
+  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
+  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
+
   if (!addressId) {
     return { success: false, error: "Delivery address is required" };
   }
@@ -129,7 +133,7 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // Ensure finalPayable is zero
-  const verifiedPointsDiscount = pointsRedeemed * 0.5; // 1 point = ₹0.50 discount
+  const verifiedPointsDiscount = pointsRedeemed * RUPEES_PER_POINT; // 1 point = ₹0.50 discount
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
@@ -215,7 +219,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     gatewayPaid: 0,
     pointsRedeemed: pointsRedeemed,
     pointsDiscount: verifiedPointsDiscount,
-    pointsEarned: Math.floor(verifiedNetTotal / 100) * 5, // Business rule: ₹100 spent = 5 points
+    pointsEarned: Math.floor(verifiedNetTotal / 100) * POINTS_PER_100, // Business rule: ₹100 spent = 5 points
     status: "Paid via Wallet",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({
@@ -258,7 +262,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     orderId: savedOrder.id,
     order: savedOrder,
     walletBalance: dbWalletBalance - walletDeduction,
-    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 100) * 5,
+    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 100) * POINTS_PER_100,
   };
 }
 
@@ -298,6 +302,10 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     return { success: false, error: "Security Alert: session/user mismatch." };
   }
   const userId = user.id;
+
+  const loyaltyConfig = await db.getLoyaltyConfig();
+  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
+  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
 
   const finalWalletDeduction = walletDeduction;
   const finalPointsRedeemed = pointsRedeemed;
@@ -363,7 +371,7 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     return { success: false, error: "Security Alert: Loyalty points redeemed exceed available points." };
   }
 
-  const verifiedPointsDiscount = finalPointsRedeemed * 0.5; // 1 point = ₹0.50 discount
+  const verifiedPointsDiscount = finalPointsRedeemed * RUPEES_PER_POINT; // 1 point = ₹0.50 discount
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
@@ -447,6 +455,10 @@ export async function processCodCheckoutAction(payload: {
   const userId = user.id;
   const user_id = user.id;
 
+  const loyaltyConfig = await db.getLoyaltyConfig();
+  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
+  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
+
   const finalWalletDeduction = walletDeduction;
   const finalPointsRedeemed = pointsRedeemed;
 
@@ -473,7 +485,7 @@ export async function processCodCheckoutAction(payload: {
   addressSnapshot = { ...addr, email };
 
   // A. Verify COD eligibility rules server-side
-  const finalPayable = Math.max(0, netTotal - (finalPointsRedeemed * 0.5) - finalWalletDeduction); // 1 point = ₹0.50
+  const finalPayable = Math.max(0, netTotal - (finalPointsRedeemed * RUPEES_PER_POINT) - finalWalletDeduction); // 1 point = ₹0.50
   
   // B. Verify stock first server-side
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
@@ -519,7 +531,7 @@ export async function processCodCheckoutAction(payload: {
   const shippingRules = await db.getShippingRules();
   const shippingAmount = calculateShipping(verifiedNetTotal, shippingRules);
   const totalWithShipping = verifiedNetTotal + shippingAmount;
-  const verifiedPointsDiscount = finalPointsRedeemed * 0.5; // 1 point = ₹0.50 discount
+  const verifiedPointsDiscount = finalPointsRedeemed * RUPEES_PER_POINT; // 1 point = ₹0.50 discount
   const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - finalWalletDeduction);
 
   const { evaluateCodRules } = await import("@/lib/codRules");
@@ -611,7 +623,7 @@ export async function processCodCheckoutAction(payload: {
     gatewayPaid: 0,
     pointsRedeemed: finalPointsRedeemed,
     pointsDiscount: verifiedPointsDiscount,
-    pointsEarned: user ? Math.floor(verifiedNetTotal / 100) * 5 : 0, // Business rule: ₹100 spent = 5 points
+    pointsEarned: user ? Math.floor(verifiedNetTotal / 100) * POINTS_PER_100 : 0, // Business rule: ₹100 spent = 5 points
     status: "Order Placed",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({

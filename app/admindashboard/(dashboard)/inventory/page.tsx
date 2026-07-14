@@ -281,13 +281,13 @@ export default function InventoryLedgerPage() {
             <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
             <span className="text-[#0a0a0a] italic">Inventory</span>
           </nav>
-          <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">Inventory Ledger</h2>
+          <h2 className="text-2xl lg:text-4xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none whitespace-nowrap">Inventory Ledger</h2>
           <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
             A comprehensive record of shop inventory, SKUs, and stock levels.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-          <div className="relative group">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <div className="relative group flex-grow sm:flex-grow-0">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-secondary transition-colors">
               search
             </span>
@@ -306,7 +306,7 @@ export default function InventoryLedgerPage() {
             type="button"
             disabled={exporting}
             onClick={() => handleExport("csv")}
-            className="px-5 py-3.5 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            className="px-5 py-3.5 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex-grow sm:flex-grow-0"
           >
             {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
           </button>
@@ -314,14 +314,14 @@ export default function InventoryLedgerPage() {
             type="button"
             disabled={exporting}
             onClick={() => handleExport("xlsx")}
-            className="px-5 py-3.5 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            className="px-5 py-3.5 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex-grow sm:flex-grow-0"
           >
             {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
           </button>
           <button
             type="button"
             onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
-            className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-widest border-2 transition-all whitespace-nowrap rounded-none flex items-center gap-2 ${
+            className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-widest border-2 transition-all whitespace-nowrap rounded-none flex items-center justify-center gap-2 flex-grow sm:flex-grow-0 ${
               showTrash
                 ? "bg-red-600 text-white border-red-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -332,7 +332,7 @@ export default function InventoryLedgerPage() {
           </button>
           <Link
             href="/admindashboard/add-product"
-            className="bg-primary text-white hover:bg-secondary px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none"
+            className="bg-primary text-white hover:bg-secondary px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none flex-grow sm:flex-grow-0"
           >
             <span className="material-symbols-outlined text-sm">add</span> Add Product
           </Link>
@@ -388,7 +388,7 @@ export default function InventoryLedgerPage() {
                 <th className="p-6">Product Details</th>
                 <th className="p-6">Price</th>
                 <th className="p-6">Stock Status</th>
-                <th className="p-6">Reorder Pt</th>
+                <th className="p-6 min-w-[100px]">REORDER</th>
                 <th className="p-6 text-right">Actions</th>
               </tr>
             </thead>

@@ -724,10 +724,24 @@ function OrderDetailsContent() {
             <div className="p-6 bg-[#121215] border-t border-gray-200/10 flex flex-col gap-3">
               {/* FIX 2 — Show ex-GST base price + GST separately so math is transparent */}
               {(() => {
-                const firstCartItem = order.cartItems?.[0];
-                const matchingProduct = products.find(p => p.id === firstCartItem?.productId);
-                const gstRate = matchingProduct?.gstRate ?? (firstCartItem as any)?.gstRate ?? 12;
-                const basePrice = order.total / (1 + gstRate / 100);
+                let sumPrices = 0;
+                let sumTaxable = 0;
+                order.cartItems?.forEach((item: any) => {
+                  const matchingProd = products.find(p => p.id === item.productId || p.title.toLowerCase() === (item.productName || "").toLowerCase());
+                  const price = matchingProd ? matchingProd.price : (item.price || 1299);
+                  const gstRate = matchingProd?.gstRate ?? (item as any)?.gstRate ?? (price <= 1000 ? 5 : 12);
+                  const qty = item.quantity || 1;
+                  sumPrices += price * qty;
+                  sumTaxable += (price / (1 + gstRate / 100)) * qty;
+                });
+
+                if (sumPrices === 0) {
+                  sumPrices = order.total;
+                  sumTaxable = order.total / 1.12;
+                }
+
+                const blendedGstRate = (sumPrices / sumTaxable) - 1;
+                const basePrice = order.total / (1 + blendedGstRate);
                 const gstAmount = order.total - basePrice;
                 return (
                   <>
@@ -738,7 +752,7 @@ function OrderDetailsContent() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
-                      <span>GST ({gstRate}%)</span>
+                      <span>GST (Blended ~{(blendedGstRate * 100).toFixed(1)}%)</span>
                       <span className="font-bold" style={{ color: "var(--text-primary)" }}>
                         ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>

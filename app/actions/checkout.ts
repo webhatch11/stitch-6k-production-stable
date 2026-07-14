@@ -172,7 +172,10 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // D. Deduct inventory stock server-side
-  await db.deductStock(cart, idempotencyKey);
+  const stockOk = await db.deductStock(cart, idempotencyKey);
+  if (!stockOk) {
+    return { success: false, error: "Deduct stock failed. One or more items in your cart became unavailable. Please reload the page." };
+  }
 
   // E. Debit balances server-side with rollback support
   if (walletDeduction > 0) {
@@ -632,7 +635,10 @@ export async function processCodCheckoutAction(payload: {
   }
 
   // D. Deduct inventory stock server-side
-  await db.deductStock(cart, idempotencyKey);
+  const stockOk = await db.deductStock(cart, idempotencyKey);
+  if (!stockOk) {
+    return { success: false, error: "Deduct stock failed. One or more items in your cart became unavailable. Please reload the page." };
+  }
 
   // E. Debit balances server-side with rollback support (only if logged in)
   if (user && finalWalletDeduction > 0) {

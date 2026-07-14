@@ -7,7 +7,12 @@ import * as Sentry from '@sentry/nextjs'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/'
+  let next = requestUrl.searchParams.get('next') ?? '/'
+
+  // Prevent open redirect vulnerabilities: only allow local relative paths
+  if (!next.startsWith('/') || next.startsWith('//') || next.toLowerCase().includes('javascript:') || next.toLowerCase().includes('data:')) {
+    next = '/'
+  }
 
   if (code) {
     try {

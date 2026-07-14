@@ -130,11 +130,59 @@ export default function InvoiceClient({
   };
 
   const stateInfo = getStateInfo(matchedOrder.address_snapshot || (matchedOrder as any).address);
-  const taxableBase = matchedOrder.total / 1.12;
+
+  // Calculate item-by-item GST rates dynamically to handle mixed 5% and 12% products correctly
+  let sumItemPrices = 0;
+  let sumItemTaxable = 0;
+  
+  const itemsWithTax = matchedOrder.items.map((itemName) => {
+    const matchedProd = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
+    const price = matchedProd ? matchedProd.price : (itemName.includes("Classic") ? 1299 : 1450);
+    const gstRate = matchedProd?.gstRate ?? (price <= 1000 ? 5 : 12);
+    const hsn = getHSN(matchedProd?.category || "");
+    const taxableValue = price / (1 + gstRate / 100);
+    
+    sumItemPrices += price;
+    sumItemTaxable += taxableValue;
+
+    return {
+      itemName,
+      price,
+      gstRate,
+      hsn,
+      taxableValue,
+      category: matchedProd ? matchedProd.category : "Premium Handcrafted Shirt"
+    };
+  });
+
+  const blendedGstRate = sumItemPrices > 0 ? (sumItemPrices / sumItemTaxable) - 1 : 0.12;
+  const taxableBase = matchedOrder.total / (1 + blendedGstRate);
   const totalGst = matchedOrder.total - taxableBase;
   const cgst = stateInfo.isLocal ? totalGst / 2 : 0;
   const sgst = stateInfo.isLocal ? totalGst / 2 : 0;
   const igst = !stateInfo.isLocal ? totalGst : 0;
+
+  // Group items by GST rate for GST tax breakup table
+  const gstGroups: Record<number, { taxableBase: number; cgst: number; sgst: number; igst: number; totalTax: number }> = {};
+  itemsWithTax.forEach((item) => {
+    const rate = item.gstRate;
+    const proportion = sumItemPrices > 0 ? item.price / sumItemPrices : 0;
+    const categoryTotal = matchedOrder.total * proportion;
+    const categoryTaxableBase = categoryTotal / (1 + rate / 100);
+    const categoryGst = categoryTotal - categoryTaxableBase;
+
+    if (!gstGroups[rate]) {
+      gstGroups[rate] = { taxableBase: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 };
+    }
+    gstGroups[rate].taxableBase += categoryTaxableBase;
+    if (stateInfo.isLocal) {
+      gstGroups[rate].cgst += categoryGst / 2;
+      gstGroups[rate].sgst += categoryGst / 2;
+    } else {
+      gstGroups[rate].igst += categoryGst;
+    }
+    gstGroups[rate].totalTax += categoryGst;
+  });
 
   return (
     <div className="bg-[#f9f9f9] text-on-surface font-body min-h-screen py-12 px-6">
@@ -229,23 +277,19 @@ export default function InvoiceClient({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
-            {matchedOrder.items.map((itemName, index) => {
-              const matchedProd = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
-              const price = matchedProd ? matchedProd.price : (itemName.includes("Classic") ? 1299 : 1450);
-              const hsn = getHSN(matchedProd?.category || "");
-              const itemTaxableRate = price / 1.12;
+            {itemsWithTax.map((item, index) => {
               return (
                 <tr key={index}>
                   <td className="py-6">
-                    <p className="font-headline font-bold text-sm uppercase">{itemName}</p>
+                    <p className="font-headline font-bold text-sm uppercase">{item.itemName}</p>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                      {matchedProd ? matchedProd.category : "Premium Handcrafted Shirt"}
+                      {item.category}
                     </p>
                   </td>
-                  <td className="py-6 text-center font-mono font-bold text-xs">{hsn}</td>
+                  <td className="py-6 text-center font-mono font-bold text-xs">{item.hsn}</td>
                   <td className="py-6 text-center font-bold">01</td>
-                  <td className="py-6 text-right font-mono font-bold">₹{itemTaxableRate.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="py-6 text-right font-mono font-bold">₹{itemTaxableRate.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-6 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-6 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
               );
             })}
@@ -288,17 +332,17 @@ export default function InvoiceClient({
             {stateInfo.isLocal ? (
               <>
                 <div className="flex justify-between text-gray-600">
-                  <span className="text-gray-400">CGST (6%)</span>
+                  <span className="text-gray-400">CGST</span>
                   <span className="font-mono">₹{cgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span className="text-gray-400">SGST (6%)</span>
+                  <span className="text-gray-400">SGST</span>
                   <span className="font-mono">₹{sgst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </>
             ) : (
               <div className="flex justify-between text-gray-600">
-                <span className="text-gray-400">IGST (12%)</span>
+                <span className="text-gray-400">IGST</span>
                 <span className="font-mono">₹{igst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             )}
@@ -348,24 +392,29 @@ export default function InvoiceClient({
               </tr>
             </thead>
             <tbody>
-              <tr className="font-mono">
-                <td className="p-3 border-r border-gray-200 font-sans font-bold">6205</td>
-                <td className="p-3 border-r border-gray-200 text-right">₹{taxableBase.toFixed(2)}</td>
-                {stateInfo.isLocal ? (
-                  <>
-                    <td className="p-3 border-r border-gray-200 text-center">6%</td>
-                    <td className="p-3 border-r border-gray-200 text-right">₹{cgst.toFixed(2)}</td>
-                    <td className="p-3 border-r border-gray-200 text-center">6%</td>
-                    <td className="p-3 border-r border-gray-200 text-right">₹{sgst.toFixed(2)}</td>
-                  </>
-                ) : (
-                  <>
-                    <td className="p-3 border-r border-gray-200 text-center">12%</td>
-                    <td className="p-3 border-r border-gray-200 text-right">₹{igst.toFixed(2)}</td>
-                  </>
-                )}
-                <td className="p-3 text-right">₹{totalGst.toFixed(2)}</td>
-              </tr>
+              {Object.entries(gstGroups).map(([rateStr, group]) => {
+                const rate = Number(rateStr);
+                return (
+                  <tr key={rate} className="font-mono border-b border-gray-100">
+                    <td className="p-3 border-r border-gray-200 font-sans font-bold">6205</td>
+                    <td className="p-3 border-r border-gray-200 text-right">₹{group.taxableBase.toFixed(2)}</td>
+                    {stateInfo.isLocal ? (
+                      <>
+                        <td className="p-3 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
+                        <td className="p-3 border-r border-gray-200 text-right">₹{group.cgst.toFixed(2)}</td>
+                        <td className="p-3 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
+                        <td className="p-3 border-r border-gray-200 text-right">₹{group.sgst.toFixed(2)}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="p-3 border-r border-gray-200 text-center">{rate}%</td>
+                        <td className="p-3 border-r border-gray-200 text-right">₹{group.igst.toFixed(2)}</td>
+                      </>
+                    )}
+                    <td className="p-3 text-right">₹{group.totalTax.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

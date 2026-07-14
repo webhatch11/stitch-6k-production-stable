@@ -57,10 +57,31 @@ export async function bulkUpdateOrderStatusAction(
   }
 
   try {
-    // STEP 1: Payment guard on bulkUpdateOrderStatusAction (validate each order is paid)
+    // STEP 1: State-machine transition validation & Payment guard on bulkUpdateOrderStatusAction
+    const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+      "Payment Pending": ["Paid", "Cancelled"],
+      "Paid": ["Processing", "Cancelled"],
+      "Processing": ["Shipped", "Cancelled"],
+      "Shipped": ["Delivered", "Cancelled"],
+      "Delivered": ["Return Requested", "Returned", "Cancelled"],
+      "Return Requested": ["Return in Transit", "Return Rejected", "Cancelled"],
+      "Return in Transit": ["Returned", "Cancelled"],
+      "Cancelled": [],
+      "Returned": [],
+      "Return Rejected": []
+    };
+
     for (const oId of orderIds) {
       const order = await db.getOrderById(oId);
       if (!order) throw new Error(`Order ${oId} not found`);
+
+      const currentStatus = order.status || "Payment Pending";
+      if (currentStatus !== newStatus) {
+        const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+        if (!allowed.includes(newStatus)) {
+          throw new Error(`Invalid status transition: Cannot transition order #${oId} from "${currentStatus}" to "${newStatus}".`);
+        }
+      }
       
       const isPaidViaGateway = 
         order.paymentStatus?.toLowerCase() === 'paid';

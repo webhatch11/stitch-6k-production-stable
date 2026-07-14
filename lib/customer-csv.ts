@@ -13,6 +13,17 @@ export interface CustomerCsvRow {
   is_blocked?: boolean;
 }
 
+function sanitizeCsvCell(value: string): string {
+  if (!value) return '';
+  // Neutralize CSV formula injection
+  // Excel interprets cells starting with =, +, -, @, tab, carriage return as formulas
+  const dangerous = ['=', '+', '-', '@', '\t', '\r', '\n'];
+  if (dangerous.some(c => value.startsWith(c))) {
+    return `'${value}`; // prefix with apostrophe
+  }
+  return value;
+}
+
 export function generateCustomerCsv(customers: CustomerCsvRow[]): string {
   const BOM = "\uFEFF";
   const header = [
@@ -29,7 +40,8 @@ export function generateCustomerCsv(customers: CustomerCsvRow[]): string {
 
   const rows = customers.map((c) => {
     const escape = (v: string | number | undefined | null) => {
-      const str = String(v ?? "");
+      let str = String(v ?? "");
+      str = sanitizeCsvCell(str);
       if (str.includes(",") || str.includes('"') || str.includes("\n")) {
         return `"${str.replace(/"/g, '""')}"`;
       }

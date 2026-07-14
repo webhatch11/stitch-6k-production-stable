@@ -4,6 +4,7 @@ import { shiprocket } from "@/lib/shiprocket";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { getServerUser } from "@/lib/supabase-server";
 import { ShipmentEvent } from "@/lib/types";
+import { CacheService } from "@/lib/cache";
 
 // Only the fields the tracking UI needs — never the full order row, which
 // contains the address snapshot, contact details and payment breakdown.
@@ -66,6 +67,12 @@ export async function GET(req: NextRequest) {
         { success: false, error: "Order not found." },
         { status: 404 }
       );
+    }
+
+    const cacheKey = `tracking:${order.id}`;
+    const cached = await CacheService.get(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
     }
 
     // Attempt to retrieve shipment from database
@@ -191,7 +198,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       order: sanitizeOrderForTracking(order),
       shipment: shipment || {
@@ -202,7 +209,11 @@ export async function GET(req: NextRequest) {
       },
       events: events.length > 0 ? events : null,
       orderEvents: await db.getOrderEvents(order.id),
-    });
+    };
+
+    await CacheService.set(cacheKey, responseData, 300);
+
+    return NextResponse.json(responseData);
 
   } catch (err: unknown) {
     console.error("[Track API] Unhandled exception:", err);

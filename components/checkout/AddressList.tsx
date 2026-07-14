@@ -595,6 +595,8 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
           <input
             required
             name="name"
+            minLength={2}
+            maxLength={100}
             value={formData.name || ""}
             onChange={(e) => handleInputChange("name", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
@@ -608,6 +610,10 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             required
             name="phone"
             type="tel"
+            inputMode="tel"
+            pattern="[6-9][0-9]{9}"
+            maxLength={10}
+            title="Enter a valid 10-digit Indian mobile number"
             value={formData.phone || ""}
             onChange={(e) => handleInputChange("phone", e.target.value)}
             className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"
@@ -655,6 +661,10 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
             <input
               required
               name="postal_code"
+              inputMode="numeric"
+              pattern="[1-9][0-9]{5}"
+              maxLength={6}
+              title="Enter a valid 6-digit Indian pincode"
               value={formData.postal_code || ""}
               onChange={(e) => handleInputChange("postal_code", e.target.value)}
               className="w-full px-4 py-3 bg-white/50 border border-outline-variant/20 focus:border-[#fed488]/60 focus:bg-white text-[10px] font-black uppercase tracking-wider outline-none rounded-lg text-on-surface transition-all duration-300"

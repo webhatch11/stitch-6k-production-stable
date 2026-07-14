@@ -17,6 +17,7 @@ export default function OrdersLedgerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [submitting, setSubmitting] = useState<string | null>(null);
   const PAGE_SIZE = 20;
 
   const handleFilterChange = (filter: "all" | "acquiring" | "manifested" | "returns" | "archived") => {
@@ -85,19 +86,25 @@ export default function OrdersLedgerPage() {
 
   const confirmBulkStatusChange = async () => {
     if (selectedOrderIds.length === 0 || !bulkStatusToApply) return;
-    const res = await bulkUpdateOrderStatusAction(selectedOrderIds, bulkStatusToApply);
-    if (!res.success) {
-      triggerToast(res.error || "Bulk update failed");
+    if (submitting) return;
+    setSubmitting("bulk");
+    try {
+      const res = await bulkUpdateOrderStatusAction(selectedOrderIds, bulkStatusToApply);
+      if (!res.success) {
+        triggerToast(res.error || "Bulk update failed");
+        setModalOpen(false);
+        setBulkStatusToApply("");
+        return;
+      }
+      window.dispatchEvent(new Event("storage"));
+      await loadOrders();
+      setSelectedOrderIds([]);
+      triggerToast(`Successfully updated status for ${res.count ?? selectedOrderIds.length} order(s) to "${bulkStatusToApply}".`);
       setModalOpen(false);
       setBulkStatusToApply("");
-      return;
+    } finally {
+      setSubmitting(null);
     }
-    window.dispatchEvent(new Event("storage"));
-    await loadOrders();
-    setSelectedOrderIds([]);
-    triggerToast(`Successfully updated status for ${res.count ?? selectedOrderIds.length} order(s) to "${bulkStatusToApply}".`);
-    setModalOpen(false);
-    setBulkStatusToApply("");
   };
 
   const getStatusStyle = (status: string) => {
@@ -568,8 +575,9 @@ export default function OrdersLedgerPage() {
               </button>
               <button
                 type="button"
+                disabled={submitting === "bulk"}
                 onClick={confirmBulkStatusChange}
-                className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold"
+                className={`flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all rounded-none border-none font-bold ${submitting === "bulk" ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 Confirm
               </button>

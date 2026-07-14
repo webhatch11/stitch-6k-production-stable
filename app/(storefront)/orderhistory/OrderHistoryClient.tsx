@@ -202,52 +202,42 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
           </p>
         </header>
 
-        <section className="bg-transparent md:bg-white border-0 md:border md:border-outline-variant/10 md:shadow-2xl overflow-hidden rounded-none">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse hidden md:table">
-              <thead className="hidden md:table-header-group">
-                <tr className="bg-surface-container-low border-b border-outline-variant/20">
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order ID</th>
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order Date</th>
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Product Details</th>
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Valuation</th>
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Logistics State</th>
-                  <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline text-right">Order Actions</th>
-                </tr>
-              </thead>
-              <tbody id="historyBody" className="hidden md:table-row-group divide-y divide-outline-variant/10 font-label">
-                {isLoading ? (
-                  <tr className="flex flex-col md:table-row">
-                    <td colSpan={6} className="px-8 py-10">
-                      <div className="space-y-4 animate-pulse">
-                        <div className="h-16 bg-neutral-200 rounded"></div>
-                        <div className="h-16 bg-neutral-200 rounded"></div>
-                        <div className="h-16 bg-neutral-200 rounded"></div>
-                      </div>
-                    </td>
+        {isLoading ? (
+          <div className="space-y-4 animate-pulse p-8 bg-white border border-outline-variant/10 shadow-2xl rounded-none">
+            <div className="h-16 bg-neutral-200 rounded"></div>
+            <div className="h-16 bg-neutral-200 rounded"></div>
+            <div className="h-16 bg-neutral-200 rounded"></div>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-24 px-8 bg-white border border-outline-variant/10 shadow-2xl rounded-none">
+            <div className="text-6xl mb-6">🛍️</div>
+            <h3 className="text-xl font-bold mb-3">No orders yet</h3>
+            <p className="text-gray-500 mb-8 max-w-sm mx-auto">
+              You haven't placed any orders yet. Start shopping to see your orders here.
+            </p>
+            <Link
+              href="/shopallshirts"
+              className="inline-block bg-black text-white px-8 py-3 rounded-full font-medium hover:bg-gray-800 transition-colors"
+            >
+              Shop Now
+            </Link>
+          </div>
+        ) : (
+          <section className="bg-transparent md:bg-white border-0 md:border md:border-outline-variant/10 md:shadow-2xl overflow-hidden rounded-none">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse hidden md:table">
+                <thead className="hidden md:table-header-group">
+                  <tr className="bg-surface-container-low border-b border-outline-variant/20">
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order ID</th>
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order Date</th>
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Product Details</th>
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Valuation</th>
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Logistics State</th>
+                    <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline text-right">Order Actions</th>
                   </tr>
-                ) : orders.length === 0 ? (
-                  <tr className="flex flex-col md:table-row">
-                    <td colSpan={6} className="px-6 py-24 text-center">
-                      <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                        <div className="size-20 rounded-full bg-surface-container-low flex items-center justify-center border border-outline-variant/20 mb-6 text-secondary/60">
-                          <span className="material-symbols-outlined text-4xl">inventory_2</span>
-                        </div>
-                        <h3 className="font-headline text-lg font-black uppercase tracking-tight text-on-surface mb-2">No orders yet</h3>
-                        <p className="text-xs text-outline leading-relaxed uppercase tracking-wider font-semibold opacity-70 mb-8">
-                          Your orders will appear here after your first purchase. Discover our premium collections hand-loomed in South India.
-                        </p>
-                        <Link
-                          href="/shopallshirts"
-                          className="w-full inline-flex items-center justify-center bg-on-surface hover:bg-secondary text-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10"
-                        >
-                          SHOP NOW
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => {
+                </thead>
+                <tbody id="historyBody" className="hidden md:table-row-group divide-y divide-outline-variant/10 font-label">
+                  {orders.map((order) => {
                     // Badge styles
                     const statusLower = (order.status || "").toLowerCase();
                     let statusClass = "bg-stone-500/10 text-stone-700 border border-stone-500/20";
@@ -548,7 +538,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                       </tr>
                     );
                   })
-                )}
+                }
               </tbody>
             </table>
 
@@ -665,6 +655,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
             </div>
           </div>
         </section>
+      )}
       </main>
 
       {/* Return Request Modal */}

@@ -807,13 +807,29 @@ export async function verifyStockAction(cart: any[]) {
 }
 
 export async function devTestApplyWalletCreditAction(amount: number, desc: string, orderId: string, userId: string) {
-  if (process.env.NODE_ENV === "production") return { success: false, error: "Dev only" };
+  const isDev = process.env.NODE_ENV === 'development' 
+    && process.env.ENABLE_DEV_TEST_ACTIONS === 'true';
+
+  if (!isDev) {
+    return { 
+      success: false, 
+      error: 'Dev test actions disabled' 
+    };
+  }
   await db.applyWalletCredit(amount, desc, orderId, userId);
   return { success: true };
 }
 
 export async function devTestApplyLoyaltyCreditAction(points: number, desc: string, orderId: string, userId: string) {
-  if (process.env.NODE_ENV === "production") return { success: false, error: "Dev only" };
+  const isDev = process.env.NODE_ENV === 'development' 
+    && process.env.ENABLE_DEV_TEST_ACTIONS === 'true';
+
+  if (!isDev) {
+    return { 
+      success: false, 
+      error: 'Dev test actions disabled' 
+    };
+  }
   await db.applyLoyaltyCredit(points, desc, orderId, userId);
   return { success: true };
 }

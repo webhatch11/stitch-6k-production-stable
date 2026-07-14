@@ -3,6 +3,7 @@ import { razorpay } from "../../lib/razorpay";
 import { supabaseService as supabase } from "../../lib/supabase-service";
 import { db } from "../../lib/db";
 import IORedis from "ioredis";
+import * as Sentry from "@sentry/nextjs";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -14,80 +15,87 @@ export const reservationCleanupWorker = new Worker(
     if (job.name === "cleanup_expired_reservations") {
       console.log("[Reservation Cleanup Worker] Scanning for expired payment-pending orders...");
       
-      if (!supabase) return;
+      try {
+        if (!supabase) return;
 
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-      const { data: pendingOrders, error: fetchError } = await supabase
-        .from("orders")
-        .select("id, razorpay_order_id, status, wallet_paid, points_redeemed, idempotency_key")
-        .eq("status", "Payment Pending")
-        .lt("created_at", fifteenMinutesAgo);
+        const { data: pendingOrders, error: fetchError } = await supabase
+          .from("orders")
+          .select("id, razorpay_order_id, status, wallet_paid, points_redeemed, idempotency_key")
+          .eq("status", "Payment Pending")
+          .lt("created_at", fifteenMinutesAgo);
 
-      if (fetchError) {
-        console.error("[Reservation Cleanup Worker] Error fetching pending orders:", fetchError);
-        return;
-      }
+        if (fetchError) {
+          throw fetchError;
+        }
 
-      if (pendingOrders && pendingOrders.length > 0) {
-        for (const order of pendingOrders) {
-          try {
-            if (order.razorpay_order_id) {
-              const rzpOrder = await razorpay.orders.fetch(order.razorpay_order_id);
-              if (rzpOrder.status === "paid") {
-                console.log(`[Reservation Cleanup Worker] Order ${order.id} is paid on Razorpay. Skipping cleanup.`);
-                continue;
+        if (pendingOrders && pendingOrders.length > 0) {
+          for (const order of pendingOrders) {
+            try {
+              if (order.razorpay_order_id) {
+                const rzpOrder = await razorpay.orders.fetch(order.razorpay_order_id);
+                if (rzpOrder.status === "paid") {
+                  console.log(`[Reservation Cleanup Worker] Order ${order.id} is paid on Razorpay. Skipping cleanup.`);
+                  continue;
+                }
               }
-            }
 
-            console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking Cancelled and releasing reservation.`);
+              console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking Cancelled and releasing reservation.`);
 
-            await db.saveOrder({
-              id: order.id,
-              status: "Cancelled"
-            });
+              await db.saveOrder({
+                id: order.id,
+                status: "Cancelled"
+              });
 
-            await db.createPaymentAuditLog(order.id, "Payment Pending", "Cancelled", "cleanup_worker");
-            await db.createOrderEvent(order.id, "Order Cancelled");
+              await db.createPaymentAuditLog(order.id, "Payment Pending", "Cancelled", "cleanup_worker");
+              await db.createOrderEvent(order.id, "Order Cancelled");
 
-            await supabase
-              .from("orders")
-              .update({ payment_status: "EXPIRED", status: "Cancelled" })
-              .eq("id", order.id);
-
-            if (order.idempotency_key) {
               await supabase
-                .from("inventory_reservations")
-                .update({ status: "EXPIRED" })
-                .eq("session_id", order.idempotency_key);
-            }
+                .from("orders")
+                .update({ payment_status: "EXPIRED", status: "Cancelled" })
+                .eq("id", order.id);
 
-            if (order.wallet_paid > 0) {
-              try {
-                await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id);
-              } catch (walletErr) {
-                console.warn("[Reservation Cleanup Worker] Failed to credit wallet:", walletErr);
+              if (order.idempotency_key) {
+                await supabase
+                  .from("inventory_reservations")
+                  .update({ status: "EXPIRED" })
+                  .eq("session_id", order.idempotency_key);
               }
-            }
-            if (order.points_redeemed > 0) {
-              try {
-                await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id);
-              } catch (loyaltyErr) {
-                console.warn("[Reservation Cleanup Worker] Failed to credit loyalty:", loyaltyErr);
-              }
-            }
 
-          } catch (err) {
-            console.error(`[Reservation Cleanup Worker] Failed to cleanup order ${order.id}:`, err);
+              if (order.wallet_paid > 0) {
+                try {
+                  await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id);
+                } catch (walletErr) {
+                  console.warn("[Reservation Cleanup Worker] Failed to credit wallet:", walletErr);
+                }
+              }
+              if (order.points_redeemed > 0) {
+                try {
+                  await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id);
+                } catch (loyaltyErr) {
+                  console.warn("[Reservation Cleanup Worker] Failed to credit loyalty:", loyaltyErr);
+                }
+              }
+
+            } catch (err) {
+              console.error(`[Reservation Cleanup Worker] Failed to cleanup order ${order.id}:`, err);
+            }
           }
         }
+      } catch (err) {
+        console.error(
+          '[reservation-cleanup] Fatal error:', err
+        );
+        Sentry.captureException(err, {
+          tags: { worker: 'reservation-cleanup' }
+        });
+        throw err;
       }
     }
   },
   { connection: connection as any }
 );
-
-import * as Sentry from "@sentry/nextjs";
 
 reservationCleanupWorker.on("completed", (job) => {
   console.log(`[Reservation Cleanup Worker] Job ${job.id} completed successfully`);

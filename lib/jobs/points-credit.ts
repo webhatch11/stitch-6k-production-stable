@@ -59,12 +59,27 @@ export async function pointsCreditProcessor(job: any) {
         continue;
       }
 
-      const netSpend = Math.max(0, Number(order.original_total || 0) - Number(order.coupon_discount || 0));
-      
+      const earned = order.points_earned || 0;
+
+      if (earned <= 0) {
+        // No points to credit, mark as credited
+        await supabase
+          .from('orders')
+          .update({ points_credit_status: 'credited' })
+          .eq('id', order.id);
+        successCount++;
+        continue;
+      }
+
       console.log(`[Points Credit Worker] Crediting points for order ${order.id} (user: ${order.user_id})...`);
       
-      // awardLoyaltyPoints uses net spend (total without shipping)
-      await db.awardLoyaltyPoints(netSpend, order.id, order.user_id);
+      // Credit the stored amount directly
+      await db.applyLoyaltyCredit(
+        earned,
+        `Points earned for Order #${order.id}`,
+        order.id,
+        order.user_id
+      );
 
       // Update status to credited
       await supabase

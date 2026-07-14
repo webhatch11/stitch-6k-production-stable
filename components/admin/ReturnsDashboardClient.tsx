@@ -39,6 +39,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
   const [targetOrder, setTargetOrder] = useState<Order | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
   const [modalError, setModalError] = useState("");
 
   // Toast Alerts
@@ -163,6 +164,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
   const handleApprovePickup = async () => {
     if (!targetOrder || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitting(targetOrder.id);
     setModalError("");
     try {
       const res = await approveReturnPickupAction(targetOrder.id);
@@ -178,6 +180,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
       setModalError(e.message || "An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+      setSubmitting(null);
     }
   };
 
@@ -188,6 +191,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
       return;
     }
     setIsSubmitting(true);
+    setSubmitting(targetOrder.id);
     setModalError("");
     try {
       const res = await rejectReturnAction(targetOrder.id, rejectReason.trim());
@@ -204,12 +208,14 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
       setModalError(e.message || "An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+      setSubmitting(null);
     }
   };
 
   const handleConfirmReceived = async () => {
     if (!targetOrder || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitting(targetOrder.id);
     setModalError("");
     try {
       // Transition In Transit to Returned (QC Passed automatically)
@@ -230,6 +236,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
       setModalError(e.message || "An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+      setSubmitting(null);
     }
   };
 
@@ -342,23 +349,25 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
                           <button
+                            disabled={submitting === o.id}
                             onClick={() => {
                               setTargetOrder(o);
                               setModalType("pickup");
                               setModalError("");
                             }}
-                            className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 cursor-pointer"
+                            className={`bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             Approve Pickup
                           </button>
                           <button
+                            disabled={submitting === o.id}
                             onClick={() => {
                               setTargetOrder(o);
                               setRejectReason("");
                               setModalType("reject");
                               setModalError("");
                             }}
-                            className="border border-red-200 text-red-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:bg-red-50 cursor-pointer"
+                            className={`border border-red-200 text-red-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:bg-red-50 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             Reject
                           </button>
@@ -416,12 +425,13 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
                           <button
+                            disabled={submitting === o.id}
                             onClick={() => {
                               setTargetOrder(o);
                               setModalType("receive");
                               setModalError("");
                             }}
-                            className="bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 cursor-pointer"
+                            className={`bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
                             Mark Received
                           </button>
@@ -689,9 +699,9 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (targetOrder && submitting === targetOrder.id)}
                 onClick={handleApprovePickup}
-                className="flex-1 px-4 py-3 bg-primary text-white hover:bg-secondary text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+                className={`flex-1 px-4 py-3 bg-primary text-white hover:bg-secondary text-[10px] font-black uppercase tracking-widest transition-colors rounded-none border-none font-bold ${(isSubmitting || (targetOrder && submitting === targetOrder.id)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 {isSubmitting ? "Scheduling..." : "Confirm Pickup"}
               </button>
@@ -740,9 +750,9 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (targetOrder && submitting === targetOrder.id)}
                 onClick={handleConfirmRejection}
-                className="flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+                className={`flex-1 px-4 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-widest transition-colors rounded-none border-none font-bold ${(isSubmitting || (targetOrder && submitting === targetOrder.id)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 {isSubmitting ? "Processing..." : "Confirm Rejection"}
               </button>
@@ -784,9 +794,9 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
               </button>
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (targetOrder && submitting === targetOrder.id)}
                 onClick={handleConfirmReceived}
-                className="flex-1 px-4 py-3 bg-green-600 text-white hover:bg-green-700 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
+                className={`flex-1 px-4 py-3 bg-green-600 text-white hover:bg-green-700 text-[10px] font-black uppercase tracking-widest transition-colors rounded-none border-none font-bold ${(isSubmitting || (targetOrder && submitting === targetOrder.id)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 {isSubmitting ? "Updating..." : "Mark Received & Refund"}
               </button>

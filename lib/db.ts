@@ -365,9 +365,6 @@ export const db = {
 
   async saveProduct(product: Partial<Product>): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    // Invalidate caches
-    await CacheService.delPattern("products:list*");
-    await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -472,6 +469,10 @@ export const db = {
           .in("id", toDelete.map((e: any) => e.id));
       }
     }
+
+    // Invalidate caches
+    await CacheService.delPattern("products:list*");
+    await CacheService.delPattern("products:slug:*");
   },
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
@@ -588,8 +589,6 @@ export const db = {
 
   async deleteProduct(id: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    await CacheService.delPattern("products:list*");
-    await CacheService.delPattern("products:slug:*");
 
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -604,6 +603,9 @@ export const db = {
       console.error("Error deleting product from Supabase:", error);
       throw error;
     }
+
+    await CacheService.delPattern("products:list*");
+    await CacheService.delPattern("products:slug:*");
   },
 
   async softDeleteProduct(id: string, adminUserId?: string, adminUserEmail?: string, reason?: string): Promise<boolean> {
@@ -870,8 +872,6 @@ export const db = {
 
   async saveOrder(order: Partial<Order>): Promise<Order> {
     const { supabase, isSupabaseConfigured } = loadService();
-    // Invalidate metrics cache
-    await CacheService.del("analytics:dashboard");
 
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -1028,6 +1028,9 @@ export const db = {
       shipping_amount: order.shippingAmount !== undefined ? order.shippingAmount : (order.shipping_amount !== undefined ? order.shipping_amount : (existingOrder ? Number(existingOrder.shipping_amount) : 0)),
     };
 
+    // Invalidate metrics cache
+    await CacheService.del("analytics:dashboard");
+
     return mergedOrder;
   },
 
@@ -1096,8 +1099,6 @@ export const db = {
 
   async saveCoupon(coupon: Partial<Coupon>): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    await CacheService.del("settings:coupons");
-    await CacheService.delPattern("analytics:coupons:*");
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
         'Database connection not configured. ' +
@@ -1128,12 +1129,13 @@ export const db = {
       console.error("Error saving coupon to Supabase:", error);
       throw error;
     }
+
+    await CacheService.del("settings:coupons");
+    await CacheService.delPattern("analytics:coupons:*");
   },
 
   async deleteCoupon(id: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
-    await CacheService.del("settings:coupons");
-    await CacheService.delPattern("analytics:coupons:*");
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
         'Database connection not configured. ' +
@@ -1147,6 +1149,9 @@ export const db = {
       console.error("Error deleting coupon from Supabase:", error);
       throw error;
     }
+
+    await CacheService.del("settings:coupons");
+    await CacheService.delPattern("analytics:coupons:*");
   },
   
   async getSetting(key: string): Promise<any> {
@@ -1342,16 +1347,34 @@ export const db = {
     if (coupon.type === "bogo_quantity") {
       const buyQty = coupon.buyQuantity || 1;
       const getQty = coupon.getQuantity || 1;
-      if (!cartItems || cartItems.length < buyQty) {
+
+      // Sum actual quantities not just line count
+      const totalUnits = (cartItems || []).reduce(
+        (sum, item) => sum + (item.quantity || 1), 
+        0
+      );
+
+      if (totalUnits < buyQty) {
         return {
           valid: false,
-          error: `Add at least ${buyQty} items to your cart to use this offer.`,
+          error: `Add at least ${buyQty} items to your cart to use this offer.`
         };
       }
-      const sorted = [...cartItems].sort((a, b) => a.price - b.price);
-      const freeCount = Math.floor(cartItems.length / buyQty) * getQty;
-      const freeItems = sorted.slice(0, freeCount);
+
+      // Sort items by price ascending for cheapest-free logic
+      const sortedItems: any[] = [];
+      for (const item of (cartItems || [])) {
+        const qty = item.quantity || 1;
+        for (let i = 0; i < qty; i++) {
+          sortedItems.push({ ...item, quantity: 1 });
+        }
+      }
+      sortedItems.sort((a, b) => a.price - b.price);
+
+      const freeCount = Math.floor(totalUnits / buyQty) * getQty;
+      const freeItems = sortedItems.slice(0, freeCount);
       const discountAmount = freeItems.reduce((sum, item) => sum + item.price, 0);
+
       return {
         valid: true,
         coupon,

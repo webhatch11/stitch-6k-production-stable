@@ -63,15 +63,7 @@ export default function CheckoutPage() {
     return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
   });
   const [shippingRules, setShippingRules] = useState<any>(null);
-  const [marquee, setMarquee] = useState<any>({
-    enabled: true,
-    items: [
-      "FREE DELIVERY ACROSS INDIA",
-      "USE CODE FESTIVE24 FOR 10% OFF",
-      "100% PREMIUM COTTON & LINEN",
-      "EASY 7-DAY RETURNS"
-    ]
-  });
+  const [marquee, setMarquee] = useState<any>(null);
   const [serviceability, setServiceability] = useState<{
     checked: boolean;
     serviceable: boolean;

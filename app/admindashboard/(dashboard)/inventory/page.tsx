@@ -304,7 +304,7 @@ export default function InventoryLedgerPage() {
           </div>
         </div>
 
-        <div className="p-3 border border-gray-200/60 bg-white/50 shadow-sm w-full xl:w-auto flex justify-center">
+        <div className="p-3 border border-gray-200/60 bg-white/50 shadow-sm w-full xl:w-auto flex justify-center shrink-0">
           <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
             {/* Export CSV Button */}
             <button

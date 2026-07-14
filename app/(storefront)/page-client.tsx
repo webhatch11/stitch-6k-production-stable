@@ -148,6 +148,9 @@ interface FavoriteStyleItem {
   badge: string;
   colors: string[];
   slug: string;
+  rawPrice: number;
+  compareAtPrice?: number | null;
+  comparePrice?: number | null;
 }
 
 interface ShirtCategoryItem {
@@ -280,6 +283,9 @@ export default function HomeClient({
     badge: p.customBadge || (p.bestseller ? "Bestseller" : (p.isNew ? "New" : "")),
     colors: p.colors || [],
     slug: p.slug || "",
+    rawPrice: p.price,
+    compareAtPrice: p.compareAtPrice,
+    comparePrice: p.comparePrice,
   }));
 
   const activeExclusives: FavoriteStyleItem[] = (exclusives || []).map((p) => ({
@@ -290,6 +296,9 @@ export default function HomeClient({
     badge: p.customBadge || "Exclusive",
     colors: p.colors || [],
     slug: p.slug || "",
+    rawPrice: p.price,
+    compareAtPrice: p.compareAtPrice,
+    comparePrice: p.comparePrice,
   }));
   
   // Favorite products active index state for 3D Coverflow slider
@@ -1336,9 +1345,11 @@ export default function HomeClient({
                     />
                     
                     {/* Badge */}
-                    <div className="absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
-                      {item.badge}
-                    </div>
+                    {item.badge && (
+                      <div className="absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
+                        {item.badge}
+                      </div>
+                    )}
 
                     {/* Wishlist Heart Icon */}
                     {(() => {
@@ -1384,13 +1395,31 @@ export default function HomeClient({
                   </div>
 
                   {/* Text details below the image */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4 mb-1">
+                  <div className="flex justify-between items-start gap-4 mb-1">
                     <h3 className="font-sans font-bold text-neutral-900 text-xs md:text-sm text-left leading-tight group-hover:text-secondary transition-colors duration-300">
                       {item.name}
                     </h3>
-                    <span className="font-sans font-black text-neutral-900 text-xs md:text-sm whitespace-nowrap">
-                      {item.price}
-                    </span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="font-sans font-black text-neutral-900 text-xs md:text-sm whitespace-nowrap">
+                        {item.price}
+                      </span>
+                      {(() => {
+                        const effectiveComparePrice = item.compareAtPrice || item.comparePrice;
+                        if (effectiveComparePrice && effectiveComparePrice > item.rawPrice) {
+                          return (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[9px] line-through text-gray-400 font-bold">
+                                ₹{effectiveComparePrice.toLocaleString("en-IN")}
+                              </span>
+                              <span className="text-[8px] font-black text-green-700 uppercase tracking-widest bg-green-50 px-1 py-0.5 border border-green-200/30">
+                                {Math.round((1 - item.rawPrice / effectiveComparePrice) * 100)}% OFF
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </div>
                   <p className="font-sans text-[9px] md:text-[10px] text-neutral-400 font-bold uppercase tracking-wider text-left">
                     MRP inclusive of all taxes
@@ -1464,9 +1493,11 @@ export default function HomeClient({
                       />
                       
                       {/* Badge */}
-                      <div className="absolute top-4 left-4 bg-secondary text-black border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
-                        {item.badge}
-                      </div>
+                      {item.badge && (
+                        <div className="absolute top-4 left-4 bg-secondary text-black border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
+                          {item.badge}
+                        </div>
+                      )}
 
                       {/* Wishlist Heart Icon */}
                       {(() => {
@@ -1512,13 +1543,31 @@ export default function HomeClient({
                     </div>
 
                     {/* Text details below the image */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-1 sm:gap-4 mb-1">
+                    <div className="flex justify-between items-start gap-4 mb-1">
                       <h3 className="font-sans font-bold text-white text-xs md:text-sm text-left leading-tight group-hover:text-secondary transition-colors duration-300">
                         {item.name}
                       </h3>
-                      <span className="font-sans font-black text-secondary text-xs md:text-sm whitespace-nowrap">
-                        {item.price}
-                      </span>
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="font-sans font-black text-secondary text-xs md:text-sm whitespace-nowrap">
+                          {item.price}
+                        </span>
+                        {(() => {
+                          const effectiveComparePrice = item.compareAtPrice || item.comparePrice;
+                          if (effectiveComparePrice && effectiveComparePrice > item.rawPrice) {
+                            return (
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[9px] line-through text-neutral-400 font-bold">
+                                  ₹{effectiveComparePrice.toLocaleString("en-IN")}
+                                </span>
+                                <span className="text-[8px] font-black text-secondary uppercase tracking-widest bg-white/5 px-1 py-0.5 border border-secondary/35">
+                                  {Math.round((1 - item.rawPrice / effectiveComparePrice) * 100)}% OFF
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
                     <p className="font-sans text-[9px] md:text-[10px] text-neutral-500 font-bold uppercase tracking-wider text-left">
                       MRP inclusive of all taxes

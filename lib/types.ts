@@ -207,6 +207,8 @@ export interface Shipment {
   dimensions_length?: number;
   dimensions_width?: number;
   dimensions_height?: number;
+  label_url?: string | null;
+  manifest_url?: string | null;
   created_at: string;
   updated_at: string;
 }

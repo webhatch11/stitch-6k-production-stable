@@ -463,7 +463,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
 
             {/* Info Metrics Board */}
             <section className="mb-16">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-outline-variant/20 border border-outline-variant/10 shadow-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-outline-variant/20 border border-outline-variant/10 shadow-sm">
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Status</p>
                   <div className="flex items-center gap-2">
@@ -496,6 +496,14 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Priority Tier</p>
                   <span className="text-xs font-bold uppercase text-secondary">Premium Express</span>
+                </div>
+                <div className="bg-surface-container-low p-6">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Est. Delivery</p>
+                  <span className="text-xs font-bold uppercase text-secondary">
+                    {shipment?.etd
+                      ? new Date(shipment.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }).toUpperCase()
+                      : getExpectedDateText(matchedOrder)}
+                  </span>
                 </div>
               </div>
             </section>

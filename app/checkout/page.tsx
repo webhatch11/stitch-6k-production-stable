@@ -26,6 +26,7 @@ import { useToastStore } from "@/stores/toastStore";
 import { PaymentProcessingScreen } from "@/components/checkout/PaymentProcessingScreen";
 import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen";
 import Script from "next/script";
+import { checkServiceabilityAction } from "@/app/actions/orders";
 
 interface CartItem {
   productId?: string;
@@ -61,6 +62,13 @@ export default function CheckoutPage() {
     return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
   });
   const [shippingRules, setShippingRules] = useState<any>(null);
+  const [serviceability, setServiceability] = useState<{
+    checked: boolean;
+    serviceable: boolean;
+    estimatedDays: number | null;
+    error?: string;
+  } | null>(null);
+  const [checkingServiceability, setCheckingServiceability] = useState(false);
 
   // Load global COD flag and shipping rules on mount
   useEffect(() => {
@@ -100,6 +108,47 @@ export default function CheckoutPage() {
     setWalletChecked,
     setIdempotencyKey,
   } = useCheckoutStore();
+
+  // Trigger serviceability check when address is selected/confirmed
+  useEffect(() => {
+    if (selectedAddress && selectedAddress.postal_code) {
+      setCheckingServiceability(true);
+      setServiceability(null);
+      checkServiceabilityAction(selectedAddress.postal_code)
+        .then((res) => {
+          if (res.success) {
+            setServiceability({
+              checked: true,
+              serviceable: res.serviceable,
+              estimatedDays: res.estimatedDays,
+              error: res.error,
+            });
+          } else {
+            // API down or error: fallback and allow checkout
+            setServiceability({
+              checked: true,
+              serviceable: true, // Fallback to true (serviceable) so checkout is NOT blocked!
+              estimatedDays: null,
+              error: res.error || "Serviceability check failed (API offline)",
+            });
+          }
+        })
+        .catch((err) => {
+          console.error("Serviceability check exception:", err);
+          setServiceability({
+            checked: true,
+            serviceable: true, // Fallback to true
+            estimatedDays: null,
+            error: err.message || "Failed to check serviceability",
+          });
+        })
+        .finally(() => {
+          setCheckingServiceability(false);
+        });
+    } else {
+      setServiceability(null);
+    }
+  }, [selectedAddress]);
 
   const handleAddressSelected = React.useCallback((address: UserAddress | null) => {
     setSelectedAddress(address);
@@ -282,6 +331,9 @@ export default function CheckoutPage() {
 
   const discountAmount = appliedDiscount + loyaltyDiscount;
   const finalTotal = finalPayable;
+  
+  const isUnserviceable = serviceability !== null && !serviceability.serviceable;
+  const isStep1Disabled = currentStep === 1 && (!selectedAddress || isUnserviceable || checkingServiceability);
 
   // Evaluate COD Eligibility dynamically
   useEffect(() => {
@@ -810,6 +862,48 @@ export default function CheckoutPage() {
                     onAddressCountChange={handleAddressCountChange}
                   />
                 </AddressErrorBoundary>
+
+                {/* Pincode Serviceability Display */}
+                {selectedAddress && (
+                  <div className="bg-white/40 border border-white/20 backdrop-blur-md p-4 rounded-xl shadow-sm space-y-2 mt-4">
+                    {checkingServiceability ? (
+                      <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-outline animate-pulse">
+                        <span className="material-symbols-outlined text-xs animate-spin">progress_activity</span>
+                        Checking delivery serviceability...
+                      </div>
+                    ) : serviceability ? (
+                      <>
+                        {serviceability.serviceable ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-[10px] uppercase font-black text-green-600">
+                              <span className="material-symbols-outlined text-xs">check_circle</span>
+                              Pincode Serviceable
+                            </div>
+                            {serviceability.estimatedDays !== null ? (
+                              <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest pl-5">
+                                Estimated delivery: {serviceability.estimatedDays} days
+                              </p>
+                            ) : serviceability.error ? (
+                              <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-widest pl-5 italic">
+                                Serviceability check unavailable. We'll confirm delivery after order placement.
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-[10px] uppercase font-black text-red-600">
+                              <span className="material-symbols-outlined text-xs">error</span>
+                              Unserviceable Destination
+                            </div>
+                            <p className="text-[10px] font-semibold text-red-700 uppercase tracking-widest pl-5">
+                              Sorry, we don't deliver to this pincode yet. Please use a different address.
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1198,12 +1292,19 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
+                  {currentStep === 1 && selectedAddress && isUnserviceable && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 text-red-600 rounded-xl text-[10px] font-bold uppercase tracking-wider text-center animate-fade-in flex items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-sm font-black">error</span>
+                      Sorry, we don't deliver to this pincode yet. Please use a different address.
+                    </div>
+                  )}
+
                   {/* Primary Action Button */}
                   <button
                     onClick={handleSubmit}
-                    disabled={currentStep === 1 && !selectedAddress}
+                    disabled={isStep1Disabled}
                     className={`w-full py-4 font-headline font-black text-xs tracking-[0.25em] uppercase transition-all duration-500 ease-out rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 mt-4 ${
-                      currentStep === 1 && !selectedAddress
+                      isStep1Disabled
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
                         : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary hover:shadow-[0_10px_25px_rgba(254,212,136,0.15)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                     }`}
@@ -1247,11 +1348,17 @@ export default function CheckoutPage() {
               : "Please select a delivery address to proceed."}
           </div>
         )}
+        {currentStep === 1 && selectedAddress && isUnserviceable && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg text-[9px] font-bold uppercase tracking-widest text-center animate-fade-in flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-xs font-black">error</span>
+            Sorry, we don't deliver to this pincode yet. Please use a different address.
+          </div>
+        )}
         <button
           onClick={handleSubmit}
-          disabled={currentStep === 1 && !selectedAddress}
+          disabled={isStep1Disabled}
           className={`w-full py-4 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-xl flex items-center justify-center gap-2 shadow-md ${
-            currentStep === 1 && !selectedAddress
+            isStep1Disabled
               ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
               : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary active:scale-95 cursor-pointer"
           }`}

@@ -19,6 +19,8 @@ import {
   getOrderNotesAction,
   verifyPaymentAction,
   verifyRefundAction,
+  generateShipmentLabelAction,
+  getShipmentByOrderIdAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -34,6 +36,30 @@ function OrderDetailsContent() {
   const [rejectReason, setRejectReason] = useState("");
   const [verifyingRefund, setVerifyingRefund] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [printingLabel, setPrintingLabel] = useState(false);
+  const [manifestDownloadUrl, setManifestDownloadUrl] = useState<string | null>(null);
+  const [shipment, setShipment] = useState<any>(null);
+
+  const handlePrintShippingLabel = async () => {
+    if (!order) return;
+    setPrintingLabel(true);
+    try {
+      const res = await generateShipmentLabelAction(order.id);
+      if (res.success && res.labelUrl) {
+        window.open(res.labelUrl, "_blank");
+        triggerToast("Label opened in new tab");
+        if (res.manifestUrl) {
+          setManifestDownloadUrl(res.manifestUrl);
+        }
+      } else {
+        triggerToast(res.error || "Failed to generate shipping label");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to generate shipping label");
+    } finally {
+      setPrintingLabel(false);
+    }
+  };
 
   const handleVerifyRefund = async () => {
     if (!order || verifyingRefund) return;
@@ -173,6 +199,17 @@ function OrderDetailsContent() {
     if (currentOrder) {
       loadEvents(currentOrder.id);
       loadNotes(currentOrder.id);
+      
+      getShipmentByOrderIdAction(currentOrder.id).then((shipmentRes) => {
+        if (shipmentRes.success && shipmentRes.shipment) {
+          setShipment(shipmentRes.shipment);
+          if (shipmentRes.shipment.manifest_url) {
+            setManifestDownloadUrl(shipmentRes.shipment.manifest_url);
+          }
+        } else {
+          setShipment(null);
+        }
+      }).catch(err => console.error("Error loading shipment details:", err));
       
       const uId = currentOrder.userId || currentOrder.user_id;
       if (uId) {
@@ -578,13 +615,37 @@ function OrderDetailsContent() {
                 <span className={`size-2 rounded-full ${getLogisticsStatusDotClass()}`}></span>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{order.status}</p>
               </div>
-              {(s === "shipped" || s === "delivered" || s.includes("transit")) && (
+              {order.shiprocketId ? (
+                <div className="mt-1.5 space-y-1">
+                  <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
+                    AWB: <span className="font-bold text-white font-mono">{shipment?.awb_code || order.shiprocketId}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(shipment?.awb_code || order.shiprocketId || "");
+                        triggerToast("AWB copied to clipboard");
+                      }}
+                      className="inline-flex items-center justify-center p-0.5 hover:text-white text-gray-400 bg-transparent border-none cursor-pointer"
+                      title="Copy AWB"
+                    >
+                      <span className="material-symbols-outlined text-[10px]">content_copy</span>
+                    </button>
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium block">
+                    Courier: <span className="font-bold text-white">{shipment?.courier_name || "Shiprocket Partner"}</span>
+                  </span>
+                  {shipment?.label_url && (
+                    <span className="text-[10px] text-gray-400 font-medium block">
+                      Label: <a href={shipment.label_url} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white font-bold underline">Download</a>
+                    </span>
+                  )}
+                </div>
+              ) : (s === "shipped" || s === "delivered" || s.includes("transit")) ? (
                 <div className="mt-1">
                   <span className="text-[10px] text-gray-400 font-medium block">
                     AWB: IN-2026-SMRT (Fraud)
                   </span>
                 </div>
-              )}
+              ) : null}
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Order date</p>
@@ -1220,7 +1281,46 @@ function OrderDetailsContent() {
                 <span>Cancel order</span>
               </button>
 
+              {/* 6. Print shipping label (full width, below cancel button) */}
+              {(s === "processing" || s === "shipped" || s === "delivered") && (
+                <button
+                  onClick={handlePrintShippingLabel}
+                  disabled={printingLabel}
+                  className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                  style={{
+                    backgroundColor: "var(--surface-1)",
+                    borderColor: "var(--border)",
+                    color: "var(--text-primary)"
+                  }}
+                >
+                  {printingLabel ? (
+                    <>
+                      <span className="animate-spin material-symbols-outlined text-base">progress_activity</span>
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">print</span>
+                      <span>Print shipping label</span>
+                    </>
+                  )}
+                </button>
+              )}
+
             </div>
+
+            {manifestDownloadUrl && (
+              <div className="mt-4 pt-3 border-t border-gray-800 text-center">
+                <a
+                  href={manifestDownloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-bold uppercase tracking-widest text-secondary hover:text-white transition-colors"
+                >
+                  Download manifest →
+                </a>
+              </div>
+            )}
 
             {/* Extra context actions (e.g. Reverse Return options and Quality Audit check) */}
             {s === "return requested" && (

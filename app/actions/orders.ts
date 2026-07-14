@@ -103,3 +103,33 @@ export async function updateOrderToProcessingAction(orderId: string) {
     return { success: false, error: error.message || "Failed to update order status" };
   }
 }
+
+export async function checkServiceabilityAction(
+  deliveryPincode: string
+): Promise<{
+  success: boolean;
+  serviceable: boolean;
+  estimatedDays: number | null;
+  error?: string;
+}> {
+  try {
+    const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || "620018";
+    const { shiprocket } = await import("@/lib/shiprocket");
+    const res = await shiprocket.checkPincodeServiceability(pickupPincode, deliveryPincode, 0.5, 0);
+    return {
+      success: true,
+      serviceable: res.serviceable,
+      estimatedDays: res.estimatedDays,
+      error: res.error,
+    };
+  } catch (error: any) {
+    console.error("[checkServiceabilityAction] Error checking serviceability:", error);
+    return {
+      success: false,
+      serviceable: false,
+      estimatedDays: null,
+      error: error.message || "Failed to contact serviceability engine",
+    };
+  }
+}
+

@@ -531,3 +531,128 @@ export async function verifyRefundAction(
     return { success: false, error: e.message || "Refund verification failed" };
   }
 }
+
+export async function generateShipmentLabelAction(
+  orderId: string
+): Promise<{
+  success: boolean;
+  labelUrl: string | null;
+  manifestUrl: string | null;
+  cached: boolean;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, labelUrl: null, manifestUrl: null, cached: false, error: "Unauthorized" };
+  }
+
+  try {
+    const shipment = await db.getShipmentByOrderId(orderId);
+    if (!shipment) {
+      return {
+        success: false,
+        labelUrl: null,
+        manifestUrl: null,
+        cached: false,
+        error: "No shipment found for this order"
+      };
+    }
+
+    if (shipment.label_url) {
+      return {
+        success: true,
+        labelUrl: shipment.label_url,
+        manifestUrl: shipment.manifest_url || null,
+        cached: true
+      };
+    }
+
+    const { shiprocket } = await import("@/lib/shiprocket");
+    const shipmentIdNum = Number(shipment.shipment_id);
+
+    if (!shipmentIdNum || isNaN(shipmentIdNum)) {
+      return {
+        success: false,
+        labelUrl: null,
+        manifestUrl: null,
+        cached: false,
+        error: "Invalid Shiprocket Shipment ID saved in database"
+      };
+    }
+
+    const labelRes = await shiprocket.generateShippingLabel(shipmentIdNum);
+    if (!labelRes.success || !labelRes.labelUrl) {
+      return {
+        success: false,
+        labelUrl: null,
+        manifestUrl: null,
+        cached: false,
+        error: labelRes.error || "Failed to generate label from Shiprocket"
+      };
+    }
+
+    const labelUrl = labelRes.labelUrl;
+    let manifestUrl: string | null = null;
+
+    const manifestRes = await shiprocket.generateManifest(shipmentIdNum);
+    if (manifestRes.success && manifestRes.manifestUrl) {
+      manifestUrl = manifestRes.manifestUrl;
+    }
+
+    // Update shipments table in database
+    if (supabase) {
+      const { error } = await supabase
+        .from("shipments")
+        .update({
+          label_url: labelUrl,
+          manifest_url: manifestUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq("order_id", orderId);
+
+      if (error) {
+        console.error("[generateShipmentLabelAction] Suppress DB update error:", error);
+      }
+    }
+
+    return {
+      success: true,
+      labelUrl,
+      manifestUrl,
+      cached: false
+    };
+  } catch (err: any) {
+    console.error("[generateShipmentLabelAction] unhandled exception:", err);
+    return {
+      success: false,
+      labelUrl: null,
+      manifestUrl: null,
+      cached: false,
+      error: err.message || "An unexpected error occurred"
+    };
+  }
+}
+
+export async function getShipmentByOrderIdAction(
+  orderId: string
+): Promise<{
+  success: boolean;
+  shipment: any | null;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, shipment: null, error: "Unauthorized" };
+  }
+  try {
+    const shipment = await db.getShipmentByOrderId(orderId);
+    return { success: true, shipment };
+  } catch (err: any) {
+    console.error("[getShipmentByOrderIdAction] error:", err);
+    return { success: false, shipment: null, error: err.message || "Failed to fetch shipment" };
+  }
+}
+
+

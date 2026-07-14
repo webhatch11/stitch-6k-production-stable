@@ -1,0 +1,5 @@
+ALTER TABLE public.shipments 
+ADD COLUMN IF NOT EXISTS label_url TEXT DEFAULT NULL;
+
+ALTER TABLE public.shipments 
+ADD COLUMN IF NOT EXISTS manifest_url TEXT DEFAULT NULL;

@@ -131,6 +131,7 @@ export interface ShiprocketDispatchResult {
   courierName?: string;
   isMock: boolean;
   error?: string;
+  etd?: string;
 }
 
 export const shiprocket = {
@@ -377,6 +378,140 @@ export const shiprocket = {
     } catch (err: any) {
       console.error("[Shiprocket SDK] Tracking error:", err);
       return { success: false, error: err.message || "Tracking failed" };
+    }
+  },
+
+  async generateShippingLabel(shipmentId: number): Promise<{ success: boolean; labelUrl: string | null; error?: string }> {
+    if (isMockMode) {
+      return { success: true, labelUrl: `https://shiprocket-mock-label.pdf?shipment_id=${shipmentId}` };
+    }
+    try {
+      const token = await getAuthToken();
+      const res = await fetch("https://apiv2.shiprocket.in/v1/external/courier/generate/label", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          shipment_id: [shipmentId],
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Label generation failed: Status ${res.status} - ${errText}`);
+      }
+      const data = await res.json();
+      if (data.label_created === 1 || data.label_url) {
+        return { success: true, labelUrl: data.label_url || null };
+      }
+      return { success: false, labelUrl: null, error: data.response || "Failed to generate label" };
+    } catch (err: any) {
+      console.error("[Shiprocket SDK] generateShippingLabel error:", err);
+      return { success: false, labelUrl: null, error: err.message || "Failed to generate label" };
+    }
+  },
+
+  async generateManifest(shipmentId: number): Promise<{ success: boolean; manifestUrl: string | null; error?: string }> {
+    if (isMockMode) {
+      return { success: true, manifestUrl: `https://shiprocket-mock-manifest.pdf?shipment_id=${shipmentId}` };
+    }
+    try {
+      const token = await getAuthToken();
+      const res = await fetch("https://apiv2.shiprocket.in/v1/external/manifests/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          shipment_id: [shipmentId],
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Manifest generation failed: Status ${res.status} - ${errText}`);
+      }
+      const data = await res.json();
+      if (data.manifest_url) {
+        return { success: true, manifestUrl: data.manifest_url };
+      }
+      return { success: false, manifestUrl: null, error: data.response || "Failed to generate manifest" };
+    } catch (err: any) {
+      console.error("[Shiprocket SDK] generateManifest error:", err);
+      return { success: false, manifestUrl: null, error: err.message || "Failed to generate manifest" };
+    }
+  },
+
+  async checkPincodeServiceability(
+    pickupPincode: string,
+    deliveryPincode: string,
+    weight: number,
+    cod: 0 | 1
+  ): Promise<{
+    serviceable: boolean;
+    couriers: Array<{
+      courier_name: string;
+      rate: number;
+      etd: string;
+    }>;
+    estimatedDays: number | null;
+    error?: string;
+  }> {
+    if (isMockMode) {
+      if (deliveryPincode === "999999") {
+         return { serviceable: false, couriers: [], estimatedDays: null };
+      }
+      return {
+        serviceable: true,
+        couriers: [
+          { courier_name: "Mock Courier Express", rate: 80, etd: "2026-07-16" },
+        ],
+        estimatedDays: 3,
+      };
+    }
+    try {
+      const token = await getAuthToken();
+      const url = `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=${pickupPincode}&delivery_postcode=${deliveryPincode}&weight=${weight}&cod=${cod}`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Serviceability check failed: Status ${res.status} - ${errText}`);
+      }
+      const data = await res.json();
+      const companies = data.data?.available_courier_companies || [];
+      if (!Array.isArray(companies) || companies.length === 0) {
+        return { serviceable: false, couriers: [], estimatedDays: null };
+      }
+      
+      let minDays: number | null = null;
+      const couriers = companies.map((c: any) => {
+        const days = c.estimated_delivery_days ? parseInt(c.estimated_delivery_days, 10) : (c.etd_hours ? Math.ceil(c.etd_hours / 24) : null);
+        if (days !== null) {
+          if (minDays === null || days < minDays) {
+            minDays = days;
+          }
+        }
+        return {
+          courier_name: c.courier_name || "",
+          rate: c.rate ? parseFloat(c.rate) : 0,
+          etd: c.etd || "",
+        };
+      });
+      
+      return {
+        serviceable: true,
+        couriers,
+        estimatedDays: minDays,
+      };
+    } catch (err: any) {
+      console.error("[Shiprocket SDK] checkPincodeServiceability error:", err);
+      return { serviceable: false, couriers: [], estimatedDays: null, error: err.message || "Failed to check serviceability" };
     }
   },
 

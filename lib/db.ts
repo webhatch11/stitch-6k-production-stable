@@ -3848,9 +3848,94 @@ export const db = {
       await this.createOrderEvent(order.id, "Shipment Created");
       await this.createOrderEvent(order.id, "AWB Generated");
 
-      // Update order status with shiprocketId
-      const updatedOrder = { ...order, shiprocketId: result.awbCode || "" };
+      // STEP 3: Label and Manifest generation
+      let labelUrl: string | null = null;
+      let manifestUrl: string | null = null;
+
+      if (result.shipmentId) {
+        try {
+          const shipmentIdNum = Number(result.shipmentId);
+          const labelRes = await shiprocket.generateShippingLabel(shipmentIdNum);
+          if (labelRes.success && labelRes.labelUrl) {
+            labelUrl = labelRes.labelUrl;
+            
+            const manifestRes = await shiprocket.generateManifest(shipmentIdNum);
+            if (manifestRes.success && manifestRes.manifestUrl) {
+              manifestUrl = manifestRes.manifestUrl;
+            }
+
+            // Update shipments row in Supabase
+            const { supabase } = loadService();
+            if (supabase) {
+              await supabase
+                .from("shipments")
+                .update({
+                  label_url: labelUrl,
+                  manifest_url: manifestUrl,
+                  updated_at: new Date().toISOString()
+                })
+                .eq("order_id", order.id);
+            }
+
+            await this.createOrderEvent(order.id, "Shipping label generated. AWB: " + result.awbCode);
+          } else {
+            console.error("[Dispatch] Shipping label generation failed:", labelRes.error);
+          }
+        } catch (labelErr) {
+          console.error("[Dispatch] Error generating shipping label/manifest:", labelErr);
+        }
+      }
+
+      // Update order status with shiprocketId and mark as Shipped
+      const updatedOrder = { ...order, status: "Shipped", shiprocketId: result.awbCode || "" };
       await this.saveOrder(updatedOrder);
+
+      // Create order status history log
+      try {
+        await this.addOrderStatusHistory(order.id, "Shipped", "Fulfillment dispatched via Shiprocket", {
+          awb: result.awbCode || "",
+          courier: result.courierName || "",
+        });
+      } catch (historyErr) {
+        console.error("[Dispatch] Failed to add order status history:", historyErr);
+      }
+
+      // STEP 5: Call shipping confirmation email
+      try {
+        const snapEmail = order.address_snapshot?.email;
+        const snapName = order.address_snapshot?.name || order.customer;
+        if (snapEmail) {
+          const { sendShippingConfirmationEmail } = await import("./email");
+          const etdDate = result.etd 
+            ? new Date(result.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+            : new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+          
+          const items = Array.isArray(order.cartItems)
+            ? order.cartItems.map((item: any) => ({
+                name: item.productName || item.title || "Luxury Atelier Shirt",
+                quantity: item.quantity || 1,
+              }))
+            : order.items.map((itemStr: any) => ({
+                name: typeof itemStr === "string" ? itemStr : (itemStr.productName || itemStr.title || "Luxury Atelier Shirt"),
+                quantity: 1,
+              }));
+
+          const trackingUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com") + "/ordertracking?orderId=" + order.id;
+
+          await sendShippingConfirmationEmail({
+            to: snapEmail,
+            customerName: snapName,
+            orderId: order.id,
+            awbCode: result.awbCode || "PENDING",
+            courierName: result.courierName || "Shiprocket Partner Courier",
+            estimatedDelivery: etdDate,
+            items,
+            trackingUrl,
+          });
+        }
+      } catch (emailErr) {
+        console.error("[Dispatch] Failed to send shipping confirmation email:", emailErr);
+      }
 
       return { success: true, status: 'CREATED' };
 

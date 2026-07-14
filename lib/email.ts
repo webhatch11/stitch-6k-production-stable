@@ -313,3 +313,143 @@ export async function sendReturnPickupScheduledEmail(order: {
     throw err;
   }
 }
+
+export async function sendShippingConfirmationEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  awbCode: string;
+  courierName: string;
+  estimatedDelivery: string;
+  items: Array<{ name: string; quantity: number }>;
+  trackingUrl: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #BA7517; font-size: 26px; margin: 0; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;">
+          STITCH 6K
+        </h1>
+        <p style="color: #6b7280; font-size: 11px; tracking-widest; text-transform: uppercase; margin: 4px 0 0 0;">
+          Atelier / Workshop Series
+        </p>
+      </div>
+
+      <h2 style="color: #BA7517; font-size: 20px; margin-top: 0; font-weight: bold; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Your order is on its way ✓
+      </h2>
+      <p style="font-size: 14px; color: #1f2937; line-height: 1.6;">Hi ${params.customerName},</p>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">Great news! Your Stitch 6K order <strong>#${params.orderId}</strong> has been shipped and handed over to our logistics partner.</p>
+      
+      <div style="background: #fafafa; border: 1px solid #e5e5e5; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 12px 0; font-size: 14px; color: #374151;">
+          <strong>AWB Waybill Number:</strong><br>
+          <span style="font-size: 20px; font-weight: bold; color: #BA7517; font-family: monospace; letter-spacing: 0.05em; display: inline-block; margin-top: 4px;">
+            ${params.awbCode}
+          </span>
+        </p>
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: #4b5563;">
+          <strong>Courier Partner:</strong> ${params.courierName}
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #4b5563;">
+          <strong>Estimated Delivery:</strong> ${params.estimatedDelivery}
+        </p>
+      </div>
+
+      <h3 style="font-size: 14px; font-weight: bold; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; margin-top: 24px; text-transform: uppercase; letter-spacing: 0.05em; color: #374151;">
+        Shipped Items
+      </h3>
+      ${params.items
+        .map(
+          (item) => `
+        <div style="padding: 10px 0; border-bottom: 1px solid #f9fafb; font-size: 13px; color: #4b5563;">
+          <strong>${item.name}</strong>
+          <span style="float: right; color: #9ca3af;">
+            Qty: ${item.quantity}
+          </span>
+        </div>
+      `
+        )
+        .join("")}
+      
+      <div style="text-align: center; margin: 36px 0 24px 0;">
+        <a href="${params.trackingUrl}" target="_blank" style="background-color: #BA7517; color: #ffffff; padding: 14px 28px; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; display: inline-block; border-radius: 0px; box-shadow: 0 4px 6px rgba(186, 117, 23, 0.15);">
+          Track Your Order
+        </a>
+      </div>
+
+      <p style="color: #6b7280; font-size: 12px; line-height: 1.6; margin-top: 32px;">
+        Please note that it can take up to 12-24 hours for the courier network to scan and update waybill event logs.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px; line-height: 1.6;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        ${supportEmail} | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: `Your 6K order has been shipped — #${params.orderId}`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[Email Error] Failed to deliver shipping confirmation email for order ${params.orderId} to ${params.to}. Error:`, err.message || err);
+  }
+}
+
+export async function sendAdminAlert(params: {
+  subject: string;
+  body: string;
+  orderId: string;
+  awb?: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()).filter(Boolean) || [];
+
+  if (adminEmails.length === 0) {
+    console.warn("[Email SDK] No admin emails configured in ADMIN_EMAILS environment variable.");
+    return;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
+  const adminOrderLink = `${siteUrl}/admindashboard/orders?search=${params.orderId}`;
+  
+  const htmlContent = `
+    <div style="font-family: sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
+      <h2 style="color: #e11d48; margin-top: 0;">Logistics Administrator Alert</h2>
+      <p style="font-size: 15px; font-weight: bold; color: #111;">${params.subject}</p>
+      <div style="background: #f8fafc; border-left: 4px solid #cbd5e1; padding: 12px; margin: 16px 0;">
+        <p style="margin: 0 0 8px 0;">${params.body}</p>
+        <p style="margin: 0 0 8px 0;"><strong>Order ID:</strong> #${params.orderId}</p>
+        ${params.awb ? `<p style="margin: 0;"><strong>AWB:</strong> ${params.awb}</p>` : ""}
+      </div>
+      <p style="margin-top: 24px;">
+        <a href="${adminOrderLink}" target="_blank" style="background-color: #0f172a; color: #ffffff; padding: 10px 18px; text-decoration: none; font-size: 11px; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">
+          View Order in Admin Dashboard
+        </a>
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: adminEmails,
+      subject: `[6K Admin Alert] ${params.subject}`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[Email Error] Failed to deliver admin alert for order ${params.orderId}. Error:`, err.message || err);
+  }
+}
+

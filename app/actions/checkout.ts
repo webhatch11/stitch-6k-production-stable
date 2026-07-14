@@ -62,6 +62,14 @@ export async function processWalletPointsCheckoutAction(payload: {
   const userId = user.id;
   const user_id = user.id;
 
+  // Guard 1: Cart must not be empty
+  if (!payload.cart || payload.cart.length === 0) {
+    return { 
+      success: false, 
+      error: "Cart is empty. Add items before checkout." 
+    };
+  }
+
   const loyaltyConfig = await db.getLoyaltyConfig();
   const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
   const POINTS_PER_100 = loyaltyConfig.pointsPer100;
@@ -106,6 +114,14 @@ export async function processWalletPointsCheckoutAction(payload: {
       return { success: false, error: `Product "${item.productName}" not found.` };
     }
     verifiedSubtotal += dbProduct.price;
+  }
+
+  // Guard 2: Verified subtotal must be > 0
+  if (verifiedSubtotal <= 0) {
+    return {
+      success: false,
+      error: "Order total must be greater than ₹0."
+    };
   }
 
   // Validate coupon
@@ -257,6 +273,54 @@ export async function processWalletPointsCheckoutAction(payload: {
     }
     await db.restoreStock(cart, idempotencyKey);
     return { success: false, error: "Failed to record checkout order in database." };
+  }
+
+  // BUG FIX 1 & 4 — Dispatch fulfillment, create events, and send confirmation email
+  try {
+    await db.createOrderEvent(idempotencyKey, "Order Placed");
+    await db.createOrderEvent(idempotencyKey, "Order placed via wallet");
+  } catch (eventErr) {
+    console.error('[processWalletPointsCheckoutAction] Order event creation failed:', eventErr);
+  }
+
+  try {
+    await db.dispatchFulfillment(idempotencyKey);
+  } catch (dispatchError) {
+    console.error(
+      '[processWalletPointsCheckoutAction] ' +
+      'Shiprocket dispatch failed:', dispatchError
+    );
+  }
+
+  try {
+    const { sendOrderConfirmationEmail } = await import('@/lib/email');
+    const customerEmail = user.email || "";
+    const addressStr = addressSnapshot
+      ? [addressSnapshot.name, addressSnapshot.phone, addressSnapshot.address_line_1, addressSnapshot.address_line_2, `${addressSnapshot.city} - ${addressSnapshot.postal_code}`, addressSnapshot.state, addressSnapshot.country]
+          .filter(Boolean)
+          .join(", ")
+      : "No address details available";
+
+    await sendOrderConfirmationEmail({
+      id: idempotencyKey,
+      customerName: addressSnapshot?.name || user.email || 'Customer',
+      customerEmail: customerEmail,
+      items: cart.map(item => ({
+        productName: item.productName,
+        size: item.size || "Free Size",
+        quantity: (item as any).quantity || 1,
+        price: Number(item.price || 0)
+      })),
+      total: Number(verifiedNetTotal + shippingAmount),
+      address: addressStr,
+      couponCode: couponCode || null,
+      couponDiscount: Number(verifiedCouponDiscount || 0)
+    });
+  } catch (emailError) {
+    console.error(
+      '[processWalletPointsCheckoutAction] ' +
+      'Confirmation email failed:', emailError
+    );
   }
 
   return {

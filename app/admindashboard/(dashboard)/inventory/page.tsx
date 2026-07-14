@@ -274,7 +274,7 @@ export default function InventoryLedgerPage() {
         </div>
       )}
 
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
             <span>Admin Panel</span>
@@ -286,8 +286,8 @@ export default function InventoryLedgerPage() {
             A comprehensive record of shop inventory, SKUs, and stock levels.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-          <div className="relative group flex-grow sm:flex-grow-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-row lg:items-center gap-3 w-full lg:w-auto">
+          <div className="relative group w-full lg:w-auto">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-secondary transition-colors">
               search
             </span>
@@ -299,14 +299,14 @@ export default function InventoryLedgerPage() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full sm:w-72 shadow-sm rounded-none"
+              className="pl-12 pr-6 h-11 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full lg:w-72 shadow-sm rounded-none flex items-center"
             />
           </div>
           <button
             type="button"
             disabled={exporting}
             onClick={() => handleExport("csv")}
-            className="px-5 py-3.5 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex-grow sm:flex-grow-0"
+            className="px-5 h-11 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex items-center justify-center rounded-none w-full lg:w-auto"
           >
             {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
           </button>
@@ -314,14 +314,14 @@ export default function InventoryLedgerPage() {
             type="button"
             disabled={exporting}
             onClick={() => handleExport("xlsx")}
-            className="px-5 py-3.5 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex-grow sm:flex-grow-0"
+            className="px-5 h-11 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex items-center justify-center rounded-none w-full lg:w-auto"
           >
             {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
           </button>
           <button
             type="button"
             onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
-            className={`px-5 py-3.5 text-[10px] font-black uppercase tracking-widest border-2 transition-all whitespace-nowrap rounded-none flex items-center justify-center gap-2 flex-grow sm:flex-grow-0 ${
+            className={`px-5 h-11 text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap rounded-none flex items-center justify-center gap-2 w-full lg:w-auto cursor-pointer ${
               showTrash
                 ? "bg-red-600 text-white border-red-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -332,7 +332,7 @@ export default function InventoryLedgerPage() {
           </button>
           <Link
             href="/admindashboard/add-product"
-            className="bg-primary text-white hover:bg-secondary px-8 py-3.5 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none flex-grow sm:flex-grow-0"
+            className="bg-primary text-white hover:bg-secondary px-8 h-11 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none w-full lg:w-auto"
           >
             <span className="material-symbols-outlined text-sm">add</span> Add Product
           </Link>

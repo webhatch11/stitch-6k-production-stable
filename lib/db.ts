@@ -4,7 +4,7 @@ import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
 import { CartItem } from "@/stores/cartStore";
-import { PRODUCT_CACHE_TTL_SECS, PRODUCT_LIST_CACHE_TTL_SECS } from "./inventory-config";
+import { PRODUCT_CACHE_TTL_SECS, PRODUCT_LIST_CACHE_TTL_SECS, MAX_COUPON_DISCOUNT_INR } from "./inventory-config";
 
 const DEFAULT_PICKUP_LOCATION = 
   process.env.SHIPROCKET_PICKUP_LOCATION || 
@@ -1301,6 +1301,7 @@ export const db = {
     let discountAmount = 0;
     if (coupon.type === "percent") {
       discountAmount = Math.floor((cartTotal * coupon.discount) / 100);
+      discountAmount = Math.min(discountAmount, MAX_COUPON_DISCOUNT_INR);
       return { valid: true, coupon, discountAmount };
     }
     if (coupon.type === "flat") {
@@ -2587,7 +2588,9 @@ export const db = {
           customerEmail,
           items: groupedItems,
           total: Number(dbOrder.total || 0),
-          address: addressStr
+          address: addressStr,
+          couponCode: dbOrder.couponCode || null,
+          couponDiscount: Number(dbOrder.couponDiscount || 0)
         });
       }
     } catch (emailError) {

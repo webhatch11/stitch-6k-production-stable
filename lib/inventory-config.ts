@@ -37,3 +37,9 @@ export const PRODUCT_CACHE_TTL_SECS = 55;
  * (admin ledger, storefront listing pages, etc.).
  */
 export const PRODUCT_LIST_CACHE_TTL_SECS = 55;
+
+/**
+ * Maximum discount amount (INR) allowed on percentage coupons.
+ * Prevents over-discounting on luxury orders.
+ */
+export const MAX_COUPON_DISCOUNT_INR = 5000;

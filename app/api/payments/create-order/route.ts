@@ -103,6 +103,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Total must be greater than 0 for Razorpay." }, { status: 400 });
     }
 
+    if (checkoutState.finalPayable < 1) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Minimum payable amount is ₹1. Please adjust your wallet or points usage." 
+      }, { status: 400 });
+    }
+
     // 3. Generate sequential order number from DB sequence
     const sequentialOrderId = await db.getNextOrderNumber();
 

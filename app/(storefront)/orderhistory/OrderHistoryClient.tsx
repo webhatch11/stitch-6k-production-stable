@@ -425,10 +425,16 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-outline">Items</span>
                               <span className="font-medium text-right max-w-[150px] truncate">{order.items.join(", ")}</span>
                             </div>
-                            {((order.couponDiscount || 0) + (order.pointsDiscount || 0)) > 0 && (
+                            {order.couponDiscount !== undefined && order.couponDiscount > 0 && (
                               <div className="flex justify-between md:gap-4 items-center text-green-700">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Discount</span>
-                                <span>-₹{((order.couponDiscount || 0) + (order.pointsDiscount || 0)).toLocaleString("en-IN")}</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Coupon ({order.couponCode || "ACTIVE"})</span>
+                                <span>-₹{order.couponDiscount.toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+                            {order.pointsDiscount !== undefined && order.pointsDiscount > 0 && (
+                              <div className="flex justify-between md:gap-4 items-center text-green-700">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Points ({order.pointsRedeemed || 0} pts)</span>
+                                <span>-₹{order.pointsDiscount.toLocaleString("en-IN")}</span>
                               </div>
                             )}
                             <div className="flex justify-between md:gap-4 items-center">

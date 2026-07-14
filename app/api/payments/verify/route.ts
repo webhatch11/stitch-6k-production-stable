@@ -377,7 +377,9 @@ export async function POST(req: NextRequest) {
           customerEmail,
           items: groupedItems,
           total: Number(dbOrder.total || 0),
-          address: addressStr
+          address: addressStr,
+          couponCode: dbOrder.coupon_code || dbOrder.couponCode || null,
+          couponDiscount: Number(dbOrder.coupon_discount || dbOrder.couponDiscount || 0)
         }).catch((emailError) => {
           console.error("[Email] Order confirmation email failed:", emailError);
         });

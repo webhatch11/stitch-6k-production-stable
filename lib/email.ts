@@ -15,6 +15,8 @@ export async function sendOrderConfirmationEmail(order: {
   }>;
   total: number;
   address: string;
+  couponCode?: string | null;
+  couponDiscount?: number | null;
 }): Promise<void> {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
 
@@ -45,6 +47,15 @@ export async function sendOrderConfirmationEmail(order: {
       `
         )
         .join("")}
+      
+      ${order.couponCode && order.couponDiscount && order.couponDiscount > 0 ? `
+        <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5; color: #166534; font-size: 14px;">
+          <strong>Coupon (${order.couponCode}):</strong>
+          <span style="float: right;">
+            -₹${order.couponDiscount}
+          </span>
+        </div>
+      ` : ""}
       
       <div style="padding: 16px 0; font-size: 18px; font-weight: bold;">
         Total: ₹${order.total}

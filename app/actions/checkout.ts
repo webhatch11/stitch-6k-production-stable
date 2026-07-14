@@ -379,6 +379,13 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   const totalWithShipping = verifiedNetTotal + shippingAmount;
   const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - finalWalletDeduction);
 
+  if (verifiedFinalPayable > 0 && verifiedFinalPayable < 1) {
+    return {
+      success: false,
+      error: "Minimum payable amount via Razorpay is ₹1. Please reduce wallet or points usage or pay the full amount via payment gateway."
+    };
+  }
+
   return {
     success: true,
     checkoutState: {

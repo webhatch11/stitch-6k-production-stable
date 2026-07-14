@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getCustomersAction } from "@/app/actions/admin-reads";
 import { generateCustomerCsv } from "@/lib/customer-csv";
-import { redirect } from "next/navigation";
 
 interface CustomerData {
   name: string;
@@ -19,12 +18,6 @@ interface CustomerData {
 }
 
 export default function CustomersManagementPage() {
-  // Customers module — Phase 2
-  // Uncomment when client activates
-  if (process.env.NEXT_PUBLIC_ENABLE_CUSTOMERS !== 'true') {
-    redirect('/admindashboard');
-  }
-
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");

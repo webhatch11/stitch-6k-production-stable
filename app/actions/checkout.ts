@@ -278,14 +278,14 @@ export async function processWalletPointsCheckoutAction(payload: {
 
   // BUG FIX 1 & 4 — Dispatch fulfillment, create events, and send confirmation email
   try {
-    await db.createOrderEvent(idempotencyKey, "Order Placed");
-    await db.createOrderEvent(idempotencyKey, "Order placed via wallet");
+    await db.createOrderEvent(savedOrder.id, "Order Placed");
+    await db.createOrderEvent(savedOrder.id, "Order placed via wallet");
   } catch (eventErr) {
     console.error('[processWalletPointsCheckoutAction] Order event creation failed:', eventErr);
   }
 
   try {
-    await db.dispatchFulfillment(idempotencyKey);
+    await db.dispatchFulfillment(savedOrder.id);
   } catch (dispatchError) {
     console.error(
       '[processWalletPointsCheckoutAction] ' +
@@ -303,7 +303,7 @@ export async function processWalletPointsCheckoutAction(payload: {
       : "No address details available";
 
     await sendOrderConfirmationEmail({
-      id: idempotencyKey,
+      id: savedOrder.id,
       customerName: addressSnapshot?.name || user.email || 'Customer',
       customerEmail: customerEmail,
       items: cart.map(item => ({

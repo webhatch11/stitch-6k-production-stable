@@ -203,8 +203,8 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
         </header>
 
         <section className="bg-transparent md:bg-white border-0 md:border md:border-outline-variant/10 md:shadow-2xl overflow-hidden rounded-none">
-          <div className="overflow-x-auto md:overflow-visible">
-            <table className="w-full text-left border-collapse block md:table">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse hidden md:table">
               <thead className="hidden md:table-header-group">
                 <tr className="bg-surface-container-low border-b border-outline-variant/20">
                   <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline">Order ID</th>
@@ -215,7 +215,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                   <th className="px-8 py-10 text-[10px] font-black uppercase tracking-[0.3em] text-outline text-right">Order Actions</th>
                 </tr>
               </thead>
-              <tbody id="historyBody" className="block md:table-row-group divide-y divide-outline-variant/10 font-label">
+              <tbody id="historyBody" className="hidden md:table-row-group divide-y divide-outline-variant/10 font-label">
                 {isLoading ? (
                   <tr className="flex flex-col md:table-row">
                     <td colSpan={6} className="px-8 py-10">
@@ -275,7 +275,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     return (
                       <tr
                         key={order.id}
-                        className="flex flex-col md:table-row border border-outline-variant/10 md:border-0 mb-6 md:mb-0 bg-white md:bg-transparent shadow-sm md:shadow-none hover:bg-surface-container-lowest/50 transition-colors duration-300"
+                      className="hidden md:table-row border border-outline-variant/10 md:border-0 mb-6 md:mb-0 bg-white md:bg-transparent shadow-sm md:shadow-none hover:bg-surface-container-lowest/50 transition-colors duration-300"
                       >
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
                           <div className="flex items-center justify-between md:block">
@@ -502,37 +502,46 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                           </div>
                         </td>
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 text-left md:text-right">
-                          <div className="flex md:flex-col flex-wrap gap-2 md:items-end justify-start md:justify-end w-full">
-                            <Link
-                              href={`/invoice?orderId=${order.id}`}
-                              className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-on-surface/10 flex-1 md:flex-initial"
-                            >
-                              View Invoice
-                            </Link>
-                            <Link
-                              href={`/ordertracking?orderId=${order.id}`}
-                              className="inline-flex items-center justify-center bg-transparent text-outline hover:text-on-surface px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-outline-variant/40 hover:border-on-surface/50 flex-1 md:flex-initial"
-                            >
-                              Track Shipment
-                            </Link>
-                            {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
-                              <button
-                                onClick={() => {
-                                  setSelectedOrderId(order.id);
-                                  setLabelModalOpen(true);
-                                }}
-                                className="inline-flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary flex-1 md:flex-initial"
+                          {/* FIX 7 — replace flex gap-2 with margin wrappers (Safari < 14.1 gap on flex bug) */}
+                          <div className="flex md:flex-col flex-wrap md:items-end justify-start md:justify-end w-full">
+                            <div className="mb-2 md:mb-0 md:mt-0 mr-2 md:mr-0 w-full md:w-auto">
+                              <Link
+                                href={`/invoice?orderId=${order.id}`}
+                                className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-on-surface/10 w-full md:w-auto"
                               >
-                                Return Label
-                              </button>
+                                View Invoice
+                              </Link>
+                            </div>
+                            <div className="mb-2 md:mb-0 md:mt-2 mr-2 md:mr-0 w-full md:w-auto">
+                              <Link
+                                href={`/ordertracking?orderId=${order.id}`}
+                                className="inline-flex items-center justify-center bg-transparent text-outline hover:text-on-surface px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-outline-variant/40 hover:border-on-surface/50 w-full md:w-auto"
+                              >
+                                Track Shipment
+                              </Link>
+                            </div>
+                            {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
+                              <div className="mb-2 md:mb-0 md:mt-2 mr-2 md:mr-0 w-full md:w-auto">
+                                <button
+                                  onClick={() => {
+                                    setSelectedOrderId(order.id);
+                                    setLabelModalOpen(true);
+                                  }}
+                                  className="inline-flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary w-full md:w-auto"
+                                >
+                                  Return Label
+                                </button>
+                              </div>
                             )}
                             {returnEligible && (
-                              <button
-                                onClick={() => handleOpenReturnModal(order.id)}
-                                className="inline-flex items-center justify-center bg-red-600/90 text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all flex-1 md:flex-initial rounded-none"
-                              >
-                                Request Return
-                              </button>
+                              <div className="mb-2 md:mb-0 md:mt-2 mr-2 md:mr-0 w-full md:w-auto">
+                                <button
+                                  onClick={() => handleOpenReturnModal(order.id)}
+                                  className="inline-flex items-center justify-center bg-red-600/90 text-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all rounded-none w-full md:w-auto"
+                                >
+                                  Request Return
+                                </button>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -542,6 +551,118 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                 )}
               </tbody>
             </table>
+
+            {/* FIX 6 — Mobile card layout (md:hidden). Replaces the block→table-row hack that breaks Safari. */}
+            <div className="md:hidden">
+              {orders.map((order) => {
+                const statusLower = (order.status || "").toLowerCase();
+                let statusClass = "bg-stone-500/10 text-stone-700 border border-stone-500/20";
+                if (statusLower === "delivered") statusClass = "bg-green-500/10 text-green-700 border border-green-500/20";
+                else if (statusLower === "returned" || statusLower === "return rejected" || statusLower === "failed") statusClass = "bg-red-500/10 text-red-600 border border-red-500/20";
+                else if (statusLower === "return requested" || statusLower === "return in transit" || statusLower === "payment_pending" || statusLower === "payment pending") statusClass = "bg-amber-500/10 text-amber-700 border border-amber-500/20";
+                else if (statusLower === "paid via wallet" || statusLower === "paid" || statusLower === "shipped") statusClass = "bg-blue-500/10 text-blue-700 border border-blue-500/20";
+                else if (statusLower === "expired" || statusLower === "cancelled") statusClass = "bg-stone-500/10 text-stone-600 border border-stone-500/20";
+
+                const returnEligibleMobile = isEligibleForReturn(order);
+                const firstItem = order.cartItems?.[0] || (order as any).cart_items?.[0];
+
+                return (
+                  <div
+                    key={order.id}
+                    className="bg-white border-b border-outline-variant/10 p-6 space-y-4 font-label"
+                  >
+                    {/* Header row */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="font-headline font-black text-xl tracking-tight text-on-surface">#{order.id}</span>
+                        <p className="text-[9px] text-outline uppercase tracking-widest font-semibold mt-0.5">{order.date.toUpperCase()}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.15em] ${statusClass} rounded-full shrink-0`}>
+                        {order.status}
+                      </span>
+                    </div>
+
+                    {/* Product row */}
+                    <div className="flex gap-3">
+                      {firstItem?.image ? (
+                        <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative shrink-0">
+                          <Image
+                            className="object-cover"
+                            src={firstItem.image}
+                            alt={firstItem?.productName || order.items[0] || "Shirt"}
+                            fill
+                            sizes="64px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-20 bg-surface-container-high flex items-center justify-center text-2xl border border-outline-variant/10 shrink-0">👕</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                        <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
+                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
+                      </div>
+                    </div>
+
+                    {/* Financial summary */}
+                    <div className="flex justify-between items-center border-t border-outline-variant/10 pt-3 text-xs">
+                      <span className="text-outline font-semibold uppercase tracking-wider">Total</span>
+                      <span className="font-headline font-extrabold text-base text-on-surface">₹{order.total.toLocaleString("en-IN")}</span>
+                    </div>
+
+                    {/* AWB */}
+                    {order.shiprocketId && (statusLower === "shipped" || statusLower === "delivered") && (
+                      <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">
+                        AWB: <span className="font-mono font-bold text-on-surface select-all">{order.shiprocketId}</span>
+                      </p>
+                    )}
+
+                    {/* Action buttons — margin-based spacing for Safari < 14.1 gap compatibility */}
+                    <div className="flex flex-col pt-1">
+                      <div className="mb-2">
+                        <Link
+                          href={`/invoice?orderId=${order.id}`}
+                          className="flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white py-3 text-[9px] font-black uppercase tracking-widest transition-all border border-on-surface/10 w-full"
+                        >
+                          View Invoice
+                        </Link>
+                      </div>
+                      <div className="mb-2">
+                        <Link
+                          href={`/ordertracking?orderId=${order.id}`}
+                          className="flex items-center justify-center bg-transparent text-outline hover:text-on-surface py-3 text-[9px] font-black uppercase tracking-widest transition-all border border-outline-variant/40 hover:border-on-surface/50 w-full"
+                        >
+                          Track Shipment
+                        </Link>
+                      </div>
+                      {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
+                        <div className="mb-2">
+                          <button
+                            onClick={() => {
+                              setSelectedOrderId(order.id);
+                              setLabelModalOpen(true);
+                            }}
+                            className="flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary py-3 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary w-full"
+                          >
+                            Return Label
+                          </button>
+                        </div>
+                      )}
+                      {returnEligibleMobile && (
+                        <div>
+                          <button
+                            onClick={() => handleOpenReturnModal(order.id)}
+                            className="flex items-center justify-center bg-red-600/90 text-white py-3 text-[9px] font-black uppercase tracking-widest hover:bg-red-700 transition-all w-full"
+                          >
+                            Request Return
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       </main>

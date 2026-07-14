@@ -220,6 +220,12 @@ export default function CheckoutPage() {
     fetchPerks();
   }, [cartItems]);
 
+  useEffect(() => {
+    if (availableWallet <= 0) {
+      setWalletChecked(false);
+    }
+  }, [availableWallet]);
+
   // Revalidate applied coupon if cart changes
   useEffect(() => {
     if (appliedCouponCode && cart.length > 0) {
@@ -988,34 +994,38 @@ export default function CheckoutPage() {
                       )}
 
                       {/* Wallet Toggle */}
-                      <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4">
-                        <div className="flex items-center gap-3">
-                          <div className="relative flex items-center justify-center">
-                            <input
-                              type="checkbox"
-                              id="walletToggle"
-                              checked={walletChecked}
-                              onChange={(e) => setWalletChecked(e.target.checked)}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
-                            />
-                            <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
-                              <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
-                                check
-                              </span>
+                      {availableWallet > 0 && (
+                        <>
+                          <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4">
+                            <div className="flex items-center gap-3">
+                              <div className="relative flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  id="walletToggle"
+                                  checked={walletChecked}
+                                  onChange={(e) => setWalletChecked(e.target.checked)}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
+                                />
+                                <div className="w-4 h-4 border border-outline-variant/30 rounded transition-all duration-300 bg-white/50 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/70 flex items-center justify-center">
+                                  <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
+                                    check
+                                  </span>
+                                </div>
+                              </div>
+                              <label htmlFor="walletToggle" className="font-black cursor-pointer select-none text-[10px] tracking-wider text-on-surface/80">
+                                PAY WITH STORE WALLET
+                              </label>
                             </div>
+                            <span id="walletAvailableText" className="text-outline font-bold text-[9px] tracking-wider uppercase">
+                              ₹{availableWallet.toLocaleString("en-IN", { minimumFractionDigits: 2 })} AVAILABLE
+                            </span>
                           </div>
-                          <label htmlFor="walletToggle" className="font-black cursor-pointer select-none text-[10px] tracking-wider text-on-surface/80">
-                            PAY WITH STORE WALLET
-                          </label>
-                        </div>
-                        <span id="walletAvailableText" className="text-outline font-bold text-[9px] tracking-wider uppercase">
-                          ₹{availableWallet.toLocaleString("en-IN", { minimumFractionDigits: 2 })} AVAILABLE
-                        </span>
-                      </div>
-                      {walletChecked && walletDeduction > 0 && (
-                        <div id="walletAppliedMessage" className="text-[9px] font-bold text-green-600 uppercase tracking-widest pl-6">
-                          APPLYING ₹{walletDeduction.toLocaleString("en-IN", { minimumFractionDigits: 2 })} FROM WALLET
-                        </div>
+                          {walletChecked && walletDeduction > 0 && (
+                            <div id="walletAppliedMessage" className="text-[9px] font-bold text-green-600 uppercase tracking-widest pl-6">
+                              APPLYING ₹{walletDeduction.toLocaleString("en-IN", { minimumFractionDigits: 2 })} FROM WALLET
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

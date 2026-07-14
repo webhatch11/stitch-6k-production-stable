@@ -3,6 +3,8 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { supabaseService as supabase } from "@/lib/supabase-service";
+import { sendWalletCreditedEmail } from "@/lib/email";
 
 export async function adjustCustomerBalanceAction(
   email: string,
@@ -66,6 +68,36 @@ export async function adjustCustomerBalanceAction(
       amount,
       reason
     );
+
+    if (success && type === "wallet" && amount > 0) {
+      try {
+        if (supabase) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, email, name')
+            .eq('email', email)
+            .maybeSingle();
+
+          if (profile?.email) {
+            const newBalance = await db.getWalletBalance(profile.id);
+            await sendWalletCreditedEmail({
+              to: profile.email,
+              customerName: profile.name || 'Valued Customer',
+              amount: amount,
+              reason: reason || 'Store credit adjustment',
+              newBalance: newBalance,
+              creditedAt: new Date().toISOString()
+            });
+          }
+        }
+      } catch (e) {
+        console.error(
+          '[adjustCustomerBalanceAction] ' +
+          'Failed to send wallet credit email:', e
+        );
+      }
+    }
+
     return { success: !!success };
   } catch (e: any) {
     console.error("[adjustCustomerBalanceAction]", e);

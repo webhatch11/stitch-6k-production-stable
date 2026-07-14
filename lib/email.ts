@@ -524,4 +524,80 @@ export async function sendOrderCancelledByAdminEmail(params: {
   }
 }
 
+export async function sendWalletCreditedEmail(params: {
+  to: string;
+  customerName: string;
+  amount: number;
+  reason: string;
+  newBalance: number;
+  creditedAt: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0; border-radius: 8px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; width: 40px; height: 40px; background-color: #000; color: #fff; text-align: center; line-height: 40px; font-weight: bold; font-size: 18px;">6K</div>
+      </div>
+      
+      <h1 style="color: #16a34a; font-size: 22px; text-align: center; margin-bottom: 24px;">
+        Wallet Credited ✓
+      </h1>
+      
+      <p>Hi ${params.customerName},</p>
+      <p>Great news! Your store wallet has been credited.</p>
+      
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; text-align: center; border-radius: 6px; margin: 24px 0;">
+        <span style="color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">Amount Credited</span>
+        <h2 style="color: #16a34a; font-size: 32px; margin: 8px 0 0 0; font-weight: 900;">
+          ₹${params.amount.toLocaleString("en-IN")}.00
+        </h2>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+        <tbody>
+          <tr style="border-bottom: 1px solid #f5f5f5;">
+            <td style="padding: 12px 0; color: #6b7280;">Reason</td>
+            <td style="padding: 12px 0; text-align: right; font-weight: bold;">${params.reason}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f5f5f5;">
+            <td style="padding: 12px 0; color: #6b7280;">New Wallet Balance</td>
+            <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #16a34a;">₹${params.newBalance.toLocaleString("en-IN")}.00</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p style="color: #4b5563; font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
+        Use your wallet balance at checkout for instant savings on your next order.
+      </p>
+      
+      <div style="text-align: center; margin-bottom: 32px;">
+        <a href="${siteUrl}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; display: inline-block;">
+          Shop Now
+        </a>
+      </div>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; line-height: 1.5;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        ${supportEmail} | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: `₹${params.amount} credited to your 6K wallet`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[Email Error] Failed to deliver wallet credit email to ${params.to} via Resend. Error:`, err.message || err);
+  }
+}
+
 

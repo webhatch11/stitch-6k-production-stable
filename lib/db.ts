@@ -170,6 +170,8 @@ const mapDbOrderToOrder = (o: any): Order => {
     pointsRedeemed: Number(o.points_redeemed || 0),
     pointsDiscount: Number(o.points_discount || 0),
     pointsEarned: Number(o.points_earned || 0),
+    pointsCreditStatus: o.points_credit_status || 'pending',
+    pointsCreditScheduledAt: o.points_credit_scheduled_at || null,
     returnReason: o.return_reason,
     returnDetails: o.return_details,
     returnImage: o.return_image,
@@ -752,7 +754,7 @@ export const db = {
         'environment variables.'
       );
     }
-    let query = supabase.from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount");
+    let query = supabase.from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at");
     if (userId) {
       query = query.eq("user_id", userId);
     }
@@ -784,7 +786,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -806,7 +808,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("idempotency_key", key)
       .maybeSingle();
 
@@ -828,7 +830,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("shiprocket_id", awb)
       .maybeSingle();
 
@@ -860,7 +862,7 @@ export const db = {
 
     // Check if order exists
     const { data: existingOrder, error: fetchError } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -902,6 +904,8 @@ export const db = {
     if (order.idempotencyKey !== undefined) dbPayload.idempotency_key = order.idempotencyKey;
     if (order.cartItems !== undefined) dbPayload.cart_items = order.cartItems;
     if (order.paymentStatus !== undefined) dbPayload.payment_status = order.paymentStatus;
+    if (order.pointsCreditStatus !== undefined) dbPayload.points_credit_status = order.pointsCreditStatus;
+    if (order.pointsCreditScheduledAt !== undefined) dbPayload.points_credit_scheduled_at = order.pointsCreditScheduledAt;
     if (order.userId !== undefined || order.user_id !== undefined) dbPayload.user_id = order.userId || order.user_id;
     if (order.address_snapshot !== undefined) dbPayload.address_snapshot = order.address_snapshot;
     if (order.deliveredAt !== undefined || order.delivered_at !== undefined) dbPayload.delivered_at = order.deliveredAt || order.delivered_at;
@@ -984,6 +988,8 @@ export const db = {
       shiprocketId: order.shiprocketId !== undefined ? order.shiprocketId : (existingOrder ? existingOrder.shiprocket_id : undefined),
       cartItems: order.cartItems || (existingOrder ? existingOrder.cart_items : []),
       paymentStatus: order.paymentStatus || (existingOrder ? existingOrder.payment_status : "PENDING"),
+      pointsCreditStatus: dbPayload.points_credit_status !== undefined ? dbPayload.points_credit_status : (existingOrder ? existingOrder.points_credit_status : 'pending'),
+      pointsCreditScheduledAt: dbPayload.points_credit_scheduled_at !== undefined ? dbPayload.points_credit_scheduled_at : (existingOrder ? existingOrder.points_credit_scheduled_at : null),
       address_snapshot: order.address_snapshot !== undefined ? order.address_snapshot : (existingOrder ? existingOrder.address_snapshot : null),
       delivered_at: dbPayload.delivered_at !== undefined ? dbPayload.delivered_at : (existingOrder ? existingOrder.delivered_at : undefined),
       deliveredAt: dbPayload.delivered_at !== undefined ? dbPayload.delivered_at : (existingOrder ? existingOrder.delivered_at : undefined),
@@ -1766,7 +1772,7 @@ export const db = {
       );
     }
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -1818,7 +1824,7 @@ export const db = {
     }
 
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -1861,6 +1867,11 @@ export const db = {
       await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
       return false;
     }
+
+    await supabase
+      .from('orders')
+      .update({ points_credit_status: 'cancelled' })
+      .eq('id', orderId);
 
     // 2. QC passed → restock variant inventory from cart_items JSONB.
     if (qualityCheckPassed) {
@@ -2022,7 +2033,7 @@ export const db = {
     }
 
     const { data: orderData, error: orderErr } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -2063,6 +2074,11 @@ export const db = {
       await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
       return false;
     }
+
+    await supabase
+      .from('orders')
+      .update({ points_credit_status: 'cancelled' })
+      .eq('id', orderId);
 
     // 2. Restock variant inventory from cart_items JSONB (has productId, size, color, quantity).
     // Falls back to a warning for legacy orders without cart_items.
@@ -2186,7 +2202,7 @@ export const db = {
     }
 
     const { data: orderData, error } = await supabase
-      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount")
+      .from("orders").select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -2431,12 +2447,20 @@ export const db = {
       }
     }
 
-    // e. Award loyalty points
+    // e. Schedule loyalty points for credit after 7-day return window closes
     try {
-      const webhookEarnBase = Math.max(0, (dbOrder.originalTotal || 0) - (dbOrder.couponDiscount || 0));
-      await this.awardLoyaltyPoints(webhookEarnBase, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+      const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase
+        .from('orders')
+        .update({ 
+          points_credit_status: 'pending',
+          points_credit_scheduled_at: creditAt
+        })
+        .eq('id', dbOrder.id);
     } catch (e) {
-      console.error("[runPostPaymentSideEffects] awardLoyaltyPoints failed:", e);
+      console.error(
+        "[runPostPaymentSideEffects] " +
+        "Failed to schedule points credit:", e);
     }
 
     // f. Update payments record

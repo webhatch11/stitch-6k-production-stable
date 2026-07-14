@@ -13,6 +13,7 @@ import {
   deleteUserAddressAction, 
   setDefaultUserAddressAction 
 } from "@/app/actions/addresses";
+import { getPendingPointsAction } from "@/app/actions/orders";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import ProductImage from "@/components/ProductImage";
 
@@ -50,6 +51,7 @@ export default function MyProfileClient({
   const [walletTxs, setWalletTxs] = useState<WalletTransaction[]>(initialWalletTxs);
   const [loyaltyPoints, setLoyaltyPoints] = useState(initialLoyaltyPoints);
   const [loyaltyTxs, setLoyaltyTxs] = useState<LoyaltyTransaction[]>(initialLoyaltyTxs);
+  const [pendingPoints, setPendingPoints] = useState(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>(initialRecentOrders);
 
   // Profile Edit States
@@ -217,6 +219,13 @@ export default function MyProfileClient({
     if (typeof window !== "undefined" && window.location.hash === "#loyalty") {
       setActiveTab("loyalty");
     }
+    const fetchPending = async () => {
+      const res = await getPendingPointsAction();
+      if (res.success && res.pendingPoints !== undefined) {
+        setPendingPoints(res.pendingPoints);
+      }
+    };
+    fetchPending();
   }, []);
 
   const refreshProfileData = async () => {
@@ -227,6 +236,10 @@ export default function MyProfileClient({
       setLoyaltyPoints(res.data.loyaltyPoints);
       setLoyaltyTxs(res.data.loyaltyTxs);
       setRecentOrders(res.data.recentOrders);
+    }
+    const pendingRes = await getPendingPointsAction();
+    if (pendingRes.success && pendingRes.pendingPoints !== undefined) {
+      setPendingPoints(pendingRes.pendingPoints);
     }
   };
 
@@ -782,6 +795,11 @@ export default function MyProfileClient({
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">
                       Redemption value: ₹{(loyaltyPoints * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </p>
+                    {pendingPoints > 0 && (
+                      <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest animate-pulse">
+                        {pendingPoints} points pending — will be credited after your return window closes
+                      </p>
+                    )}
                     {/* 30-day expiry warning */}
                     {(() => {
                       const soonExpiring = loyaltyTxs

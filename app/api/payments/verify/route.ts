@@ -269,11 +269,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // e. Award loyalty points — use earnBase (net spend, no shipping)
+    // e. Schedule loyalty points for credit 7 days from now
     try {
-      await db.awardLoyaltyPoints(earnBase, dbOrder.id, dbOrder.user_id);
+      const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase
+        .from('orders')
+        .update({
+          points_credit_status: 'pending',
+          points_credit_scheduled_at: creditAt
+        })
+        .eq('id', dbOrder.id);
     } catch (e) {
-      console.error("[verify] awardLoyaltyPoints failed:", e);
+      console.error("[verify] Failed to schedule points credit:", e);
     }
 
     // f. Update payments record

@@ -193,12 +193,13 @@ export async function processWalletPointsCheckoutAction(payload: {
     }
   }
 
-  // Award new loyalty points
-  try {
-    await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId);
-  } catch (e) {
-    console.error('[checkout.ts] awardLoyaltyPoints (wallet) failed:', e);
-  }
+  // Schedule loyalty points for credit 7 days from now
+  const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await db.saveOrder({
+    id: idempotencyKey,
+    pointsCreditStatus: 'pending',
+    pointsCreditScheduledAt: creditAt
+  });
 
   // F. Save Order server-side
   const orderData = {
@@ -598,11 +599,12 @@ export async function processCodCheckoutAction(payload: {
 
   // Award new loyalty points (only if logged in)
   if (user) {
-    try {
-      await db.awardLoyaltyPoints(verifiedNetTotal, idempotencyKey, userId!);
-    } catch (e) {
-      console.error('[checkout.ts] awardLoyaltyPoints (COD) failed:', e);
-    }
+    const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await db.saveOrder({
+      id: idempotencyKey,
+      pointsCreditStatus: 'pending',
+      pointsCreditScheduledAt: creditAt
+    });
   }
 
   // F. Save Order server-side

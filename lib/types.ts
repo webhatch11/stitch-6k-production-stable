@@ -85,6 +85,8 @@ export interface Order {
   pointsRedeemed: number;
   pointsDiscount: number;
   pointsEarned: number;
+  pointsCreditStatus?: string;
+  pointsCreditScheduledAt?: string | null;
   returnReason?: string;
   returnDetails?: string;
   returnImage?: string;

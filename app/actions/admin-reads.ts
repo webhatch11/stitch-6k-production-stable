@@ -128,7 +128,8 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
 
     // Fetch products using standard db client helper to populate variants and map fields correctly
     try {
-      products = await db.getProducts({ includeDeleted: true });
+      // FIX 1 — exclude soft-deleted (trashed) products from bestsellers lookup
+      products = await db.getProducts({ includeDeleted: false });
     } catch (e) {
       console.warn("[getBestSellersAction] failed to load products via db.getProducts, using fallback...", e);
       products = [];
@@ -154,10 +155,28 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
       orders = dbOrders || [];
     }
 
-    const activeOrders = orders.filter((o) => {
+    // FIX 4 — exclude ghost/zero-total orders (empty cart or £0 total)
+    const validOrders = orders.filter((o) =>
+      Number(o.total || 0) > 0 &&
+      Array.isArray(o.cart_items || o.cartItems) &&
+      (o.cart_items || o.cartItems || []).length > 0
+    );
+
+    // FIX 5 — exclude cancelled, returned, and fully-refunded orders
+    const activeOrders = validOrders.filter((o) => {
       const status = (o.status || "").toLowerCase();
       const refundStatus = (o.refund_status || o.refundStatus || "").toLowerCase();
-      return status !== "cancelled" && refundStatus !== "processed";
+
+      // Exclude cancelled orders
+      if (status === "cancelled") return false;
+
+      // Exclude fully returned orders
+      if (["returned", "rto delivered", "rto initiated"].includes(status)) return false;
+
+      // Exclude fully refunded orders
+      if (["processed", "credited", "wallet_only"].includes(refundStatus)) return false;
+
+      return true;
     });
 
     const bestSellersMap = new Map<string, {
@@ -167,6 +186,7 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
       unitsSold: number;
       revenue: number;
       stockStatus: string;
+      isDeleted: boolean;
     }>();
 
     const productMap = new Map<string, any>();
@@ -210,8 +230,18 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
         const title = prod ? prod.title : (item.title || pId);
         const image = prod ? (prod.image || (prod.images && prod.images[0])) : (item.image || "");
         
+        // FIX 2 — detect deleted products; still show in history but badge as "Deleted"
         let stockStatus = "In Stock";
-        if (prod) {
+        let isDeleted = false;
+        if (!prod) {
+          // Product hard-deleted from DB — treat as deleted for display
+          isDeleted = true;
+          stockStatus = "Deleted";
+        } else if (prod.deletedAt || prod.deleted_at) {
+          // Product soft-deleted — mark as deleted
+          isDeleted = true;
+          stockStatus = "Deleted";
+        } else {
           const variants = prod.variants || [];
           const totalStock = variants.reduce((sum: number, v: any) => sum + Number(v.stock || 0), 0);
           if (totalStock === 0) {
@@ -235,6 +265,7 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
             unitsSold: quantity,
             revenue: itemRevenue,
             stockStatus,
+            isDeleted,
           });
         }
       }

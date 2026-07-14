@@ -132,7 +132,9 @@ export default function BestSellersPage() {
                 {sortedData.map((item, idx) => {
                   const rank = idx + 1;
                   const stockStyle =
-                    item.stockStatus === "Out of Stock"
+                    item.stockStatus === "Deleted"
+                      ? "text-gray-500 bg-gray-100 border-gray-300"
+                      : item.stockStatus === "Out of Stock"
                       ? "text-red-600 bg-red-50 border-red-200"
                       : item.stockStatus === "Low Stock"
                       ? "text-amber-700 bg-amber-50 border-amber-200"

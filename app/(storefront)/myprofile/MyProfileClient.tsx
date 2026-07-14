@@ -408,7 +408,7 @@ export default function MyProfileClient({
                 {isEditing ? (
                   <form onSubmit={handleProfileSave} className="flex flex-col gap-4 max-w-xl">
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
                       <input
                         required
                         type="text"
@@ -419,7 +419,7 @@ export default function MyProfileClient({
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
                       <input
                         required
                         type="text"
@@ -430,7 +430,7 @@ export default function MyProfileClient({
                       />
                     </div>
                     <div className="space-y-1.5 opacity-60">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Email Address (Read-only)</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Email Address (Read-only)</label>
                       <input
                         disabled
                         type="email"
@@ -500,7 +500,7 @@ export default function MyProfileClient({
                     )}
 
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Full Name</label>
                       <input
                         required
                         type="text"
@@ -512,7 +512,7 @@ export default function MyProfileClient({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Phone Number</label>
                       <input
                         required
                         type="text"
@@ -524,7 +524,7 @@ export default function MyProfileClient({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 1</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Address Line 1</label>
                       <input
                         required
                         type="text"
@@ -536,7 +536,7 @@ export default function MyProfileClient({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Address Line 2 (Optional)</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Address Line 2 (Optional)</label>
                       <input
                         type="text"
                         value={addrLine2}
@@ -548,7 +548,7 @@ export default function MyProfileClient({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">City</label>
+                        <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">City</label>
                         <input
                           required
                           type="text"
@@ -559,7 +559,7 @@ export default function MyProfileClient({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">Pin Code</label>
+                        <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">Pin Code</label>
                         <input
                           required
                           type="text"
@@ -572,7 +572,7 @@ export default function MyProfileClient({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block text-[8px] font-black uppercase tracking-[0.2em] text-outline">State</label>
+                      <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-outline">State</label>
                       <input
                         required
                         type="text"
@@ -649,7 +649,7 @@ export default function MyProfileClient({
                                   {address.name}
                                 </h5>
                                 {address.is_default && (
-                                  <span className="bg-[#775a19] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none">
+                                  <span className="bg-[#775a19] text-white text-[11px] font-black uppercase tracking-widest px-2 py-0.5 rounded-none">
                                     DEFAULT
                                   </span>
                                 )}
@@ -705,28 +705,26 @@ export default function MyProfileClient({
                   </Link>
                 </div>
                 {/* Mobile card layout (md:hidden) */}
-                <div className="md:hidden space-y-3">
-                  {recentOrders.length === 0 ? (
-                    <div className="p-8 text-center text-outline italic bg-white border border-outline-variant/15">No recent orders found</div>
-                  ) : (
-                    recentOrders.map((order) => (
-                      <div key={order.id} className="bg-white border border-outline-variant/15 p-4 rounded-xl space-y-2">
-                        <div className="flex justify-between items-start">
-                          <span className="font-mono text-xs font-bold text-on-surface">#{order.id}</span>
-                          <span className="inline-block px-2 py-0.5 border border-outline-variant/20 bg-surface-container-low text-[8px] font-bold uppercase tracking-widest text-outline">
-                            {order.status}
-                          </span>
-                        </div>
-                        <div className="text-sm font-medium text-on-surface">
-                          {order.items?.[0] || "Order"}
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-outline">{order.date}</span>
-                          <span className="font-bold text-on-surface">₹{order.total?.toLocaleString("en-IN")}</span>
-                        </div>
+                <div className="md:hidden space-y-3 mb-4">
+                  {recentOrders.map((order) => (
+                    <div key={order.id} 
+                      className="bg-white border border-gray-100 rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-mono text-xs font-bold">#{order.id}</span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                          {order.status}
+                        </span>
                       </div>
-                    ))
-                  )}
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">
+                          {order.date}
+                        </span>
+                        <span className="text-sm font-bold">
+                          ₹{order.total?.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="hidden md:block overflow-x-auto bg-white border border-outline-variant/15">
@@ -754,7 +752,7 @@ export default function MyProfileClient({
                             <td className="p-4 truncate max-w-[200px]">{order.items[0]}</td>
                             <td className="p-4 font-bold">₹{order.total.toLocaleString("en-IN")}</td>
                             <td className="p-4">
-                              <span className="inline-block px-2 py-0.5 border border-outline-variant/20 bg-surface-container-low text-[8px] font-bold uppercase tracking-widest">
+                              <span className="inline-block px-2 py-0.5 border border-outline-variant/20 bg-surface-container-low text-[11px] font-bold uppercase tracking-widest">
                                 {order.status}
                               </span>
                             </td>
@@ -850,7 +848,9 @@ export default function MyProfileClient({
                   <h2 className="text-on-surface text-xl font-headline font-bold uppercase tracking-tight border-b border-on-surface/10 pb-4">
                     Wallet Transactions
                   </h2>
-                  <div className="overflow-x-auto -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
+                  <div className="overflow-x-auto w-full relative -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
+                    {/* Add scroll fade indicator */}
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
                     <table className="w-full text-left border-collapse table-fixed min-w-[500px]">
                       <colgroup>
                         <col className="w-[25%]" />
@@ -890,7 +890,9 @@ export default function MyProfileClient({
                   <h2 className="text-on-surface text-xl font-headline font-bold uppercase tracking-tight border-b border-on-surface/10 pb-4">
                     Loyalty Log
                   </h2>
-                  <div className="overflow-x-auto -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
+                  <div className="overflow-x-auto w-full relative -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
+                    {/* Add scroll fade indicator */}
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none md:hidden" />
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
@@ -998,7 +1000,7 @@ export default function MyProfileClient({
                             >
                               {item.title}
                             </Link>
-                            <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">
+                            <p className="text-[11px] text-outline uppercase tracking-[0.2em] font-semibold">
                               {item.category}
                             </p>
                           </div>

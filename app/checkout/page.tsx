@@ -818,7 +818,7 @@ export default function CheckoutPage() {
       <main className="pt-[calc(4rem+env(safe-area-inset-top,0px))] md:pt-24 pb-32 lg:pb-24 px-4 sm:px-6 md:px-8 max-w-screen-xl mx-auto flex-grow w-full">
         {/* Progress Timeline Indicator */}
         <div className="max-w-2xl mx-auto mb-10 select-none">
-          <div className="flex items-center justify-between bg-white/30 backdrop-blur-md border border-outline-variant/10 p-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-center shadow-sm">
+          <div className="flex items-center justify-between bg-white/30 backdrop-blur-md border border-outline-variant/10 p-1.5 rounded-full text-[11px] sm:text-[9px] font-black uppercase tracking-widest text-center shadow-sm">
             <div
               className={`flex-grow py-3.5 rounded-full transition-all duration-500 cursor-pointer ${
                 currentStep === 1 
@@ -965,7 +965,7 @@ export default function CheckoutPage() {
                       {/* Loyalty Toggle */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="relative flex items-center justify-center">
+                          <div className="relative w-11 h-11 flex items-center justify-center -ml-3.5">
                             <input
                               type="checkbox"
                               id="loyaltyToggle"
@@ -998,7 +998,7 @@ export default function CheckoutPage() {
                         <>
                           <div className="flex items-center justify-between border-t border-outline-variant/10 pt-4">
                             <div className="flex items-center gap-3">
-                              <div className="relative flex items-center justify-center">
+                              <div className="relative w-11 h-11 flex items-center justify-center -ml-3.5">
                                 <input
                                   type="checkbox"
                                   id="walletToggle"
@@ -1076,7 +1076,7 @@ export default function CheckoutPage() {
                         />
                         <div className="flex flex-col text-left">
                           <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Online Payment (UPI, Cards, NetBanking)</span>
-                          <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">Pay via Razorpay Secure Gateway (Recommended)</span>
+                          <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">Pay via Razorpay Secure Gateway (Recommended)</span>
                         </div>
                       </label>
 
@@ -1094,7 +1094,7 @@ export default function CheckoutPage() {
                           />
                           <div className="flex flex-col text-left">
                             <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Cash on Delivery (COD)</span>
-                            <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">
+                            <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">
                               {codAllowed ? "Pay cash at your doorstep" : `COD Unavailable: ${codReason}`}
                             </span>
                           </div>
@@ -1326,13 +1326,13 @@ export default function CheckoutPage() {
                   <div className="mt-6 space-y-3">
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-md text-[#fed488]">verified_user</span>
-                      <span className="text-[8px] uppercase tracking-[0.2em] text-outline font-bold">
+                      <span className="text-[11px] uppercase tracking-[0.2em] text-outline font-bold">
                         100% Secure Encrypted Payments
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-md text-[#fed488]">local_shipping</span>
-                      <span className="text-[8px] uppercase tracking-[0.2em] text-outline font-bold">
+                      <span className="text-[11px] uppercase tracking-[0.2em] text-outline font-bold">
                         Insured Fast Shipping
                       </span>
                     </div>
@@ -1441,7 +1441,7 @@ export default function CheckoutPage() {
                   JRT TEXTILES (6K Brand)<br />
                   1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar<br />
                   Tiruchirappalli – 620018, Tamil Nadu<br />
-                  <span className="text-[8px] text-white/40 mt-1 block">Global Distribution Center</span>
+                  <span className="text-[11px] text-white/40 mt-1 block">Global Distribution Center</span>
                 </span>
               </p>
             </div>

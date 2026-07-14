@@ -311,7 +311,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               );
                             })()}
                             <div className="flex-1 min-w-0">
-                              <span className="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                              <span className="text-[11px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
                               <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
                               <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
                               {/* Return Eligibility Banner */}
@@ -364,7 +364,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                     <div className="relative">
                                       <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
                                       <p className="text-[9px] font-bold uppercase text-gray-800">Return Requested</p>
-                                      <p className="text-[8px] text-gray-400 font-mono">{order.returnRequestDate || order.date}</p>
+                                      <p className="text-[11px] text-gray-400 font-mono">{order.returnRequestDate || order.date}</p>
                                     </div>
 
                                     {/* Step 2: Pickup Scheduled */}
@@ -372,7 +372,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                       <div className="relative">
                                         <span className={`absolute -left-[20px] top-1 w-2 h-2 rounded-full ${order.status !== "Return Requested" ? "bg-primary" : "bg-gray-300"}`} />
                                         <p className="text-[9px] font-bold uppercase text-gray-800">Pickup Scheduled</p>
-                                        <p className="text-[8px] text-gray-400 font-mono">
+                                        <p className="text-[11px] text-gray-400 font-mono">
                                           {order.returnPickupScheduled || (order as any).return_pickup_scheduled
                                             ? new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                                             : "Awaiting partner confirmation"}
@@ -385,7 +385,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                       <div className="relative">
                                         <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
                                         <p className="text-[9px] font-bold uppercase text-gray-800">Refund Processed</p>
-                                        <p className="text-[8px] text-gray-400 font-mono">{order.returnDate || "Completed"}</p>
+                                        <p className="text-[11px] text-gray-400 font-mono">{order.returnDate || "Completed"}</p>
                                       </div>
                                     )}
 
@@ -394,7 +394,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                       <div className="relative">
                                         <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-red-600" />
                                         <p className="text-[9px] font-bold uppercase text-red-600">Return Rejected</p>
-                                        <p className="text-[8px] text-gray-400 font-mono">Reason: "{order.returnRejectReason}"</p>
+                                        <p className="text-[11px] text-gray-400 font-mono">Reason: "{order.returnRejectReason}"</p>
                                       </div>
                                     )}
                                   </div>
@@ -412,7 +412,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                         <p className="uppercase">Expected Refund: <span className="text-[#0a0a0a] font-mono">{estRefund.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></p>
                                       );
                                     })() : null}
-                                    <p className="pt-1 text-[8px] tracking-wide text-gray-400">Taking too long? <a href="/contact" className="text-primary underline">Contact Support</a></p>
+                                    <p className="pt-1 text-[11px] tracking-wide text-gray-400">Taking too long? <a href="/contact" className="text-primary underline">Contact Support</a></p>
                                   </div>
                                 </div>
                               )}
@@ -465,7 +465,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                 <span>₹{order.refund_amount.toLocaleString("en-IN")} {order.refund_status === "wallet_only" ? "(to Wallet)" : "(to Source)"}</span>
                               </div>
                             )}
-                            <span className="text-[8px] text-gray-400 font-medium tracking-wide text-right">
+                            <span className="text-[11px] text-gray-400 font-medium tracking-wide text-right">
                               ✓ Prices inclusive of GST
                             </span>
                           </div>
@@ -598,7 +598,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                         <div className="w-16 h-20 bg-surface-container-high flex items-center justify-center text-2xl border border-outline-variant/10 shrink-0">👕</div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <span className="text-[8px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                        <span className="text-[11px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
                         <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
                         <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
                       </div>
@@ -686,7 +686,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     <span className="material-symbols-outlined text-outline/60 text-3xl mb-2">upload_file</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-outline">Upload Product Image *</span>
                     {uploadedImageName && (
-                      <span className="text-[8px] font-bold text-secondary uppercase tracking-widest mt-2">
+                      <span className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-2">
                         {uploadedImageName}
                       </span>
                     )}
@@ -737,7 +737,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     />
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Bank Account</span>
-                      <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">3-5 Business Days</span>
+                      <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">3-5 Business Days</span>
                     </div>
                   </label>
                   <label className={`flex items-center gap-3 cursor-pointer flex-1 border p-4 transition-all group ${refundOption === "wallet" ? "border-secondary" : "border-outline-variant/20"}`}>
@@ -751,7 +751,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     />
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Store Wallet</span>
-                      <span className="text-[8px] text-outline uppercase tracking-wider font-semibold mt-0.5">Instant Refund</span>
+                      <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">Instant Refund</span>
                     </div>
                   </label>
                 </div>
@@ -785,7 +785,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
             <div id="printable-return-label" className="border-2 border-double border-secondary p-6 space-y-6 bg-white text-neutral-900 select-none">
               <div className="flex justify-between items-center pb-4 border-b border-neutral-200">
                 <span className="text-xs font-black tracking-widest">STITCH 6K ATELIER</span>
-                <span className="text-[8px] font-black border border-neutral-800 px-1 py-0.5 uppercase tracking-widest">PREPAID</span>
+                <span className="text-[11px] font-black border border-neutral-800 px-1 py-0.5 uppercase tracking-widest">PREPAID</span>
               </div>
 
               {/* Barcode SVG */}
@@ -829,7 +829,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                   <rect x="208" y="0" width="3" height="50" fill="currentColor"/>
                   <rect x="216" y="0" width="4" height="50" fill="currentColor"/>
                 </svg>
-                <span className="text-[8px] font-mono tracking-widest uppercase text-neutral-600 block mt-1">
+                <span className="text-[11px] font-mono tracking-widest uppercase text-neutral-600 block mt-1">
                   AWB: RET-{orders.find(o => o.id === selectedOrderId)?.shiprocketId || "SR" + Math.floor(Math.random() * 900000 + 100000)}
                 </span>
               </div>
@@ -850,7 +850,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                 </div>
               </div>
 
-              <div className="flex justify-between items-center text-[8px] text-neutral-400 font-bold uppercase tracking-widest pt-2">
+              <div className="flex justify-between items-center text-[11px] text-neutral-400 font-bold uppercase tracking-widest pt-2">
                 <span>Weight: 0.40 KG</span>
                 <span>Type: Reverse Logistics</span>
               </div>

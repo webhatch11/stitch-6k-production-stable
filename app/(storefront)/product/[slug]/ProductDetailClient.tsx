@@ -537,7 +537,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             </div>
 
             {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-4 py-6 border-t border-b border-outline-variant/30 text-outline">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6 border-t border-b border-outline-variant/30 text-outline">
               <div className="flex items-center space-x-3">
                 <span className="material-symbols-outlined text-secondary text-lg">local_shipping</span>
                 <span className="text-[9px] uppercase tracking-widest font-black leading-tight">
@@ -590,7 +590,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     accordionOpen.material ? "max-h-[200px] opacity-100 mt-3" : "max-h-0 opacity-0"
                   }`}
                 >
-                  <div className="grid grid-cols-2 gap-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 text-xs">
                     <div>
                       <h4 className="text-[9px] uppercase tracking-widest font-black text-outline">Material</h4>
                       <p className="font-bold text-on-surface mt-0.5">{product.specFabric || product.details?.fabric || "100% Premium Cotton"}</p>
@@ -861,142 +861,144 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </button>
             </div>
 
-            {/* Size Chart Table */}
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '12px'
-            }}>
-              <thead>
-                <tr style={{
-                  background: '#1a1a1a',
-                  color: '#ffffff'
-                }}>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
+             {/* Size Chart Table */}
+            <div className="overflow-x-auto w-full -mx-4 px-4 sm:mx-0 sm:px-0">
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '12px'
+              }}>
+                <thead>
+                  <tr style={{
+                    background: '#1a1a1a',
+                    color: '#ffffff'
                   }}>
-                    Size
-                  </th>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
-                  }}>
-                    Chest (in)
-                  </th>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
-                  }}>
-                    Waist (in)
-                  </th>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
-                  }}>
-                    Length (in)
-                  </th>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
-                  }}>
-                    Chest (cm)
-                  </th>
-                  <th style={{
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                    fontWeight: '500',
-                    letterSpacing: '0.05em',
-                    fontSize: '10px',
-                    textTransform: 'uppercase'
-                  }}>
-                    Waist (cm)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { size: 'S', chestIn: '36-38', waistIn: '30-32', lengthIn: '28', chestCm: '91-96', waistCm: '76-81' },
-                  { size: 'M', chestIn: '38-40', waistIn: '32-34', lengthIn: '29', chestCm: '96-101', waistCm: '81-86' },
-                  { size: 'L', chestIn: '40-42', waistIn: '34-36', lengthIn: '30', chestCm: '101-106', waistCm: '86-91' },
-                  { size: 'XL', chestIn: '42-44', waistIn: '36-38', lengthIn: '31', chestCm: '106-111', waistCm: '91-96' },
-                  { size: 'XXL', chestIn: '44-46', waistIn: '38-40', lengthIn: '32', chestCm: '111-116', waistCm: '96-101' },
-                ].map((row, i) => (
-                  <tr
-                    key={row.size}
-                    style={{
-                      background: i % 2 === 0 
-                        ? '#ffffff' : '#f9f9f9',
-                      borderBottom: '1px solid #e5e5e5'
-                    }}
-                  >
-                    <td style={{
-                      padding: '10px 4px',
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      fontWeight: '600',
-                      color: '#1a1a1a'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.size}
-                    </td>
-                    <td style={{
-                      padding: '10px 4px',
+                      Size
+                    </th>
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      color: '#374151'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.chestIn}
-                    </td>
-                    <td style={{
-                      padding: '10px 4px',
+                      Chest (in)
+                    </th>
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      color: '#374151'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.waistIn}
-                    </td>
-                    <td style={{
-                      padding: '10px 4px',
+                      Waist (in)
+                    </th>
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      color: '#374151'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.lengthIn}
-                    </td>
-                    <td style={{
-                      padding: '10px 4px',
+                      Length (in)
+                    </th>
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      color: '#374151'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.chestCm}
-                    </td>
-                    <td style={{
-                      padding: '10px 4px',
+                      Chest (cm)
+                    </th>
+                    <th style={{
+                      padding: '8px 4px',
                       textAlign: 'center',
-                      color: '#374151'
+                      fontWeight: '500',
+                      letterSpacing: '0.05em',
+                      fontSize: '10px',
+                      textTransform: 'uppercase'
                     }}>
-                      {row.waistCm}
-                    </td>
+                      Waist (cm)
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[
+                    { size: 'S', chestIn: '36-38', waistIn: '30-32', lengthIn: '28', chestCm: '91-96', waistCm: '76-81' },
+                    { size: 'M', chestIn: '38-40', waistIn: '32-34', lengthIn: '29', chestCm: '96-101', waistCm: '81-86' },
+                    { size: 'L', chestIn: '40-42', waistIn: '34-36', lengthIn: '30', chestCm: '101-106', waistCm: '86-91' },
+                    { size: 'XL', chestIn: '42-44', waistIn: '36-38', lengthIn: '31', chestCm: '106-111', waistCm: '91-96' },
+                    { size: 'XXL', chestIn: '44-46', waistIn: '38-40', lengthIn: '32', chestCm: '111-116', waistCm: '96-101' },
+                  ].map((row, i) => (
+                    <tr
+                      key={row.size}
+                      style={{
+                        background: i % 2 === 0 
+                          ? '#ffffff' : '#f9f9f9',
+                        borderBottom: '1px solid #e5e5e5'
+                      }}
+                    >
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        fontWeight: '600',
+                        color: '#1a1a1a'
+                      }}>
+                        {row.size}
+                      </td>
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        color: '#374151'
+                      }}>
+                        {row.chestIn}
+                      </td>
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        color: '#374151'
+                      }}>
+                        {row.waistIn}
+                      </td>
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        color: '#374151'
+                      }}>
+                        {row.lengthIn}
+                      </td>
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        color: '#374151'
+                      }}>
+                        {row.chestCm}
+                      </td>
+                      <td style={{
+                        padding: '10px 4px',
+                        textAlign: 'center',
+                        color: '#374151'
+                      }}>
+                        {row.waistCm}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {/* Tip text */}
             <p style={{

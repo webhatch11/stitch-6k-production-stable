@@ -1249,7 +1249,7 @@ export default function HomeClient({
                                     e.stopPropagation();
                                     handleAddToBag(product.name, product.price, product.image, size, product.id, product.colors);
                                   }}
-                                  className="w-8 h-8 md:w-10 md:h-10 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
+                                  className="w-11 h-11 md:w-11 md:h-11 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
                                 >
                                   {size}
                                 </button>

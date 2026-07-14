@@ -1501,7 +1501,7 @@ function OrderDetailsContent() {
       {/* Reject Modal */}
       {rejectModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full border border-gray-200/50 shadow-2xl relative rounded-none text-left">
+          <div className="bg-white p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200/50 shadow-2xl relative rounded-none text-left">
             <h3 className="font-headline text-2xl font-black uppercase tracking-tight mb-4 text-primary">
               Reject Return
             </h3>
@@ -1539,7 +1539,7 @@ function OrderDetailsContent() {
       {/* Refund Modal */}
       {refundModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white p-8 max-w-md w-full border border-gray-200/50 shadow-2xl relative rounded-none text-left">
+          <div className="bg-white p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200/50 shadow-2xl relative rounded-none text-left">
             <h3 className="font-headline text-2xl font-black uppercase tracking-tight mb-2 text-primary">
               {refundActionType === "cancel"
                 ? "Cancel & Refund"
@@ -1598,7 +1598,7 @@ function OrderDetailsContent() {
       {/* Generic Confirmation Modal */}
       {confirmModalOpen && (
         <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-[#775a19]/25 shadow-2xl p-8 max-w-md w-full space-y-6 text-center rounded-none animate-zoom-in">
+          <div className="bg-white border border-[#775a19]/25 shadow-2xl p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-6 text-center rounded-none animate-zoom-in">
             <div className="mx-auto w-12 h-12 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center text-amber-600">
               <span className="material-symbols-outlined text-xl">warning</span>
             </div>

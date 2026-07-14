@@ -381,7 +381,12 @@ export default function CouponsLedgerPage() {
                 coupons.map((c) => (
                   <tr key={c.id} className="hover:bg-[#f9fafb] transition-colors border-b border-gray-100">
                     <td className="px-8 py-6 font-headline font-black tracking-widest text-primary text-sm">
-                      {c.code}
+                      <div>
+                        {c.code}
+                        <span className="block text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1 font-sans">
+                          1 use per customer
+                        </span>
+                      </div>
                     </td>
                     <td className="px-8 py-6 font-bold text-sm">
                       {c.type === "percent" ? `${c.discount}%` : (c.type === "flat" ? `₹${c.discount.toLocaleString("en-IN")}.00` : "BOGO/Offer")}

@@ -1080,7 +1080,7 @@ export const db = {
       );
     }
     const dbPayload = {
-      id: coupon.id || "CPN-" + Date.now(),
+      id: coupon.id || "CPN-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
       code: (coupon.code || "CODE").toUpperCase(),
       discount: coupon.discount !== undefined ? coupon.discount : 0,
       type: coupon.type || "percent",
@@ -1875,6 +1875,14 @@ export const db = {
 
     // 2. QC passed → restock variant inventory from cart_items JSONB.
     if (qualityCheckPassed) {
+      try {
+        const codeToDecrement = orderData?.coupon_code;
+        if (codeToDecrement) {
+          await this.decrementCouponUsage(codeToDecrement);
+        }
+      } catch (e) {
+        console.error('[processReturnRefund] coupon decrement failed:', e);
+      }
       const cartItemsForRestock = orderData.cart_items;
       if (Array.isArray(cartItemsForRestock) && cartItemsForRestock.length > 0) {
         for (const item of cartItemsForRestock) {
@@ -2079,6 +2087,19 @@ export const db = {
       .from('orders')
       .update({ points_credit_status: 'cancelled' })
       .eq('id', orderId);
+
+    try {
+      const cancelledOrder = await this.getOrderById(orderId)
+      if (cancelledOrder?.couponCode) {
+        await this.decrementCouponUsage(
+          cancelledOrder.couponCode
+        )
+      }
+    } catch (e) {
+      console.error(
+        '[cancelOrderAndRefund] coupon decrement failed:', e
+      )
+    }
 
     // 2. Restock variant inventory from cart_items JSONB (has productId, size, color, quantity).
     // Falls back to a warning for legacy orders without cart_items.
@@ -2421,12 +2442,19 @@ export const db = {
     }
 
     // b. Increment coupon usage
-    if (dbOrder.couponCode) {
-      try {
-        await this.incrementCouponUsage(dbOrder.couponCode);
-      } catch (e) {
-        console.error("[runPostPaymentSideEffects] incrementCouponUsage failed:", e);
+    try {
+      if (dbOrder.couponCode) {
+        await this.incrementCouponUsage(dbOrder.couponCode)
+        // Cache already cleared inside incrementCouponUsage
+        // but add explicit clear as safety net
+        await CacheService.del("settings:coupons")
+        await CacheService.delPattern("analytics:coupons:*")
       }
+    } catch (e) {
+      console.error(
+        "[runPostPaymentSideEffects] " +
+        "incrementCouponUsage failed:", e
+      )
     }
 
     // c. Debit wallet

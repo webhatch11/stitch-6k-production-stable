@@ -527,8 +527,9 @@ function OrderDetailsContent() {
           --text-primary: #ffffff;
           --text-secondary: #a0a0ab;
           --text-muted: #60606b;
-          --bg-success: rgba(16, 185, 129, 0.15);
+           --bg-success: rgba(16, 185, 129, 0.15);
           --text-success: #10b981;
+          --border-success: rgba(16, 185, 129, 0.3);
           --bg-warning: rgba(245, 158, 11, 0.15);
           --text-warning: #f59e0b;
           --bg-danger: rgba(239, 68, 68, 0.15);
@@ -721,10 +722,20 @@ function OrderDetailsContent() {
                   <span className="font-bold">-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
-                <span>GST (12%)</span>
-                <span className="font-bold" style={{ color: "var(--text-primary)" }}>₹11.00</span>
-              </div>
+              {(() => {
+                const firstCartItem = order.cartItems?.[0];
+                const matchingProduct = products.find(p => p.id === firstCartItem?.productId);
+                const gstRate = matchingProduct?.gstRate ?? firstCartItem?.gstRate ?? 12;
+                const gstAmount = order.total - (order.total / (1 + gstRate / 100));
+                return (
+                  <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
+                    <span>GST ({gstRate}%)</span>
+                    <span className="font-bold" style={{ color: "var(--text-primary)" }}>
+                      ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
                 <span>Shipping</span>
                 <span className="text-green-500 font-bold">Free</span>
@@ -919,7 +930,7 @@ function OrderDetailsContent() {
                   return (
                     <div key={note.id} className="p-4 flex justify-between gap-4 animate-fade-in" style={{ backgroundColor: "var(--surface-1)", border: "0.5px solid var(--border)" }}>
                       <div className="space-y-1 w-full">
-                        <p className="text-xs font-semibold font-mono whitespace-pre-wrap leading-relaxed select-text" style={{ color: "var(--text-primary)" }}>
+                        <p className="text-xs font-semibold font-sans whitespace-pre-wrap leading-relaxed select-text" style={{ color: "var(--text-primary)", fontFamily: "var(--font-sans)" }}>
                           {note.note}
                         </p>
                         <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1.5 pt-1">
@@ -1118,10 +1129,12 @@ function OrderDetailsContent() {
                       <span>Amount received</span>
                       <span className="font-bold text-white">₹{gPaid.toLocaleString("en-IN")}.00</span>
                     </div>
-                    <div className="flex justify-between items-center text-gray-400">
-                      <span>Store receipt</span>
-                      <span className="font-bold text-white">₹{wPaid.toLocaleString("en-IN")}.00</span>
-                    </div>
+                    {wPaid > 0 && (
+                      <div className="flex justify-between items-center text-gray-400">
+                        <span>Store wallet</span>
+                        <span className="font-bold text-white">₹{wPaid.toLocaleString("en-IN")}.00</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center pt-2 border-t border-gray-100/10 font-bold text-white">
                       <span>Total paid</span>
                       <span>₹{totalAmount.toLocaleString("en-IN")}.00</span>
@@ -1208,105 +1221,174 @@ function OrderDetailsContent() {
 
             {/* Actions Grid container */}
             <div className="grid grid-cols-2 gap-3">
-              
-              {/* 1. Mark shipped (or Ship via Shiprocket) */}
-              <button
-                onClick={handleShiprocketShip}
-                disabled={s !== "processing"}
-                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-                  s !== "processing" ? "opacity-30 cursor-not-allowed" : ""
-                }`}
-                style={{ color: "var(--text-primary)" }}
-              >
-                <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
-                <span>Mark shipped</span>
-              </button>
+              {s === "paid" ? (
+                <>
+                  {/* Accept order (full width) */}
+                  <button
+                    onClick={() => openConfirmDialog(
+                      "Accept Order",
+                      "Accept this order and begin fulfillment?",
+                      async () => {
+                        const res = await bulkUpdateOrderStatusAction([order.id], "Processing");
+                        if (res.success) {
+                          triggerToast("Order accepted successfully.");
+                          await loadOrderDetails();
+                        } else {
+                          triggerToast(res.error || "Failed to accept order.");
+                        }
+                      }
+                    )}
+                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                    style={{
+                      backgroundColor: "var(--bg-success)",
+                      color: "var(--text-success)",
+                      border: "0.5px solid var(--border-success)"
+                    }}
+                  >
+                    <span className="ti-circle-check material-symbols-outlined text-base">check_circle</span>
+                    <span>Accept order</span>
+                  </button>
 
-              {/* 2. Mark delivered */}
-              <button
-                onClick={() => handleUpdateStatus("Delivered")}
-                disabled={s !== "shipped"}
-                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-                  s !== "shipped" ? "opacity-30 cursor-not-allowed" : ""
-                }`}
-                style={{ color: "var(--text-primary)" }}
-              >
-                <span className="material-symbols-outlined text-lg mb-1">check_circle</span>
-                <span>Mark delivered</span>
-              </button>
-
-              {/* 3. Process refund (calls issueRefund or processReturnRefund based on return context) */}
-              <button
-                onClick={() => {
-                  if (s.includes("return")) {
-                    openRefundModal("return");
-                  } else {
-                    openRefundModal("issue");
-                  }
-                }}
-                disabled={s !== "delivered" && s !== "return in transit" && s !== "return requested"}
-                className={`flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-                  (s !== "delivered" && s !== "return in transit" && s !== "return requested") ? "opacity-30 cursor-not-allowed" : ""
-                }`}
-                style={{ color: "var(--text-primary)" }}
-              >
-                <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                <span>Process refund</span>
-              </button>
-
-              {/* 4. Print invoice */}
-              <Link
-                href={`/invoice?orderId=${order.id}`}
-                className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
-                style={{ color: "var(--text-primary)" }}
-              >
-                <span className="material-symbols-outlined text-lg mb-1">print</span>
-                <span>Print invoice</span>
-              </Link>
-
-              {/* 5. Cancel order (full width at the bottom) */}
-              <button
-                onClick={() => openRefundModal("cancel")}
-                disabled={s === "cancelled" || s === "returned" || s === "return rejected"}
-                className={`col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer ${
-                  (s === "cancelled" || s === "returned" || s === "return rejected") ? "opacity-30 cursor-not-allowed" : ""
-                }`}
-                style={{
-                  border: "0.5px solid var(--border-danger)",
-                  color: "var(--text-danger)",
-                  backgroundColor: "var(--bg-danger)"
-                }}
-              >
-                <span className="material-symbols-outlined text-base">close</span>
-                <span>Cancel order</span>
-              </button>
-
-              {/* 6. Print shipping label (full width, below cancel button) */}
-              {(s === "processing" || s === "shipped" || s === "delivered") && (
-                <button
-                  onClick={handlePrintShippingLabel}
-                  disabled={printingLabel}
-                  className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                  style={{
-                    backgroundColor: "var(--surface-1)",
-                    borderColor: "var(--border)",
-                    color: "var(--text-primary)"
-                  }}
-                >
-                  {printingLabel ? (
-                    <>
-                      <span className="animate-spin material-symbols-outlined text-base">progress_activity</span>
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base">print</span>
-                      <span>Print shipping label</span>
-                    </>
+                  {/* Cancel & refund (full width) */}
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                    style={{
+                      backgroundColor: "var(--bg-danger)",
+                      color: "var(--text-danger)",
+                      border: "0.5px solid var(--border-danger)"
+                    }}
+                  >
+                    <span className="ti-x material-symbols-outlined text-base">close</span>
+                    <span>Cancel & refund</span>
+                  </button>
+                </>
+              ) : s === "cancelled" ? (
+                <>
+                  {/* Print invoice */}
+                  <Link
+                    href={`/invoice?orderId=${order.id}`}
+                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span className="material-symbols-outlined text-lg mb-1">print</span>
+                    <span>Print invoice</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {/* 1. Ship via Shiprocket / Mark shipped */}
+                  {s === "processing" && (
+                    <button
+                      onClick={handleShiprocketShip}
+                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
+                      <span>Ship via Shiprocket</span>
+                    </button>
                   )}
-                </button>
-              )}
 
+                  {/* 2. Mark delivered */}
+                  {s === "shipped" && (
+                    <button
+                      onClick={() => handleUpdateStatus("Delivered")}
+                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span className="material-symbols-outlined text-lg mb-1">check_circle</span>
+                      <span>Mark as delivered</span>
+                    </button>
+                  )}
+
+                  {/* 3. Issue refund (only for delivered, and only if no refund yet) */}
+                  {s === "delivered" && !order.refund_status && (
+                    <button
+                      onClick={() => openRefundModal("issue")}
+                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                      <span>Issue refund</span>
+                    </button>
+                  )}
+
+                  {/* 3.1. Process refund (for return states) */}
+                  {(s === "return in transit" || s === "return requested") && (
+                    <button
+                      onClick={() => openRefundModal("return")}
+                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                      <span>Process refund</span>
+                    </button>
+                  )}
+
+                  {/* 4. Print invoice */}
+                  <Link
+                    href={`/invoice?orderId=${order.id}`}
+                    className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span className="material-symbols-outlined text-lg mb-1">print</span>
+                    <span>Print invoice</span>
+                  </Link>
+
+                  {/* 6. Print shipping label */}
+                  {(s === "processing" || s === "shipped" || s === "delivered") && (
+                    <button
+                      onClick={handlePrintShippingLabel}
+                      disabled={printingLabel}
+                      className="flex flex-col items-center justify-center p-4 border rounded-[8px] bg-[#16161a] hover:bg-white/5 border-gray-800 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {printingLabel ? (
+                        <>
+                          <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-lg mb-1">print</span>
+                          <span>Print shipping label</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* 5. Cancel order / Cancel order (stock issue) */}
+                  {s === "processing" && (
+                    <button
+                      onClick={() => openRefundModal("cancel")}
+                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{
+                        border: "0.5px solid var(--border-danger)",
+                        color: "var(--text-danger)",
+                        backgroundColor: "var(--bg-danger)"
+                      }}
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                      <span>Cancel order (stock issue)</span>
+                    </button>
+                  )}
+
+                  {s === "payment pending" && (
+                    <button
+                      onClick={() => openRefundModal("cancel")}
+                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{
+                        border: "0.5px solid var(--border-danger)",
+                        color: "var(--text-danger)",
+                        backgroundColor: "var(--bg-danger)"
+                      }}
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                      <span>Cancel order</span>
+                    </button>
+                  )}
+                </>
+              )}
             </div>
 
             {manifestDownloadUrl && (

@@ -3625,6 +3625,10 @@ export const db = {
     }
   },
 
+  async addOrderEvent(orderId: string, event: string): Promise<void> {
+    await this.createOrderEvent(orderId, event);
+  },
+
   async createOrderEvent(orderId: string, event: string): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
@@ -3668,7 +3672,7 @@ export const db = {
     } else {
       const [eventsRes, historyRes] = await Promise.all([
         supabase
-          .from("order_events").select("id, order_id, message, created_at")
+          .from("order_events").select("id, order_id, event, created_at")
           .eq("order_id", orderId),
         supabase
           .from("order_status_history").select("id, order_id, status, notes, created_at")

@@ -73,6 +73,7 @@ export async function bulkUpdateOrderStatusAction(
         count++;
         o.status = newStatus;
         await db.saveOrder(o);
+        await db.addOrderEvent(o.id, "Status changed to: " + newStatus);
 
         // Fail-safe email dispatch triggered by status transition
         if (newStatus === "Cancelled") {
@@ -189,35 +190,34 @@ export async function cancelOrderAndRefundAction(
 
     const success = await db.cancelOrderAndRefund(orderId, reason.trim());
     if (success) {
+      await db.addOrderEvent(orderId, "Order cancelled and refunded");
       db.getOrderById(orderId).then(async (latestOrder) => {
         if (!latestOrder) return;
         const email = await getCustomerEmailForOrder(latestOrder);
         if (email) {
-          const { sendOrderCancelledEmail } = await import("@/lib/email");
-          const wPaid = latestOrder.walletPaid || 0;
-          const gPaid = latestOrder.gatewayPaid !== undefined ? latestOrder.gatewayPaid : Math.max(0, latestOrder.total - wPaid);
-          
-          const isWalletRefund = latestOrder.refundOption === 'wallet' || (wPaid > 0 && gPaid === 0);
-          const suffix = isWalletRefund ? '-W' : '-B';
+          try {
+            const { sendOrderCancelledByAdminEmail } = await import("@/lib/email");
+            const wPaid = latestOrder.walletPaid || 0;
+            const gPaid = latestOrder.gatewayPaid !== undefined ? latestOrder.gatewayPaid : Math.max(0, latestOrder.total - wPaid);
+            const refundMethod = latestOrder.refundOption || (gPaid > 0 ? "bank" : "wallet");
 
-          const refundDetails = gPaid > 0 && wPaid > 0
-            ? `₹${gPaid.toLocaleString("en-IN")} bank refund and ₹${wPaid.toLocaleString("en-IN")} store wallet credit`
-            : (gPaid > 0 ? `₹${gPaid.toLocaleString("en-IN")} bank refund` : `₹${wPaid.toLocaleString("en-IN")} store wallet credit`);
-
-          await sendOrderCancelledEmail({
-            id: latestOrder.id + suffix,
-            customerName: latestOrder.customer || "Valued Customer",
-            customerEmail: email,
-            cancelReason: reason.trim(),
-            refundAmount: latestOrder.total,
-            refundDetails,
-          });
+            await sendOrderCancelledByAdminEmail({
+              to: email,
+              customerName: latestOrder.customer || "Valued Customer",
+              orderId: latestOrder.id,
+              refundAmount: latestOrder.total,
+              refundMethod,
+              reason: reason.trim()
+            });
+          } catch (emailErr: any) {
+            console.error("[Email Dispatch Error] sendOrderCancelledByAdminEmail:", emailErr);
+            Sentry.captureException(emailErr, {
+              extra: { orderId, emailType: "order_cancelled_admin" }
+            });
+          }
         }
       }).catch((err) => {
-        console.error("[Email Dispatch Error] cancelOrderAndRefund:", err);
-        Sentry.captureException(err, {
-          extra: { orderId, emailType: "order_cancelled" }
-        });
+        console.error("[Email Dispatch Error] cancelOrderAndRefund fetch:", err);
       });
     }
     return { success: !!success };
@@ -247,6 +247,7 @@ export async function approveReturnPickupAction(
 
     const success = await db.approveReturnPickup(orderId);
     if (success) {
+      await db.addOrderEvent(orderId, "Return pickup scheduled");
       const { shiprocket } = await import("@/lib/shiprocket");
       
       // Fallback address snapshot

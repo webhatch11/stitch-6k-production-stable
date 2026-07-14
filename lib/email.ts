@@ -453,3 +453,64 @@ export async function sendAdminAlert(params: {
   }
 }
 
+export async function sendOrderCancelledByAdminEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  refundAmount: number;
+  refundMethod: string;
+  reason?: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const methodText = params.refundMethod === "wallet" ? "Store Wallet Credit" : "Original Bank Account / Card";
+  const timeText = params.refundMethod === "wallet" ? "instant for wallet" : "5-7 business days for bank";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #ef4444; font-size: 24px;">
+        Order Cancelled
+      </h1>
+      <p>Hi ${params.customerName},</p>
+      <p>We are sorry for the inconvenience, but your order <strong>#${params.orderId}</strong> has been cancelled by the store.</p>
+      ${params.reason ? `<p><strong>Reason for cancellation:</strong> ${params.reason}</p>` : ""}
+      
+      <h2 style="font-size: 16px; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Refund Summary
+      </h2>
+      
+      <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
+        <strong>Refund Amount:</strong>
+        <span style="float: right; font-weight: bold;">₹${params.refundAmount.toLocaleString("en-IN")}.00</span>
+      </div>
+      <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
+        <strong>Refund Destination:</strong>
+        <span style="float: right; font-weight: bold;">${methodText}</span>
+      </div>
+      
+      <p style="color: #6b7280; font-size: 13px; margin-top: 16px;">
+        Refund processing time is ${timeText}. If you have any questions, please contact us at ${supportEmail}.
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        ${supportEmail} | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: `Your 6K order #${params.orderId} has been cancelled`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[Email Error] Failed to deliver order cancelled email to ${params.to} via Resend. Error:`, err.message || err);
+  }
+}
+
+

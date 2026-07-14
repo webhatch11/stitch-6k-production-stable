@@ -274,68 +274,82 @@ export default function InventoryLedgerPage() {
         </div>
       )}
 
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
-        <div>
-          <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
-            <span>Admin Panel</span>
-            <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
-            <span className="text-[#0a0a0a] italic">Inventory</span>
-          </nav>
-          <h2 className="text-2xl lg:text-4xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none whitespace-nowrap">Inventory Ledger</h2>
-          <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
-            A comprehensive record of shop inventory, SKUs, and stock levels.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:flex lg:flex-row lg:items-center gap-3 w-full lg:w-auto">
-          <div className="relative group w-full lg:w-auto">
+      <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between xl:justify-start gap-6 xl:gap-12 w-full xl:w-auto">
+          <div>
+            <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
+              <span>Admin Panel</span>
+              <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
+              <span className="text-[#0a0a0a] italic">Inventory</span>
+            </nav>
+            <h2 className="text-2xl lg:text-4xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none whitespace-nowrap">Inventory Ledger</h2>
+            <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
+              A comprehensive record of shop inventory, SKUs, and stock levels.
+            </p>
+          </div>
+          <div className="relative group w-full md:w-auto pb-0.5">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-secondary transition-colors">
               search
             </span>
             <input
               type="text"
-              placeholder="Search SKU or name..."
+              placeholder="SEARCH SKU OR NAME..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="pl-12 pr-6 h-11 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full lg:w-72 shadow-sm rounded-none flex items-center"
+              className="pl-12 pr-6 h-11 bg-white border border-gray-200 text-[10px] font-bold uppercase tracking-widest focus:border-[#0a0a0a] focus:ring-0 outline-none w-full md:w-72 shadow-sm rounded-none flex items-center"
             />
           </div>
-          <button
-            type="button"
-            disabled={exporting}
-            onClick={() => handleExport("csv")}
-            className="px-5 h-11 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex items-center justify-center rounded-none w-full lg:w-auto"
-          >
-            {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
-          </button>
-          <button
-            type="button"
-            disabled={exporting}
-            onClick={() => handleExport("xlsx")}
-            className="px-5 h-11 bg-secondary text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-colors border-none cursor-pointer disabled:opacity-50 whitespace-nowrap flex items-center justify-center rounded-none w-full lg:w-auto"
-          >
-            {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
-            className={`px-5 h-11 text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap rounded-none flex items-center justify-center gap-2 w-full lg:w-auto cursor-pointer ${
-              showTrash
-                ? "bg-red-600 text-white border-red-600"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">delete</span>
-            {showTrash ? "Showing Trash" : "View Trash"}
-          </button>
-          <Link
-            href="/admindashboard/add-product"
-            className="bg-primary text-white hover:bg-secondary px-8 h-11 text-xs font-black uppercase tracking-[0.2em] transition-all shadow-lg flex items-center justify-center gap-2 whitespace-nowrap rounded-none w-full lg:w-auto"
-          >
-            <span className="material-symbols-outlined text-sm">add</span> Add Product
-          </Link>
+        </div>
+
+        <div className="p-3 border border-gray-200/60 bg-white/50 shadow-sm w-full xl:w-auto flex justify-center">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+            {/* Export CSV Button */}
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={() => handleExport("csv")}
+              className="w-full sm:w-48 h-11 bg-[#55555b] text-white text-[10px] font-black uppercase tracking-[0.15em] hover:bg-[#63636a] transition-colors border-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 rounded-none"
+            >
+              <span className="material-symbols-outlined text-base">cloud_download</span>
+              {exportingFormat === "csv" ? "Exporting..." : "Export CSV"}
+            </button>
+
+            {/* Export Excel Button */}
+            <button
+              type="button"
+              disabled={exporting}
+              onClick={() => handleExport("xlsx")}
+              className="w-full sm:w-48 h-11 bg-[#805b10] text-white text-[10px] font-black uppercase tracking-[0.15em] hover:bg-[#a3620f] transition-colors border-none cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 rounded-none"
+            >
+              <span className="material-symbols-outlined text-base">description</span>
+              {exportingFormat === "xlsx" ? "Exporting..." : "Export Excel"}
+            </button>
+
+            {/* View Trash Button */}
+            <button
+              type="button"
+              onClick={() => { setShowTrash(!showTrash); setCurrentPage(1); }}
+              className={`w-full sm:w-48 h-11 text-[10px] font-black uppercase tracking-[0.15em] border transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer ${
+                showTrash
+                  ? "bg-red-600 text-white border-red-600 hover:bg-red-700"
+                  : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">delete</span>
+              {showTrash ? "Showing Trash" : "View Trash"}
+            </button>
+
+            {/* Add Product Button */}
+            <Link
+              href="/admindashboard/add-product"
+              className="w-full sm:w-48 h-11 bg-[#55555b] text-white text-[10px] font-black uppercase tracking-[0.15em] hover:bg-[#63636a] transition-all flex items-center justify-center gap-2 rounded-none"
+            >
+              <span className="material-symbols-outlined text-base">add</span> Add Product
+            </Link>
+          </div>
         </div>
       </header>
 

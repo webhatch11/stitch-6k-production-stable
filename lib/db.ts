@@ -2458,6 +2458,11 @@ export const db = {
     const dbOrder = await this.getOrderById(orderId);
     if (!dbOrder) return false;
 
+    if (dbOrder.paymentStatus?.toLowerCase() === "paid" || dbOrder.status?.toLowerCase() === "paid") {
+      console.log(`[runPostPaymentSideEffects] Order ${orderId} is already processed as Paid. Skipping duplicate side effects.`);
+      return true;
+    }
+
     // Fetch loyalty config once — used for both points_earned snapshot and awardLoyaltyPoints
     const loyaltyConfig = await this.getLoyaltyConfig();
     const earned = Math.floor(dbOrder.total / 100) * loyaltyConfig.pointsPer100;

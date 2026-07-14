@@ -18,6 +18,7 @@ import { LOW_STOCK_THRESHOLD } from "@/lib/inventory-config";
 export default function InventoryLedgerPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showTrash, setShowTrash] = useState(false);
   const [currentFilter, setCurrentFilter] = useState<"all" | "inStock" | "lowStock" | "outOfStock">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,9 +88,11 @@ export default function InventoryLedgerPage() {
   }, [showTrash]);
 
   const loadProducts = async () => {
+    setLoading(true);
     const res = await getProductsAction({ trashedOnly: showTrash });
     if (!res.success) {
       triggerToast(res.error || "Failed to load products");
+      setLoading(false);
       return;
     }
     setProducts(res.products || []);
@@ -98,6 +101,7 @@ export default function InventoryLedgerPage() {
       rpMap[prod.id] = prod.reorderPoint !== undefined && prod.reorderPoint !== null ? String(prod.reorderPoint) : "";
     }
     setReorderPoints(rpMap);
+    setLoading(false);
   };
 
   const handleDeleteProduct = (p: Product) => {
@@ -354,7 +358,14 @@ export default function InventoryLedgerPage() {
       </header>
 
       {/* Inventory Ledger Table */}
-      <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-64 bg-gray-100 rounded-xl"/>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
         <div className="p-8 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-[#fafafa]">
           <div className="flex gap-6 overflow-x-auto pb-2 sm:pb-0">
             {(["all", "inStock", "lowStock", "outOfStock"] as const).map((filterKey) => (
@@ -790,6 +801,7 @@ export default function InventoryLedgerPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Custom UI Modals */}
       {modalType && (

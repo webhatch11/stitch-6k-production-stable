@@ -338,6 +338,30 @@ export const db = {
     await CacheService.set(cacheKey, res, PRODUCT_LIST_CACHE_TTL_SECS);
     return res;
   },
+  
+  async getProductsByIds(ids: string[]): Promise<Product[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, title, price, base_price, gst_rate, stock, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, deleted_at, product_status")
+      .in("id", ids)
+      .is("deleted_at", null);
+
+    if (error) {
+      console.error("getProductsByIds error:", error);
+      return [];
+    }
+
+    return (data || []).map(mapDbProductToProduct);
+  },
 
   async saveProduct(product: Partial<Product>): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
@@ -1259,7 +1283,10 @@ export const db = {
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
-        .eq("coupon_code", code.toUpperCase());
+        .eq("coupon_code", code.toUpperCase())
+        .not("status", "in", 
+          '("Cancelled","Returned","Return Rejected",' +
+          '"RTO Delivered","Failed")');
 
       if (countError) {
         console.error("Error checking user coupon usage:", countError);

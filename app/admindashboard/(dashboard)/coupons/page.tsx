@@ -36,6 +36,7 @@ export default function CouponsLedgerPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Coupon discount totals
   const [couponDiscountTotal, setCouponDiscountTotal] = useState(0);
@@ -104,13 +105,16 @@ export default function CouponsLedgerPage() {
   }, []);
 
   const loadCoupons = async () => {
+    setLoading(true);
     const res = await getCouponsAction();
     if (!res.success) {
       triggerToast(res.error || "Failed to load coupons");
+      setLoading(false);
       return;
     }
     setCoupons(res.coupons || []);
-    fetchDiscountTotal();
+    await fetchDiscountTotal();
+    setLoading(false);
   };
 
   const loadProducts = async () => {
@@ -313,7 +317,15 @@ export default function CouponsLedgerPage() {
       </header>
 
       {/* Coupon Metrics Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-64 bg-gray-100 rounded-xl"/>
+        </div>
+      ) : (
+        <>
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-6">Total Coupons</p>
           <div>
@@ -436,6 +448,8 @@ export default function CouponsLedgerPage() {
           </table>
         </div>
       </section>
+        </>
+      )}
 
       {/* Add Coupon Modal */}
       {addModalOpen && (

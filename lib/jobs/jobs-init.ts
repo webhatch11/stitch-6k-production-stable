@@ -56,8 +56,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 30 * 60 * 1000 }, // 30 mins
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable shipment-sync job (every 30m)");
@@ -74,8 +79,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 5 * 60 * 1000 }, // 5 mins
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable reservation-cleanup sweep job (every 5m)");
@@ -92,8 +102,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 15 * 60 * 1000 }, // 15 mins
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
 
@@ -102,8 +117,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 24 * 60 * 60 * 1000 }, // 24 hours
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     console.log("[Jobs Init] ✓ Scheduled repeatable payment-recovery jobs (sweep every 15m, cleanup every 24h)");
@@ -119,8 +139,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 24 * 60 * 60 * 1000 }, // Run once every 24 hours
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     // 5. Product Deletion Cleanup — daily sweep to permanently delete expired products from trash
@@ -134,8 +159,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 24 * 60 * 60 * 1000 }, // Run once every 24 hours
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     console.log("[Jobs Init] ✓ Scheduled product-cleanup sweep job (every 24h)");
@@ -151,8 +181,13 @@ export async function initJobs() {
       {},
       {
         repeat: { every: 21600000 }, // 6 hours
-        removeOnComplete: true,
-        removeOnFail: true,
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
       }
     );
     console.log("[Jobs Init] ✓ Scheduled points-credit sweep job (every 6h)");

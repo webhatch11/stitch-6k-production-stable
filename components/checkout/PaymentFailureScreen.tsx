@@ -41,7 +41,7 @@ export function PaymentFailureScreen({ onRetry, errorMsg }: PaymentFailureScreen
             <span>Retry Payment</span>
           </button>
           
-          <Link href="/cart" className="w-full py-4 bg-transparent border border-zinc-800 text-white font-medium rounded-xl hover:bg-zinc-800 transition-colors flex items-center justify-center">
+          <Link href="/shoppingbag" className="w-full py-4 bg-transparent border border-zinc-800 text-white font-medium rounded-xl hover:bg-zinc-800 transition-colors flex items-center justify-center">
             <ArrowLeft className="w-4 h-4 mr-2" /> Return to Cart
           </Link>
         </div>

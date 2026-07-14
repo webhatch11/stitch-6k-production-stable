@@ -106,7 +106,8 @@ export async function processWalletPointsCheckoutAction(payload: {
   }
 
   // B. Recalculate totals server-side to prevent tampering
-  const products = await db.getProducts();
+  const productIds = cart.map(item => item.productId).filter(Boolean) as string[];
+  const products = await db.getProductsByIds(productIds);
   let verifiedSubtotal = 0;
   for (const item of cart) {
     const dbProduct = products.find(p => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -409,7 +410,8 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   }
 
   // B. Recalculate totals
-  const products = await db.getProducts();
+  const productIds = cart.map(item => item.productId).filter(Boolean) as string[];
+  const products = await db.getProductsByIds(productIds);
   let verifiedSubtotal = 0;
   for (const item of cart) {
     const dbProduct = products.find(p => p.title.toLowerCase() === item.productName.toLowerCase());
@@ -571,7 +573,8 @@ export async function processCodCheckoutAction(payload: {
   }
 
   // C. Recalculate totals server-side to prevent tampering
-  const products = await db.getProducts();
+  const productIds = cart.map(item => item.productId).filter(Boolean) as string[];
+  const products = await db.getProductsByIds(productIds);
   let verifiedSubtotal = 0;
   for (const item of cart) {
     const dbProduct = products.find(p => p.title.toLowerCase() === item.productName.toLowerCase());

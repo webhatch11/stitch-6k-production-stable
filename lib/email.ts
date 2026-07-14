@@ -595,4 +595,81 @@ export async function sendWalletCreditedEmail(params: {
   }
 }
 
+export async function sendOrderDeliveredEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  items: Array<{ name: string; quantity: number }>;
+  total: number;
+  deliveredAt: string;
+  returnDeadline: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #BA7517; font-size: 24px;">
+        Your order has arrived!
+      </h1>
+      <p>Hi ${params.customerName},</p>
+      <p>Your order has been successfully delivered.</p>
+      
+      <h2 style="font-size: 16px; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Order #${params.orderId} Summary
+      </h2>
+      
+      ${params.items
+        .map(
+          (item) => `
+        <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
+          <strong>${item.name}</strong><br>
+          <span style="color: #6b7280; font-size: 14px;">
+            Quantity: ${item.quantity}
+          </span>
+        </div>
+      `
+        )
+        .join("")}
+      
+      <div style="padding: 16px 0; font-size: 18px; font-weight: bold; border-bottom: 1px solid #e5e5e5; margin-bottom: 16px;">
+        Total: ₹${params.total.toLocaleString("en-IN")}.00
+      </div>
+
+      <p style="margin-bottom: 12px;">
+        <strong>Delivered on:</strong> ${params.deliveredAt}
+      </p>
+      
+      <p style="margin-bottom: 24px;">
+        Love it? You have until <strong>${params.returnDeadline}</strong> to request a return if needed.
+      </p>
+
+      <div style="margin-bottom: 30px;">
+        <a href="${siteUrl}/orderhistory" style="background-color: #BA7517; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          View Order
+        </a>
+      </div>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        ${supportEmail} | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: `Your 6K order #${params.orderId} has been delivered!`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[sendOrderDeliveredEmail] Failed to deliver to ${params.to}:`, err.message || err);
+  }
+}
+
 

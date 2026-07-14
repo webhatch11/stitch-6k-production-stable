@@ -10,6 +10,7 @@ import { bulkUpdateOrderStatusAction } from "@/app/actions/admin-orders";
 export default function OrdersLedgerPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<"csv" | "xlsx" | null>(null);
   const [currentFilter, setCurrentFilter] = useState<"all" | "acquiring" | "manifested" | "returns" | "archived">("all");
@@ -50,12 +51,15 @@ export default function OrdersLedgerPage() {
   }, [currentFilter, searchQuery]);
 
   const loadOrders = async () => {
+    setLoading(true);
     const res = await getOrdersAction();
     if (!res.success) {
       triggerToast(res.error || "Failed to load orders");
+      setLoading(false);
       return;
     }
     setOrders(res.orders || []);
+    setLoading(false);
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +252,14 @@ export default function OrdersLedgerPage() {
       )}
 
       {/* Order Ledger Table Container */}
-      <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-64 bg-gray-100 rounded-xl"/>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
         <div className="p-8 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-[#fafafa]">
           <div className="flex gap-6 overflow-x-auto pb-2 sm:pb-0">
             {(["all", "acquiring", "manifested", "returns", "archived"] as const).map((filterKey) => (
@@ -499,6 +510,7 @@ export default function OrdersLedgerPage() {
           )}
         </div>
       </div>
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">

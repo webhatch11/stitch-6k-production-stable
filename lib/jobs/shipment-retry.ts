@@ -142,7 +142,7 @@ export const shipmentRetryWorker = new Worker(
           console.log(`[Shipment Retry Worker] Scheduling next retry in ${nextDelay / (60 * 1000)} minutes.`);
 
           const retryQueue = new Queue("shipment-retry", { connection: connection as any });
-          await retryQueue.add("retry_shipment", { orderId }, { delay: nextDelay });
+          await retryQueue.add("retry_shipment", { orderId }, { delay: nextDelay, removeOnComplete: true, removeOnFail: 50 });
           await retryQueue.close();
 
           await db.saveShipment({

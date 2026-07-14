@@ -90,6 +90,48 @@ export const shipmentSyncWorker = connection
                       scans
                     }
                   );
+
+                  if (mappedStatus === "Delivered") {
+                    try {
+                      const { sendOrderDeliveredEmail } = 
+                        await import('@/lib/email')
+                      
+                      const returnDeadline = new Date(
+                        Date.now() + 7 * 24 * 60 * 60 * 1000
+                      ).toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short', 
+                        year: 'numeric'
+                      })
+                      
+                      await sendOrderDeliveredEmail({
+                        to: order.address_snapshot?.email || '',
+                        customerName: order.address_snapshot?.name 
+                          || 'Customer',
+                        orderId: order.id,
+                        items: (order.cartItems || []).map(
+                          (item: any) => ({
+                            name: item.productName || item.name,
+                            quantity: item.quantity || 1
+                          })
+                        ),
+                        total: order.total,
+                        deliveredAt: new Date().toLocaleDateString(
+                          'en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          }
+                        ),
+                        returnDeadline
+                      })
+                    } catch (emailErr) {
+                      console.error(
+                        '[shipment-sync] delivery email failed:',
+                        emailErr
+                      )
+                    }
+                  }
                 }
 
                 // Update shipments table and events

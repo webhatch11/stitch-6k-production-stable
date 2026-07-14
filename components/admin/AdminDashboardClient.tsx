@@ -53,6 +53,11 @@ export default function AdminDashboardClient({
   initialCityOrders,
 }: AdminDashboardClientProps) {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(false);
+  }, []);
 
   // Metrics & Data States
   const [metrics, setMetrics] = useState(initialMetrics);
@@ -248,8 +253,16 @@ export default function AdminDashboardClient({
         </div>
       </header>
 
-      {/* PART 1: New KPI Cards Row */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+      {loading ? (
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-32 bg-gray-100 rounded-xl"/>
+          <div className="h-64 bg-gray-100 rounded-xl"/>
+        </div>
+      ) : (
+        <>
+          {/* PART 1: New KPI Cards Row */}
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
         {/* Card 1: Today's Sales */}
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Today's Sales</p>
@@ -906,6 +919,8 @@ export default function AdminDashboardClient({
           </table>
         </div>
       </section>
+        </>
+      )}
 
       {/* Restock Variant Modal */}
       {modalType === "restock" && targetProduct && (() => {

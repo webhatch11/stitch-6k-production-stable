@@ -735,7 +735,7 @@ export default function InventoryLedgerPage() {
 
       {/* Custom UI Modals */}
       {modalType && (
-        <div className="absolute inset-0 z-[2000] min-h-[400px] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[2000] min-h-[400px] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-[#775a19]/20 shadow-2xl p-8 max-w-sm w-full space-y-6 text-center rounded-none animate-zoom-in">
             {modalType === "delete" && (
               <>

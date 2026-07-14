@@ -164,8 +164,7 @@ export async function restockVariantAction(
       return { success: false, error: "quantity must be a positive integer" };
     }
 
-    const products = await db.getProducts();
-    const product = products.find((p) => p.id === productId);
+    const product = await db.getProductById(productId, { adminView: true });
     if (!product) return { success: false, error: "Product not found" };
 
     // Find the colors of variants matching the target size

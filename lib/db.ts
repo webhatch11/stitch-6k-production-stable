@@ -477,6 +477,37 @@ export const db = {
     return res;
   },
 
+  async getProductById(id: string, options?: { adminView?: boolean }): Promise<Product | undefined> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error(
+        'Database connection not configured. ' +
+        'Check NEXT_PUBLIC_SUPABASE_URL and ' +
+        'NEXT_PUBLIC_SUPABASE_ANON_KEY ' +
+        'environment variables.'
+      );
+    }
+    let query = supabase
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
+      .eq("id", id);
+
+    if (options?.adminView) {
+      query = query.is("deleted_at", null);
+    } else {
+      query = query.is("deleted_at", null).or("product_status.eq.active,product_status.is.null");
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+      console.error("Error fetching product by ID from Supabase:", error);
+      return undefined;
+    }
+    const mapped = data ? mapDbProductToProduct(data) : undefined;
+    if (!mapped) return undefined;
+    const [res] = await attachVariantsToProducts([mapped]);
+    return res;
+  },
+
   async relatedProducts(slug: string): Promise<Product[]> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {

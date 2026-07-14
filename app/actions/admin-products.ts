@@ -217,3 +217,21 @@ export async function adjustProductSizeAction(
     return { success: false, error: e.message || "Adjust failed" };
   }
 }
+
+export async function updateReorderPointAction(
+  productId: string,
+  value: number | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    if (!productId?.trim()) return { success: false, error: "Invalid product ID" };
+    const ok = await db.updateProductReorderPoint(productId, value);
+    if (!ok) return { success: false, error: "Failed to update reorder point" };
+    revalidatePath("/admindashboard/inventory");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[updateReorderPointAction]", e);
+    return { success: false, error: e.message || "Update failed" };
+  }
+}
+

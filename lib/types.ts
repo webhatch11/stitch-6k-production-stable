@@ -67,6 +67,7 @@ export interface Product {
   seoTitle?: string | null;
   seoDescription?: string | null;
   seoKeywords?: string | null;
+  reorderPoint?: number | null;
 }
 
 export interface Order {

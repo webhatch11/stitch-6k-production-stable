@@ -298,14 +298,15 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                   <th className="px-8 py-6">Requested</th>
                   <th className="px-8 py-6">Reason</th>
                   <th className="px-8 py-6">Refund Method</th>
-                  <th className="px-8 py-6">Total</th>
+                  <th className="px-6 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-gray-500">Order Total</th>
+                  <th className="px-6 py-3 text-left text-[9px] font-black uppercase tracking-[0.3em] text-gray-500">Refund Amount</th>
                   <th className="px-8 py-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 text-xs font-bold uppercase tracking-wider">
                 {pendingOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-8 py-12 text-center text-gray-400 italic">
+                    <td colSpan={8} className="px-8 py-12 text-center text-gray-400 italic">
                       No pending return requests found.
                     </td>
                   </tr>
@@ -322,7 +323,22 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       </td>
                       <td className="px-8 py-6 text-gray-600 truncate max-w-[150px]">{o.returnReason}</td>
                       <td className="px-8 py-6 text-gray-600">{refundOptionDisplay[o.refundOption || ""] || o.refundOption || "Original Payment"}</td>
-                      <td className="px-8 py-6">₹{o.total.toLocaleString("en-IN")}</td>
+                      <td className="px-6 py-4 text-[11px] font-bold text-gray-900">
+                        ₹{(o.total || 0).toLocaleString("en-IN")}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-gray-900">
+                            ₹{(o.refund_amount !== undefined && o.refund_amount !== null ? o.refund_amount : o.total || 0).toLocaleString("en-IN")}
+                          </span>
+                          {o.refundOption === "wallet" && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-full">Wallet</span>
+                          )}
+                          {(o.refundOption === "bank" || o.refundOption === "original_source") && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[8px] font-black uppercase tracking-widest rounded-full">Bank</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
                           <button

@@ -380,6 +380,8 @@ export const InventoryService = {
     }
 
     for (const p of products || []) {
+      // Use per-product reorder_point if set, otherwise fall back to global threshold
+      const effectiveThreshold = p.reorder_point ?? threshold;
       const sizeStock = {
         S: p.size_stock_s || 0,
         M: p.size_stock_m || 0,
@@ -390,7 +392,7 @@ export const InventoryService = {
       for (const [size, stock] of Object.entries(sizeStock)) {
         // stock > 0 guard: zero-stock sizes are "Out of Stock", not "Low Stock".
         // Including them in low-stock alerts creates false positives.
-        if (stock !== undefined && stock > 0 && stock <= threshold) {
+        if (stock !== undefined && stock > 0 && stock <= effectiveThreshold) {
           alerts.push({
             sku: `${p.id}-${size}`,
             size,

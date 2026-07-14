@@ -360,6 +360,41 @@ export default function AdminDashboardClient({
         </div>
       </section>
 
+      {/* Quick Actions */}
+      <section className="mb-12">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-4">Quick Actions</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={() => router.push('/admindashboard/orders?status=payment_pending')}
+            className="flex items-center gap-3 p-4 bg-white border border-gray-200 hover:border-[#0a0a0a] hover:shadow-sm transition-all text-left cursor-pointer group"
+          >
+            <span className="material-symbols-outlined text-amber-500 text-xl">pending</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 group-hover:text-[#0a0a0a]">Pending Orders</span>
+          </button>
+          <button
+            onClick={() => router.push('/admindashboard/orders?status=paid')}
+            className="flex items-center gap-3 p-4 bg-white border border-gray-200 hover:border-[#0a0a0a] hover:shadow-sm transition-all text-left cursor-pointer group"
+          >
+            <span className="material-symbols-outlined text-green-600 text-xl">local_shipping</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 group-hover:text-[#0a0a0a]">Ship Ready Orders</span>
+          </button>
+          <button
+            onClick={() => router.push('/admindashboard/inventory?filter=low_stock')}
+            className="flex items-center gap-3 p-4 bg-white border border-gray-200 hover:border-[#0a0a0a] hover:shadow-sm transition-all text-left cursor-pointer group"
+          >
+            <span className="material-symbols-outlined text-red-500 text-xl">inventory_2</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 group-hover:text-[#0a0a0a]">Check Low Stock</span>
+          </button>
+          <button
+            onClick={() => router.push('/admindashboard/returns?tab=pending')}
+            className="flex items-center gap-3 p-4 bg-white border border-gray-200 hover:border-[#0a0a0a] hover:shadow-sm transition-all text-left cursor-pointer group"
+          >
+            <span className="material-symbols-outlined text-blue-500 text-xl">assignment_return</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-700 group-hover:text-[#0a0a0a]">Pending Returns</span>
+          </button>
+        </div>
+      </section>
+
       {/* PART 2 & PART 3: Charts Layout */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
         {/* Revenue Trend Line Chart */}

@@ -11,6 +11,7 @@ import {
   permanentlyDeleteProductAction,
   restockVariantAction,
   adjustProductSizeAction,
+  updateReorderPointAction,
 } from "@/app/actions/admin-products";
 import { LOW_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
@@ -34,6 +35,7 @@ export default function InventoryLedgerPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState("");
   const [adjusting, setAdjusting] = useState<Record<string, boolean>>({});
+  const [reorderPoints, setReorderPoints] = useState<Record<string, string>>({});
 
   // Toast Alerts
   const [toastText, setToastText] = useState("");
@@ -91,6 +93,11 @@ export default function InventoryLedgerPage() {
       return;
     }
     setProducts(res.products || []);
+    const rpMap: Record<string, string> = {};
+    for (const prod of res.products || []) {
+      rpMap[prod.id] = prod.reorderPoint !== undefined && prod.reorderPoint !== null ? String(prod.reorderPoint) : "";
+    }
+    setReorderPoints(rpMap);
   };
 
   const handleDeleteProduct = (p: Product) => {
@@ -197,6 +204,17 @@ export default function InventoryLedgerPage() {
     setSelectedSize(size);
     setRestockQty("10");
     setModalType("restock");
+  };
+
+  const handleReorderPointChange = async (productId: string, value: string) => {
+    const num = value.trim() === "" ? null : parseInt(value, 10);
+    if (value.trim() !== "" && (isNaN(num as number) || (num as number) < 0)) return;
+    const res = await updateReorderPointAction(productId, num);
+    if (!res.success) {
+      triggerToast(res.error || "Failed to update reorder point");
+    } else {
+      triggerToast("Reorder point updated");
+    }
   };
 
   // Filter products based on search keyword and active status tab
@@ -361,6 +379,7 @@ export default function InventoryLedgerPage() {
               <col style={{ width: 'auto' }} />
               <col style={{ width: '120px' }} />
               <col style={{ width: '320px' }} />
+              <col style={{ width: '110px' }} />
               <col style={{ width: '80px' }} />
             </colgroup>
             <thead>
@@ -369,13 +388,14 @@ export default function InventoryLedgerPage() {
                 <th className="p-6">Product Details</th>
                 <th className="p-6">Price</th>
                 <th className="p-6">Stock Status</th>
+                <th className="p-6">Reorder Pt</th>
                 <th className="p-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs font-semibold">
               {totalItems === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 opacity-40">
+                  <td colSpan={6} className="p-12 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 opacity-40">
                     No products found in database inventory.
                   </td>
                 </tr>
@@ -386,7 +406,13 @@ export default function InventoryLedgerPage() {
                   const isDeleted = !!p.deleted_at;
 
                   return (
-                    <tr key={p.id} className={`group border-b border-gray-100 hover:bg-[#fafafa] transition-colors animate-fade-in ${isDeleted ? "opacity-50" : ""}`}>
+                    <tr key={p.id} className={`group border-b border-gray-100 hover:bg-[#fafafa] transition-colors animate-fade-in ${
+                      isDeleted ? "opacity-50" : ""
+                    } ${
+                      !isDeleted && p.reorderPoint !== null && p.reorderPoint !== undefined && stockCount <= p.reorderPoint
+                        ? "bg-amber-50 border-l-2 border-l-amber-400"
+                        : ""
+                    }`}>
                       <td className="p-6">
                         <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden transition-all ${
                           stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"
@@ -474,6 +500,24 @@ export default function InventoryLedgerPage() {
                           </div>
                         ) : (
                           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">—</span>
+                        )}
+                      </td>
+                      <td className="p-6">
+                        {!isDeleted ? (
+                          <div className="flex flex-col gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={reorderPoints[p.id] ?? (p.reorderPoint !== undefined && p.reorderPoint !== null ? String(p.reorderPoint) : "")}
+                              onChange={(e) => setReorderPoints(prev => ({ ...prev, [p.id]: e.target.value }))}
+                              onBlur={(e) => handleReorderPointChange(p.id, e.target.value)}
+                              placeholder="—"
+                              className="w-[70px] border border-gray-200 text-[11px] font-mono px-2 py-1.5 text-center focus:outline-none focus:border-[#0a0a0a] bg-white"
+                            />
+                            <span className="text-[8px] text-gray-400 uppercase tracking-widest text-center">threshold</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">—</span>
                         )}
                       </td>
                       <td className="p-6 text-right">

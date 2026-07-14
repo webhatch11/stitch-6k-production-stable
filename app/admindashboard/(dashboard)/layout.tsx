@@ -21,6 +21,14 @@ export default async function AdminLayout({
 
   const allOrders = await db.getOrders();
   const pendingCount = allOrders.filter(o => o.status === "Return Requested").length;
+  const pendingOrdersCount = allOrders.filter(
+    o => o.status === "Payment Pending" || o.status === "Paid"
+  ).length;
+
+  // Check for recent audit activity (last 24h) for the Activity Log badge
+  const recentAudit = await db.getAllProductAuditLogs(5);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const hasRecentAudit = recentAudit.some((r: any) => r.created_at && r.created_at > oneDayAgo);
 
   return (
     <>
@@ -28,9 +36,10 @@ export default async function AdminLayout({
         src="https://upload-widget.cloudinary.com/global/all.js"
         strategy="lazyOnload"
       />
-      <AdminSidebar user={user} pendingReturnsCount={pendingCount}>
+      <AdminSidebar user={user} pendingReturnsCount={pendingCount} pendingOrdersCount={pendingOrdersCount} hasRecentAudit={hasRecentAudit}>
         {children}
       </AdminSidebar>
     </>
   );
 }
+

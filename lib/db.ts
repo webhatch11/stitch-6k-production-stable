@@ -86,6 +86,7 @@ const mapDbProductToProduct = (p: any): Product => {
     seoTitle: p.seo_title || null,
     seoDescription: p.seo_description || null,
     seoKeywords: p.seo_keywords || null,
+    reorderPoint: p.reorder_point !== undefined ? (p.reorder_point !== null ? Number(p.reorder_point) : null) : null,
   };
 };
 
@@ -307,7 +308,7 @@ export const db = {
     }
 
     let query = supabase
-      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords, reorder_point")
       .order("created_at", { ascending: false });
 
     if (options?.trashedOnly) {
@@ -389,6 +390,7 @@ export const db = {
       seo_title: product.seoTitle || null,
       seo_description: product.seoDescription || null,
       seo_keywords: product.seoKeywords || null,
+      reorder_point: product.reorderPoint ?? null,
     };
 
     const { error } = await supabase.from("products").upsert(dbPayload);
@@ -461,7 +463,7 @@ export const db = {
       );
     }
     const { data, error } = await supabase
-      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords")
+      .from("products").select("id, slug, title, price, compare_price, category, image, images, is_new, stock, description, is_atelier_exclusive, size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl, base_price, gst_rate, discount_rate, spec_fabric, spec_fit, spec_collar, spec_sleeve, spec_care, custom_badge, featured, bestseller, material, colors, ratings, deleted_at, display_sections, compare_at_price, weight_grams, product_status, seo_title, seo_description, seo_keywords, reorder_point")
       .eq("slug", slug)
       .is("deleted_at", null)
       .maybeSingle();
@@ -5214,5 +5216,85 @@ export const db = {
       (a, b) => b.month.localeCompare(a.month) || a.channel.localeCompare(b.channel)
     );
   },
+
+  // --- Audit Log Read Functions ---
+
+  async getProductAuditLogs(productId: string): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    const { data, error } = await supabase
+      .from("product_audit_logs")
+      .select("*")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching product audit logs:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async getAllProductAuditLogs(limit: number = 100): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    const { data, error } = await supabase
+      .from("product_audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("Error fetching all product audit logs:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async getPaymentAuditLogs(limit: number = 100): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    const { data, error } = await supabase
+      .from("payment_audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("Error fetching payment audit logs:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async getTrackingLogs(limit: number = 100): Promise<any[]> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return [];
+    const { data, error } = await supabase
+      .from("tracking_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("Error fetching tracking logs:", error);
+      return [];
+    }
+    return data || [];
+  },
+
+  async updateProductReorderPoint(productId: string, reorderPoint: number | null): Promise<boolean> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { error } = await supabase
+      .from("products")
+      .update({ reorder_point: reorderPoint })
+      .eq("id", productId);
+    if (error) {
+      console.error("Error updating product reorder point:", error);
+      return false;
+    }
+    await CacheService.delPattern("products:list*");
+    await CacheService.delPattern(`products:slug:*`);
+    return true;
+  },
 };
+
+
 

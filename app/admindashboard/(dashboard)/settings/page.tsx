@@ -17,6 +17,9 @@ import {
   rejectReviewAction,
   updateReviewAction,
   saveShippingAction,
+  saveStoreIdentityAction,
+  saveLoyaltyConfigAction,
+  saveShiprocketConfigAction,
 } from "@/app/actions/admin-settings";
 import { calculateShipping, getShippingMessage, type ShippingMode } from "@/lib/shipping";
 
@@ -68,7 +71,39 @@ export default function SettingsDashboardPage() {
 
 
   // Tab control state
-  const [activeTab, setActiveTab] = useState<"hero" | "business" | "flags" | "marquee" | "offer_box" | "trust_badges" | "categories" | "reviews" | "shipping">("hero");
+  const [activeTab, setActiveTab] = useState<
+    | "hero"
+    | "business"
+    | "flags"
+    | "marquee"
+    | "offer_box"
+    | "trust_badges"
+    | "categories"
+    | "reviews"
+    | "shipping"
+    | "store_identity"
+    | "loyalty"
+    | "shiprocket"
+  >("hero");
+
+  // States for Store Identity
+  const [storeName, setStoreName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
+
+  // States for Loyalty Config
+  const [pointsPer100, setPointsPer100] = useState(5);
+  const [rupeesPerPoint, setRupeesPerPoint] = useState(0.5);
+  const [minRedeemPoints, setMinRedeemPoints] = useState(100);
+
+  // States for Shiprocket Config
+  const [pickupLocationName, setPickupLocationName] = useState("");
+  const [pickupPincode, setPickupPincode] = useState("");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [pickupCity, setPickupCity] = useState("");
+  const [pickupState, setPickupState] = useState("");
+  const [pickupPhone, setPickupPhone] = useState("");
 
   // States for Shipping Settings
   const [shippingMode, setShippingMode] = useState<ShippingMode>("free_above");
@@ -111,7 +146,10 @@ export default function SettingsDashboardPage() {
   const loadAllSettings = async () => {
     try {
       setLoading(true);
-      const [heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes, shippingRes] = await Promise.all([
+      const [
+        heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes, shippingRes,
+        storeIdentityRes, loyaltyRes, shiprocketRes
+      ] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
         getSettingAction("flags"),
@@ -120,6 +158,9 @@ export default function SettingsDashboardPage() {
         getSettingAction("trust_badges"),
         getSettingAction("categories"),
         getSettingAction("shipping_rules"),
+        getSettingAction("store_identity" as any),
+        getSettingAction("loyalty_config" as any),
+        getSettingAction("shiprocket_config" as any),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -175,6 +216,28 @@ export default function SettingsDashboardPage() {
         setShippingFlatRate(shippingRes.value.flat_rate ?? 99);
         setShippingFreeAboveAmount(shippingRes.value.free_above_amount ?? 999);
         setShippingDisplayMessage(shippingRes.value.display_message || "Free shipping on orders above ₹999");
+      }
+
+      if (storeIdentityRes.success && storeIdentityRes.value) {
+        setStoreName(storeIdentityRes.value.store_name || "");
+        setLogoUrl(storeIdentityRes.value.logo_url || "");
+        setSupportEmail(storeIdentityRes.value.support_email || "");
+        setSupportPhone(storeIdentityRes.value.support_phone || "");
+      }
+
+      if (loyaltyRes.success && loyaltyRes.value) {
+        setPointsPer100(loyaltyRes.value.points_per_100 ?? 5);
+        setRupeesPerPoint(loyaltyRes.value.rupees_per_point ?? 0.5);
+        setMinRedeemPoints(loyaltyRes.value.min_redeem_points ?? 100);
+      }
+
+      if (shiprocketRes.success && shiprocketRes.value) {
+        setPickupLocationName(shiprocketRes.value.pickup_location_name || "");
+        setPickupPincode(shiprocketRes.value.pickup_pincode || "");
+        setPickupAddress(shiprocketRes.value.pickup_address || "");
+        setPickupCity(shiprocketRes.value.pickup_city || "");
+        setPickupState(shiprocketRes.value.pickup_state || "");
+        setPickupPhone(shiprocketRes.value.pickup_phone || "");
       }
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
@@ -321,6 +384,55 @@ export default function SettingsDashboardPage() {
     }
   };
 
+  const handleSaveStoreIdentity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await saveStoreIdentityAction({
+      store_name: storeName,
+      logo_url: logoUrl,
+      support_email: supportEmail,
+      support_phone: supportPhone,
+    });
+    if (res.success) {
+      triggerToast("Store Identity updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update Store Identity");
+    }
+  };
+
+  const handleSaveLoyalty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await saveLoyaltyConfigAction({
+      points_per_100: pointsPer100,
+      rupees_per_point: rupeesPerPoint,
+      min_redeem_points: minRedeemPoints,
+    });
+    if (res.success) {
+      triggerToast("Loyalty settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update Loyalty settings");
+    }
+  };
+
+  const handleSaveShiprocket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await saveShiprocketConfigAction({
+      pickup_location_name: pickupLocationName,
+      pickup_pincode: pickupPincode,
+      pickup_address: pickupAddress,
+      pickup_city: pickupCity,
+      pickup_state: pickupState,
+      pickup_phone: pickupPhone,
+    });
+    if (res.success) {
+      triggerToast("Shiprocket settings updated successfully");
+      router.refresh();
+    } else {
+      triggerToast(res.error || "Failed to update Shiprocket settings");
+    }
+  };
+
   const loadReviews = async () => {
     const res = await getReviewsAction();
     if (res.success && res.value) {
@@ -453,6 +565,7 @@ export default function SettingsDashboardPage() {
         {[
           { id: "hero", label: "Hero Settings" },
           { id: "business", label: "Business Info" },
+          { id: "store_identity", label: "Store Identity" },
           { id: "flags", label: "Feature Flags" },
           { id: "marquee", label: "Marquee" },
           { id: "offer_box", label: "Offer Box" },
@@ -460,6 +573,8 @@ export default function SettingsDashboardPage() {
           { id: "categories", label: "Categories" },
           { id: "reviews", label: "Reviews" },
           { id: "shipping", label: "Shipping" },
+          { id: "loyalty", label: "Loyalty & Points" },
+          { id: "shiprocket", label: "Shiprocket" },
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -1802,6 +1917,298 @@ export default function SettingsDashboardPage() {
                   className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
                 >
                   Save Shipping Settings
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+        {/* Section 10: Store Identity Settings */}
+        {activeTab === "store_identity" && (
+          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
+            <header className="mb-8 border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-headline font-black tracking-tight text-primary uppercase">
+                Store Identity
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold opacity-60">
+                Configure store branding and support channels
+              </p>
+            </header>
+
+            <form onSubmit={handleSaveStoreIdentity} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                  Store Name
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="e.g. 6K Designer Shirts"
+                  className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                  Store Logo URL
+                </label>
+                <input
+                  type="text"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://res.cloudinary.com/..."
+                  className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                />
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-2">
+                  Upload your logo to Cloudinary or similar service, then paste the direct URL here.
+                </p>
+                {logoUrl && (
+                  <div className="mt-4 p-3 bg-gray-50 border border-gray-100 rounded-lg inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={logoUrl} alt="Store Logo Preview" className="h-12 w-auto object-contain" />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Support Email Address
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    placeholder="support@the6k.com"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Support Phone Number
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
+                >
+                  Save Store Identity
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {/* Section 11: Loyalty & Points Settings */}
+        {activeTab === "loyalty" && (
+          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
+            <header className="mb-8 border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-headline font-black tracking-tight text-primary uppercase">
+                Loyalty & Reward Points
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold opacity-60">
+                Configure reward points accrual and redemption values
+              </p>
+            </header>
+
+            <form onSubmit={handleSaveLoyalty} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Points per ₹100 spent
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    value={pointsPer100}
+                    onChange={(e) => setPointsPer100(Number(e.target.value))}
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-bold"
+                  />
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">
+                    Accrual rate (default: 5)
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Rupee value per point (₹)
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min={0.01}
+                    value={rupeesPerPoint}
+                    onChange={(e) => setRupeesPerPoint(Number(e.target.value))}
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-bold"
+                  />
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">
+                    Redemption value (default: ₹0.50)
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Minimum points to redeem
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    value={minRedeemPoints}
+                    onChange={(e) => setMinRedeemPoints(Number(e.target.value))}
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-bold"
+                  />
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block mt-1">
+                    Redemption eligibility (default: 100)
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-2 text-[10px] text-amber-800 font-bold">
+                <p className="uppercase tracking-wider">Note on checkout calculation:</p>
+                <p className="font-semibold normal-case text-xs leading-relaxed">
+                  Accrued points and rupee values are processed at checkout. Saving here updates the store policies in database.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
+                >
+                  Save Loyalty Rules
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {/* Section 12: Shiprocket Settings */}
+        {activeTab === "shiprocket" && (
+          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
+            <header className="mb-8 border-b border-gray-100 pb-4">
+              <h3 className="text-xl font-headline font-black tracking-tight text-primary uppercase">
+                Shiprocket Configuration
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold opacity-60">
+                Manage logistics and shipment dispatch address settings
+              </p>
+            </header>
+
+            <form onSubmit={handleSaveShiprocket} className="space-y-6">
+              <div className="p-4 bg-blue-50 border border-blue-200 text-blue-800 text-[10px] rounded-lg font-bold">
+                ℹ️ Changes here update the database config. You still need to update .env for SHIPROCKET_PICKUP_LOCATION on server restarts.
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup Location Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={pickupLocationName}
+                    onChange={(e) => setPickupLocationName(e.target.value)}
+                    placeholder="e.g. CHENNAI_WAREHOUSE"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup Pincode
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    maxLength={6}
+                    value={pickupPincode}
+                    onChange={(e) => setPickupPincode(e.target.value)}
+                    placeholder="600001"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup Address Line 1
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={pickupAddress}
+                    onChange={(e) => setPickupAddress(e.target.value)}
+                    placeholder="e.g. 12, Nungambakkam High Road"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup City
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={pickupCity}
+                    onChange={(e) => setPickupCity(e.target.value)}
+                    placeholder="Chennai"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup State
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={pickupState}
+                    onChange={(e) => setPickupState(e.target.value)}
+                    placeholder="Tamil Nadu"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
+                    Pickup Contact Phone
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={pickupPhone}
+                    onChange={(e) => setPickupPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
+                >
+                  Save Shiprocket Config
                 </button>
               </div>
             </form>

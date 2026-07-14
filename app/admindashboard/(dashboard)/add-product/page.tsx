@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { saveProductAction } from "@/app/actions/admin-products";
-import { getProductsAction } from "@/app/actions/admin-reads";
+import { saveProductAction, deleteProductAction } from "@/app/actions/admin-products";
+import { getProductsAction, getProductAuditLogsAction } from "@/app/actions/admin-reads";
 import CloudinaryUploadWidget, { type CloudinaryUploadHandle } from "@/app/admindashboard/CloudinaryUploadWidget";
 import {
   DndContext,
@@ -92,6 +92,9 @@ function AddProductContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editProductId = searchParams.get("edit");
+  const [productSlug, setProductSlug] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   // Form Fields State
   const [title, setTitle] = useState("");
@@ -194,6 +197,13 @@ function AddProductContent() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!editProductId) return;
+    getProductAuditLogsAction(editProductId).then((res) => {
+      if (res.success) setAuditLogs(res.logs || []);
+    });
+  }, [editProductId]);
+
   // Detect Edit Mode & Pre-populate
   useEffect(() => {
     const loadProductData = async () => {
@@ -210,6 +220,7 @@ function AddProductContent() {
         if (p) {
           setTitle(p.title || "");
           setSku(p.id || "");
+          setProductSlug(p.slug || "");
           
           // Pre-populate category
           if (combinedCats.includes(p.category || "Cotton")) {
@@ -479,13 +490,27 @@ function AddProductContent() {
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-16">
         <div>
           <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">
-            <span>Admin Portal</span>
+            <span>Inventory</span>
             <span className="material-symbols-outlined text-sm opacity-30">chevron_right</span>
-            <span className="text-[#0a0a0a] italic">{editProductId ? "Edit Product" : "Add New Product"}</span>
+            <span className="text-[#0a0a0a] italic">{editProductId ? `Edit Product: ${title}` : "Add Product"}</span>
           </nav>
-          <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">
-            {editProductId ? "Edit Product" : "Add Product"}
-          </h2>
+          <div className="flex items-center gap-4 flex-wrap">
+            <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">
+              {editProductId ? "Edit Product" : "Add Product"}
+            </h2>
+            {editProductId && (
+              <a
+                href={`/product/${productSlug || editProductId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer border border-gray-200"
+                style={{ textDecoration: 'none' }}
+              >
+                <span className="material-symbols-outlined text-xs">open_in_new</span>
+                View on Storefront
+              </a>
+            )}
+          </div>
           <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
             {editProductId
               ? "Modify existing entry details in your shop inventory."
@@ -1353,6 +1378,84 @@ function AddProductContent() {
 
         </form>
       </div>
+
+      {editProductId && (
+        <div className="max-w-5xl mt-16 space-y-12">
+          {/* Edit History Section */}
+          {auditLogs.length > 0 && (
+            <div className="pt-8 border-t border-gray-200">
+              <h3 className="font-headline font-black text-lg uppercase tracking-widest text-[#0a0a0a] mb-6">Edit History</h3>
+              <div className="bg-white border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                {auditLogs.map((log: any, idx: number) => (
+                  <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs font-semibold">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-none ${
+                        log.action === 'soft_delete' ? 'bg-amber-100 text-amber-700' :
+                        log.action === 'restore' ? 'bg-green-100 text-green-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {log.action?.replace(/_/g, ' ')}
+                      </span>
+                      <div>
+                        <p className="text-gray-900">{log.admin_user_email || 'system'}</p>
+                        {log.reason && <p className="text-[10px] text-gray-500 mt-0.5">{log.reason}</p>}
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-mono">
+                      {log.created_at ? new Date(log.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Danger Zone / Delete Section */}
+          <div className="pt-8 border-t border-red-100">
+            <h3 className="font-headline font-black text-lg uppercase tracking-widest text-red-600 mb-2">Danger Zone</h3>
+            <p className="text-xs text-gray-500 mb-6 font-semibold uppercase tracking-wider">Actions performed here cannot be easily undone.</p>
+            {!showDeleteConfirm ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-6 py-3.5 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 text-red-600 text-[10px] font-black uppercase tracking-[0.2em] transition-all rounded-none cursor-pointer"
+              >
+                Delete Product
+              </button>
+            ) : (
+              <div className="p-6 bg-red-50 border border-red-200 max-w-xl space-y-4">
+                <p className="text-xs font-bold text-red-800">
+                  Are you sure you want to delete this product? This will perform a soft delete, and it will be moved to the trash ledger where it can be restored or purged later.
+                </p>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await deleteProductAction(editProductId);
+                      if (res.success) {
+                        router.push("/admindashboard/inventory");
+                      } else {
+                        triggerToast(res.error || "Failed to delete product");
+                        setShowDeleteConfirm(false);
+                      }
+                    }}
+                    className="px-6 py-3 bg-red-600 text-white hover:bg-red-700 text-[10px] font-black uppercase tracking-[0.2em] transition-all border-none cursor-pointer"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-[10px] font-black uppercase tracking-[0.2em] transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Success Confirmation Modal */}
       {successModalText && (

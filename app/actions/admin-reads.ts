@@ -250,3 +250,19 @@ export async function getBestSellersAction(dateRange: "7d" | "30d" | "all"): Pro
     return { success: false, error: e.message || "Failed to calculate best sellers" };
   }
 }
+
+export async function getProductAuditLogsAction(productId: string): Promise<{
+  success: boolean;
+  logs?: any[];
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+    if (!productId?.trim()) return { success: false, error: "Invalid product ID", logs: [] };
+    const logs = await db.getProductAuditLogs(productId);
+    return { success: true, logs };
+  } catch (e: any) {
+    console.error('[admin-reads.ts] getProductAuditLogsAction:', e);
+    return { success: false, error: e.message || "Failed to load audit logs", logs: [] };
+  }
+}

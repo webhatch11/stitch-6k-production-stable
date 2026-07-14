@@ -249,5 +249,59 @@ export async function saveShippingAction(
   return { success: true };
 }
 
+const storeIdentitySchema = z.object({
+  store_name: z.string().max(100).optional().default(""),
+  logo_url: z.string().max(500).optional().default(""),
+  support_email: z.string().max(100).optional().default(""),
+  support_phone: z.string().max(20).optional().default(""),
+});
+
+export async function saveStoreIdentityAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = storeIdentitySchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("store_identity", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+const loyaltyConfigSchema = z.object({
+  points_per_100: z.number().int().min(1).max(100).default(5),
+  rupees_per_point: z.number().min(0.01).max(10).default(0.5),
+  min_redeem_points: z.number().int().min(1).max(10000).default(100),
+});
+
+export async function saveLoyaltyConfigAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = loyaltyConfigSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("loyalty_config", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  revalidatePath("/checkout");
+  return { success: true };
+}
+
+const shiprocketConfigSchema = z.object({
+  pickup_location_name: z.string().max(100).optional().default(""),
+  pickup_pincode: z.string().max(6).optional().default(""),
+  pickup_address: z.string().max(300).optional().default(""),
+  pickup_city: z.string().max(100).optional().default(""),
+  pickup_state: z.string().max(100).optional().default(""),
+  pickup_phone: z.string().max(20).optional().default(""),
+});
+
+export async function saveShiprocketConfigAction(input: any) {
+  try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
+  const parsed = shiprocketConfigSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: parsed.error.message };
+  const ok = await db.saveSetting("shiprocket_config", parsed.data);
+  if (!ok) return { success: false, error: "Save failed" };
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+
 
 

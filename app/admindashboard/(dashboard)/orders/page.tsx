@@ -294,16 +294,18 @@ export default function OrdersLedgerPage() {
                 <th className="px-8 py-6 font-black">Order ID</th>
                 <th className="px-8 py-6 font-black">Order Date</th>
                 <th className="px-8 py-6 font-black">Customer Name</th>
+                <th className="px-8 py-6 font-black">City</th>
                 <th className="px-8 py-6 font-black">Purchased Items</th>
                 <th className="px-8 py-6 font-black">Grand Total</th>
                 <th className="px-8 py-6 font-black">Payment</th>
                 <th className="px-8 py-6 text-right font-black">Status</th>
+                <th className="px-8 py-6 font-black">AWB</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs">
               {paginatedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
+                  <td colSpan={9} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
                     No orders found.
                   </td>
                 </tr>
@@ -333,6 +335,9 @@ export default function OrdersLedgerPage() {
                         <span className="text-[11px] font-black uppercase tracking-tight">{order.customer}</span>
                         <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Paid</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-[11px] text-gray-600 font-medium">
+                      {(order.address_snapshot as any)?.city || (order.address_snapshot as any)?.state || "—"}
                     </td>
                     <td className="px-8 py-8">
                       <div className="flex items-center gap-4">
@@ -399,6 +404,24 @@ export default function OrdersLedgerPage() {
                           description
                         </Link>
                       </div>
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      {order.shiprocketId ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-mono text-gray-700 max-w-[90px] truncate" title={order.shiprocketId}>
+                            {order.shiprocketId}
+                          </span>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(order.shiprocketId!); }}
+                            className="text-gray-400 hover:text-gray-700 transition-colors bg-transparent border-none cursor-pointer p-0"
+                            title="Copy AWB"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-[11px]">—</span>
+                      )}
                     </td>
                   </tr>
                 ))

@@ -8,10 +8,12 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 interface AdminSidebarProps {
   user: { id: string; email: string; role: string };
   pendingReturnsCount?: number;
+  pendingOrdersCount?: number;
+  hasRecentAudit?: boolean;
   children: React.ReactNode;
 }
 
-export default function AdminSidebar({ user, pendingReturnsCount, children }: AdminSidebarProps) {
+export default function AdminSidebar({ user, pendingReturnsCount, pendingOrdersCount, hasRecentAudit, children }: AdminSidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -64,6 +66,11 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
       href: "/admindashboard/coupons",
       label: "Coupons",
       icon: "confirmation_number",
+    },
+    {
+      href: "/admindashboard/activity",
+      label: "Activity Log",
+      icon: "history",
     },
     {
       href: "/admindashboard/settings",
@@ -165,6 +172,16 @@ export default function AdminSidebar({ user, pendingReturnsCount, children }: Ad
                 {link.label === "Returns" && pendingReturnsCount && pendingReturnsCount > 0 ? (
                   <span className="bg-red-600 text-white text-[9px] font-black rounded-full px-2 py-0.5 animate-pulse shrink-0">
                     {pendingReturnsCount}
+                  </span>
+                ) : null}
+                {link.label === "Orders" && pendingOrdersCount && pendingOrdersCount > 0 ? (
+                  <span className="bg-amber-500 text-white text-[9px] font-black rounded-full px-2 py-0.5 shrink-0">
+                    {pendingOrdersCount}
+                  </span>
+                ) : null}
+                {link.label === "Activity Log" && hasRecentAudit ? (
+                  <span className="bg-blue-600 text-white text-[9px] font-black rounded-full px-2 py-0.5 shrink-0">
+                    NEW
                   </span>
                 ) : null}
               </Link>

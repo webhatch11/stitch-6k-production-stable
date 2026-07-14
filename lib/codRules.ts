@@ -24,11 +24,7 @@ const HIGH_RISK_REMOTE_PREFIXES = [
 ];
 
 // Customer blacklist (fraud prevention)
-const BLACKLISTED_EMAILS = [
-  "blacklist@example.com",
-  "fraudster@gmail.com",
-  "spammer@stitch6k.com",
-];
+const BLACKLISTED_EMAILS: string[] = [];
 
 export interface CodRulesResult {
   allowed: boolean;

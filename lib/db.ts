@@ -4089,9 +4089,11 @@ export const db = {
   }> {
     try {
       const orders = (await this.getOrders()) as any[];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStart = today.getTime();
+      // Use IST (UTC+5:30) midnight to avoid UTC-based day boundary mismatch
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+      const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+      nowIST.setUTCHours(0, 0, 0, 0);
+      const todayStart = nowIST.getTime() - IST_OFFSET_MS; // convert back to UTC epoch
       const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
 
       let todaySales = 0;
@@ -4213,11 +4215,19 @@ export const db = {
           recentCount += 1;
         }
 
-        if (["paid", "confirmed", "processing", "packed", "shipped", "out for delivery"].includes(status)) {
+        // Pending Shipments: orders accepted/confirmed but not yet shipped
+        if (["paid", "paid via wallet", "order placed", "confirmed", "processing", "packed"].includes(status)) {
           pendingCount += 1;
         }
 
-        if (["refund_requested", "refund_processing"].includes(status)) {
+        // Refund Requests: return initiated or refund pending/processing
+        const refundStatus = (o.refund_status || "").toLowerCase();
+        if (
+          status === "return requested" ||
+          status === "return in transit" ||
+          refundStatus === "pending" ||
+          refundStatus === "processing"
+        ) {
           refundCount += 1;
         }
       }

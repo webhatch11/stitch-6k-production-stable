@@ -18,8 +18,6 @@ export default function AdminSidebar({ user, pendingReturnsCount, pendingOrdersC
   const pathname = usePathname();
   const router = useRouter();
 
-  const showCustomers = process.env.NEXT_PUBLIC_ENABLE_CUSTOMERS === "true";
-
   const navLinks = [
     {
       href: "/admindashboard",
@@ -47,11 +45,11 @@ export default function AdminSidebar({ user, pendingReturnsCount, pendingOrdersC
       label: "Returns",
       icon: "refresh",
     },
-    ...(showCustomers ? [{
+    {
       href: "/admindashboard/customers",
       label: "Customers",
       icon: "group",
-    }] : []),
+    },
     {
       href: "/admindashboard/invoices",
       label: "Invoices",

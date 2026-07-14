@@ -74,8 +74,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const recommendations = await db.relatedProducts(slug);
-
   // Dynamic JSON-LD schema for search engines
   const jsonLd = {
     "@context": "https://schema.org",
@@ -109,7 +107,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         // of the JSON-LD block (stored XSS via admin-editable content).
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
-      <ProductDetailClient product={product} recommendations={recommendations} />
+      <ProductDetailClient product={product} />
     </>
   );
 }

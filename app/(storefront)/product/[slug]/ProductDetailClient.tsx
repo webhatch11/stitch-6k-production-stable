@@ -13,10 +13,9 @@ import { LOW_STOCK_THRESHOLD, LOW_STOCK_SIZE_THRESHOLD, URGENT_STOCK_THRESHOLD }
 
 interface ProductDetailClientProps {
   product: Product;
-  recommendations: Product[];
 }
 
-export default function ProductDetailClient({ product, recommendations }: ProductDetailClientProps) {
+export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const router = useRouter();
   const addToCartStore = useCartStore((state) => state.addToCart);
   const addProductToRecent = useRecentStore((state) => state.addProductToRecent);
@@ -714,90 +713,7 @@ export default function ProductDetailClient({ product, recommendations }: Produc
           </div>
         </section>
 
-        {/* RECOMMENDATIONS */}
-        {recommendations.length > 0 && (
-          <section className="mt-24 pt-16 border-t border-outline-variant/10">
-            <div className="flex justify-between items-end mb-12">
-              <div>
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-secondary">Complete the Look</span>
-                <h2 className="text-3xl font-black font-headline tracking-tighter uppercase mt-2">Recommended Items</h2>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-xs font-bold text-outline uppercase tracking-widest">Atelier Series</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {recommendations.map((rec) => {
-                const primaryImg = rec.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800";
-                const secondaryImg = rec.images && rec.images.length > 1 ? rec.images[1] : primaryImg;
-                
-                // Determine best badge to display
-                let badgeText = "";
-                let badgeColorClass = "text-secondary border-secondary/20";
-                if (rec.stock !== undefined && rec.stock <= 0) {
-                  badgeText = "Sold Out";
-                  badgeColorClass = "text-red-700 border-red-200";
-                } else if (rec.stock !== undefined && rec.stock > 0 && rec.stock <= LOW_STOCK_THRESHOLD) {
-                  badgeText = "Low Stock";
-                  badgeColorClass = "text-red-700 border-red-200";
-                } else if (rec.customBadge) {
-                  badgeText = rec.customBadge;
-                  badgeColorClass = "text-secondary border-secondary/20";
-                } else if (rec.isAtelierExclusive) {
-                  badgeText = "Atelier Exclusive";
-                  badgeColorClass = "text-secondary border-secondary/20";
-                } else if (rec.isNew) {
-                  badgeText = "New Arrival";
-                  badgeColorClass = "text-secondary border-secondary/20";
-                }
 
-                return (
-                  <div key={rec.id} className="group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
-                    <Link href={`/product/${rec.slug}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10">
-                      <div className="absolute inset-0">
-                        <ProductImage
-                          className="object-cover transition-all duration-[1000ms] group-hover:scale-105"
-                          src={primaryImg}
-                          alt={rec.title}
-                          fill
-                          sizes="(max-w-400px) 50vw, 300px"
-                        />
-                      </div>
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1200ms] scale-[1.05] group-hover:scale-100">
-                        <ProductImage
-                          className="object-cover"
-                          src={secondaryImg}
-                          alt={`${rec.title} Detail`}
-                          fill
-                          sizes="(max-w-400px) 50vw, 300px"
-                        />
-                      </div>
-                      {badgeText && (
-                        <span className={`absolute top-3 left-3 bg-surface-container-lowest/95 backdrop-blur-md px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.15em] z-10 shadow-sm border ${badgeColorClass} ${badgeText === "Low Stock" ? "flex items-center gap-1.5" : ""}`}>
-                          {badgeText === "Low Stock" && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
-                          )}
-                          {badgeText}
-                        </span>
-                      )}
-                    </Link>
-                    <div className="pt-4 px-2 pb-2">
-                      <div className="flex justify-between items-start gap-3">
-                        <div className="space-y-1">
-                          <Link href={`/product/${rec.slug}`} className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer block">
-                            {rec.title}
-                          </Link>
-                          <p className="text-[8px] text-outline uppercase tracking-[0.2em] font-semibold">{rec.category} • Atelier Series</p>
-                        </div>
-                        <p className="font-headline font-black text-secondary text-xs shrink-0">₹{rec.price.toLocaleString("en-IN")}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {/* RECENTLY VIEWED */}
         {recentItems.length > 1 && (

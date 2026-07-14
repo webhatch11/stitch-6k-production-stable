@@ -394,13 +394,19 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                             e.stopPropagation();
                             if (wishlistStore.isInWishlist(product.id)) {
                               wishlistStore.removeFromWishlist(product.id);
+                              showToast("Removed from wishlist");
                             } else {
                               wishlistStore.addToWishlist(product);
+                              showToast("Added to wishlist");
                             }
                           }}
-                          className="absolute top-2.5 right-2.5 bg-black/85 backdrop-blur-md p-2 rounded-full border border-white/10 text-white z-20 hover:text-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                          className="absolute top-2 right-2 z-20 hover:scale-110 active:scale-95 transition-all cursor-pointer bg-transparent border-none p-1"
+                          style={{
+                            color: wishlistStore.isInWishlist(product.id) ? "#ef4444" : "#ffffff",
+                            filter: wishlistStore.isInWishlist(product.id) ? "none" : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+                          }}
                         >
-                          <span className="material-symbols-outlined text-[14px]">
+                          <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: wishlistStore.isInWishlist(product.id) ? "'FILL' 1" : "'FILL' 0" }}>
                             {wishlistStore.isInWishlist(product.id) ? "favorite" : "favorite_border"}
                           </span>
                         </button>

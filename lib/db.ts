@@ -4921,7 +4921,8 @@ export const db = {
         }
       } else {
         const total = Number(o.total || 0);
-        orderGst = total - (total / 1.12);
+        const gstRate = total <= 1000 ? 5 : 12;
+        orderGst = total - (total / (1 + gstRate / 100));
       }
       gstCollected += orderGst;
     }
@@ -4992,7 +4993,8 @@ export const db = {
           orderGst += (itemTotal - (itemTotal / (1 + rate / 100)));
         }
       } else {
-        orderGst = total - (total / 1.12);
+        const gstRate = total <= 1000 ? 5 : 12;
+        orderGst = total - (total / (1 + gstRate / 100));
       }
 
       groups[key].grossSales += total;

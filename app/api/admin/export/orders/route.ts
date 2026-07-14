@@ -18,6 +18,36 @@ function escapeCSV(val: any): string {
   return str;
 }
 
+function getOrderGstInfo(order: any): {
+  subtotal: number;
+  gst: number;
+} {
+  const total = Number(order.total || 0);
+  const cartItems = order.cart_items || order.cartItems || [];
+  
+  if (cartItems.length > 0) {
+    let totalBase = 0;
+    let totalGst = 0;
+    for (const item of cartItems) {
+      const price = Number(item.price || 0);
+      const rate = item.gstRate ?? 
+        item.gst_rate ?? 
+        (price <= 1000 ? 5 : 12);
+      const base = price / (1 + rate / 100);
+      totalBase += base;
+      totalGst += (price - base);
+    }
+    if (totalBase > 0) {
+      return { subtotal: totalBase, gst: totalGst };
+    }
+  }
+  
+  // Fallback: price-based rule
+  const rate = total <= 1000 ? 5 : 12;
+  const subtotal = total / (1 + rate / 100);
+  return { subtotal, gst: total - subtotal };
+}
+
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
@@ -41,9 +71,9 @@ export async function GET(req: NextRequest) {
         "Customer Email": o.address_snapshot?.email || o.customerEmail || "",
         "Customer Phone": o.address_snapshot?.phone || "",
         "Items Summary": (o.items || []).map((item: any) => typeof item === "string" ? item : (item.productName || item.title || "")).join("; "),
-        "Subtotal": Number(o.total || 0) / 1.12,
+        "Subtotal": getOrderGstInfo(o).subtotal,
         "Discount": Number(o.couponDiscount || o.coupon_discount || 0),
-        "GST": Number(o.total || 0) - (Number(o.total || 0) / 1.12),
+        "GST": getOrderGstInfo(o).gst,
         "Total": Number(o.total || 0),
         "Shipping Amount": Number(o.shippingAmount || o.shipping_amount || 0),
         "Payment Method": o.paymentMethod || o.payment_method || "",
@@ -113,9 +143,9 @@ export async function GET(req: NextRequest) {
         o.address_snapshot?.email || o.customerEmail || "",
         o.address_snapshot?.phone || "",
         (o.items || []).map((item: any) => typeof item === "string" ? item : (item.productName || item.title || "")).join("; "),
-        (Number(o.total || 0) / 1.12).toFixed(2),
+        getOrderGstInfo(o).subtotal.toFixed(2),
         Number(o.couponDiscount || o.coupon_discount || 0).toFixed(2),
-        (Number(o.total || 0) - (Number(o.total || 0) / 1.12)).toFixed(2),
+        getOrderGstInfo(o).gst.toFixed(2),
         Number(o.total || 0).toFixed(2),
         Number(o.shippingAmount || o.shipping_amount || 0).toFixed(2),
         o.paymentMethod || o.payment_method || "",

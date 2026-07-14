@@ -159,6 +159,14 @@ function AddProductContent() {
   const [gstRate, setGstRate] = useState(12);
   const [discountRate, setDiscountRate] = useState(0);
 
+  useEffect(() => {
+    if (basePrice > 0 && basePrice <= 1000) {
+      setGstRate(5);
+    } else if (basePrice > 1000) {
+      setGstRate(12);
+    }
+  }, [basePrice]);
+
   // SEO States
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
@@ -1046,10 +1054,27 @@ function AddProductContent() {
                     onChange={(e) => setGstRate(parseInt(e.target.value) || 12)}
                     className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
                   >
-                    <option value="5">5% (Handloom Textiles)</option>
-                    <option value="12">12% (Premium Apparel)</option>
-                    <option value="18">18% (Luxury Goods)</option>
+                    <option value={5}>
+                      5% — Budget Apparel (≤ ₹1,000)
+                    </option>
+                    <option value={12}>
+                      12% — Premium Apparel (&gt; ₹1,000)
+                    </option>
+                    <option value={18}>
+                      18% — Accessories & Non-Apparel
+                    </option>
                   </select>
+                  {basePrice > 0 && basePrice <= 1000 && 
+                    gstRate !== 5 && (
+                    <p className="text-amber-600 text-[11px] mt-1">
+                      ⚠️ Items ≤ ₹1,000 typically attract 5% GST
+                    </p>
+                  )}
+                  {basePrice > 1000 && gstRate === 5 && (
+                    <p className="text-amber-600 text-[11px] mt-1">
+                      ⚠️ Items &gt; ₹1,000 typically attract 12% GST
+                    </p>
+                  )}
                 </div>
 
                 <div>

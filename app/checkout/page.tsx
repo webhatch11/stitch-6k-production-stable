@@ -319,7 +319,22 @@ export default function CheckoutPage() {
   }
 
   const finalPayable = Math.max(0, netTotal + shippingCost - walletDeduction);
-  const subtotal = netTotal / 1.12;
+  // Get blended GST rate from cart items
+  // Uses price-based rule as fallback
+  const getCheckoutGstRate = (
+    cartItems: any[]
+  ): number => {
+    if (!cartItems || cartItems.length === 0) 
+      return 12;
+    const avgPrice = cartItems.reduce(
+      (sum, item) => sum + (item.price || 0), 0
+    ) / cartItems.length;
+    return avgPrice <= 1000 ? 5 : 12;
+  };
+
+  const checkoutGstRate = getCheckoutGstRate(cart);
+  const subtotal = netTotal / 
+    (1 + checkoutGstRate / 100);
   const gst = netTotal - subtotal;
 
   const groupedCartItems = React.useMemo(() => {

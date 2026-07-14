@@ -737,7 +737,8 @@ function OrderDetailsContent() {
 
                 if (sumPrices === 0) {
                   sumPrices = order.total;
-                  sumTaxable = order.total / 1.12;
+                  const fallbackRate = order.total <= 1000 ? 5 : 12;
+                  sumTaxable = order.total / (1 + fallbackRate / 100);
                 }
 
                 const blendedGstRate = (sumPrices / sumTaxable) - 1;

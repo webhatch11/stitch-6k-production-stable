@@ -87,8 +87,7 @@ export async function sendOrderConfirmationEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver order confirmation email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    throw err;
+    console.error(`[sendOrderConfirmationEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
   }
 }
 
@@ -145,8 +144,7 @@ export async function sendReturnAcceptedEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver return approved email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    throw err;
+    console.error(`[sendReturnAcceptedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
   }
 }
 
@@ -196,8 +194,7 @@ export async function sendReturnRejectedEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver return rejected email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    throw err;
+    console.error(`[sendReturnRejectedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
   }
 }
 
@@ -258,8 +255,7 @@ export async function sendOrderCancelledEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver cancellation email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    throw err;
+    console.error(`[sendOrderCancelledEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
   }
 }
 
@@ -320,8 +316,7 @@ export async function sendReturnPickupScheduledEmail(order: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver return pickup scheduled email to ${order.customerEmail} via Resend. Error:`, err.message || err);
-    throw err;
+    console.error(`[sendReturnPickupScheduledEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
   }
 }
 

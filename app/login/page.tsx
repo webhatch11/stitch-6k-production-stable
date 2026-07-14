@@ -306,7 +306,7 @@ export default function LoginPage() {
       router.push("/admindashboard");
     } else if (redirectParam === "checkout" || redirectParam === "/checkout") {
       router.push("/checkout");
-    } else if (redirectParam) {
+    } else if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.includes('://')) {
       router.push(redirectParam);
     } else {
       router.push("/");

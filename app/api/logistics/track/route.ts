@@ -205,10 +205,9 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
     console.error("[Track API] Unhandled exception:", err);
     return NextResponse.json(
-      { success: false, error: message || "Internal server error" },
+      { success: false, error: "Failed to fetch tracking information. Please try again." },
       { status: 500 }
     );
   }

@@ -184,6 +184,28 @@ function OrderDetailsContent() {
     loadOrderDetails();
   }, [orderId]);
 
+  // FIX 3 — Auto-verify refund status on page load when status is pending
+  useEffect(() => {
+    const autoVerifyRefund = async () => {
+      if (
+        order?.refund_id &&
+        order?.refund_status &&
+        ['initiated', 'processing', 'pending'].includes(order.refund_status.toLowerCase())
+      ) {
+        try {
+          await verifyRefundAction(order.id);
+          await loadOrderDetails();
+        } catch (e) {
+          console.error('[order-details] Auto refund verify failed:', e);
+        }
+      }
+    };
+    if (order?.id) {
+      autoVerifyRefund();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.id, order?.refund_status]);
+
   const loadOrderDetails = async () => {
     const ordersRes = await getOrdersAction();
     let currentOrder: Order | null = null;
@@ -700,10 +722,30 @@ function OrderDetailsContent() {
 
             {/* 3. Financial Recap Card nested inside Items card to mirror mockup structure */}
             <div className="p-6 bg-[#121215] border-t border-gray-200/10 flex flex-col gap-3">
-              <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
-                <span>Subtotal (original price)</span>
-                <span className="font-bold" style={{ color: "var(--text-primary)" }}>₹{originalTotal.toLocaleString("en-IN")}.00</span>
-              </div>
+              {/* FIX 2 — Show ex-GST base price + GST separately so math is transparent */}
+              {(() => {
+                const firstCartItem = order.cartItems?.[0];
+                const matchingProduct = products.find(p => p.id === firstCartItem?.productId);
+                const gstRate = matchingProduct?.gstRate ?? (firstCartItem as any)?.gstRate ?? 12;
+                const basePrice = order.total / (1 + gstRate / 100);
+                const gstAmount = order.total - basePrice;
+                return (
+                  <>
+                    <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
+                      <span>Subtotal (ex-GST)</span>
+                      <span className="font-bold" style={{ color: "var(--text-primary)" }}>
+                        ₹{basePrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
+                      <span>GST ({gstRate}%)</span>
+                      <span className="font-bold" style={{ color: "var(--text-primary)" }}>
+                        ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
               {couponDiscount > 0 && (
                 <div className="flex justify-between items-center text-[11px] font-medium text-red-400">
                   <span>Coupon Discount ({order.couponCode || "N/A"})</span>
@@ -716,20 +758,6 @@ function OrderDetailsContent() {
                   <span className="font-bold">-₹{pointsDiscount.toLocaleString("en-IN")}.00</span>
                 </div>
               )}
-              {(() => {
-                const firstCartItem = order.cartItems?.[0];
-                const matchingProduct = products.find(p => p.id === firstCartItem?.productId);
-                const gstRate = matchingProduct?.gstRate ?? firstCartItem?.gstRate ?? 12;
-                const gstAmount = order.total - (order.total / (1 + gstRate / 100));
-                return (
-                  <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
-                    <span>GST ({gstRate}%)</span>
-                    <span className="font-bold" style={{ color: "var(--text-primary)" }}>
-                      ₹{gstAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                );
-              })()}
               <div className="flex justify-between items-center text-[11px] font-medium text-gray-400">
                 <span>Shipping</span>
                 <span className="text-green-500 font-bold">Free</span>
@@ -1141,7 +1169,7 @@ function OrderDetailsContent() {
                     </div>
                   )}
 
-                  {/* NESTED REFUND ALERT: styled block matching mockup */}
+                  {/* FIX 1 — NESTED REFUND ALERT: label based on actual refund method */}
                   {order.refund_status && (
                     <div
                       className="mt-4 border text-[11px] leading-relaxed"
@@ -1153,14 +1181,23 @@ function OrderDetailsContent() {
                       }}
                     >
                       <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider" style={{ color: "var(--text-warning)" }}>
-                        <span>🗂️ Wallet refund issued</span>
+                        <span>
+                          {order.refundOption === "wallet" || order.refund_status === "wallet_only"
+                            ? "🗂️ Wallet refund issued"
+                            : order.refund_status === "credited" || order.refund_status === "processed"
+                              ? "✅ Bank refund credited"
+                              : order.refund_status === "initiated" || order.refund_status === "processing"
+                                ? "🏦 Bank refund initiated"
+                                : "💳 Refund processed"}
+                        </span>
                       </div>
                       <p className="mt-1" style={{ color: "var(--text-warning)" }}>
-                        ₹{order.refund_amount || 0} - Reason: {order.refund_reason || "None"}
+                        ₹{order.refund_amount ?? order.total}
+                        {order.refund_reason ? ` — Reason: ${order.refund_reason}` : ""}
                       </p>
                       {order.refunded_at && (
                         <p className="text-[10px] mt-0.5 opacity-80" style={{ color: "var(--text-warning)" }}>
-                          Processed: {new Date(order.refunded_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                          Processed: {new Date(order.refunded_at).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       )}
                     </div>
@@ -1175,23 +1212,29 @@ function OrderDetailsContent() {
                       >
                         {verifyingRefund ? "Verifying..." : "Verify refund"}
                       </button>
+                      {/* FIX 3 — Improved refund status badge labels */}
                       {(() => {
                         const status = order.refund_status?.toLowerCase();
                         let badgeBg = "var(--bg-warning)";
                         let badgeColor = "var(--text-warning)";
-                        if (status === "credited" || status === "processed") {
+                        let badgeLabel = "PENDING";
+                        if (status === "credited" || status === "processed" || status === "wallet_only") {
                           badgeBg = "var(--bg-success)";
                           badgeColor = "var(--text-success)";
+                          badgeLabel = status === "wallet_only" ? "WALLET CREDITED ✓" : "CREDITED ✓";
                         } else if (status === "failed") {
                           badgeBg = "var(--bg-danger)";
                           badgeColor = "var(--text-danger)";
+                          badgeLabel = "FAILED";
+                        } else if (status === "initiated" || status === "processing") {
+                          badgeLabel = "PENDING";
                         }
                         return (
                           <span
                             className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-[4px]"
                             style={{ backgroundColor: badgeBg, color: badgeColor }}
                           >
-                            {order.refund_status || "Pending"}
+                            {badgeLabel}
                           </span>
                         );
                       })()}

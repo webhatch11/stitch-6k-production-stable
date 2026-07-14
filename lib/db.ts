@@ -3111,8 +3111,7 @@ export const db = {
     // Recalculate and synchronize parent product stock fields
     await this.syncProductTotalStock(productId);
 
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
     return true;
   },
@@ -3182,8 +3181,7 @@ export const db = {
     // Sync total product stock and size stock columns
     await this.syncProductTotalStock(productId);
 
-    await CacheService.del("products:list");
-    await CacheService.del("products:list:all");
+    await CacheService.delPattern("products:list*");
     await CacheService.delPattern("products:slug:*");
     return true;
   },

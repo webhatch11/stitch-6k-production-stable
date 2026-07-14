@@ -1151,7 +1151,7 @@ export default function CheckoutPage() {
 
           {/* Right Column: Order Summary (Sticky) */}
           <div className="lg:col-span-5">
-            <div className="sticky top-32 space-y-8">
+            <div className="lg:sticky lg:top-32 space-y-8">
               <div className="bg-white/40 border border-white/20 backdrop-blur-lg p-6 sm:p-8 rounded-[1.5rem] shadow-[0_8px_32px_rgba(119,90,25,0.03)] relative overflow-hidden">
                 <div className="absolute -top-16 -left-16 w-36 h-36 bg-[#fed488]/5 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-[#775a19]/5 rounded-full blur-3xl"></div>

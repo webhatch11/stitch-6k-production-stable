@@ -216,7 +216,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
         {/* MAIN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* FILTER */}
-          <aside id="shop-filters" className="lg:col-span-1">
+          <aside id="shop-filters" className="hidden lg:block lg:col-span-1">
             <div className="bg-white/40 backdrop-blur-lg border border-white/20 p-5 lg:p-6 shadow-[0_8px_32px_rgba(119,90,25,0.03)] rounded-[1.5rem] relative overflow-hidden">
               <div className="absolute -top-16 -left-16 w-36 h-36 bg-[#fed488]/5 rounded-full blur-3xl"></div>
               <div className="absolute -bottom-16 -right-16 w-36 h-36 bg-[#775a19]/5 rounded-full blur-3xl"></div>
@@ -240,13 +240,13 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
               </div>
 
               {/* Collapsible Content */}
-              <div className={`space-y-6 transition-all duration-500 ease-in-out overflow-hidden lg:block lg:max-h-none lg:opacity-100 relative z-10 ${filtersExpanded ? 'max-h-[1000px] opacity-100 mt-5' : 'max-h-0 opacity-0 lg:mt-5'}`}>
+              <div className={`space-y-6 transition-all duration-500 ease-in-out overflow-hidden will-change-height lg:block lg:max-h-none lg:opacity-100 relative z-10 ${filtersExpanded ? 'max-h-[1000px] opacity-100 mt-5' : 'max-h-0 opacity-0 lg:mt-5'}`}>
                 {/* Separator */}
                 <div className="h-[1px] bg-gradient-to-r from-[#fed488]/20 via-outline-variant/10 to-transparent"></div>
 
                 {/* MATERIAL */}
                 <div>
-                  <h3 className="text-[9px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none">Material</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none">Material</h3>
                   <div className="space-y-3">
                     {["Linen", "Cotton", "Silk", "Denim"].map((material) => (
                       <label key={material} className="flex items-center gap-3 cursor-pointer group select-none text-on-surface/70 hover:text-[#fed488] transition-colors font-bold uppercase tracking-wider text-[10px]">
@@ -274,7 +274,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
 
                 {/* SIZE */}
                 <div>
-                  <h3 className="text-[9px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none">Size</h3>
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none">Size</h3>
                   <div className="grid grid-cols-4 gap-2">
                     {["S", "M", "L", "XL"].map((size) => (
                       <button
@@ -297,7 +297,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
 
                 {/* PRICE */}
                 <div>
-                  <h3 className="text-[9px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none flex justify-between items-center">
+                  <h3 className="text-[11px] font-bold uppercase tracking-[0.25em] text-on-surface/40 mb-3 select-none flex justify-between items-center">
                     <span>Max Price</span>
                     <span className="font-black text-[#fed488]">₹{maxPrice.toLocaleString("en-IN")}</span>
                   </h3>
@@ -310,7 +310,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                     onChange={(e) => setMaxPrice(parseInt(e.target.value))}
                     className="w-full accent-[#fed488] cursor-pointer bg-neutral-200 rounded-lg appearance-none h-1"
                   />
-                  <div className="flex justify-between text-[8px] font-bold uppercase tracking-widest mt-2 text-on-surface/40 select-none">
+                  <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest mt-2 text-on-surface/40 select-none">
                     <span>₹1,000</span>
                     <span>₹12,000</span>
                   </div>

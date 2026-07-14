@@ -704,7 +704,32 @@ export default function MyProfileClient({
                     View All Orders
                   </Link>
                 </div>
-                <div className="overflow-x-auto bg-white border border-outline-variant/15">
+                {/* Mobile card layout (md:hidden) */}
+                <div className="md:hidden space-y-3">
+                  {recentOrders.length === 0 ? (
+                    <div className="p-8 text-center text-outline italic bg-white border border-outline-variant/15">No recent orders found</div>
+                  ) : (
+                    recentOrders.map((order) => (
+                      <div key={order.id} className="bg-white border border-outline-variant/15 p-4 rounded-xl space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="font-mono text-xs font-bold text-on-surface">#{order.id}</span>
+                          <span className="inline-block px-2 py-0.5 border border-outline-variant/20 bg-surface-container-low text-[8px] font-bold uppercase tracking-widest text-outline">
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium text-on-surface">
+                          {order.items?.[0] || "Order"}
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-outline">{order.date}</span>
+                          <span className="font-bold text-on-surface">₹{order.total?.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto bg-white border border-outline-variant/15">
                   <table className="w-full text-left">
                     <thead className="bg-surface-container-low border-b border-outline-variant/10">
                       <tr>
@@ -825,7 +850,7 @@ export default function MyProfileClient({
                   <h2 className="text-on-surface text-xl font-headline font-bold uppercase tracking-tight border-b border-on-surface/10 pb-4">
                     Wallet Transactions
                   </h2>
-                  <div className="overflow-x-auto bg-white border border-outline-variant/25 rounded-none">
+                  <div className="overflow-x-auto -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
                     <table className="w-full text-left border-collapse table-fixed min-w-[500px]">
                       <colgroup>
                         <col className="w-[25%]" />
@@ -834,9 +859,9 @@ export default function MyProfileClient({
                       </colgroup>
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Date</th>
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Details</th>
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline text-right">Amount</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline">Date</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline">Details</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline text-right">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10 text-xs font-label">
@@ -865,13 +890,13 @@ export default function MyProfileClient({
                   <h2 className="text-on-surface text-xl font-headline font-bold uppercase tracking-tight border-b border-on-surface/10 pb-4">
                     Loyalty Log
                   </h2>
-                  <div className="overflow-x-auto bg-white border border-outline-variant/25 rounded-none">
+                  <div className="overflow-x-auto -mx-4 px-4 bg-white border border-outline-variant/25 rounded-none">
                     <table className="w-full text-left border-collapse min-w-[500px]">
                       <thead>
                         <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Date</th>
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline">Details</th>
-                          <th className="p-4 text-[9px] font-bold uppercase tracking-widest text-outline text-right">Points</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline">Date</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline">Details</th>
+                          <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-outline text-right">Points</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10 text-xs font-label">

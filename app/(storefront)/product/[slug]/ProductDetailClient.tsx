@@ -418,45 +418,46 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </button>
               </div>
               
-              <div className="grid grid-cols-5 gap-2">
+              <div className="flex flex-wrap">
                 {["S", "M", "L", "XL", "XXL"].map((size) => {
                   const sizeStock = product.sizeStock
                     ? (product.sizeStock[size as keyof typeof product.sizeStock] || 0)
                     : 0;
                   const isOutOfStock = sizeStock <= 0;
                   return (
-                    <button
-                      key={size}
-                      disabled={isOutOfStock}
-                      onClick={() => setSelectedSize(size)}
-                      aria-label={`Size ${size}${
-                        sizeStock === 0 ? ', sold out' : 
-                        sizeStock <= 3 ? `, only ${sizeStock} left` : 
-                        ', in stock'
-                      }`}
-                      aria-pressed={selectedSize === size}
-                      style={{
-                        minWidth: '44px',
-                        minHeight: '44px',
-                      }}
-                      className={`py-4 text-xs font-black uppercase tracking-widest btn-active-scale transition-all duration-300 relative ${
-                        isOutOfStock
-                          ? "border border-outline-variant/40 text-outline size-out-of-stock cursor-not-allowed opacity-35"
-                          : selectedSize === size
-                          ? "border-2 border-secondary bg-transparent text-secondary"
-                          : "border border-outline-variant/60 hover:border-on-surface bg-transparent text-on-surface"
-                      }`}
-                    >
-                      {size}
-                      {/* Red indicator for out of stock sizes */}
-                      {isOutOfStock && (
-                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                      )}
-                      {/* Subtly show quick warning dot on sizes if low stock */}
-                      {!isOutOfStock && sizeStock > 0 && sizeStock <= LOW_STOCK_SIZE_THRESHOLD && (
-                        <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                      )}
-                    </button>
+                    <div key={size} className="mr-2 mb-2">
+                      <button
+                        disabled={isOutOfStock}
+                        onClick={() => setSelectedSize(size)}
+                        aria-label={`Size ${size}${
+                          sizeStock === 0 ? ', sold out' : 
+                          sizeStock <= 3 ? `, only ${sizeStock} left` : 
+                          ', in stock'
+                        }`}
+                        aria-pressed={selectedSize === size}
+                        style={{
+                          minWidth: '44px',
+                          minHeight: '44px',
+                        }}
+                        className={`py-2 px-4 text-sm font-black uppercase tracking-widest btn-active-scale transition-all duration-300 relative ${
+                          isOutOfStock
+                            ? "border border-outline-variant/40 text-outline size-out-of-stock cursor-not-allowed opacity-35"
+                            : selectedSize === size
+                            ? "border-2 border-secondary bg-transparent text-secondary"
+                            : "border border-outline-variant/60 hover:border-on-surface bg-transparent text-on-surface"
+                        }`}
+                      >
+                        {size}
+                        {/* Red indicator for out of stock sizes */}
+                        {isOutOfStock && (
+                          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        )}
+                        {/* Subtly show quick warning dot on sizes if low stock */}
+                        {!isOutOfStock && sizeStock > 0 && sizeStock <= LOW_STOCK_SIZE_THRESHOLD && (
+                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        )}
+                      </button>
+                    </div>
                   );
                 })}
               </div>

@@ -441,10 +441,10 @@ export default function OrdersLedgerPage() {
               <div
                 key={order.id}
                 onClick={() => router.push(`/admindashboard/order-details?orderId=${order.id}`)}
-                className="p-6 hover:bg-gray-50 transition-all cursor-pointer flex flex-col gap-4 animate-fade-in"
+                className="p-6 hover:bg-gray-50 transition-all cursor-pointer flex flex-col space-y-4 animate-fade-in"
               >
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center space-x-3">
                     <div onClick={(e) => e.stopPropagation()} className="flex items-center">
                       <input
                         type="checkbox"
@@ -462,7 +462,7 @@ export default function OrdersLedgerPage() {
                   </span>
                 </div>
                 
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex flex-col gap-1.5">
+                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex flex-col space-y-1.5">
                   <div className="flex justify-between">
                     <span>Customer:</span>
                     <span className="text-primary font-black tracking-normal">{order.customer}</span>
@@ -474,7 +474,7 @@ export default function OrdersLedgerPage() {
                 </div>
 
                 <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center space-x-2">
                     <span className="material-symbols-outlined text-base text-gray-400">inventory_2</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 truncate max-w-[150px]">
                       {order.items[0]}
@@ -485,10 +485,10 @@ export default function OrdersLedgerPage() {
                   </span>
                 </div>
 
-                <div onClick={(e) => e.stopPropagation()} className="flex justify-end gap-3 pt-2">
+                <div onClick={(e) => e.stopPropagation()} className="flex justify-end space-x-3 pt-2">
                   <Link
                     href={`/invoice?orderId=${order.id}`}
-                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-secondary border border-gray-200 px-3 py-1.5"
+                    className="flex items-center space-x-1.5 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-secondary border border-gray-200 px-3 py-1.5"
                   >
                     <span className="material-symbols-outlined text-sm">description</span>
                     Invoice

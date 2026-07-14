@@ -372,8 +372,8 @@ export default function InventoryLedgerPage() {
         </div>
 
         {/* Desktop View Table */}
-        <div className="hidden md:block overflow-x-auto" style={{ width: '100%', overflowX: 'auto', overflowY: 'visible' }}>
-          <table className="w-full text-left border-collapse" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
+        <div className="hidden md:block overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse" style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse' }}>
             <colgroup>
               <col style={{ width: '80px' }} />
               <col style={{ width: 'auto' }} />
@@ -590,7 +590,7 @@ export default function InventoryLedgerPage() {
               const isDeleted = !!p.deleted_at;
 
               return (
-                <div key={p.id} className={`p-6 hover:bg-[#fafafa] transition-colors flex flex-col gap-4 animate-fade-in ${isDeleted ? "opacity-50" : ""}`}>
+                <div key={p.id} className={`p-6 hover:bg-[#fafafa] transition-colors flex flex-col space-y-4 animate-fade-in ${isDeleted ? "opacity-50" : ""}`}>
                   <div className="flex gap-4">
                     <div className={`size-16 bg-white border border-gray-200 p-1 rounded-none overflow-hidden shrink-0 transition-all ${
                       stockCount > 0 && !isDeleted ? "" : "grayscale opacity-60 border-red-200"

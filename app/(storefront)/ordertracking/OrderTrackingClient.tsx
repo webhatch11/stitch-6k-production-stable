@@ -463,9 +463,9 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
 
             {/* Info Metrics Board */}
             <section className="mb-16">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-outline-variant/20 border border-outline-variant/10 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-px bg-outline-variant/20 border border-outline-variant/10 shadow-sm">
                 <div className="bg-surface-container-low p-6">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Status</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Status</p>
                   <div className="flex items-center gap-2">
                     <span
                       className={`size-2 rounded-full ${
@@ -480,7 +480,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Logistics Partner</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Logistics Partner</p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-widest">
                       {shipment?.courier_name || "Shiprocket Partner"}
@@ -488,17 +488,17 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Waybill Number</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Waybill Number</p>
                   <span className="text-xs font-bold font-mono tracking-tight select-all">
                     {shipment?.awb_code || matchedOrder.shiprocketId || "PENDING"}
                   </span>
                 </div>
                 <div className="bg-surface-container-low p-6">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Priority Tier</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Priority Tier</p>
                   <span className="text-xs font-bold uppercase text-secondary">Premium Express</span>
                 </div>
                 <div className="bg-surface-container-low p-6">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-outline mb-1">Est. Delivery</p>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Est. Delivery</p>
                   <span className="text-xs font-bold uppercase text-secondary">
                     {shipment?.etd
                       ? new Date(shipment.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }).toUpperCase()
@@ -509,7 +509,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
             </section>
 
             {/* Timeline & Details columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
               {/* Left Column: Milestones vertical path */}
               <div className="lg:col-span-7 space-y-12">
                 <div className="space-y-10">

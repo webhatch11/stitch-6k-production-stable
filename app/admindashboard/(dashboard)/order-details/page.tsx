@@ -616,7 +616,7 @@ function OrderDetailsContent() {
                 <span className={`size-2 rounded-full ${getLogisticsStatusDotClass()}`}></span>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{order.status}</p>
               </div>
-              {order.shiprocketId ? (
+              {(shipment?.awb_code || order.shiprocketId) ? (
                 <div className="mt-1.5 space-y-1">
                   <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
                     AWB: <span className="font-bold text-white font-mono">{shipment?.awb_code || order.shiprocketId}</span>
@@ -638,14 +638,6 @@ function OrderDetailsContent() {
                     <span className="text-[10px] text-gray-400 font-medium block">
                       Label: <a href={shipment.label_url} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white font-bold underline">Download</a>
                     </span>
-                  )}
-                </div>
-              ) : (s === "shipped" || s === "delivered" || s.includes("transit")) ? (
-                <div className="mt-1">
-                  {order.shiprocketId && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      AWB: {order.shiprocketId}
-                    </div>
                   )}
                 </div>
               ) : null}

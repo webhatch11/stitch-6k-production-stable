@@ -61,8 +61,26 @@ export async function bulkUpdateOrderStatusAction(
     for (const oId of orderIds) {
       const order = await db.getOrderById(oId);
       if (!order) throw new Error(`Order ${oId} not found`);
-      if (order.paymentStatus?.toLowerCase() !== 'paid') {
-        throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+      
+      const isPaidViaGateway = 
+        order.paymentStatus?.toLowerCase() === 'paid';
+
+      const isPaidViaWallet = 
+        (order.walletPaid ?? 0) > 0 && 
+        (order.gatewayPaid ?? 0) === 0;
+
+      const isSplitPayment = 
+        (order.walletPaid ?? 0) > 0 && 
+        (order.gatewayPaid ?? 0) > 0;
+
+      const isPaymentConfirmed = 
+        isPaidViaGateway || isPaidViaWallet || isSplitPayment;
+
+      if (!isPaymentConfirmed) {
+        throw new Error(
+          'Cannot process order. Payment not confirmed. ' +
+          'Verify payment status before proceeding.'
+        );
       }
     }
 
@@ -184,8 +202,26 @@ export async function cancelOrderAndRefundAction(
     // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
-    if (order.paymentStatus?.toLowerCase() !== 'paid') {
-      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    
+    const isPaidViaGateway = 
+      order.paymentStatus?.toLowerCase() === 'paid';
+
+    const isPaidViaWallet = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) === 0;
+
+    const isSplitPayment = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) > 0;
+
+    const isPaymentConfirmed = 
+      isPaidViaGateway || isPaidViaWallet || isSplitPayment;
+
+    if (!isPaymentConfirmed) {
+      throw new Error(
+        'Cannot process order. Payment not confirmed. ' +
+        'Verify payment status before proceeding.'
+      );
     }
 
     const success = await db.cancelOrderAndRefund(orderId, reason.trim());
@@ -241,8 +277,26 @@ export async function approveReturnPickupAction(
     // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
-    if (order.paymentStatus?.toLowerCase() !== 'paid') {
-      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    
+    const isPaidViaGateway = 
+      order.paymentStatus?.toLowerCase() === 'paid';
+
+    const isPaidViaWallet = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) === 0;
+
+    const isSplitPayment = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) > 0;
+
+    const isPaymentConfirmed = 
+      isPaidViaGateway || isPaidViaWallet || isSplitPayment;
+
+    if (!isPaymentConfirmed) {
+      throw new Error(
+        'Cannot process order. Payment not confirmed. ' +
+        'Verify payment status before proceeding.'
+      );
     }
 
     const success = await db.approveReturnPickup(orderId);
@@ -324,8 +378,26 @@ export async function processReturnRefundAction(
     // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
-    if (order.paymentStatus?.toLowerCase() !== 'paid') {
-      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    
+    const isPaidViaGateway = 
+      order.paymentStatus?.toLowerCase() === 'paid';
+
+    const isPaidViaWallet = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) === 0;
+
+    const isSplitPayment = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) > 0;
+
+    const isPaymentConfirmed = 
+      isPaidViaGateway || isPaidViaWallet || isSplitPayment;
+
+    if (!isPaymentConfirmed) {
+      throw new Error(
+        'Cannot process order. Payment not confirmed. ' +
+        'Verify payment status before proceeding.'
+      );
     }
 
     const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
@@ -377,8 +449,26 @@ export async function issueRefundAction(
     // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
-    if (order.paymentStatus?.toLowerCase() !== 'paid') {
-      throw new Error('Cannot process order. Payment not confirmed. Verify payment status before proceeding.');
+    
+    const isPaidViaGateway = 
+      order.paymentStatus?.toLowerCase() === 'paid';
+
+    const isPaidViaWallet = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) === 0;
+
+    const isSplitPayment = 
+      (order.walletPaid ?? 0) > 0 && 
+      (order.gatewayPaid ?? 0) > 0;
+
+    const isPaymentConfirmed = 
+      isPaidViaGateway || isPaidViaWallet || isSplitPayment;
+
+    if (!isPaymentConfirmed) {
+      throw new Error(
+        'Cannot process order. Payment not confirmed. ' +
+        'Verify payment status before proceeding.'
+      );
     }
 
     const success = await db.issueRefund(orderId, reason.trim());

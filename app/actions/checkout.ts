@@ -221,6 +221,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     pointsDiscount: verifiedPointsDiscount,
     pointsEarned: Math.floor(verifiedNetTotal / 100) * POINTS_PER_100, // Business rule: ₹100 spent = 5 points
     status: "Paid via Wallet",
+    paymentStatus: "Paid",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({
       productId: item.productId,

@@ -1572,7 +1572,7 @@ export const db = {
     return { success: true };
   },
 
-  async applyWalletCredit(amount: number, description: string, orderId: string, userId?: string): Promise<void> {
+  async applyWalletCredit(amount: number, description: string, orderId: string, userId?: string): Promise<{ success: boolean; error?: string }> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
       throw new Error(
@@ -1583,14 +1583,32 @@ export const db = {
       );
     }
     const uid = userId;
-    if (!uid) return;
+    if (!uid) return { success: false, error: "User authentication required." };
 
-    await supabase.rpc("wallet_atomic_credit", {
+    const { data: creditData, error: creditError } = await supabase.rpc("wallet_atomic_credit", {
       p_user_id: uid,
       p_amount: amount,
       p_idempotency_key: "WALLET-CREDIT-" + orderId,
       p_desc: description || `Refund for Order #${orderId}`
     });
+
+    if (creditError) {
+      if (creditError.code === '23505' || creditError.message?.toLowerCase().includes("duplicate") || creditError.message?.toLowerCase().includes("unique")) {
+        return { success: true };
+      }
+      console.error("[applyWalletCredit] RPC error:", creditError.message);
+      return { success: false, error: creditError.message };
+    }
+
+    if (creditData && creditData.success === false) {
+      if (creditData.error?.toLowerCase().includes("duplicate") || creditData.error?.toLowerCase().includes("unique")) {
+        return { success: true };
+      }
+      console.error("[applyWalletCredit] RPC returned failure:", creditData.error);
+      return { success: false, error: creditData.error };
+    }
+
+    return { success: true };
   },
 
   // --- Loyalty ---
@@ -1910,12 +1928,21 @@ export const db = {
     if (orderData.refund_option === "wallet") {
       // Entire amount (gateway + wallet) goes to store wallet — no Razorpay call
       if (orderData.user_id) {
-        await this.applyWalletCredit(
+        const creditResult = await this.applyWalletCredit(
           totalRefundAmount,
           `Return Credit for Order #${orderId}`,
           orderId,
           orderData.user_id
         );
+        if (!creditResult.success) {
+          console.error(
+            "[processReturnRefund] wallet credit failed:", 
+            creditResult.error
+          );
+          throw new Error(
+            `Wallet credit failed: ${creditResult.error}`
+          );
+        }
       }
       await supabase
         .from("orders")
@@ -1924,12 +1951,21 @@ export const db = {
     } else {
       // Wallet portion → store wallet
       if (walletPaid > 0 && orderData.user_id) {
-        await this.applyWalletCredit(
+        const creditResult = await this.applyWalletCredit(
           walletPaid,
           `Refund of Wallet Portion for Order #${orderId}`,
           orderId,
           orderData.user_id
         );
+        if (!creditResult.success) {
+          console.error(
+            "[processReturnRefund] wallet credit failed:", 
+            creditResult.error
+          );
+          throw new Error(
+            `Wallet credit failed: ${creditResult.error}`
+          );
+        }
       }
 
       // Gateway portion → Razorpay refund
@@ -2127,12 +2163,21 @@ export const db = {
 
     // 3. Wallet portion → store wallet (NOW PASSING user_id — fixes the silent no-op)
     if (walletPaid > 0 && orderData.user_id) {
-      await this.applyWalletCredit(
+      const creditResult = await this.applyWalletCredit(
         walletPaid,
         `Refund of Wallet Portion for Cancelled Order #${orderId}`,
         orderId,
         orderData.user_id
       );
+      if (!creditResult.success) {
+        console.error(
+          "[cancelOrderAndRefund] wallet credit failed:", 
+          creditResult.error
+        );
+        throw new Error(
+          `Wallet credit failed: ${creditResult.error}`
+        );
+      }
     }
 
     // 4. Gateway portion → Razorpay refund
@@ -2251,12 +2296,21 @@ export const db = {
 
     // Wallet portion → store wallet
     if (walletPaid > 0 && orderData.user_id) {
-      await this.applyWalletCredit(
+      const creditResult = await this.applyWalletCredit(
         walletPaid,
         `Refund for Order #${orderId}: ${reason}`,
         orderId,
         orderData.user_id
       );
+      if (!creditResult.success) {
+        console.error(
+          "[issueRefund] wallet credit failed:", 
+          creditResult.error
+        );
+        throw new Error(
+          `Wallet credit failed: ${creditResult.error}`
+        );
+      }
     }
 
     // Gateway portion → Razorpay

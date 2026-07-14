@@ -51,6 +51,14 @@ export async function adjustCustomerBalanceAction(
     }
   }
 
+  const MAX_SINGLE_CREDIT = 10000;
+  if (type === 'wallet' && amount > MAX_SINGLE_CREDIT) {
+    return {
+      success: false,
+      error: `Single credit cannot exceed ₹${MAX_SINGLE_CREDIT.toLocaleString('en-IN')}. Please make multiple smaller credits for amounts above this limit.`
+    };
+  }
+
   try {
     const success = await db.adjustCustomerBalance(
       email,

@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
     const orderData = {
       id: sequentialOrderId,
       customer: checkoutState.customer,
-      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
       total: checkoutState.total ?? (checkoutState.netTotal + (checkoutState.shippingAmount || 0)),
       originalTotal: checkoutState.originalTotal,
       couponDiscount: checkoutState.couponDiscount,

@@ -934,7 +934,7 @@ export const db = {
       const insertPayload = {
         id: orderId,
         customer: order.customer || "Guest Customer",
-        date: order.date || new Date().toLocaleDateString("en-IN"),
+        date: order.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
         total: order.total || 0,
         status: order.status || "Pending",
         items: order.items || [],
@@ -968,7 +968,7 @@ export const db = {
     const mergedOrder: Order = {
       id: orderId,
       customer: order.customer || (existingOrder ? existingOrder.customer : "Guest Customer"),
-      date: order.date || (existingOrder ? existingOrder.date : new Date().toLocaleDateString("en-IN")),
+      date: order.date || (existingOrder ? existingOrder.date : new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })),
       total: order.total !== undefined ? order.total : (existingOrder ? Number(existingOrder.total) : 0),
       status: order.status || (existingOrder ? existingOrder.status : "Pending"),
       items: order.items || (existingOrder ? existingOrder.items : []),
@@ -1809,7 +1809,7 @@ export const db = {
         return_details: payload.details,
         return_image: payload.image,
         refund_option: payload.refundOption === "bank" ? "original_source" : payload.refundOption,
-        return_request_date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+        return_request_date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
       })
       .eq("id", orderId);
 
@@ -1872,7 +1872,7 @@ export const db = {
     const refundReason = reason || "Return approved by admin";
 
     // 1. Update order status + store refund metadata
-    const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
     const { error: orderUpdateErr } = await supabase
       .from("orders")
       .update({
@@ -2105,7 +2105,7 @@ export const db = {
     const gatewayPaid = Number(orderData.gateway_paid || 0);
     const totalRefundAmount = walletPaid + gatewayPaid;
     const refundReason = reason || "Order cancelled by admin";
-    const cancelDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const cancelDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
     // 1. Update status + store refund reason + amount
     const { error: updateErr } = await supabase
@@ -3541,7 +3541,7 @@ export const db = {
       await supabase.from("wallet_transactions").insert({
         id: "WLT-ADJ-" + Date.now(),
         user_id: profile.id,
-        date: new Date().toLocaleDateString("en-IN"),
+        date: new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" }),
         amount: Math.abs(amount),
         type: amount > 0 ? "credit" : "debit",
         description
@@ -3558,7 +3558,7 @@ export const db = {
       await supabase.from("loyalty_transactions").insert({
         id: "LYL-ADJ-" + Date.now(),
         user_id: profile.id,
-        date: new Date().toLocaleDateString("en-IN"),
+        date: new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" }),
         points: Math.abs(amount),
         type: amount > 0 ? "credit" : "debit",
         description

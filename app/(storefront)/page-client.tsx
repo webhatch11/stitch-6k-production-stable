@@ -1091,10 +1091,10 @@ export default function HomeClient({
                   if (absOffset > 2) return null;
 
                   const scale = isActive ? 1.05 : 0.82 - absOffset * 0.05;
-                  const opacity = isActive ? 1.0 : 0.40 - absOffset * 0.15;
+                  const opacity = isActive ? 1.0 : 0.65 - absOffset * 0.15;
                   const zIndex = 30 - absOffset * 5;
                   const blurClass = isActive ? "blur-none" : "blur-[0.4px] md:blur-[0.6px]";
-                  const grayscaleClass = isActive ? "grayscale-0" : "grayscale-[60%]";
+                  const grayscaleClass = isActive ? "grayscale-0" : "grayscale-[20%]";
 
                   return (
                     <div
@@ -1123,7 +1123,7 @@ export default function HomeClient({
 
                       {/* Unified Card Frame */}
                       <div className={`h-full relative overflow-hidden transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
-                        isActive ? "w-[180px] md:w-[210px]" : "w-[90px] sm:w-[105px] md:w-[120px]"
+                        isActive ? "w-[180px] md:w-[210px]" : "w-[110px] sm:w-[130px] md:w-[150px]"
                       }`}>
                       {/* Product Image with smooth group hover scale */}
                         <ProductImage
@@ -1168,7 +1168,7 @@ export default function HomeClient({
                             writingMode: 'vertical-rl',
                           } as React.CSSProperties}
                           className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 z-10 transition-all duration-[800ms] origin-center rotate-180 select-none pointer-events-none ${
-                            isActive ? "opacity-90" : "opacity-30"
+                            isActive ? "opacity-90" : "opacity-0 pointer-events-none"
                           }`}
                         >
                           <span className={`text-[7.5px] uppercase tracking-[0.3em] font-black whitespace-nowrap transition-colors duration-[800ms] ${

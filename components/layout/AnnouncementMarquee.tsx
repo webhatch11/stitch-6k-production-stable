@@ -32,9 +32,7 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
             {items.map((item, idx) => (
               <React.Fragment key={idx}>
                 <span>{item}</span>
-                {idx < items.length - 1 && (
-                  <span className="text-secondary-fixed-dim font-extrabold">•</span>
-                )}
+                <span className="text-secondary-fixed-dim font-extrabold">•</span>
               </React.Fragment>
             ))}
           </div>
@@ -42,9 +40,7 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
             {items.map((item, idx) => (
               <React.Fragment key={idx}>
                 <span>{item}</span>
-                {idx < items.length - 1 && (
-                  <span className="text-secondary-fixed-dim font-extrabold">•</span>
-                )}
+                <span className="text-secondary-fixed-dim font-extrabold">•</span>
               </React.Fragment>
             ))}
           </div>

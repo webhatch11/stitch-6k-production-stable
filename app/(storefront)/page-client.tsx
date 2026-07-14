@@ -861,17 +861,7 @@ export default function HomeClient({
             <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl"></div>
             {/* Vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a]/90 via-transparent to-[#0a0a0a]/45 z-10"></div>
-          </div>
-
-          {/* Hero Content Text Overlay */}
-          <div className="relative z-20 max-w-4xl mx-auto px-6 text-center text-white flex flex-col items-center gap-4 animate-premium-text">
-            <Link
-              href={activeSlides[currentHeroSlide]?.ctaLink || "/shopallshirts"}
-              className="px-10 py-4 bg-white text-black text-[9px] font-black uppercase tracking-[0.25em] hover:bg-[#fed488] transition-all duration-300 shadow-xl hover:shadow-[0_0_20px_rgba(254,212,136,0.4)] rounded-none mt-12"
-            >
-              {activeSlides[currentHeroSlide]?.ctaText || "VIEW COLLECTION"}
-            </Link>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/65 via-transparent to-[#0a0a0a]/90 z-10"></div>
           </div>
 
           {/* Interactive Slide Dots on the Right */}

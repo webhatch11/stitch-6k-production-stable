@@ -642,9 +642,11 @@ function OrderDetailsContent() {
                 </div>
               ) : (s === "shipped" || s === "delivered" || s.includes("transit")) ? (
                 <div className="mt-1">
-                  <span className="text-[10px] text-gray-400 font-medium block">
-                    AWB: IN-2026-SMRT (Fraud)
-                  </span>
+                  {order.shiprocketId && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      AWB: {order.shiprocketId}
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>

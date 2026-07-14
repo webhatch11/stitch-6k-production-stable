@@ -27,6 +27,7 @@ import { PaymentProcessingScreen } from "@/components/checkout/PaymentProcessing
 import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen";
 import Script from "next/script";
 import { checkServiceabilityAction } from "@/app/actions/orders";
+import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
 
 interface CartItem {
   productId?: string;
@@ -62,6 +63,15 @@ export default function CheckoutPage() {
     return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
   });
   const [shippingRules, setShippingRules] = useState<any>(null);
+  const [marquee, setMarquee] = useState<any>({
+    enabled: true,
+    items: [
+      "FREE DELIVERY ACROSS INDIA",
+      "USE CODE FESTIVE24 FOR 10% OFF",
+      "100% PREMIUM COTTON & LINEN",
+      "EASY 7-DAY RETURNS"
+    ]
+  });
   const [serviceability, setServiceability] = useState<{
     checked: boolean;
     serviceable: boolean;
@@ -82,6 +92,11 @@ export default function CheckoutPage() {
       getSettingAction("shipping_rules").then((res) => {
         if (res.success && res.value) {
           setShippingRules(res.value);
+        }
+      });
+      getSettingAction("marquee").then((res) => {
+        if (res.success && res.value) {
+          setMarquee(res.value);
         }
       });
     });
@@ -747,30 +762,7 @@ export default function CheckoutPage() {
       {/* Toast Notification handled globally now */}
 
       {/* Top Announcement Scrolling Marquee */}
-      <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.2em] relative z-[60]">
-        <div className="flex animate-marquee whitespace-nowrap">
-          <div className="flex shrink-0 items-center gap-12 px-6">
-            <span>FREE DELIVERY ACROSS INDIA</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>100% PREMIUM COTTON & LINEN</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>EASY 7-DAY RETURNS</span>
-            <span className="text-secondary-fixed-dim">•</span>
-          </div>
-          <div className="flex shrink-0 items-center gap-12 px-6">
-            <span>FREE DELIVERY ACROSS INDIA</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>USE CODE <span className="text-secondary-fixed-dim font-extrabold">FESTIVE24</span> FOR 10% OFF</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>100% PREMIUM COTTON & LINEN</span>
-            <span className="text-secondary-fixed-dim">•</span>
-            <span>EASY 7-DAY RETURNS</span>
-            <span className="text-secondary-fixed-dim">•</span>
-          </div>
-        </div>
-      </div>
+      <AnnouncementMarquee marquee={marquee} />
 
       {/* Top Header */}
       <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">

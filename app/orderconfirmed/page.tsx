@@ -50,7 +50,8 @@ export default async function OrderConfirmedPage({ searchParams }: PageProps) {
       </div>
     );
   }
+  const marquee = await db.getSetting("marquee");
 
-  return <OrderConfirmedClient lastOrder={lastOrder} />;
+  return <OrderConfirmedClient lastOrder={lastOrder} marquee={marquee} />;
 }
 

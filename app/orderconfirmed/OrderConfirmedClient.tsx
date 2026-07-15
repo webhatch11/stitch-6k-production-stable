@@ -1,5 +1,6 @@
-import { createBrowserClient } from "@supabase/ssr";
 "use client";
+
+import { createBrowserClient } from "@supabase/ssr";
 
 import React, { useState } from "react";
 import Link from "next/link";

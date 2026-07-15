@@ -15,6 +15,24 @@ interface OrderConfirmedClientProps {
 export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfirmedClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  if (!lastOrder) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-black uppercase mb-4 tracking-wider">Order not found</h2>
+          <p className="text-xs text-outline uppercase tracking-wider mb-6 leading-relaxed max-w-sm mx-auto">
+            Your payment was successful. Check your email for confirmation or view your order history.
+          </p>
+          <Link href="/orderhistory" className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10">
+            View Order History
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure type checker knows lastOrder is defined past this point
+
   React.useEffect(() => {
     if (lastOrder) {
       const itemsMapped = lastOrder.cartItems || (lastOrder.items || []).map((name) => ({

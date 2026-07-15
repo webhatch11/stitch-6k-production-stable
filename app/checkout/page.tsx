@@ -531,7 +531,15 @@ export default function CheckoutPage() {
 
           triggerToast("Order placed successfully!");
           setTimeout(() => {
-            router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
+            const walletOrderId = res.orderId || 
+              res.order?.id || 
+              idempotencyKey;
+
+            if (walletOrderId) {
+              router.push(`/orderconfirmed?orderId=${walletOrderId}`);
+            } else {
+              router.push('/orderhistory');
+            }
           }, 500);
         } catch (err: any) {
           console.error('[checkout] Wallet checkout error:', err);
@@ -668,12 +676,21 @@ export default function CheckoutPage() {
                 const verifyData = await verifyRes.json();
 
                 if (verifyData.success) {
-                   useCartStore.getState().clearCart();
-                   clearCartAction().catch(() => {});
-                   useCheckoutStore.getState().resetCheckout();
-                   setIdempotencyKey(typeof window !== "undefined" && window.crypto?.randomUUID ? window.crypto.randomUUID() : "ORD-" + Math.floor(Math.random() * 900000 + 100000));
-                   router.push(`/orderconfirmed?orderId=${verifyData.orderId}`);
-                } else {
+                    useCartStore.getState().clearCart();
+                    clearCartAction().catch(() => {});
+                    useCheckoutStore.getState().resetCheckout();
+                    setIdempotencyKey(typeof window !== "undefined" && window.crypto?.randomUUID ? window.crypto.randomUUID() : "ORD-" + Math.floor(Math.random() * 900000 + 100000));
+                    
+                    const confirmedOrderId = verifyData.orderId || 
+                      verifyData.order?.id ||
+                      idempotencyKey;
+
+                    if (confirmedOrderId) {
+                      router.push(`/orderconfirmed?orderId=${confirmedOrderId}`);
+                    } else {
+                      router.push('/orderhistory');
+                    }
+                 } else {
                    setProcessingPayment(false);
                    setPaymentFailureError(verifyData.error || "Payment verification failed.");
                    setPaymentFailed(true);

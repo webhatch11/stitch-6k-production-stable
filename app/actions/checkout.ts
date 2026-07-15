@@ -62,21 +62,56 @@ export async function processWalletPointsCheckoutAction(payload: {
   const userId = user.id;
   const user_id = user.id;
 
+
   // Guard 1: Cart must not be empty
   if (!payload.cart || payload.cart.length === 0) {
     return { 
       success: false, 
-      error: "Cart is empty. Add items before checkout." 
+      error: 'Cart is empty. Add items before checkout.' 
     };
   }
+
+  // Guard 2: Cart items have valid products
+  const productIds = payload.cart.map((i: any) => i.productId).filter(Boolean) as string[];
+  if (productIds.length === 0) {
+    return {
+      success: false,
+      error: 'No valid products in cart'
+    };
+  }
+
+  // Guard 3: Verify products exist in DB
+  const products = await db.getProductsByIds(productIds);
+  if (products.length === 0) {
+    return {
+      success: false,
+      error: 'Products not found'
+    };
+  }
+
+  // Guard 4: Calculate and verify total > 0
+  let verifiedSubtotal = 0;
+  for (const item of payload.cart) {
+    const dbProduct = products.find(p => p.id === item.productId || p.title.toLowerCase() === item.productName.toLowerCase());
+    if (dbProduct) {
+      verifiedSubtotal += dbProduct.price * ((item as any).quantity || 1);
+    } else {
+      return { success: false, error: `Product "${item.productName}" not found.` };
+    }
+  }
+
+  if (verifiedSubtotal <= 0) {
+    return {
+      success: false,
+      error: 'Order total must be greater than ₹0.'
+    };
+  }
+
+
 
   const loyaltyConfig = await db.getLoyaltyConfig();
   const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
   const POINTS_PER_100 = loyaltyConfig.pointsPer100;
-
-  if (!addressId) {
-    return { success: false, error: "Delivery address is required" };
-  }
 
   // 0. Resolve and snapshot delivery address
   let addressSnapshot: any = null;
@@ -103,26 +138,6 @@ export async function processWalletPointsCheckoutAction(payload: {
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
   if (!stockCheck.success) {
     return { success: false, error: stockCheck.message || "Insufficient stock." };
-  }
-
-  // B. Recalculate totals server-side to prevent tampering
-  const productIds = cart.map(item => item.productId).filter(Boolean) as string[];
-  const products = await db.getProductsByIds(productIds);
-  let verifiedSubtotal = 0;
-  for (const item of cart) {
-    const dbProduct = products.find(p => p.title.toLowerCase() === item.productName.toLowerCase());
-    if (!dbProduct) {
-      return { success: false, error: `Product "${item.productName}" not found.` };
-    }
-    verifiedSubtotal += dbProduct.price;
-  }
-
-  // Guard 2: Verified subtotal must be > 0
-  if (verifiedSubtotal <= 0) {
-    return {
-      success: false,
-      error: "Order total must be greater than ₹0."
-    };
   }
 
   // Validate coupon
@@ -372,12 +387,61 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   }
   const userId = user.id;
 
-  const loyaltyConfig = await db.getLoyaltyConfig();
-  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
-  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
+  
 
   const finalWalletDeduction = walletDeduction;
   const finalPointsRedeemed = pointsRedeemed;
+
+
+  // Guard 1: Cart must not be empty
+  if (!payload.cart || payload.cart.length === 0) {
+    return { 
+      success: false, 
+      error: 'Cart is empty. Add items before checkout.' 
+    };
+  }
+
+  // Guard 2: Cart items have valid products
+  const productIds = payload.cart.map((i: any) => i.productId).filter(Boolean) as string[];
+  if (productIds.length === 0) {
+    return {
+      success: false,
+      error: 'No valid products in cart'
+    };
+  }
+
+  // Guard 3: Verify products exist in DB
+  const products = await db.getProductsByIds(productIds);
+  if (products.length === 0) {
+    return {
+      success: false,
+      error: 'Products not found'
+    };
+  }
+
+  // Guard 4: Calculate and verify total > 0
+  let verifiedSubtotal = 0;
+  for (const item of payload.cart) {
+    const dbProduct = products.find(p => p.id === item.productId || p.title.toLowerCase() === item.productName.toLowerCase());
+    if (dbProduct) {
+      verifiedSubtotal += dbProduct.price * ((item as any).quantity || 1);
+    } else {
+      return { success: false, error: `Product "${item.productName}" not found.` };
+    }
+  }
+
+  if (verifiedSubtotal <= 0) {
+    return {
+      success: false,
+      error: 'Order total must be greater than ₹0.'
+    };
+  }
+
+
+
+  const loyaltyConfig = await db.getLoyaltyConfig();
+  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
+  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
 
   // 0. Resolve and snapshot delivery address (must be one of the user's saved addresses)
   if (!addressId) {
@@ -405,18 +469,6 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
   if (!stockCheck.success) {
     return { success: false, error: stockCheck.message || "Insufficient stock." };
-  }
-
-  // B. Recalculate totals
-  const productIds = cart.map(item => item.productId).filter(Boolean) as string[];
-  const products = await db.getProductsByIds(productIds);
-  let verifiedSubtotal = 0;
-  for (const item of cart) {
-    const dbProduct = products.find(p => p.title.toLowerCase() === item.productName.toLowerCase());
-    if (!dbProduct) {
-      return { success: false, error: `Product "${item.productName}" not found.` };
-    }
-    verifiedSubtotal += dbProduct.price;
   }
 
   let verifiedCouponDiscount = 0;
@@ -504,6 +556,10 @@ export async function processCodCheckoutAction(payload: {
   utm_medium?: string | null;
   utm_campaign?: string | null;
 }) {
+  const loyaltyConfig = await db.getLoyaltyConfig();
+  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
+  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
+
   const {
     cart,
     couponCode,
@@ -532,9 +588,7 @@ export async function processCodCheckoutAction(payload: {
   const userId = user.id;
   const user_id = user.id;
 
-  const loyaltyConfig = await db.getLoyaltyConfig();
-  const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
-  const POINTS_PER_100 = loyaltyConfig.pointsPer100;
+  
 
   const finalWalletDeduction = walletDeduction;
   const finalPointsRedeemed = pointsRedeemed;

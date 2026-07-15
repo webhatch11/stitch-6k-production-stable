@@ -228,18 +228,17 @@ export async function processWalletPointsCheckoutAction(payload: {
     }
   }
 
-  // Schedule loyalty points for credit 7 days from now
-  const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  await db.saveOrder({
-    id: idempotencyKey,
-    pointsCreditStatus: 'pending',
-    pointsCreditScheduledAt: creditAt
-  });
+  // ONLY AFTER ALL GUARDS PASS — generate the sequence ID once.
+  // saveOrder() calls generateOrderId internally when id doesn't start with '6K-'.
+  // By pre-generating orderId here and using it in saveOrder, we prevent double consumption.
+  const orderId = await db.generateOrderId('wallet');
 
   // F. Save Order server-side
   const orderData = {
-    id: idempotencyKey,
+    id: orderId,
+    idempotencyKey: idempotencyKey,
     customer: customerName,
+
     date: new Date().toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -275,7 +274,10 @@ export async function processWalletPointsCheckoutAction(payload: {
     utm_source: utm_source || undefined,
     utm_medium: utm_medium || undefined,
     utm_campaign: utm_campaign || undefined,
+    pointsCreditStatus: 'pending' as const,
+    pointsCreditScheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   };
+
 
   let savedOrder;
   try {
@@ -284,7 +286,7 @@ export async function processWalletPointsCheckoutAction(payload: {
     console.error('[checkout.ts]:', err);
     if (supabase) {
       await supabase.rpc('atomic_checkout_rollback', {
-        p_order_id: idempotencyKey,
+        p_order_id: orderId,
         p_user_id: userId,
         p_wallet_amount: walletDeduction,
         p_coupon_code: couponCode || ''

@@ -51,3 +51,4 @@ next-env.d.ts
 *.bak
 /refactor.js
 /scratch/*.js
+backup_*.json

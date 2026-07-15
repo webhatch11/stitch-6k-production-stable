@@ -46,6 +46,7 @@ const ALLOWED_STATUSES = [
   "Refund Initiated",
   "Reship Requested",
   "Return Approved",
+  "Return QC Failed - Held",
 ];
 
 export async function bulkUpdateOrderStatusAction(
@@ -1355,15 +1356,20 @@ export async function processQcResultAction(
 
       const order = await db.getOrderById(orderId);
       if (order) {
-        const email = await getCustomerEmailForOrder(order);
-        if (email) {
-          const { sendReturnQcFailedEmail } = await import("@/lib/email");
-          await sendReturnQcFailedEmail({
-            id: orderId,
-            customerName: order.customer || "Valued Customer",
-            customerEmail: email,
+        try {
+          const { sendQcFailedEmail } = await import("@/lib/email");
+          await sendQcFailedEmail({
+            to: (order as any).addressSnapshot?.email || order.address_snapshot?.email || '',
+            customerName: (order as any).addressSnapshot?.name || order.address_snapshot?.name || order.customer || 'Customer',
+            orderId: order.id,
             reason: reason,
+            refundOption: order.refundOption || 'bank'
           });
+        } catch (emailErr) {
+          console.error(
+            '[processQcResultAction] QC failed email error:',
+            emailErr
+          );
         }
       }
     }
@@ -1417,6 +1423,25 @@ export async function acceptReturnRequestAction(
   } catch (e: any) {
     console.error("[acceptReturnRequestAction] Error:", e);
     return { success: false, error: e.message || "Failed to accept return" };
+  }
+}
+
+export async function addOrderEventAction(
+  orderId: string,
+  event: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await db.addOrderEvent(orderId, event);
+    return { success: true };
+  } catch (e: any) {
+    console.error("[addOrderEventAction] Error:", e);
+    return { success: false, error: e.message || "Failed to add event" };
   }
 }
 

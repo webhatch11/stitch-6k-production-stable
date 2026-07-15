@@ -13,6 +13,8 @@ import {
   reshipReturnItemAction,
   verifyRefundAction,
   addOrderNoteAction,
+  bulkUpdateOrderStatusAction,
+  addOrderEventAction,
 } from "@/app/actions/admin-orders";
 
 interface ReturnDetailsClientProps {
@@ -111,6 +113,27 @@ export default function ReturnDetailsClient({
   const handleReship = () =>
     handleAction(() => reshipReturnItemAction(order.id), "Reship request registered.");
 
+  const handleHoldAtWarehouse = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await bulkUpdateOrderStatusAction([order.id], "Return QC Failed - Held");
+      if (res.success) {
+        await addOrderEventAction(order.id, "Item held at warehouse after QC failure");
+        triggerToast("Item marked as held at warehouse");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        triggerToast(res.error || "Failed to update status.");
+      }
+    } catch (e: any) {
+      triggerToast(e.message || "An error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleVerifyRefund = async () => {
     if (verifyingRefund) return;
     setVerifyingRefund(true);
@@ -188,7 +211,13 @@ export default function ReturnDetailsClient({
     email.includes('@test.com') ||
     email === 'aditya.singhania@heritage.com';
 
-  const isImageUrl = order.returnImage && (order.returnImage.startsWith("http") || order.returnImage.startsWith("/"));
+  const returnImage = 
+    (order as any).returnImageUrl || 
+    (order as any).return_image_url ||
+    (order.returnImage !== "No image provided" ? order.returnImage : null) ||
+    null;
+
+  const isImageUrl = returnImage && (returnImage.startsWith("http") || returnImage.startsWith("/"));
 
   return (
     <div className="p-8 lg:p-16 min-h-screen bg-[#fafafa]">
@@ -292,28 +321,28 @@ export default function ReturnDetailsClient({
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Customer Uploaded Image
             </h3>
-            {order.returnImage && order.returnImage !== "No image provided" ? (
+            {returnImage ? (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">Image uploaded by customer:</p>
                 {isImageUrl ? (
                   <div className="group relative max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all hover:shadow-md">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={order.returnImage}
+                      src={returnImage}
                       alt="Return item photo"
                       className="w-full h-auto object-cover cursor-pointer max-h-80"
-                      onClick={() => window.open(order.returnImage, "_blank")}
+                      onClick={() => window.open(returnImage, "_blank")}
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer" onClick={() => window.open(order.returnImage, "_blank")}>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer" onClick={() => window.open(returnImage, "_blank")}>
                       <span className="text-white text-[10px] font-bold uppercase tracking-wider">View Full Size ↗</span>
                     </div>
                   </div>
                 ) : (
                   <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs text-gray-700 flex items-center justify-between">
-                    <span>Attached: {order.returnImage}</span>
+                    <span>Attached: {returnImage}</span>
                     <button
                       type="button"
-                      onClick={() => window.open(`/uploads/returns/${order.returnImage}`, "_blank")}
+                      onClick={() => window.open(`/uploads/returns/${returnImage}`, "_blank")}
                       className="text-xs font-bold text-[#BA7517] hover:underline bg-transparent border-none cursor-pointer"
                     >
                       Download File 📥
@@ -607,23 +636,19 @@ export default function ReturnDetailsClient({
               </button>
             )}
 
-            {/* STATUS: Return Pickup Scheduled */}
-            {orderStatusLower === "return pickup scheduled" && (
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs leading-relaxed text-blue-800 font-medium">
-                  <div className="flex gap-2">
-                    <span className="material-symbols-outlined text-sm mt-0.5">info</span>
-                    <div>
-                      <p className="font-bold">Pickup scheduled.</p>
-                      <p className="mt-1">Waiting for the reverse courier to collect items from customer.</p>
-                      {order.returnAwb && (
-                        <p className="mt-2 font-mono text-[10px] font-bold bg-blue-150/40 p-1.5 rounded inline-block select-all">
-                          AWB: {order.returnAwb}
-                        </p>
-                      )}
-                    </div>
+            {(orderStatusLower === "return pickup scheduled" || orderStatus === "Return Pickup Scheduled") && (
+              <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 space-y-3">
+                <p className="font-medium">
+                  📦 Pickup Scheduled
+                </p>
+                <p>
+                  Shiprocket courier will collect the item from the customer in 2-3 days.
+                </p>
+                {order.returnAwb && (
+                  <div className="font-mono text-xs bg-blue-100 rounded-lg p-2">
+                    Return AWB: {order.returnAwb}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -680,30 +705,20 @@ export default function ReturnDetailsClient({
               </div>
             )}
 
-            {/* STATUS: Return QC Failed */}
             {orderStatusLower === "return qc failed" && (
               <div className="space-y-3">
-                <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-xs text-red-700 leading-relaxed font-semibold">
-                  <span className="material-symbols-outlined text-sm align-middle mr-1.5">error</span>
-                  Inspection Failed. Item could not be accepted for return.
-                  {order.returnRejectReason && (
-                    <p className="mt-2 italic font-medium opacity-90 text-[11px] bg-red-100/30 p-2 rounded">
-                      QC Reason: "{order.returnRejectReason}"
-                    </p>
-                  )}
-                </div>
-                <button
+                <button 
                   onClick={handleReship}
-                  disabled={isSubmitting}
-                  className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-black text-white py-3 rounded-xl font-medium"
                 >
                   🚚 Reship Item to Customer
                 </button>
+
                 <button
-                  className="w-full border border-gray-300 text-gray-600 py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-default"
-                  disabled
+                  onClick={handleHoldAtWarehouse}
+                  className="w-full border border-gray-300 text-gray-600 bg-gray-50 py-3 rounded-xl font-medium"
                 >
-                  📦 Holding at Warehouse
+                  📦 Hold at Warehouse
                 </button>
               </div>
             )}

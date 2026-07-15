@@ -1306,10 +1306,11 @@ function OrderDetailsContent() {
 
               const initials = customerName
                 .split(' ')
+                .filter(Boolean)
                 .map((n: string) => n[0])
                 .join('')
                 .toUpperCase()
-                .slice(0, 2) || "CS";
+                .slice(0, 2) || 'CU';
 
               const mailtoLink = (order as any).addressSnapshot?.email || order.address_snapshot?.email || (displayEmail !== "Email not provided" ? displayEmail : "");
               const telLink = (order as any).addressSnapshot?.phone || order.address_snapshot?.phone || (phone !== "Not provided" ? phone : "");

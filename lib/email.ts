@@ -809,5 +809,70 @@ export async function sendReturnPickupAssignedEmail(order: {
   }
 }
 
+export async function sendQcFailedEmail(params: {
+  to: string;
+  customerName: string;
+  orderId: string;
+  reason: string;
+  refundOption: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #BA7517; font-size: 26px; margin: 0; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;">
+          STITCH 6K
+        </h1>
+        <p style="color: #6b7280; font-size: 11px; tracking-widest; text-transform: uppercase; margin: 4px 0 0 0;">
+          Atelier / Workshop Series
+        </p>
+      </div>
+
+      <h2 style="color: #dc2626; font-size: 20px; margin-top: 0; font-weight: bold; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Return Inspection Update
+      </h2>
+      
+      <p style="font-size: 14px; color: #1f2937; line-height: 1.6;">Hi ${params.customerName},</p>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">We've inspected your returned item for order <strong>#${params.orderId}</strong>.</p>
+      
+      <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 16px; margin: 24px 0; border-radius: 4px; color: #991b1b;">
+        <p style="margin: 0; font-size: 14px; line-height: 1.6;">
+          <strong>Inspection Status: QC Failed</strong><br>
+          Unfortunately, we were unable to accept this return due to: <strong>${params.reason}</strong>
+        </p>
+      </div>
+
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+        Your item will be reshipped to your original delivery address within 3-5 business days.
+      </p>
+
+      <p style="font-size: 13px; color: #6b7280; line-height: 1.6; margin-top: 24px;">
+        If you have questions, please contact us at <a href="mailto:${supportEmail}" style="color: #BA7517; text-decoration: none;">${supportEmail}</a>.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px; line-height: 1.6;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        ${supportEmail} | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: `Return inspection update — Order #${params.orderId}`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[sendQcFailedEmail] Failed to deliver to ${params.to}:`, err.message || err);
+  }
+}
+
 
 

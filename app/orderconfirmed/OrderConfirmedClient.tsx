@@ -1,3 +1,4 @@
+import { createBrowserClient } from "@supabase/ssr";
 "use client";
 
 import React, { useState } from "react";
@@ -14,6 +15,33 @@ interface OrderConfirmedClientProps {
 
 export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfirmedClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(true);
+
+  const supabase = React.useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  ), []);
+
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      if (!lastOrder) {
+        setAuthChecked(true);
+        return;
+      }
+      const orderUserId = lastOrder.userId || lastOrder.user_id;
+      if (!orderUserId) {
+        setAuthChecked(true);
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.id !== orderUserId) {
+        setIsAuthorized(false);
+      }
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, [lastOrder, supabase]);
 
   if (!lastOrder) {
     return (
@@ -22,6 +50,32 @@ export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfir
           <h2 className="text-xl font-black uppercase mb-4 tracking-wider">Order not found</h2>
           <p className="text-xs text-outline uppercase tracking-wider mb-6 leading-relaxed max-w-sm mx-auto">
             Your payment was successful. Check your email for confirmation or view your order history.
+          </p>
+          <Link href="/orderhistory" className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10">
+            View Order History
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
+        <div className="text-center">
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-secondary">Verifying Session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-black uppercase mb-4 tracking-wider">Order not found</h2>
+          <p className="text-xs text-outline uppercase tracking-wider mb-6 leading-relaxed max-w-sm mx-auto">
+            Please check your order history or contact support.
           </p>
           <Link href="/orderhistory" className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10">
             View Order History

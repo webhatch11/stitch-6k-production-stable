@@ -22,7 +22,7 @@ export default async function OrderConfirmedPage({ searchParams }: PageProps) {
     if (order) {
       const user = await getServerUser();
       const orderUserId = order.userId || order.user_id;
-      if (orderUserId && (!user || orderUserId !== user.id)) {
+      if (orderUserId && user && orderUserId !== user.id) {
         unauthorizedOrNotFound = true;
       } else {
         lastOrder = order;

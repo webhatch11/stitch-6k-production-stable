@@ -190,16 +190,35 @@ export default function InvoiceClient({
         @media print {
           @page {
             size: A4;
-            margin: 10mm 12mm 10mm 12mm;
+            margin: 5mm 8mm 5mm 8mm; /* Reduced print margins to fit everything */
           }
           .no-print { display: none !important; }
-          body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; }
+          body { 
+            background: white !important; 
+            color: black !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
+          }
           .invoice-container { 
             box-shadow: none !important;
             border: none !important;
             padding: 0 !important;
             margin: 0 !important;
             max-width: 100% !important;
+            height: 98% !important; /* Forces container to stay within page height */
+            box-sizing: border-box !important;
+            page-break-inside: avoid !important;
+          }
+          /* Compress padding and line heights during print */
+          .invoice-container table.w-full td {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+          }
+          .invoice-container .grid {
+            margin-bottom: 12px !important;
+          }
+          .invoice-container .flex {
+            margin-bottom: 8px !important;
           }
         }
       `}} />

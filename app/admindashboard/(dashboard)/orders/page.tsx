@@ -180,7 +180,7 @@ const getHSN = (category: string) => {
   return "6205";
 };
 
-const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string) => {
+const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string, origin: string) => {
   let html = `<!DOCTYPE html>
 <html>
 <head>
@@ -355,20 +355,25 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     @media print {
       @page {
         size: A4;
-        margin: 10mm 12mm 10mm 12mm;
+        margin: 5mm 8mm 5mm 8mm;
       }
       body {
         padding: 0;
         margin: 0 !important;
+        background: white;
       }
       .invoice {
         border: none;
-        padding: 0;
-        margin: 0;
-        max-width: 100%;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        height: 280mm !important; /* Constrains height to standard A4 printing window */
+        box-sizing: border-box !important;
+        page-break-inside: avoid !important;
+        page-break-after: always !important;
       }
       .page-break {
-        page-break-after: always;
+        page-break-after: always !important;
       }
     }
   </style>
@@ -455,13 +460,13 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     <div class="invoice ${pageBreakClass}">
       <!-- Large centered watermark background -->
       <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
-        <img src="/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
+        <img src="${origin}/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
       </div>
 
       <div class="header">
         <div>
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <img src="/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
+            <img src="${origin}/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
             <span class="company-title">JRT TEXTILES (6K Brand)</span>
           </div>
           <div style="font-size: 8px; color: #888; text-transform: uppercase; line-height: 1.5;">
@@ -827,7 +832,7 @@ export default function OrdersKanbanPage() {
       }
 
       // Generate HTML
-      const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE");
+      const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE", window.location.origin);
       const blob = new Blob([html], { type: "text/html" });
       const blobUrl = URL.createObjectURL(blob);
 
@@ -945,7 +950,7 @@ export default function OrdersKanbanPage() {
     const res = await generateBulkInvoicePdfAction([orderId]);
     setSubmitting(false);
     if (res.success && res.orders && res.products) {
-      const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE");
+      const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE", window.location.origin);
       const blob = new Blob([html], { type: "text/html" });
       const blobUrl = URL.createObjectURL(blob);
       const printWindow = window.open(blobUrl, "_blank");

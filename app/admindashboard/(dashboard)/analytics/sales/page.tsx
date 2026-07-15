@@ -36,7 +36,7 @@ export default function SalesAnalyticsPage() {
     load();
   }, [days]);
 
-  const handleExportCSV = () => {
+  const handleExportDetailedReport = () => {
     if (!data) return;
 
     const todayKPI = data.todaySales || {};
@@ -103,6 +103,32 @@ export default function SalesAnalyticsPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportCSV = () => {
+    const salesData = revenueTrend || [];
+    if (salesData.length === 0) return;
+    const rows = salesData.map((d: any) => ({
+      Date: d.date,
+      Orders: d.order_count || 0,
+      Revenue: d.revenue || 0,
+      AOV: d.order_count > 0 ? Math.round(d.revenue / d.order_count) : 0,
+      Refunds: 0,
+      'Net Revenue': d.revenue
+    }));
+    
+    const csv = [
+      Object.keys(rows[0]).join(','),
+      ...rows.map((r: any) => Object.values(r).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `6k-sales-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading && !data) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
@@ -148,11 +174,18 @@ export default function SalesAnalyticsPage() {
           </div>
 
           <button
-            onClick={handleExportCSV}
+            onClick={handleExportDetailedReport}
             className="px-5 py-2.5 bg-[#fed488] text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#e0bb70] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer select-none"
           >
             <span className="material-symbols-outlined text-[13px] font-black">download</span>
             <span>Export Report</span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="bg-black text-white px-4 py-2 rounded-lg text-sm cursor-pointer select-none hover:bg-neutral-900 border-none transition-colors"
+          >
+            Export CSV
           </button>
         </div>
       </div>

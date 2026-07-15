@@ -165,15 +165,19 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     const summary = await db.getMonthlyFinanceSummary(year, month);
     const gstReport = await db.getGSTReport(6);
 
+    const startOfMonth = new Date(year, month - 1, 1).toISOString();
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
+    const gstReportRange = await db.getGSTReport(startOfMonth, endOfMonth);
+    const liability = await db.getLiabilityReport();
+    const netRevenueReport = await db.getNetRevenueReport(startOfMonth, endOfMonth);
+
     let paymentsBreakdown = [
       { name: "Razorpay (Online)", value: 85 },
       { name: "Cash on Delivery", value: 13 },
     ];
 
     if (isSupabaseConfigured && supabase) {
-      const startOfMonth = new Date(year, month - 1, 1).toISOString();
-      const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
-
       const { data: orders, error } = await supabase
         .from("orders")
         .select("wallet_paid, gateway_paid, status")
@@ -202,6 +206,9 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
       success: true,
       summary,
       gstReport,
+      gstReportRange,
+      liability,
+      netRevenueReport,
       paymentsBreakdown,
     };
   } catch (err: any) {

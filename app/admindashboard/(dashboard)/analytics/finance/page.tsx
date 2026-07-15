@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { getFinanceAnalyticsAction } from "@/app/actions/admin-analytics";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import * as XLSX from "xlsx";
 
 export default function FinanceAnalyticsPage() {
   const [loading, setLoading] = useState(true);
@@ -10,6 +11,7 @@ export default function FinanceAnalyticsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // 1-12
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<"general" | "gst">("general");
 
   useEffect(() => {
     setMounted(true);
@@ -47,6 +49,26 @@ export default function FinanceAnalyticsPage() {
     document.body.removeChild(link);
   };
 
+  const exportGSTReport = () => {
+    if (!data?.gstReportRange) return;
+    const r = data.gstReportRange;
+    const monthName = `${selectedMonth}/${selectedYear}`;
+    const row = {
+      "Month": monthName,
+      "Taxable Value": r.totalTaxableValue,
+      "CGST": r.totalCGST,
+      "SGST": r.totalSGST,
+      "IGST": r.totalIGST,
+      "Total GST": r.totalGSTAmount,
+      "Total Revenue": r.totalRevenue
+    };
+
+    const worksheet = XLSX.utils.json_to_sheet([row]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "GST Report");
+    XLSX.writeFile(workbook, `GST_Report_${selectedYear}_${selectedMonth}.xlsx`);
+  };
+
   const summary = data?.summary || {
     grossRevenue: 0,
     netRevenue: 0,
@@ -57,6 +79,32 @@ export default function FinanceAnalyticsPage() {
   };
 
   const gstReport = data?.gstReport || [];
+
+  const gstReportRange = data?.gstReportRange || {
+    totalOrders: 0,
+    totalTaxableValue: 0,
+    totalCGST: 0,
+    totalSGST: 0,
+    totalIGST: 0,
+    totalGSTAmount: 0,
+    totalRevenue: 0
+  };
+
+  const liability = data?.liability || {
+    totalWalletLiability: 0,
+    totalLoyaltyLiability: 0,
+    totalPoints: 0,
+    totalLiability: 0
+  };
+
+  const netRevenueReport = data?.netRevenueReport || {
+    grossRevenue: 0,
+    totalRefunds: 0,
+    totalDiscounts: 0,
+    netRevenue: 0,
+    walletRevenue: 0,
+    gatewayRevenue: 0
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-white font-body">
@@ -91,7 +139,7 @@ export default function FinanceAnalyticsPage() {
 
           <button
             onClick={handleExportCSV}
-            className="px-5 py-2.5 bg-[#fed488] text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#e0bb70] transition-all flex items-center gap-2 rounded-none cursor-pointer select-none"
+            className="px-5 py-2.5 bg-[#fed488] text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#e0bb70] transition-all flex items-center gap-2 rounded-none cursor-pointer select-none border-none"
           >
             <span className="material-symbols-outlined text-[13px] font-black">download</span>
             <span>Export CSV</span>
@@ -99,11 +147,35 @@ export default function FinanceAnalyticsPage() {
         </div>
       </div>
 
+      {/* Tab Selector */}
+      <div className="flex border-b border-white/10 mb-8">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent ${
+            activeTab === "general"
+              ? "border-[#fed488] text-white"
+              : "border-transparent text-white/40 hover:text-white/80"
+          }`}
+        >
+          General Ledger
+        </button>
+        <button
+          onClick={() => setActiveTab("gst")}
+          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent ${
+            activeTab === "gst"
+              ? "border-[#fed488] text-white"
+              : "border-transparent text-white/40 hover:text-white/80"
+          }`}
+        >
+          GST & Liabilities Report
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="size-8 rounded-full border-2 border-white/20 border-t-[#fed488] animate-spin"></div>
         </div>
-      ) : (
+      ) : activeTab === "general" ? (
         <>
           {/* Metrics summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -233,6 +305,152 @@ export default function FinanceAnalyticsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Net Revenue Report Summary Cards */}
+          <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
+            <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Net Revenue Report Summary</h3>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Financial performance metrics for the selected month</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="bg-white/5 border border-white/10 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Gross Revenue</span>
+                <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
+                  ₹{netRevenueReport.grossRevenue.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Sum of total orders value</p>
+              </div>
+              
+              <div className="bg-white/5 border border-white/10 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Total Refunds</span>
+                <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
+                  ₹{netRevenueReport.totalRefunds.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Deducted refund amounts</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Total Discounts</span>
+                <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
+                  ₹{netRevenueReport.totalDiscounts.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Coupon & loyalty discounts</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Wallet Revenue</span>
+                <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
+                  ₹{netRevenueReport.walletRevenue.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Paid using store credits</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Gateway Revenue</span>
+                <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
+                  ₹{netRevenueReport.gatewayRevenue.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Paid online (Razorpay)</p>
+              </div>
+
+              <div className="bg-white/5 border border-[#fed488]/30 p-6 rounded-none">
+                <span className="text-[9px] font-black uppercase tracking-widest text-[#fed488] block">Net Revenue</span>
+                <span className="text-2xl font-black font-headline text-[#fed488] font-mono mt-2 block">
+                  ₹{netRevenueReport.netRevenue.toLocaleString('en-IN')}
+                </span>
+                <p className="text-[9px] text-[#fed488]/40 uppercase tracking-widest mt-1">Gross Revenue less Refunds</p>
+              </div>
+            </div>
+          </div>
+
+          {/* GST Summary Report & Liabilities Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* GST Summary Report */}
+            <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">GST Summary Report</h3>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Tax collections computed for the selected period</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Taxable Value</span>
+                  <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
+                    ₹{gstReportRange.totalTaxableValue.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">CGST (6%)</span>
+                  <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
+                    ₹{gstReportRange.totalCGST.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">SGST (6%)</span>
+                  <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
+                    ₹{gstReportRange.totalSGST.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">IGST (12%)</span>
+                  <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
+                    ₹{gstReportRange.totalIGST.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="col-span-2 border-t border-white/10 pt-4">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#fed488] block">Total GST Amount</span>
+                  <span className="text-3xl font-black font-headline text-[#fed488] font-mono mt-1 block">
+                    ₹{gstReportRange.totalGSTAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={exportGSTReport}
+                className="px-5 py-2.5 bg-[#fed488] text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#e0bb70] transition-all flex items-center justify-center gap-2 rounded-none cursor-pointer self-start select-none border-none"
+              >
+                <span className="material-symbols-outlined text-[13px] font-black">download</span>
+                <span>Export to Excel</span>
+              </button>
+            </div>
+
+            {/* Outstanding Liabilities */}
+            <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Outstanding Liabilities</h3>
+                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Total credit and loyalty points liabilities owed to customers</p>
+              </div>
+
+              <div className="space-y-6 my-auto">
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Wallet Credits Owed</span>
+                  <span className="text-3xl font-black font-headline text-amber-600 font-mono mt-1 block">
+                    ₹{liability.totalWalletLiability.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                
+                <div className="h-px bg-white/10"></div>
+
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Loyalty Points Value</span>
+                  <span className="text-3xl font-black font-headline text-amber-600 font-mono mt-1 block">
+                    ₹{liability.totalLoyaltyLiability.toLocaleString('en-IN')}{" "}
+                    <span className="text-xs text-white/40 font-mono">({liability.totalPoints.toLocaleString('en-IN')} pts)</span>
+                  </span>
+                </div>
+
+                <div className="h-px bg-white/10"></div>
+
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block">Total Liability</span>
+                  <span className="text-4xl font-bold font-headline text-red-600 font-mono mt-1 block">
+                    ₹{liability.totalLiability.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </>

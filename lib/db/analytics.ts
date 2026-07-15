@@ -638,15 +638,9 @@ export async function getMonthlyFinanceSummary(
 }
 
 export async function getGSTReport(
-  monthsCount: number
-): Promise<
-  Array<{
-    monthName: string;
-    grossSales: number;
-    gstCollected: number;
-    netSales: number;
-  }>
-> {
+  monthsCountOrStartDate: number | string,
+  endDate?: string
+): Promise<any> {
   const { supabase, isSupabaseConfigured } = loadService();
 
   if (!isSupabaseConfigured || !supabase) {
@@ -657,59 +651,124 @@ export async function getGSTReport(
     );
   }
 
-  const dateLimit = new Date();
-  dateLimit.setMonth(dateLimit.getMonth() - monthsCount);
-  const startLimit = dateLimit.toISOString();
+  if (typeof monthsCountOrStartDate === "number") {
+    const monthsCount = monthsCountOrStartDate;
+    const dateLimit = new Date();
+    dateLimit.setMonth(dateLimit.getMonth() - monthsCount);
+    const startLimit = dateLimit.toISOString();
 
-  const { data: orders, error } = await supabase
-    .from("orders")
-    .select("total, created_at, status, cart_items")
-    .gte("created_at", startLimit);
+    const { data: orders, error } = await supabase
+      .from("orders")
+      .select("total, created_at, status, cart_items")
+      .gte("created_at", startLimit);
 
-  if (error) {
-    console.error("Error loading GST report:", error);
-    throw error;
-  }
-
-  const validOrders = (orders || []).filter((o) => o.status !== "Cancelled" && o.status !== "Expired");
-
-  const groups: Record<string, { grossSales: number; gstCollected: number; netSales: number }> = {};
-  for (const order of validOrders) {
-    const orderDate = new Date(order.created_at);
-    const key = orderDate.toLocaleString("en-US", { month: "short", year: "numeric" });
-    if (!groups[key]) {
-      groups[key] = { grossSales: 0, gstCollected: 0, netSales: 0 };
+    if (error) {
+      console.error("Error loading GST report:", error);
+      throw error;
     }
-    const total = Number(order.total || 0);
 
-    let orderGst = 0;
-    const cartItemsList = order.cart_items || [];
-    if (Array.isArray(cartItemsList) && cartItemsList.length > 0 && typeof cartItemsList[0] === "object") {
-      for (const item of cartItemsList) {
-        const price = Number(item.price || 0);
-        const qty = Number(item.quantity || item.qty || 1);
-        const rate = Number(item.gstRate || item.gst_rate || 12);
-        const itemTotal = price * qty;
-        orderGst += itemTotal - itemTotal / (1 + rate / 100);
+    const validOrders = (orders || []).filter((o) => o.status !== "Cancelled" && o.status !== "Expired");
+
+    const groups: Record<string, { grossSales: number; gstCollected: number; netSales: number }> = {};
+    for (const order of validOrders) {
+      const orderDate = new Date(order.created_at);
+      const key = orderDate.toLocaleString("en-US", { month: "short", year: "numeric" });
+      if (!groups[key]) {
+        groups[key] = { grossSales: 0, gstCollected: 0, netSales: 0 };
       }
-    } else {
-      const gstRate = total <= 1000 ? 5 : 12;
-      orderGst = total - total / (1 + gstRate / 100);
+      const total = Number(order.total || 0);
+
+      let orderGst = 0;
+      const cartItemsList = order.cart_items || [];
+      if (Array.isArray(cartItemsList) && cartItemsList.length > 0 && typeof cartItemsList[0] === "object") {
+        for (const item of cartItemsList) {
+          const price = Number(item.price || 0);
+          const qty = Number(item.quantity || item.qty || 1);
+          const rate = Number(item.gstRate || item.gst_rate || 12);
+          const itemTotal = price * qty;
+          orderGst += itemTotal - itemTotal / (1 + rate / 100);
+        }
+      } else {
+        const gstRate = total <= 1000 ? 5 : 12;
+        orderGst = total - total / (1 + gstRate / 100);
+      }
+
+      groups[key].grossSales += total;
+      groups[key].gstCollected += orderGst;
+      groups[key].netSales += total - orderGst;
     }
 
-    groups[key].grossSales += total;
-    groups[key].gstCollected += orderGst;
-    groups[key].netSales += total - orderGst;
-  }
+    return Object.entries(groups)
+      .map(([monthName, val]) => ({
+        monthName,
+        grossSales: Math.round(val.grossSales),
+        gstCollected: Math.round(val.gstCollected),
+        netSales: Math.round(val.netSales),
+      }))
+      .sort((a, b) => new Date(b.monthName).getTime() - new Date(a.monthName).getTime());
+  } else {
+    const startDate = monthsCountOrStartDate;
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id, total, cart_items, created_at, status, address_snapshot")
+      .gte("created_at", startDate)
+      .lte("created_at", endDate!)
+      .not("status", "in", '("Cancelled","Failed","Payment Pending")');
 
-  return Object.entries(groups)
-    .map(([monthName, val]) => ({
-      monthName,
-      grossSales: Math.round(val.grossSales),
-      gstCollected: Math.round(val.gstCollected),
-      netSales: Math.round(val.netSales),
-    }))
-    .sort((a, b) => new Date(b.monthName).getTime() - new Date(a.monthName).getTime());
+    if (error) {
+      console.error("Error loading GST report range:", error);
+      throw error;
+    }
+    
+    let totalTaxableValue = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalGSTAmount = 0;
+    
+    for (const order of data || []) {
+      const items = order.cart_items || [];
+      const snap = typeof order.address_snapshot === "string"
+        ? JSON.parse(order.address_snapshot)
+        : order.address_snapshot;
+      const stateStr = snap?.state || "";
+      const isInterstate = stateStr && !["tamil nadu", "tamilnadu", "tn"].includes(stateStr.trim().toLowerCase());
+      
+      for (const item of items) {
+        const price = Number(item.price || 0);
+        const qty = Number(item.quantity || 1);
+        const gstRate = item.gstRate || 
+          item.gst_rate || 
+          (price <= 1000 ? 5 : 12);
+        
+        const itemTotal = price * qty;
+        const taxable = itemTotal / (1 + gstRate/100);
+        const gst = itemTotal - taxable;
+        
+        totalTaxableValue += taxable;
+        totalGSTAmount += gst;
+        
+        if (isInterstate) {
+          totalIGST += gst;
+        } else {
+          totalCGST += gst / 2;
+          totalSGST += gst / 2;
+        }
+      }
+    }
+    
+    return {
+      totalOrders: data?.length || 0,
+      totalTaxableValue: Math.round(totalTaxableValue),
+      totalCGST: Math.round(totalCGST),
+      totalSGST: Math.round(totalSGST),
+      totalIGST: Math.round(totalIGST),
+      totalGSTAmount: Math.round(totalGSTAmount),
+      totalRevenue: Math.round(
+        totalTaxableValue + totalGSTAmount
+      )
+    };
+  }
 }
 
 export async function getCityOrders(): Promise<Array<{ city: string; count: number; revenue: number }>> {
@@ -1171,6 +1230,104 @@ export async function getDashboardMetrics(): Promise<any> {
   return data;
 }
 
+export async function getLiabilityReport() {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Database connection not configured.");
+  }
+
+  const { data: walletData, error: wErr } = await supabase
+    .from('profiles')
+    .select('wallet_balance')
+    .gt('wallet_balance', 0);
+  
+  if (wErr) {
+    console.error("Error fetching wallet liability:", wErr);
+  }
+
+  const totalWalletLiability = walletData?.reduce(
+    (sum, p) => sum + Number(p.wallet_balance || 0), 0
+  ) || 0;
+
+  const { data: loyaltyData, error: lErr } = await supabase
+    .from('profiles')
+    .select('loyalty_points')
+    .gt('loyalty_points', 0);
+
+  if (lErr) {
+    console.error("Error fetching loyalty liability:", lErr);
+  }
+  
+  const totalPoints = loyaltyData?.reduce(
+    (sum, p) => sum + Number(p.loyalty_points || 0), 0
+  ) || 0;
+
+  const { data: settings } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'loyalty_config')
+    .maybeSingle();
+  
+  const config = (settings?.value as any) || {};
+  const rupeesPerPoint = config.rupees_per_point || 0.5;
+  const totalLoyaltyLiability = totalPoints * rupeesPerPoint;
+
+  return {
+    totalWalletLiability,
+    totalLoyaltyLiability,
+    totalPoints,
+    totalLiability: totalWalletLiability + totalLoyaltyLiability
+  };
+}
+
+export async function getNetRevenueReport(
+  startDate: string, 
+  endDate: string
+) {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Database connection not configured.");
+  }
+
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('total, refund_amount, status, wallet_paid, gateway_paid, coupon_discount, points_discount')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate);
+
+  if (error) {
+    console.error("Error fetching net revenue report:", error);
+    throw error;
+  }
+
+  let grossRevenue = 0;
+  let totalRefunds = 0;
+  let totalDiscounts = 0;
+  let walletRevenue = 0;
+  let gatewayRevenue = 0;
+
+  for (const order of orders || []) {
+    if (!['Cancelled', 'Failed', 'Payment Pending'].includes(order.status)) {
+      grossRevenue += Number(order.total || 0);
+      walletRevenue += Number(order.wallet_paid || 0);
+      gatewayRevenue += Number(order.gateway_paid || 0);
+      totalDiscounts += Number(order.coupon_discount || 0) + Number(order.points_discount || 0);
+    }
+    if (order.refund_amount) {
+      totalRefunds += Number(order.refund_amount || 0);
+    }
+  }
+
+  return {
+    grossRevenue,
+    totalRefunds,
+    totalDiscounts,
+    netRevenue: grossRevenue - totalRefunds,
+    walletRevenue,
+    gatewayRevenue
+  };
+}
+
 export const analyticsDb = {
   getTodaySalesKPI,
   getDashboardKPIMetrics,
@@ -1189,4 +1346,6 @@ export const analyticsDb = {
   getAdSpend,
   saveAdSpend,
   getROASReport,
+  getLiabilityReport,
+  getNetRevenueReport,
 };

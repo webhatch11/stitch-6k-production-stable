@@ -152,4 +152,6 @@ export const db = {
   getAdSpend: analyticsDb.getAdSpend,
   saveAdSpend: analyticsDb.saveAdSpend,
   getROASReport: analyticsDb.getROASReport,
+  getLiabilityReport: analyticsDb.getLiabilityReport,
+  getNetRevenueReport: analyticsDb.getNetRevenueReport,
 };

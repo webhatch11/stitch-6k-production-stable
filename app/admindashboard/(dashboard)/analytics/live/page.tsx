@@ -8,6 +8,7 @@ export default function LiveAnalyticsPage() {
   const [data, setData] = useState<any>(null);
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // 1. Fetch live data every 30 seconds
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function LiveAnalyticsPage() {
       if (res.success) {
         setData(res);
         setSecondsSinceUpdate(0);
+        setLastUpdated(new Date());
       }
       setLoading(false);
     }
@@ -39,6 +41,10 @@ export default function LiveAnalyticsPage() {
   const handleManualRefresh = () => {
     setLoading(true);
     setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const manualRefresh = () => {
+    handleManualRefresh();
   };
 
   if (loading && !data) {
@@ -75,7 +81,13 @@ export default function LiveAnalyticsPage() {
             <span className="text-[10px] font-bold font-mono text-white/40 uppercase tracking-widest block">
               {secondsSinceUpdate === 0 ? "Just updated" : `Last updated: ${secondsSinceUpdate}s ago`}
             </span>
-            <span className="text-[9px] text-white/20 uppercase tracking-widest block">Auto-refreshing every 30s</span>
+            <p className="text-xs text-gray-400 mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+              <button onClick={manualRefresh} className="ml-2 text-blue-500 bg-transparent border-none cursor-pointer hover:underline">
+                ↻ Refresh
+              </button>
+            </p>
+            <span className="text-[9px] text-white/20 uppercase tracking-widest block mt-0.5">Auto-refreshing every 30s</span>
           </div>
 
           <button

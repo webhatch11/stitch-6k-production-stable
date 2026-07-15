@@ -250,17 +250,20 @@ function OrderDetailsContent() {
     if (!order?.id) return;
     setMockLoading(true);
     try {
-      const result = await bulkUpdateOrderStatusAction([order.id], 'Delivered');
-      if (result.success) {
-        await fetch('/api/admin/mock-deliver', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: order.id })
-        });
+      const res = await fetch('/api/admin/mock-deliver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id })
+      });
+      const data = await res.json();
+      if (data.success) {
         triggerToast('✅ Order marked as delivered');
         setTimeout(() => router.refresh(), 500);
+      } else {
+        triggerToast('Failed: ' + (data.error || 'Unknown error'));
       }
     } catch (err) {
+      console.error('Mock deliver error:', err);
       triggerToast('Failed to mark delivered');
     } finally {
       setMockLoading(false);
@@ -271,12 +274,16 @@ function OrderDetailsContent() {
     if (!order?.id) return;
     setMockLoading(true);
     try {
-      const result = await bulkUpdateOrderStatusAction([order.id], 'Shipped');
+      const { mockShipOrderAction } = await import('@/app/actions/admin-orders');
+      const result = await mockShipOrderAction(order.id);
       if (result.success) {
         triggerToast('✅ Order marked as shipped');
         setTimeout(() => router.refresh(), 500);
+      } else {
+        triggerToast('Failed: ' + (result.error || 'Unknown'));
       }
     } catch (err) {
+      console.error('Mock ship error:', err);
       triggerToast('Failed to mark shipped');
     } finally {
       setMockLoading(false);
@@ -287,12 +294,16 @@ function OrderDetailsContent() {
     if (!order?.id) return;
     setMockLoading(true);
     try {
-      const result = await bulkUpdateOrderStatusAction([order.id], 'Return in Transit');
+      const { mockReturnArrivedAction } = await import('@/app/actions/admin-orders');
+      const result = await mockReturnArrivedAction(order.id);
       if (result.success) {
         triggerToast('✅ Return marked as arrived');
         setTimeout(() => router.refresh(), 500);
+      } else {
+        triggerToast('Failed: ' + (result.error || 'Unknown'));
       }
     } catch (err) {
+      console.error('Mock return error:', err);
       triggerToast('Failed to update return status');
     } finally {
       setMockLoading(false);
@@ -1833,8 +1844,7 @@ function OrderDetailsContent() {
               </div>
             )}
 
-            {(process.env.NODE_ENV !== 'production' || 
-              process.env.NEXT_PUBLIC_ENABLE_MOCK_SHIPPING === 'true') && (
+            {process.env.NEXT_PUBLIC_ENABLE_MOCK_SHIPPING === 'true' && (
               <div className="mt-4 pt-4 border-t border-dashed border-zinc-800">
                 <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3 font-black">
                   ⚠️ Mock / Testing Only

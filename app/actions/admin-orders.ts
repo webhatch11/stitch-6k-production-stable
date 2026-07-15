@@ -1486,4 +1486,59 @@ export async function addOrderEventAction(
   }
 }
 
+export async function mockShipOrderAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const result = await bulkUpdateOrderStatusAction([orderId], 'Shipped');
+    if (result.success) {
+      await db.saveOrder({
+        id: orderId,
+        shiprocketId: 'MOCK-AWB-' + Date.now()
+      });
+      await db.addOrderEvent(
+        orderId,
+        'Order shipped (mock/test)'
+      );
+      return { success: true };
+    }
+    return result;
+  } catch (err: any) {
+    console.error("[mockShipOrderAction] Error:", err);
+    return { success: false, error: err.message || "Failed to mark shipped" };
+  }
+}
+
+export async function mockReturnArrivedAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const result = await bulkUpdateOrderStatusAction([orderId], 'Return in Transit');
+    if (result.success) {
+      await db.addOrderEvent(
+        orderId,
+        'Return item arrived at warehouse (mock/test)'
+      );
+      return { success: true };
+    }
+    return result;
+  } catch (err: any) {
+    console.error("[mockReturnArrivedAction] Error:", err);
+    return { success: false, error: err.message || "Failed to mark return arrived" };
+  }
+}
+
+
 

@@ -124,6 +124,8 @@ export interface Order {
   utmCampaign?: string;
   shippingAmount?: number;
   shipping_amount?: number;
+  packedAt?: string | null;
+  acceptedAt?: string | null;
 }
 
 export interface OrderStatusHistory {

@@ -21,6 +21,9 @@ import {
   verifyRefundAction,
   generateShipmentLabelAction,
   getShipmentByOrderIdAction,
+  acceptOrderAction,
+  markOrderPackedAction,
+  printManifestAction,
 } from "@/app/actions/admin-orders";
 
 function OrderDetailsContent() {
@@ -39,6 +42,88 @@ function OrderDetailsContent() {
   const [printingLabel, setPrintingLabel] = useState(false);
   const [manifestDownloadUrl, setManifestDownloadUrl] = useState<string | null>(null);
   const [shipment, setShipment] = useState<any>(null);
+
+  const handleAcceptOrder = async () => {
+    if (!order) return;
+    openConfirmDialog(
+      "Accept Order",
+      `Accept Order #${order.id} and begin processing?`,
+      async () => {
+        const res = await acceptOrderAction(order.id);
+        if (res.success) {
+          triggerToast("Order accepted successfully.");
+          await loadOrderDetails();
+        } else {
+          triggerToast(res.error || "Failed to accept order");
+        }
+      }
+    );
+  };
+
+  const handlePrintInvoiceDetails = async () => {
+    if (!order) return;
+    const invoiceUrl = `/invoice?orderId=${order.id}`;
+    const printWindow = window.open(invoiceUrl, "_blank");
+    if (printWindow) {
+      printWindow.focus();
+      const res = await markOrderPackedAction(order.id);
+      if (res.success) {
+        triggerToast("Invoice printed & order marked as Packed.");
+        await loadOrderDetails();
+      } else {
+        triggerToast(res.error || "Failed to update status to Packed");
+      }
+    } else {
+      triggerToast("Pop-up blocked! Please allow popups to print invoices.");
+    }
+  };
+
+  const handleGenerateLabelDetails = async () => {
+    if (!order) return;
+    setPrintingLabel(true);
+    try {
+      const res = await generateShipmentLabelAction(order.id);
+      if (res.success) {
+        const statusRes = await bulkUpdateOrderStatusAction([order.id], "Shipped");
+        if (statusRes.success) {
+          triggerToast("Label generated successfully. Status updated to Shipped.");
+          if (res.labelUrl) {
+            window.open(res.labelUrl, "_blank");
+          }
+          await loadOrderDetails();
+        } else {
+          triggerToast(statusRes.error || "Failed to update status to Shipped");
+        }
+      } else {
+        triggerToast(res.error || "Failed to generate label");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Label generation failed");
+    } finally {
+      setPrintingLabel(false);
+    }
+  };
+
+  const handlePrintManifestSingle = async () => {
+    if (!order) return;
+    if (shipment?.manifest_url) {
+      window.open(shipment.manifest_url, "_blank");
+      triggerToast("Manifest opened in new tab");
+    } else {
+      const res = await printManifestAction();
+      if (res.success) {
+        await loadOrderDetails();
+        if (res.manifestUrls && res.manifestUrls.length > 0) {
+          window.open(res.manifestUrls[0], "_blank");
+          triggerToast("Manifest generated and opened.");
+        } else {
+          triggerToast("No manifests generated. Check if shiprocket is synced.");
+        }
+      } else {
+        triggerToast(res.error || "Failed to generate manifest");
+      }
+    }
+  };
 
   const handlePrintShippingLabel = async () => {
     if (!order) return;
@@ -1273,23 +1358,11 @@ function OrderDetailsContent() {
 
             {/* Actions Grid container */}
             <div className="grid grid-cols-2 gap-3">
-              {s === "paid" ? (
+              {s === "paid" || s === "paid via wallet" ? (
                 <>
                   {/* Accept order (full width) */}
                   <button
-                    onClick={() => openConfirmDialog(
-                      "Accept Order",
-                      "Accept this order and begin fulfillment?",
-                      async () => {
-                        const res = await bulkUpdateOrderStatusAction([order.id], "Processing");
-                        if (res.success) {
-                          triggerToast("Order accepted successfully.");
-                          await loadOrderDetails();
-                        } else {
-                          triggerToast(res.error || "Failed to accept order.");
-                        }
-                      }
-                    )}
+                    onClick={handleAcceptOrder}
                     className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
                     style={{
                       backgroundColor: "var(--bg-success)",
@@ -1301,7 +1374,7 @@ function OrderDetailsContent() {
                     <span>Accept order</span>
                   </button>
 
-                  {/* Cancel & refund (full width) */}
+                  {/* Reject & Refund (full width) */}
                   <button
                     onClick={() => openRefundModal("cancel")}
                     className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
@@ -1312,12 +1385,133 @@ function OrderDetailsContent() {
                     }}
                   >
                     <span className="ti-x material-symbols-outlined text-base">close</span>
-                    <span>Cancel & refund</span>
+                    <span>Reject & refund</span>
                   </button>
+                </>
+              ) : s === "processing" ? (
+                <>
+                  {/* Print Invoice */}
+                  <button
+                    onClick={handlePrintInvoiceDetails}
+                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span className="material-symbols-outlined text-lg mb-1">print</span>
+                    <span>Print Invoice</span>
+                  </button>
+
+                  {/* Cancel Order */}
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                    style={{
+                      border: "0.5px solid var(--border-danger)",
+                      color: "var(--text-danger)",
+                      backgroundColor: "var(--bg-danger)"
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-base">close</span>
+                    <span>Cancel Order</span>
+                  </button>
+                </>
+              ) : s === "packed" ? (
+                <>
+                  {/* Generate Label */}
+                  <button
+                    onClick={handleGenerateLabelDetails}
+                    disabled={printingLabel}
+                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {printingLabel ? (
+                      <>
+                        <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
+                        <span>Generating label...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
+                        <span>Generate Label</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Cancel Order */}
+                  <button
+                    onClick={() => openRefundModal("cancel")}
+                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                    style={{
+                      border: "0.5px solid var(--border-danger)",
+                      color: "var(--text-danger)",
+                      backgroundColor: "var(--bg-danger)"
+                    }}
+                  >
+                    <span className="material-symbols-outlined text-base">close</span>
+                    <span>Cancel Order</span>
+                  </button>
+                </>
+              ) : s === "shipped" ? (
+                <>
+                  {/* Print Manifest */}
+                  <button
+                    onClick={handlePrintManifestSingle}
+                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span className="material-symbols-outlined text-lg mb-1">assignment</span>
+                    <span>Print Manifest</span>
+                  </button>
+
+                  {/* Print Label (reprint) */}
+                  <button
+                    onClick={handlePrintShippingLabel}
+                    disabled={printingLabel}
+                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {printingLabel ? (
+                      <>
+                        <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
+                        <span>Printing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-lg mb-1">print</span>
+                        <span>Print Label</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : s === "delivered" ? (
+                <>
+                  {/* Print Invoice */}
+                  <Link
+                    href={`/invoice?orderId=${order.id}`}
+                    className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <span className="material-symbols-outlined text-lg mb-1">print</span>
+                    <span>Print Invoice</span>
+                  </Link>
+
+                  {/* Issue Refund */}
+                  {!order.refund_status ? (
+                    <button
+                      onClick={() => openRefundModal("issue")}
+                      className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                      <span>Issue refund</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-center p-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                      Refund Issued
+                    </div>
+                  )}
                 </>
               ) : s === "cancelled" ? (
                 <>
-                  {/* Print invoice */}
                   <Link
                     href={`/invoice?orderId=${order.id}`}
                     className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
@@ -1329,106 +1523,20 @@ function OrderDetailsContent() {
                 </>
               ) : (
                 <>
-                  {/* 1. Ship via Shiprocket / Mark shipped */}
-                  {s === "processing" && (
+                  {s === "payment pending" && (
                     <button
-                      onClick={handleShiprocketShip}
-                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{ color: "var(--text-primary)" }}
+                      onClick={handleVerifyPayment}
+                      disabled={verifyingPayment}
+                      className="col-span-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-white bg-green-700 hover:bg-green-600 rounded-[6px] transition-all cursor-pointer border-none disabled:opacity-40"
                     >
-                      <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
-                      <span>Ship via Shiprocket</span>
+                      {verifyingPayment ? "Verifying..." : "Verify payment"}
                     </button>
                   )}
-
-                  {/* 2. Mark delivered */}
-                  {s === "shipped" && (
-                    <button
-                      onClick={() => handleUpdateStatus("Delivered")}
-                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span className="material-symbols-outlined text-lg mb-1">check_circle</span>
-                      <span>Mark as delivered</span>
-                    </button>
-                  )}
-
-                  {/* 3. Issue refund (only for delivered, and only if no refund yet) */}
-                  {s === "delivered" && !order.refund_status && (
-                    <button
-                      onClick={() => openRefundModal("issue")}
-                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                      <span>Issue refund</span>
-                    </button>
-                  )}
-
-                  {/* 3.1. Process refund (for return states) */}
-                  {(s === "return in transit" || s === "return requested") && (
-                    <button
-                      onClick={() => openRefundModal("return")}
-                      className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                      <span>Process refund</span>
-                    </button>
-                  )}
-
-                  {/* 4. Print invoice */}
-                  <Link
-                    href={`/invoice?orderId=${order.id}`}
-                    className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span className="material-symbols-outlined text-lg mb-1">print</span>
-                    <span>Print invoice</span>
-                  </Link>
-
-                  {/* 6. Print shipping label */}
-                  {(s === "processing" || s === "shipped" || s === "delivered") && (
-                    <button
-                      onClick={handlePrintShippingLabel}
-                      disabled={printingLabel}
-                      className="flex flex-col items-center justify-center p-4 border rounded-[8px] bg-[#16161a] hover:bg-white/5 border-gray-800 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      {printingLabel ? (
-                        <>
-                          <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
-                          <span>Generating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-lg mb-1">print</span>
-                          <span>Print shipping label</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-
-                  {/* 5. Cancel order / Cancel order (stock issue) */}
-                  {s === "processing" && (
-                    <button
-                      onClick={() => openRefundModal("cancel")}
-                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{
-                        border: "0.5px solid var(--border-danger)",
-                        color: "var(--text-danger)",
-                        backgroundColor: "var(--bg-danger)"
-                      }}
-                    >
-                      <span className="material-symbols-outlined text-base">close</span>
-                      <span>Cancel order (stock issue)</span>
-                    </button>
-                  )}
-
+                  
                   {s === "payment pending" && (
                     <button
                       onClick={() => openRefundModal("cancel")}
-                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer mt-3"
                       style={{
                         border: "0.5px solid var(--border-danger)",
                         color: "var(--text-danger)",
@@ -1440,6 +1548,17 @@ function OrderDetailsContent() {
                     </button>
                   )}
                 </>
+              )}
+
+              {(s === "return in transit" || s === "return requested") && (
+                <button
+                  onClick={() => openRefundModal("return")}
+                  className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                  <span>Process refund</span>
+                </button>
               )}
             </div>
 

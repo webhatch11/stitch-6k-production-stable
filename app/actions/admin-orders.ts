@@ -30,6 +30,8 @@ const ALLOWED_STATUSES = [
   "Payment Pending",
   "Paid",
   "Processing",
+  "Packed",
+  "Waiting for Dispatch",
   "Shipped",
   "Delivered",
   "Cancelled",
@@ -61,7 +63,9 @@ export async function bulkUpdateOrderStatusAction(
     const ALLOWED_TRANSITIONS: Record<string, string[]> = {
       "Payment Pending": ["Paid", "Cancelled"],
       "Paid": ["Processing", "Cancelled"],
-      "Processing": ["Shipped", "Cancelled"],
+      "Processing": ["Packed", "Shipped", "Cancelled"],
+      "Packed": ["Shipped", "Cancelled"],
+      "Waiting for Dispatch": ["Shipped", "Cancelled"],
       "Shipped": ["Delivered", "Cancelled"],
       "Delivered": ["Return Requested", "Returned", "Cancelled"],
       "Return Requested": ["Return in Transit", "Return Rejected", "Cancelled"],
@@ -764,6 +768,411 @@ export async function getShipmentByOrderIdAction(
   } catch (err: any) {
     console.error("[getShipmentByOrderIdAction] error:", err);
     return { success: false, shipment: null, error: err.message || "Failed to fetch shipment" };
+  }
+}
+
+export async function acceptOrderAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    const currentStatus = (order.status || "").toLowerCase();
+    if (currentStatus !== "paid" && currentStatus !== "paid via wallet") {
+      return { success: false, error: "Only Paid orders can be accepted" };
+    }
+
+    const res = await bulkUpdateOrderStatusAction([orderId], "Processing");
+    if (!res.success) {
+      return { success: false, error: res.error || "Failed to update status" };
+    }
+
+    await db.saveOrder({
+      id: orderId,
+      acceptedAt: new Date().toISOString()
+    });
+
+    await db.addOrderEvent(orderId, "Order accepted by admin");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[acceptOrderAction]", e);
+    return { success: false, error: e.message || "Failed to accept order" };
+  }
+}
+
+export async function markOrderPackedAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    if ((order.status || "").toLowerCase() !== "processing") {
+      return { success: false, error: "Only Processing orders can be marked as packed" };
+    }
+
+    const updated = {
+      ...order,
+      status: "Packed",
+      packedAt: new Date().toISOString()
+    };
+    await db.saveOrder(updated);
+
+    await db.addOrderEvent(orderId, "Invoice printed — order packed");
+    await db.addOrderStatusHistory(orderId, "Packed", "Admin (Invoice Print)");
+
+    return { success: true };
+  } catch (e: any) {
+    console.error("[markOrderPackedAction]", e);
+    return { success: false, error: e.message || "Failed to mark order as packed" };
+  }
+}
+
+export async function bulkAcceptOrdersAction(
+  orderIds: string[]
+): Promise<{ success: boolean; accepted: number; failed: number; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, accepted: 0, failed: orderIds.length, error: "Unauthorized" };
+  }
+
+  let accepted = 0;
+  let failed = 0;
+
+  for (const orderId of orderIds) {
+    try {
+      const order = await db.getOrderById(orderId);
+      if (!order) {
+        failed++;
+        continue;
+      }
+
+      const statusLower = (order.status || "").toLowerCase();
+      if (statusLower !== "paid" && statusLower !== "paid via wallet") {
+        failed++;
+        continue;
+      }
+
+      const updated = {
+        ...order,
+        status: "Processing",
+        acceptedAt: new Date().toISOString()
+      };
+      await db.saveOrder(updated);
+
+      await db.addOrderEvent(orderId, "Order accepted by admin");
+      await db.addOrderStatusHistory(orderId, "Processing", "Admin (Bulk)");
+      accepted++;
+    } catch (err) {
+      console.error(`Failed to bulk accept order ${orderId}:`, err);
+      failed++;
+    }
+  }
+
+  return { success: true, accepted, failed };
+}
+
+export async function bulkMarkPackedAction(
+  orderIds: string[]
+): Promise<{ success: boolean; packed: number; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, packed: 0, error: "Unauthorized" };
+  }
+
+  let packed = 0;
+
+  for (const orderId of orderIds) {
+    try {
+      const order = await db.getOrderById(orderId);
+      if (!order || (order.status || "").toLowerCase() !== "processing") {
+        continue;
+      }
+
+      const updated = {
+        ...order,
+        status: "Packed",
+        packedAt: new Date().toISOString()
+      };
+      await db.saveOrder(updated);
+      await db.addOrderEvent(orderId, "Invoice printed — order packed");
+      await db.addOrderStatusHistory(orderId, "Packed", "Admin (Bulk Invoice Print)");
+      packed++;
+    } catch (err) {
+      console.error(`Failed to bulk mark packed ${orderId}:`, err);
+    }
+  }
+
+  return { success: true, packed };
+}
+
+export async function generateBulkLabelsAction(
+  orderIds: string[]
+): Promise<{
+  success: boolean;
+  results: Array<{
+    orderId: string;
+    success: boolean;
+    awb?: string;
+    labelUrl?: string;
+    error?: string;
+  }>;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return {
+      success: false,
+      results: orderIds.map(id => ({ orderId: id, success: false, error: "Unauthorized" }))
+    };
+  }
+
+  const results: Array<{
+    orderId: string;
+    success: boolean;
+    awb?: string;
+    labelUrl?: string;
+    error?: string;
+  }> = [];
+
+  const { shiprocket } = await import("@/lib/shiprocket");
+
+  for (const orderId of orderIds) {
+    try {
+      let shipment = await db.getShipmentByOrderId(orderId);
+      if (!shipment) {
+        const dispatchRes = await db.dispatchFulfillment(orderId);
+        if (!dispatchRes.success) {
+          results.push({
+            orderId,
+            success: false,
+            error: dispatchRes.error || "Fulfillment dispatch failed"
+          });
+          continue;
+        }
+        shipment = await db.getShipmentByOrderId(orderId);
+      }
+
+      if (!shipment) {
+        results.push({
+          orderId,
+          success: false,
+          error: "Failed to create or retrieve shipment"
+        });
+        continue;
+      }
+
+      if (shipment.label_url) {
+        results.push({
+          orderId,
+          success: true,
+          awb: shipment.awb_code,
+          labelUrl: shipment.label_url
+        });
+        continue;
+      }
+
+      const shipmentIdNum = Number(shipment.shipment_id);
+      if (!shipmentIdNum || isNaN(shipmentIdNum)) {
+        results.push({
+          orderId,
+          success: false,
+          error: "Invalid Shiprocket Shipment ID in database"
+        });
+        continue;
+      }
+
+      const labelRes = await shiprocket.generateShippingLabel(shipmentIdNum);
+      if (!labelRes.success || !labelRes.labelUrl) {
+        results.push({
+          orderId,
+          success: false,
+          error: labelRes.error || "Failed to generate label from Shiprocket"
+        });
+        continue;
+      }
+
+      const labelUrl = labelRes.labelUrl;
+      let manifestUrl: string | null = null;
+      const manifestRes = await shiprocket.generateManifest(shipmentIdNum);
+      if (manifestRes.success && manifestRes.manifestUrl) {
+        manifestUrl = manifestRes.manifestUrl;
+      }
+
+      if (supabase) {
+        await supabase
+          .from("shipments")
+          .update({
+            label_url: labelUrl,
+            manifest_url: manifestUrl,
+            updated_at: new Date().toISOString()
+          })
+          .eq("order_id", orderId);
+      }
+
+      const order = await db.getOrderById(orderId);
+      if (order) {
+        const updatedOrder = {
+          ...order,
+          status: "Shipped",
+          shiprocketId: shipment.awb_code || ""
+        };
+        await db.saveOrder(updatedOrder);
+        await db.addOrderEvent(orderId, "Label generated, AWB: " + shipment.awb_code);
+        await db.addOrderStatusHistory(orderId, "Shipped", "Admin (Bulk Label Generation)", {
+          awb: shipment.awb_code || ""
+        });
+      }
+
+      results.push({
+        orderId,
+        success: true,
+        awb: shipment.awb_code,
+        labelUrl
+      });
+    } catch (err: any) {
+      console.error(`Error generating label for order ${orderId}:`, err);
+      results.push({
+        orderId,
+        success: false,
+        error: err.message || "An unexpected error occurred"
+      });
+    }
+  }
+
+  return { success: true, results };
+}
+
+export async function printManifestAction(): Promise<{
+  success: boolean;
+  manifestUrls: string[];
+  orderCount: number;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, manifestUrls: [], orderCount: 0, error: "Unauthorized" };
+  }
+
+  if (!supabase) {
+    return { success: false, manifestUrls: [], orderCount: 0, error: "Database not configured" };
+  }
+
+  try {
+    const { data: unprintedShipments, error: shipErr } = await supabase
+      .from("shipments")
+      .select("id, order_id, shipment_id, manifest_url, manifest_printed")
+      .eq("manifest_printed", false);
+
+    if (shipErr) {
+      throw new Error(shipErr.message);
+    }
+
+    const shippedOrderIds = new Set<string>();
+    const orders = await db.getOrders();
+    for (const o of orders) {
+      if ((o.status || "").toLowerCase() === "shipped") {
+        shippedOrderIds.add(o.id);
+      }
+    }
+
+    const targetShipments = (unprintedShipments || []).filter(s => shippedOrderIds.has(s.order_id));
+    if (targetShipments.length === 0) {
+      return { success: true, manifestUrls: [], orderCount: 0 };
+    }
+
+    const manifestUrls: string[] = [];
+    const { shiprocket } = await import("@/lib/shiprocket");
+
+    for (const shipment of targetShipments) {
+      const shipmentIdNum = Number(shipment.shipment_id);
+      if (!shipmentIdNum || isNaN(shipmentIdNum)) continue;
+
+      const manifestRes = await shiprocket.generateManifest(shipmentIdNum);
+      if (manifestRes.success && manifestRes.manifestUrl) {
+        manifestUrls.push(manifestRes.manifestUrl);
+
+        await supabase
+          .from("shipments")
+          .update({
+            manifest_url: manifestRes.manifestUrl,
+            manifest_printed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", shipment.id);
+
+        await db.addOrderEvent(shipment.order_id, "Fulfillment manifest printed");
+      }
+    }
+
+    return {
+      success: true,
+      manifestUrls: Array.from(new Set(manifestUrls)),
+      orderCount: targetShipments.length
+    };
+  } catch (e: any) {
+    console.error("[printManifestAction]", e);
+    return { success: false, manifestUrls: [], orderCount: 0, error: e.message || "Failed to print manifests" };
+  }
+}
+
+export async function generateBulkInvoicePdfAction(
+  orderIds: string[]
+): Promise<{
+  success: boolean;
+  orders?: any[];
+  products?: any[];
+  gstin?: string;
+  error?: string;
+}> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const orders: any[] = [];
+    for (const id of orderIds) {
+      const order = await db.getOrderById(id);
+      if (order) {
+        orders.push(order);
+      }
+    }
+
+    const products = await db.getProducts();
+    const businessSettings = await db.getSetting("business");
+    const gstin = businessSettings?.gst_no || "33BFOPT4938Q1ZE";
+
+    return {
+      success: true,
+      orders,
+      products,
+      gstin
+    };
+  } catch (e: any) {
+    console.error("[generateBulkInvoicePdfAction]", e);
+    return { success: false, error: e.message || "Failed to fetch bulk invoice data" };
   }
 }
 

@@ -25,9 +25,10 @@ export async function pointsCreditProcessor(job: any) {
     .from("orders")
     .select("id, status, original_total, coupon_discount, points_earned, user_id")
     .eq("points_credit_status", "pending")
+    .not("points_credit_scheduled_at", "is", null)
     .lte("points_credit_scheduled_at", now)
     .gt("points_earned", 0)
-    .not("status", "in", "(Cancelled,Return Requested,Return in Transit,Returned,RTO Initiated,RTO Delivered,Failed)");
+    .not("status", "in", "(Cancelled,Return Requested,Return in Transit,Returned,Return Rejected,RTO Initiated,RTO Delivered,Failed)");
 
   if (fetchErr) {
     console.error("[Points Credit Worker] Error fetching pending orders:", fetchErr);
@@ -47,7 +48,7 @@ export async function pointsCreditProcessor(job: any) {
 
   for (const order of pendingOrders) {
     try {
-      const hasActiveReturn = ['Cancelled', 'Return Requested', 'Return in Transit', 'Returned', 'RTO Initiated', 'RTO Delivered', 'Failed'].includes(order.status);
+      const hasActiveReturn = ['Cancelled', 'Return Requested', 'Return in Transit', 'Returned', 'Return Rejected', 'RTO Initiated', 'RTO Delivered', 'Failed'].includes(order.status);
       
       if (hasActiveReturn) {
         console.log(`[Points Credit Worker] Order ${order.id} status is ${order.status}. Voiding points.`);
@@ -56,6 +57,13 @@ export async function pointsCreditProcessor(job: any) {
           .update({ points_credit_status: "cancelled" })
           .eq("id", order.id);
         successCount++;
+        continue;
+      }
+
+      // Verify order status is Delivered / delivered before crediting
+      const statusLower = (order.status || "").toLowerCase();
+      if (statusLower !== "delivered") {
+        console.log(`[Points Credit Worker] Order ${order.id} status is ${order.status} (not Delivered). Skipping points credit.`);
         continue;
       }
 

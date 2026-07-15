@@ -78,7 +78,8 @@ export async function initJobs() {
       "cleanup_expired_reservations",
       {},
       {
-        repeat: { every: 5 * 60 * 1000 }, // 5 mins
+        repeat: { every: 15 * 60 * 1000 }, // 15 mins
+        delay: 7 * 60 * 1000,  // 7 min offset
         attempts: 3,
         backoff: {
           type: 'exponential',

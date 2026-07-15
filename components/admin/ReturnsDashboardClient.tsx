@@ -41,6 +41,8 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [modalError, setModalError] = useState("");
+  const [qcPassed, setQcPassed] = useState(true);
+  const [qcReason, setQcReason] = useState("");
 
   // Toast Alerts
   const [toastText, setToastText] = useState("");
@@ -214,20 +216,26 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
 
   const handleConfirmReceived = async () => {
     if (!targetOrder || isSubmitting) return;
+    if (!qcPassed && !qcReason.trim()) {
+      triggerToast('Please provide a reason for QC failure');
+      return;
+    }
     setIsSubmitting(true);
     setSubmitting(targetOrder.id);
     setModalError("");
     try {
-      // Transition In Transit to Returned (QC Passed automatically)
+      // Transition In Transit to Returned with dynamic QC result
       const res = await processReturnRefundAction(
         targetOrder.id,
-        true,
-        "Item received & verified at warehouse"
+        qcPassed,
+        qcPassed ? "Item received & verified at warehouse" : qcReason
       );
       if (res.success) {
         triggerToast(`Order #${targetOrder.id} marked as Received & Refund issued.`);
         setModalType(null);
         setTargetOrder(null);
+        setQcPassed(true);
+        setQcReason("");
         router.refresh();
       } else {
         setModalError(res.error || "Failed to mark as received");
@@ -430,6 +438,8 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                               setTargetOrder(o);
                               setModalType("receive");
                               setModalError("");
+                              setQcPassed(true);
+                              setQcReason("");
                             }}
                             className={`bg-green-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
@@ -780,6 +790,52 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
               Confirming that the returned package has arrived at the warehouse. This will set the order status to <span className="text-[#0a0a0a]">"Returned"</span> and process the auto-refund routing.
             </p>
 
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#775a19]">
+                  Quality Check Result:
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setQcPassed(true)}
+                    className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest border transition-all text-center rounded-none cursor-pointer
+                      ${qcPassed 
+                        ? 'bg-green-50 border-green-500 text-green-700 font-bold' 
+                        : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300'
+                      }`}
+                  >
+                    ✅ QC Passed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQcPassed(false)}
+                    className={`flex-1 py-3 px-4 text-[10px] font-black uppercase tracking-widest border transition-all text-center rounded-none cursor-pointer
+                      ${!qcPassed 
+                        ? 'bg-red-50 border-red-500 text-red-700 font-bold' 
+                        : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300'
+                      }`}
+                  >
+                    ❌ QC Failed
+                  </button>
+                </div>
+              </div>
+
+              {!qcPassed && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest block text-red-600">
+                    Reason for QC failure (required):
+                  </label>
+                  <textarea
+                    value={qcReason}
+                    onChange={(e) => setQcReason(e.target.value)}
+                    placeholder="Describe the damage or issue..."
+                    className="w-full border border-red-200 p-3 text-xs resize-none h-20 outline-none focus:border-red-500 rounded-none bg-red-50/10 text-[#0a0a0a]"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -787,6 +843,8 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                 onClick={() => {
                   setModalType(null);
                   setTargetOrder(null);
+                  setQcPassed(true);
+                  setQcReason("");
                 }}
                 className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest cursor-pointer rounded-none disabled:opacity-50"
               >

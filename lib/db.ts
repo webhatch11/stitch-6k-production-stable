@@ -949,6 +949,8 @@ export const db = {
 
     if (order.status && order.status.toLowerCase() === "delivered") {
       dbPayload.delivered_at = (existingOrder && existingOrder.delivered_at) || dbPayload.delivered_at || new Date().toISOString();
+      // Schedule loyalty points credit 7 days from delivery
+      dbPayload.points_credit_scheduled_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     if (isExisting) {
@@ -2594,14 +2596,13 @@ export const db = {
       }
     }
 
-    // e. Schedule loyalty points for credit after 7-day return window closes
+    // e. Schedule loyalty points for credit after 7-day return window closes (to be scheduled on delivery)
     try {
-      const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       await supabase
         .from('orders')
         .update({ 
           points_credit_status: 'pending',
-          points_credit_scheduled_at: creditAt
+          points_credit_scheduled_at: null
         })
         .eq('id', dbOrder.id);
     } catch (e) {

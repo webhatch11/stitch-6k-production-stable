@@ -221,7 +221,7 @@ export default function InvoiceClient({
 
       <div className="invoice-container bg-white max-w-[800px] mx-auto p-8 sm:p-12 border border-gray-200 shadow-sm relative overflow-hidden print:border-none print:shadow-none print:p-4">
         {/* Large centered watermark background */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none z-0">
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.10] pointer-events-none z-0">
           <Image 
             src="/assets/logo.png" 
             alt="6K Watermark" 

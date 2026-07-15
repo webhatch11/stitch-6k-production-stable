@@ -184,6 +184,7 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
   let html = `<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Concatenated Tax Invoices</title>
   <style>
     body {
@@ -195,10 +196,12 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     }
     .invoice {
       border: 1px solid #ddd;
-      padding: 40px;
-      margin: 0 auto 40px auto;
+      padding: 30px;
+      margin: 0 auto 30px auto;
       max-width: 800px;
       position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .page-break {
       page-break-after: always;
@@ -206,9 +209,11 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     .header {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 40px;
+      margin-bottom: 15px;
       border-bottom: 2px solid #000;
-      padding-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+      z-index: 10;
     }
     .company-title {
       font-size: 18px;
@@ -226,15 +231,17 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     .meta-grid {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 40px;
+      margin-bottom: 15px;
       font-size: 11px;
+      position: relative;
+      z-index: 10;
     }
     .bill-to {
       border-left: 4px solid #775a19;
       padding-left: 20px;
     }
     .bill-to h4, .invoice-details h4 {
-      margin: 0 0 10px 0;
+      margin: 0 0 5px 0;
       font-size: 9px;
       color: #888;
       text-transform: uppercase;
@@ -250,18 +257,20 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     table.items-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 40px;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 10;
     }
     table.items-table th {
       border-bottom: 2px solid #000;
-      padding: 10px 0;
+      padding: 6px 0;
       font-size: 10px;
       font-weight: 900;
       text-transform: uppercase;
       text-align: left;
     }
     table.items-table td {
-      padding: 15px 0;
+      padding: 8px 0;
       border-bottom: 1px solid #eee;
       font-size: 12px;
     }
@@ -274,7 +283,9 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     .totals {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 40px;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 10;
     }
     .totals-box {
       width: 320px;
@@ -282,19 +293,21 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     .totals-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 10px;
       font-weight: bold;
       text-transform: uppercase;
     }
     .grand-total {
       border-top: 1px solid #eee;
-      padding-top: 10px;
+      padding-top: 6px;
       font-size: 13px;
       font-weight: 900;
     }
     .tax-breakdown {
-      margin-bottom: 40px;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 10;
     }
     .tax-table {
       width: 100%;
@@ -304,20 +317,24 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
     }
     .tax-table th, .tax-table td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 5px;
       font-weight: bold;
     }
     .footer {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      margin-top: 60px;
+      margin-top: 20px;
+      position: relative;
+      z-index: 10;
     }
     .declaration {
       font-size: 9px;
       color: #666;
       max-width: 400px;
       line-height: 1.5;
+      position: relative;
+      z-index: 10;
     }
     .signature {
       text-align: right;
@@ -336,8 +353,13 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
       text-transform: uppercase;
     }
     @media print {
+      @page {
+        size: A4;
+        margin: 10mm 12mm 10mm 12mm;
+      }
       body {
         padding: 0;
+        margin: 0 !important;
       }
       .invoice {
         border: none;
@@ -431,10 +453,15 @@ const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string)
 
     html += `
     <div class="invoice ${pageBreakClass}">
+      <!-- Large centered watermark background -->
+      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
+        <img src="/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
+      </div>
+
       <div class="header">
         <div>
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <div style="width: 24px; height: 24px; background: black; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px;">6K</div>
+            <img src="/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
             <span class="company-title">JRT TEXTILES (6K Brand)</span>
           </div>
           <div style="font-size: 8px; color: #888; text-transform: uppercase; line-height: 1.5;">

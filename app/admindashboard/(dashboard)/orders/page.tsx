@@ -1171,7 +1171,7 @@ export default function OrdersKanbanPage() {
                 ) : (
                   finalFilteredOrders.map(order => {
                     const isPendingTab = activeTab === 'pending';
-                    const detailLink = `/admindashboard/order-details?orderId=${order.id}`;
+                    const detailLink = `/admindashboard/order-details?orderId=${order.id}&from=${activeTab}`;
                     return (
                       <tr
                         key={order.id}

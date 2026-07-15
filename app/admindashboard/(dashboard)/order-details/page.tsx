@@ -26,10 +26,29 @@ import {
   printManifestAction,
 } from "@/app/actions/admin-orders";
 
+const ORDER_STEPS = [
+  { key: 'paid', label: 'Payment' },
+  { key: 'processing', label: 'Accepted' },
+  { key: 'packed', label: 'Packed' },
+  { key: 'shipped', label: 'Shipped' },
+  { key: 'delivered', label: 'Delivered' }
+];
+
+const getStepIndex = (status: string) => {
+  const s = status?.toLowerCase();
+  if (s?.includes('paid')) return 0;
+  if (s === 'processing') return 1;
+  if (s === 'packed') return 2;
+  if (s === 'shipped') return 3;
+  if (s === 'delivered') return 4;
+  return -1; // cancelled, pending, failed
+};
+
 function OrderDetailsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const activeTab = searchParams.get("from") || "";
 
   const [order, setOrder] = useState<Order | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -58,6 +77,53 @@ function OrderDetailsContent() {
         }
       }
     );
+  };
+
+  const handlePrintInvoiceProcessing = async () => {
+    if (!order) return;
+    window.open('/invoice?orderId=' + order.id, '_blank');
+    const res = await markOrderPackedAction(order.id);
+    if (res.success) {
+      triggerToast("Invoice opened — order marked as Packed");
+      setTimeout(() => {
+        loadOrderDetails();
+      }, 1500);
+    } else {
+      triggerToast(res.error || "Failed to update order status to Packed");
+    }
+  };
+
+  const handleGenerateLabelPacked = async () => {
+    if (!order) return;
+    setPrintingLabel(true);
+    try {
+      const res = await generateShipmentLabelAction(order.id);
+      if (res.success) {
+        const statusRes = await bulkUpdateOrderStatusAction([order.id], "Shipped");
+        if (statusRes.success) {
+          // Fetch updated order to get AWB
+          const updatedOrdersRes = await getOrdersAction();
+          let awb = "";
+          if (updatedOrdersRes.success) {
+            const matched = (updatedOrdersRes.orders || []).find((o) => o.id === order.id);
+            awb = matched?.shiprocketId || "";
+          }
+          triggerToast("Label generated — AWB: " + (awb || "Generated"));
+          if (res.labelUrl) {
+            window.open(res.labelUrl, "_blank");
+          }
+          await loadOrderDetails();
+        } else {
+          triggerToast(statusRes.error || "Failed to update status to Shipped");
+        }
+      } else {
+        triggerToast(res.error || "Failed to generate label");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "Failed to generate label");
+    } finally {
+      setPrintingLabel(false);
+    }
   };
 
   const handlePrintInvoiceDetails = async () => {
@@ -577,7 +643,16 @@ function OrderDetailsContent() {
     }
   };
 
+  const getReturnDaysRemaining = () => {
+    const delAt = order.deliveredAt || (order as any).delivered_at;
+    if (!delAt) return 7;
+    const diffTime = Math.abs(Date.now() - new Date(delAt).getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, 7 - diffDays);
+  };
+
   const s = order.status.toLowerCase();
+  const currentStep = getStepIndex(order.status);
   const walletPaid = order.walletPaid || 0;
   const gatewayPaid = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - walletPaid);
   const couponDiscount = order.couponDiscount || 0;
@@ -668,6 +743,12 @@ function OrderDetailsContent() {
             <Link href="/admindashboard/orders" className="text-gray-400 hover:text-primary transition-colors">
               Orders
             </Link>
+            {activeTab && (
+              <>
+                <span className="material-symbols-outlined text-xs opacity-30">chevron_right</span>
+                <span className="text-gray-400">{activeTab.toUpperCase()}</span>
+              </>
+            )}
             <span className="material-symbols-outlined text-xs opacity-30">chevron_right</span>
             <span className="text-white italic">{order.id}</span>
           </nav>
@@ -694,13 +775,71 @@ function OrderDetailsContent() {
             📄 View invoice
           </Link>
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              const status = order.status?.toLowerCase();
+              let tab = '';
+              if (status?.includes('paid')) tab = 'live';
+              else if (status === 'processing') tab = 'processing';
+              else if (status === 'packed') tab = 'packed';
+              else if (status === 'shipped') tab = 'shipped';
+              else if (status === 'delivered') tab = 'delivered';
+              else if (status === 'payment pending') tab = 'payment_pending';
+              
+              const url = tab 
+                ? `/admindashboard/orders?tab=${tab}`
+                : '/admindashboard/orders';
+              router.push(url);
+            }}
             className="border border-[#25252b] bg-[#16161a] hover:bg-[#222228] text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center rounded-[6px] cursor-pointer"
           >
-            ← Back
+            ← Back to Orders
           </button>
         </div>
       </header>
+
+      {/* Status Progress Bar */}
+      {currentStep >= 0 && (
+        <div className="flex items-center gap-0 mb-12 overflow-x-auto bg-[#16161a] border border-[#25252b] p-6 rounded-[12px] shadow-sm">
+          {ORDER_STEPS.map((step, index) => (
+            <div key={step.key} className="flex items-center flex-1 min-w-0">
+              <div className="flex flex-col items-center flex-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all
+                  ${index < currentStep 
+                    ? 'bg-white border-white text-black font-black'
+                    : index === currentStep
+                      ? 'bg-black border-white text-white font-black scale-110 shadow-[0_0_12px_rgba(255,255,255,0.15)]'
+                      : 'bg-transparent border-[#25252b] text-gray-500'
+                  }`}>
+                  {index < currentStep ? '✓' : index + 1}
+                </div>
+                <span className={`text-[10px] mt-2 font-bold uppercase tracking-wider whitespace-nowrap
+                  ${index <= currentStep 
+                    ? 'text-white' 
+                    : 'text-gray-500'
+                  }`}>
+                  {step.label}
+                </span>
+                {index === 0 && order.date && (
+                  <span className="text-[9px] text-gray-400 mt-1 font-mono">{order.date}</span>
+                )}
+                {index === 1 && order.acceptedAt && (
+                  <span className="text-[9px] text-gray-400 mt-1 font-mono">{new Date(order.acceptedAt).toLocaleDateString('en-IN')}</span>
+                )}
+                {index === 2 && order.packedAt && (
+                  <span className="text-[9px] text-gray-400 mt-1 font-mono">{new Date(order.packedAt).toLocaleDateString('en-IN')}</span>
+                )}
+              </div>
+              {index < ORDER_STEPS.length - 1 && (
+                <div className={`h-0.5 flex-1 mx-2 rounded-full
+                  ${index < currentStep 
+                    ? 'bg-white' 
+                    : 'bg-[#25252b]'
+                  }`} />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Main Grid: 2 columns layout matching mockup template */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
@@ -982,31 +1121,49 @@ function OrderDetailsContent() {
               <p className="text-xs text-gray-400 italic">No activity recorded yet</p>
             ) : (
               <div className="relative pl-6 space-y-6 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-800">
-                {orderEvents.map((ev, index) => {
-                  let dotColor = "bg-green-500"; // Past events
-                  if (index === 0) {
-                    dotColor = "bg-blue-500"; // Most recent event
+                {(() => {
+                  const mergedEvents = [...orderEvents];
+                  if (order.acceptedAt) {
+                    mergedEvents.push({
+                      id: "synthetic-accepted",
+                      description: "Order accepted by admin",
+                      created_at: order.acceptedAt,
+                    });
                   }
-                  
-                  return (
-                    <div key={ev.id || index} className="relative flex flex-col gap-1">
-                      <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-[#16161a] ${dotColor}`} />
-                      <div className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
-                        {ev.description || ev.message}
+                  if (order.packedAt) {
+                    mergedEvents.push({
+                      id: "synthetic-packed",
+                      description: "Invoice printed — order packed",
+                      created_at: order.packedAt,
+                    });
+                  }
+                  mergedEvents.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                  return mergedEvents.map((ev, index) => {
+                    let dotColor = "bg-green-500"; // Past events
+                    if (index === mergedEvents.length - 1) {
+                      dotColor = "bg-blue-500"; // Most recent event
+                    }
+                    
+                    return (
+                      <div key={ev.id || index} className="relative flex flex-col gap-1">
+                        <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-[#16161a] ${dotColor}`} />
+                        <div className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+                          {ev.description || ev.message}
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-medium">
+                          {new Date(ev.created_at).toLocaleString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                          {ev.actor && ` - ${ev.actor}`}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-gray-400 font-medium">
-                        {new Date(ev.created_at).toLocaleString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                        {ev.actor && ` - ${ev.actor}`}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>
@@ -1357,209 +1514,239 @@ function OrderDetailsContent() {
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6" style={{ color: "var(--text-secondary)" }}>ACTIONS</h3>
 
             {/* Actions Grid container */}
-            <div className="grid grid-cols-2 gap-3">
-              {s === "paid" || s === "paid via wallet" ? (
-                <>
-                  {/* Accept order (full width) */}
-                  <button
-                    onClick={handleAcceptOrder}
-                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                    style={{
-                      backgroundColor: "var(--bg-success)",
-                      color: "var(--text-success)",
-                      border: "0.5px solid var(--border-success)"
-                    }}
-                  >
-                    <span className="ti-circle-check material-symbols-outlined text-base">check_circle</span>
-                    <span>Accept order</span>
-                  </button>
+            <div className="flex flex-col gap-4">
+              {(() => {
+                const orderStatus = order.status?.toLowerCase();
+                const refundStatus = (order as any).refundStatus || order.refund_status;
+                const isPaid = orderStatus === "paid" || orderStatus?.includes("paid via wallet") || orderStatus?.includes("paid");
+                const isPaymentPending = orderStatus === "payment pending" || orderStatus === "pending";
 
-                  {/* Reject & Refund (full width) */}
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                    style={{
-                      backgroundColor: "var(--bg-danger)",
-                      color: "var(--text-danger)",
-                      border: "0.5px solid var(--border-danger)"
-                    }}
-                  >
-                    <span className="ti-x material-symbols-outlined text-base">close</span>
-                    <span>Reject & refund</span>
-                  </button>
-                </>
-              ) : s === "processing" ? (
-                <>
-                  {/* Print Invoice */}
-                  <button
-                    onClick={handlePrintInvoiceDetails}
-                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span className="material-symbols-outlined text-lg mb-1">print</span>
-                    <span>Print Invoice</span>
-                  </button>
-
-                  {/* Cancel Order */}
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                    style={{
-                      border: "0.5px solid var(--border-danger)",
-                      color: "var(--text-danger)",
-                      backgroundColor: "var(--bg-danger)"
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-base">close</span>
-                    <span>Cancel Order</span>
-                  </button>
-                </>
-              ) : s === "packed" ? (
-                <>
-                  {/* Generate Label */}
-                  <button
-                    onClick={handleGenerateLabelDetails}
-                    disabled={printingLabel}
-                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {printingLabel ? (
-                      <>
-                        <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
-                        <span>Generating label...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
-                        <span>Generate Label</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Cancel Order */}
-                  <button
-                    onClick={() => openRefundModal("cancel")}
-                    className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                    style={{
-                      border: "0.5px solid var(--border-danger)",
-                      color: "var(--text-danger)",
-                      backgroundColor: "var(--bg-danger)"
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-base">close</span>
-                    <span>Cancel Order</span>
-                  </button>
-                </>
-              ) : s === "shipped" ? (
-                <>
-                  {/* Print Manifest */}
-                  <button
-                    onClick={handlePrintManifestSingle}
-                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span className="material-symbols-outlined text-lg mb-1">assignment</span>
-                    <span>Print Manifest</span>
-                  </button>
-
-                  {/* Print Label (reprint) */}
-                  <button
-                    onClick={handlePrintShippingLabel}
-                    disabled={printingLabel}
-                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {printingLabel ? (
-                      <>
-                        <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
-                        <span>Printing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-lg mb-1">print</span>
-                        <span>Print Label</span>
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : s === "delivered" ? (
-                <>
-                  {/* Print Invoice */}
-                  <Link
-                    href={`/invoice?orderId=${order.id}`}
-                    className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span className="material-symbols-outlined text-lg mb-1">print</span>
-                    <span>Print Invoice</span>
-                  </Link>
-
-                  {/* Issue Refund */}
-                  {!order.refund_status ? (
-                    <button
-                      onClick={() => openRefundModal("issue")}
-                      className="flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                      <span>Issue refund</span>
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-center p-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-                      Refund Issued
+                if (isPaymentPending) {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={handleVerifyPayment}
+                        disabled={verifyingPayment}
+                        className="w-full py-3.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white bg-green-700 hover:bg-green-600 rounded-[6px] transition-all cursor-pointer border-none disabled:opacity-40"
+                      >
+                        {verifyingPayment ? "Verifying..." : "Verify payment"}
+                      </button>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 border border-amber-500/20 p-3 rounded-[6px]">
+                        ⚠️ Order cannot be processed until payment is confirmed
+                      </div>
                     </div>
-                  )}
-                </>
-              ) : s === "cancelled" ? (
-                <>
-                  <Link
-                    href={`/invoice?orderId=${order.id}`}
-                    className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span className="material-symbols-outlined text-lg mb-1">print</span>
-                    <span>Print invoice</span>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  {s === "payment pending" && (
-                    <button
-                      onClick={handleVerifyPayment}
-                      disabled={verifyingPayment}
-                      className="col-span-2 py-2.5 text-[10px] font-bold uppercase tracking-wider text-white bg-green-700 hover:bg-green-600 rounded-[6px] transition-all cursor-pointer border-none disabled:opacity-40"
-                    >
-                      {verifyingPayment ? "Verifying..." : "Verify payment"}
-                    </button>
-                  )}
-                  
-                  {s === "payment pending" && (
-                    <button
-                      onClick={() => openRefundModal("cancel")}
-                      className="col-span-2 flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer mt-3"
-                      style={{
-                        border: "0.5px solid var(--border-danger)",
-                        color: "var(--text-danger)",
-                        backgroundColor: "var(--bg-danger)"
-                      }}
-                    >
-                      <span className="material-symbols-outlined text-base">close</span>
-                      <span>Cancel order</span>
-                    </button>
-                  )}
-                </>
-              )}
+                  );
+                }
 
-              {(s === "return in transit" || s === "return requested") && (
-                <button
-                  onClick={() => openRefundModal("return")}
-                  className="col-span-2 flex flex-col items-center justify-center p-4 border border-gray-800 bg-[#16161a] rounded-[8px] hover:bg-white/5 transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                  <span>Process refund</span>
-                </button>
-              )}
+                if (orderStatus === "paid" || orderStatus === "paid via wallet" || (isPaid && orderStatus !== "processing" && orderStatus !== "packed" && orderStatus !== "shipped" && orderStatus !== "delivered")) {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Accept order (full width) */}
+                      <button
+                        onClick={handleAcceptOrder}
+                        className="w-full flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                        style={{
+                          backgroundColor: "var(--bg-success)",
+                          color: "var(--text-success)"
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                        <span>✓ Accept order</span>
+                      </button>
+
+                      {/* Reject & Refund (full width) */}
+                      <button
+                        onClick={() => openRefundModal("cancel")}
+                        className="w-full flex items-center justify-center gap-2 p-4 border rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                        style={{
+                          backgroundColor: "var(--bg-danger)",
+                          color: "var(--text-danger)"
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-base">close</span>
+                        <span>Reject & refund</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (orderStatus === "processing") {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Print Invoice */}
+                      <button
+                        onClick={handlePrintInvoiceProcessing}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">print</span>
+                        <span>Print Invoice</span>
+                      </button>
+
+                      {/* Cancel Order */}
+                      <button
+                        onClick={() => openRefundModal("cancel")}
+                        className="w-full flex items-center justify-center gap-2 p-3 border rounded-[8px] transition-all text-[10px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                        style={{
+                          border: "0.5px solid var(--border-danger)",
+                          color: "var(--text-danger)",
+                          backgroundColor: "var(--bg-danger)"
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                        <span>Cancel Order</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (orderStatus === "packed") {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Generate Label */}
+                      <button
+                        onClick={handleGenerateLabelPacked}
+                        disabled={printingLabel}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                      >
+                        {printingLabel ? (
+                          <>
+                            <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
+                            <span>Generating label...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
+                            <span>Generate Label</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Cancel Order */}
+                      <button
+                        onClick={() => openRefundModal("cancel")}
+                        className="w-full flex items-center justify-center gap-2 p-3 border rounded-[8px] transition-all text-[10px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                        style={{
+                          border: "0.5px solid var(--border-danger)",
+                          color: "var(--text-danger)",
+                          backgroundColor: "var(--bg-danger)"
+                        }}
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                        <span>Cancel Order</span>
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (orderStatus === "shipped") {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Print Manifest */}
+                      <button
+                        onClick={handlePrintManifestSingle}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">assignment</span>
+                        <span>Print Manifest</span>
+                      </button>
+
+                      {/* Reprint Label */}
+                      <button
+                        onClick={handlePrintShippingLabel}
+                        disabled={printingLabel}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">print</span>
+                        <span>Reprint Label</span>
+                      </button>
+
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center bg-zinc-900/50 p-3 rounded-[6px] border border-zinc-800/30">
+                        Delivery status updates automatically via Shiprocket tracking
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (orderStatus === "delivered") {
+                  const deliveredAtDate = order.deliveredAt || (order as any).delivered_at;
+                  const formattedDeliveredAt = deliveredAtDate
+                    ? new Date(deliveredAtDate).toLocaleDateString('en-IN')
+                    : 'Delivered';
+                  const returnDaysLeft = getReturnDaysRemaining();
+
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Issue Refund */}
+                      {refundStatus?.toLowerCase() !== "credited" && refundStatus?.toLowerCase() !== "processed" && (
+                        <button
+                          onClick={() => openRefundModal("issue")}
+                          className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                        >
+                          <span className="material-symbols-outlined text-lg mb-1">sync</span>
+                          <span>Issue Refund</span>
+                        </button>
+                      )}
+
+                      {/* Print Invoice */}
+                      <Link
+                        href={`/invoice?orderId=${order.id}`}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">print</span>
+                        <span>Print Invoice</span>
+                      </Link>
+
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-green-500 text-center bg-green-500/10 p-3 rounded-[6px] border border-green-500/20 space-y-1">
+                        <div>Order delivered on {formattedDeliveredAt}</div>
+                        <div className="text-[9px] text-gray-400">Return window: {returnDaysLeft} days remaining</div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (orderStatus === "cancelled") {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      {/* Print Invoice */}
+                      <Link
+                        href={`/invoice?orderId=${order.id}`}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">print</span>
+                        <span>Print Invoice</span>
+                      </Link>
+
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-red-500 text-center bg-red-500/10 p-3 rounded-[6px] border border-red-500/20">
+                        Order cancelled
+                      </div>
+
+                      {refundStatus && (
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-[6px] border border-amber-500/20">
+                          Refund Status: {refundStatus}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (orderStatus?.includes("return")) {
+                  return (
+                    <div className="flex flex-col gap-3">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-[6px] border border-amber-500/20">
+                        Return in progress — manage from Returns page
+                      </div>
+                      <Link
+                        href="/admindashboard/returns"
+                        className="w-full flex items-center justify-center gap-2 p-3 bg-zinc-900 text-white border border-zinc-850 hover:bg-zinc-800 rounded-[8px] transition-all text-[10px] font-bold uppercase tracking-wider text-center"
+                      >
+                        <span>→ View Return Details</span>
+                      </Link>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
 
             {manifestDownloadUrl && (
@@ -1572,52 +1759,6 @@ function OrderDetailsContent() {
                 >
                   Download manifest →
                 </a>
-              </div>
-            )}
-
-            {/* Extra context actions (e.g. Reverse Return options and Quality Audit check) */}
-            {s === "return requested" && (
-              <div className="mt-4 flex gap-3">
-                <button
-                  onClick={handleApprovePickup}
-                  className="flex-1 py-2 text-[9px] font-bold uppercase bg-blue-600 text-white rounded-[4px] hover:bg-blue-700 cursor-pointer border-none"
-                >
-                  Approve Pickup
-                </button>
-                <button
-                  onClick={() => setRejectModalOpen(true)}
-                  className="flex-1 py-2 text-[9px] font-bold uppercase bg-red-600 text-white rounded-[4px] hover:bg-red-700 cursor-pointer border-none"
-                >
-                  Reject Return
-                </button>
-              </div>
-            )}
-
-            {s === "return in transit" && (
-              <div className="mt-4 space-y-2 border-t border-gray-850 pt-3">
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-gray-400">
-                  Quality Audit Status
-                </label>
-                <select
-                  value={qualityCheck}
-                  onChange={(e) => setQualityCheck(e.target.value as any)}
-                  className="w-full bg-[#222228] border border-gray-800 px-2 py-2 text-[10px] font-bold uppercase tracking-widest focus:border-secondary focus:ring-0 rounded-[4px] text-white cursor-pointer"
-                >
-                  <option value="passed">QC: Passed (Restock)</option>
-                  <option value="failed">QC: Failed (Do Not Restock)</option>
-                </select>
-              </div>
-            )}
-
-            {s === "payment pending" && (
-              <div className="mt-4">
-                <button
-                  onClick={handleVerifyPayment}
-                  disabled={verifyingPayment}
-                  className="w-full py-2.5 text-[10px] font-bold uppercase tracking-wider text-white bg-green-700 hover:bg-green-600 rounded-[6px] transition-all cursor-pointer border-none disabled:opacity-40"
-                >
-                  {verifyingPayment ? "Verifying..." : "Verify payment"}
-                </button>
               </div>
             )}
 

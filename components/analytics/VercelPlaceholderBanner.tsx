@@ -2,12 +2,11 @@
 import React from "react";
 
 export function VercelPlaceholderBanner() {
-  const isGA4Placeholder = !process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID === "G-XXXXXXXXXX";
-  const isGTMPlaceholder = !process.env.NEXT_PUBLIC_GTM_ID || process.env.NEXT_PUBLIC_GTM_ID === "GTM-XXXXXXX";
-  const isMetaPlaceholder = !process.env.NEXT_PUBLIC_META_PIXEL_ID || process.env.NEXT_PUBLIC_META_PIXEL_ID === "XXXXXXXXXXXXXXXX";
-  const isAdsPlaceholder = !process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || process.env.NEXT_PUBLIC_GOOGLE_ADS_ID === "AW-XXXXXXXXXX";
+  const isMockMode = !process.env.NEXT_PUBLIC_GTM_ID || 
+    process.env.NEXT_PUBLIC_GTM_ID === '' ||
+    process.env.NEXT_PUBLIC_GTM_ID === 'GTM-XXXXXX';
 
-  if (!isGA4Placeholder && !isGTMPlaceholder && !isMetaPlaceholder && !isAdsPlaceholder) {
+  if (!isMockMode) {
     return null;
   }
 

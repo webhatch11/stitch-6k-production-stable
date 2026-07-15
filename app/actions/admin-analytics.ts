@@ -124,21 +124,54 @@ export async function getLiveAnalyticsAction() {
     
     let todayOrdersCount = 5;
     let todayRevenue = 7250;
+    let todayPendingOrders = 2;
+    let recentOrders: { id: string; customer: string; total: number; created_at: string }[] = [
+      { id: "ORD-001", customer: "Sample Customer", total: 1499, created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+      { id: "ORD-002", customer: "Demo User", total: 2199, created_at: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
+    ];
     
     if (isSupabaseConfigured && supabase) {
       const todayStart = new Date();
-      todayStart.setHours(0,0,0,0);
+      todayStart.setHours(0, 0, 0, 0);
       const todayStartIso = todayStart.toISOString();
       
+      // Today's order totals
       const { data: todayOrders, error } = await supabase
         .from("orders")
         .select("total, status")
         .gte("created_at", todayStartIso);
       
       if (!error && todayOrders) {
-        const validToday = todayOrders.filter(o => o.status !== "Cancelled" && o.status !== "Expired");
+        const validToday = todayOrders.filter(
+          (o) => o.status !== "Cancelled" && o.status !== "Expired"
+        );
         todayOrdersCount = validToday.length;
-        todayRevenue = validToday.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        todayRevenue = validToday.reduce(
+          (sum, o) => sum + Number(o.total || 0),
+          0
+        );
+
+        // Pending orders = paid today, waiting for admin acceptance
+        todayPendingOrders = validToday.filter((o) => {
+          const s = (o.status || "").toLowerCase();
+          return s === "paid" || s === "paid via wallet";
+        }).length;
+      }
+
+      // Fetch last 5 recent orders for the live feed
+      const { data: recent, error: recentErr } = await supabase
+        .from("orders")
+        .select("id, customer, total, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!recentErr && recent) {
+        recentOrders = recent.map((o) => ({
+          id: o.id,
+          customer: o.customer || "Unknown",
+          total: Number(o.total || 0),
+          created_at: o.created_at,
+        }));
       }
     }
 
@@ -150,6 +183,8 @@ export async function getLiveAnalyticsAction() {
       activeCarts,
       todayOrdersCount,
       todayRevenue,
+      todayPendingOrders,
+      recentOrders,
       cityOrders,
     };
   } catch (err: any) {
@@ -157,6 +192,7 @@ export async function getLiveAnalyticsAction() {
     return { success: false, error: err.message };
   }
 }
+
 
 export async function getFinanceAnalyticsAction(year: number, month: number) {
   try {

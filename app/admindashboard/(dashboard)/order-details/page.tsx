@@ -1286,19 +1286,33 @@ function OrderDetailsContent() {
                 email.includes('@test.com') ||
                 email === 'aditya.singhania@heritage.com';
 
+              const customerName = 
+                (order as any).addressSnapshot?.name ||
+                order.address_snapshot?.name ||
+                order.customer ||
+                'Customer';
+
               const profileEmail = customerProfile?.email || "";
-              const snapshotEmail = order.address_snapshot?.email || "";
+              const snapshotEmail = (order as any).addressSnapshot?.email || order.address_snapshot?.email || "";
               let displayEmail = "Email not provided";
-              if (profileEmail && !isFakeEmail(profileEmail)) {
-                displayEmail = profileEmail;
-              } else if (snapshotEmail && !isFakeEmail(snapshotEmail)) {
+              if (snapshotEmail && !isFakeEmail(snapshotEmail)) {
                 displayEmail = snapshotEmail;
+              } else if (profileEmail && !isFakeEmail(profileEmail)) {
+                displayEmail = profileEmail;
               }
 
-              const customerName = customerProfile?.name || order.address_snapshot?.name || order.customer;
-              const phone = customerProfile?.phone || order.address_snapshot?.phone || "Not provided";
+              const phone = (order as any).addressSnapshot?.phone || order.address_snapshot?.phone || customerProfile?.phone || "Not provided";
               const addr = order.address_snapshot;
-              const initials = customerName ? customerName.slice(0, 2).toUpperCase() : "NC";
+
+              const initials = customerName
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2) || "CS";
+
+              const mailtoLink = (order as any).addressSnapshot?.email || order.address_snapshot?.email || (displayEmail !== "Email not provided" ? displayEmail : "");
+              const telLink = (order as any).addressSnapshot?.phone || order.address_snapshot?.phone || (phone !== "Not provided" ? phone : "");
 
               return (
                 <div className="space-y-6">
@@ -1308,9 +1322,11 @@ function OrderDetailsContent() {
                     </div>
                     <div>
                       <p className="text-xs font-black uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{customerName}</p>
-                      <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5">
-                        First order
-                      </p>
+                      {(order as any).isFirstOrder && (
+                        <p className="text-[10px] text-gray-500 font-bold tracking-wider mt-0.5">
+                          First order
+                        </p>
+                      )}
                     </div>
                   </div>
                   
@@ -1348,9 +1364,9 @@ function OrderDetailsContent() {
 
                   {/* Call and Email Action Buttons */}
                   <div className="grid grid-cols-2 gap-3 pt-2">
-                    {displayEmail && displayEmail !== "Email not provided" ? (
+                    {mailtoLink && mailtoLink !== "Email not provided" ? (
                       <a
-                        href={`mailto:${displayEmail}`}
+                        href={`mailto:${mailtoLink}`}
                         className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-[6px] border border-gray-800 bg-[#16161a] hover:bg-[#222228] text-white"
                       >
                         ✉ Email
@@ -1359,9 +1375,9 @@ function OrderDetailsContent() {
                       <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-[6px] border border-gray-800 bg-[#16161a] text-gray-500">✉ Email</span>
                     )}
 
-                    {phone && phone !== "Not provided" ? (
+                    {telLink && telLink !== "Not provided" ? (
                       <a
-                        href={`tel:${phone}`}
+                        href={`tel:${telLink}`}
                         className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-[6px] border border-gray-800 bg-[#16161a] hover:bg-[#222228] text-white"
                       >
                         📞 Call

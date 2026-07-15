@@ -322,12 +322,10 @@ export async function POST(req: NextRequest) {
       console.error("[verify] createOrderEvent failed:", e);
     }
 
-    // i. Dispatch fulfillment
-    try {
-      await db.dispatchFulfillment(dbOrder.id);
-    } catch (e) {
-      console.error("[verify] dispatchFulfillment failed:", e);
-    }
+    // i. Shiprocket dispatch intentionally removed.
+    // Orders follow the full Kanban admin flow:
+    //   Live Orders (accept) → Processing (print invoice) → Packed → Generate Label → Shipped
+    // dispatchFulfillment() is triggered by generateShipmentLabelAction in admin-orders.ts.
 
     // j. Send Order Confirmation Email
     try {

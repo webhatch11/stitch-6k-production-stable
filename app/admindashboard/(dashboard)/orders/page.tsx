@@ -113,12 +113,24 @@ const filterByTab = (orders: Order[], tab: string) => {
     
     case 'pending':
       return orders.filter(o => {
-        const isPending = [
-          'paid', 'paid via wallet',
-          'processing', 'packed'
-        ].includes((o.status || '').toLowerCase());
-        const isOverdue = parseOrderDate(o) < deadline;
-        return isPending && isOverdue;
+        const status = (o.status || '').toLowerCase();
+        const createdAt = parseOrderDate(o);
+
+        const isPaidStatus = ['paid', 'paid via wallet'].includes(status);
+        const isProcessingStatus = ['processing', 'packed'].includes(status);
+
+        if (isPaidStatus) {
+          // Paid orders < 24hrs → Live Orders tab
+          // Paid orders > 24hrs → Pending tab (overdue, admin hasn't accepted)
+          return createdAt < deadline;
+        }
+
+        if (isProcessingStatus) {
+          // Processing/Packed orders > 24hrs → Pending tab (stuck, admin hasn't progressed)
+          return createdAt < deadline;
+        }
+
+        return false;
       });
     
     case 'payment_pending':

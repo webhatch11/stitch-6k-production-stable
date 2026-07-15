@@ -188,8 +188,12 @@ export default function InvoiceClient({
     <div className="bg-[#f9f9f9] text-on-surface font-body min-h-screen py-12 px-6">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          @page {
+            size: A4;
+            margin: 10mm 12mm 10mm 12mm;
+          }
           .no-print { display: none !important; }
-          body { background: white !important; color: black !important; }
+          body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; }
           .invoice-container { 
             box-shadow: none !important;
             border: none !important;
@@ -215,25 +219,33 @@ export default function InvoiceClient({
         </button>
       </div>
 
-      <div className="invoice-container bg-white max-w-[800px] mx-auto p-10 sm:p-16 border border-gray-200 shadow-sm relative overflow-hidden print:border-none print:shadow-none print:p-8">
-        <div className="absolute top-0 right-0 opacity-[0.03] -translate-y-1/2 translate-x-1/2 pointer-events-none">
-          <div className="w-8 h-8 rounded-full bg-[#faf9f8] p-1 flex items-center justify-center shadow-sm border border-[#775a19]/15">
-            <Image 
-              src="/assets/logo.png" 
-              alt="6K Logo" 
-              width={32}
-              height={32}
-              className="max-w-full max-h-full object-contain"
-              draggable={false}
-            />
-          </div>
+      <div className="invoice-container bg-white max-w-[800px] mx-auto p-8 sm:p-12 border border-gray-200 shadow-sm relative overflow-hidden print:border-none print:shadow-none print:p-4">
+        {/* Large centered watermark background */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none z-0">
+          <Image 
+            src="/assets/logo.png" 
+            alt="6K Watermark" 
+            width={450}
+            height={450}
+            className="object-contain"
+            draggable={false}
+            priority
+          />
         </div>
 
-        <div className="flex justify-between items-start mb-16">
+        <div className="flex justify-between items-start mb-8 z-10 relative">
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="size-8 bg-black text-white flex items-center justify-center font-headline font-black text-xs">6K</div>
-              <span className="font-headline text-xl font-black tracking-tighter uppercase">JRT TEXTILES (6K Brand)</span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 relative bg-transparent flex items-center justify-center">
+                <Image 
+                  src="/assets/logo.png" 
+                  alt="6K Logo" 
+                  width={40} 
+                  height={40} 
+                  className="object-contain"
+                />
+              </div>
+              <span className="font-headline text-lg font-black tracking-tighter uppercase">JRT TEXTILES (6K Brand)</span>
             </div>
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
               <p>1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar</p>
@@ -247,7 +259,7 @@ export default function InvoiceClient({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-20 mb-16">
+        <div className="grid grid-cols-2 gap-20 mb-8 z-10 relative">
           <div className="border-l-4 border-[#775a19] pl-6">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Bill To / Ship To</h4>
             <p className="font-headline font-bold text-sm uppercase">{matchedOrder.customer}</p>
@@ -266,10 +278,10 @@ export default function InvoiceClient({
           </div>
         </div>
 
-        <table className="w-full mb-12 text-left border-collapse">
+        <table className="w-full mb-6 text-left border-collapse z-10 relative">
           <thead>
             <tr className="border-b-2 border-black">
-              <th className="py-4 text-[10px] font-black uppercase tracking-widest">Item Description</th>
+              <th className="py-1.5 text-[10px] font-black uppercase tracking-widest">Item Description</th>
               <th className="py-4 text-center text-[10px] font-black uppercase tracking-widest w-20">HSN</th>
               <th className="py-4 text-center text-[10px] font-black uppercase tracking-widest w-16">Qty</th>
               <th className="py-4 text-right text-[10px] font-black uppercase tracking-widest w-28">Taxable Rate</th>
@@ -280,23 +292,23 @@ export default function InvoiceClient({
             {itemsWithTax.map((item, index) => {
               return (
                 <tr key={index}>
-                  <td className="py-6">
+                  <td className="py-2.5">
                     <p className="font-headline font-bold text-sm uppercase">{item.itemName}</p>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
                       {item.category}
                     </p>
                   </td>
-                  <td className="py-6 text-center font-mono font-bold text-xs">{item.hsn}</td>
-                  <td className="py-6 text-center font-bold">01</td>
-                  <td className="py-6 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  <td className="py-6 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2.5 text-center font-mono font-bold text-xs">{item.hsn}</td>
+                  <td className="py-2.5 text-center font-bold">01</td>
+                  <td className="py-2.5 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2.5 text-right font-mono font-bold">₹{item.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
 
-        <div className="flex justify-end mb-16">
+        <div className="flex justify-end mb-8 z-10 relative">
           <div className="w-72 space-y-4 text-[10px] font-bold uppercase tracking-widest">
             <div className="flex justify-between">
               <span className="text-gray-400">Subtotal (Original Price)</span>
@@ -368,27 +380,27 @@ export default function InvoiceClient({
           </div>
         </div>
 
-        <div className="mb-12">
+        <div className="mb-6 z-10 relative">
           <h4 className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-400 mb-4">GST Tax Breakup</h4>
           <table className="w-full text-left border border-gray-200 border-collapse text-[10px] font-bold uppercase">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="p-3 border-r border-gray-200">HSN</th>
-                <th className="p-3 border-r border-gray-200 text-right">Taxable Value</th>
+                <th className="p-1.5 border-r border-gray-200">HSN</th>
+                <th className="p-1.5 border-r border-gray-200 text-right">Taxable Value</th>
                 {stateInfo.isLocal ? (
                   <>
-                    <th className="p-3 border-r border-gray-200 text-center w-20">CGST Rate</th>
-                    <th className="p-3 border-r border-gray-200 text-right">CGST Amt</th>
-                    <th className="p-3 border-r border-gray-200 text-center w-20">SGST Rate</th>
-                    <th className="p-3 border-r border-gray-200 text-right">SGST Amt</th>
+                    <th className="p-1.5 border-r border-gray-200 text-center w-20">CGST Rate</th>
+                    <th className="p-1.5 border-r border-gray-200 text-right">CGST Amt</th>
+                    <th className="p-1.5 border-r border-gray-200 text-center w-20">SGST Rate</th>
+                    <th className="p-1.5 border-r border-gray-200 text-right">SGST Amt</th>
                   </>
                 ) : (
                   <>
-                    <th className="p-3 border-r border-gray-200 text-center w-24">IGST Rate</th>
-                    <th className="p-3 border-r border-gray-200 text-right">IGST Amt</th>
+                    <th className="p-1.5 border-r border-gray-200 text-center w-24">IGST Rate</th>
+                    <th className="p-1.5 border-r border-gray-200 text-right">IGST Amt</th>
                   </>
                 )}
-                <th className="p-3 text-right">Total Tax</th>
+                <th className="p-1.5 text-right">Total Tax</th>
               </tr>
             </thead>
             <tbody>
@@ -396,22 +408,22 @@ export default function InvoiceClient({
                 const rate = Number(rateStr);
                 return (
                   <tr key={rate} className="font-mono border-b border-gray-100">
-                    <td className="p-3 border-r border-gray-200 font-sans font-bold">6205</td>
-                    <td className="p-3 border-r border-gray-200 text-right">₹{group.taxableBase.toFixed(2)}</td>
+                    <td className="p-1.5 border-r border-gray-200 font-sans font-bold">6205</td>
+                    <td className="p-1.5 border-r border-gray-200 text-right">₹{group.taxableBase.toFixed(2)}</td>
                     {stateInfo.isLocal ? (
                       <>
-                        <td className="p-3 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
-                        <td className="p-3 border-r border-gray-200 text-right">₹{group.cgst.toFixed(2)}</td>
-                        <td className="p-3 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
-                        <td className="p-3 border-r border-gray-200 text-right">₹{group.sgst.toFixed(2)}</td>
+                        <td className="p-1.5 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
+                        <td className="p-1.5 border-r border-gray-200 text-right">₹{group.cgst.toFixed(2)}</td>
+                        <td className="p-1.5 border-r border-gray-200 text-center">{(rate / 2).toFixed(1)}%</td>
+                        <td className="p-1.5 border-r border-gray-200 text-right">₹{group.sgst.toFixed(2)}</td>
                       </>
                     ) : (
                       <>
-                        <td className="p-3 border-r border-gray-200 text-center">{rate}%</td>
-                        <td className="p-3 border-r border-gray-200 text-right">₹{group.igst.toFixed(2)}</td>
+                        <td className="p-1.5 border-r border-gray-200 text-center">{rate}%</td>
+                        <td className="p-1.5 border-r border-gray-200 text-right">₹{group.igst.toFixed(2)}</td>
                       </>
                     )}
-                    <td className="p-3 text-right">₹{group.totalTax.toFixed(2)}</td>
+                    <td className="p-1.5 text-right">₹{group.totalTax.toFixed(2)}</td>
                   </tr>
                 );
               })}
@@ -419,11 +431,11 @@ export default function InvoiceClient({
           </table>
         </div>
 
-        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide leading-relaxed mb-12 border-t border-gray-100 pt-6">
+        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide leading-relaxed mb-6 border-t border-gray-100 pt-4 z-10 relative">
           <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
         </p>
 
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end z-10 relative">
           <div>
             <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest leading-relaxed max-w-xs">
               This document serves as a compliant GST Tax Invoice. Thank you for shopping with us.

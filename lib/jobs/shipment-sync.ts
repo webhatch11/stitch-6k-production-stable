@@ -2,6 +2,7 @@ import { Worker, Queue } from "bullmq";
 import { shiprocket } from "@/lib/shiprocket";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
+import { Order } from "@/lib/types";
 import IORedis from "ioredis";
 
 let connection: IORedis | null = null;
@@ -29,7 +30,7 @@ export const shipmentSyncWorker = connection
             // Get all orders that have a shipment tracking code and are not finalized
             const orders = await db.getOrders();
             const activeOrders = orders.filter(
-              (o) =>
+              (o: Order) =>
                 o.shiprocketId &&
                 o.shiprocketId.trim() !== "" &&
                 !["Delivered", "Returned", "Cancelled", "Expired"].includes(o.status)

@@ -1,6 +1,7 @@
 import { Worker, Queue } from "bullmq";
 import { db } from "../../lib/db";
 import { shiprocket } from "../../lib/shiprocket";
+import { Order } from "@/lib/types";
 import IORedis from "ioredis";
 
 const DEFAULT_PICKUP_LOCATION = 
@@ -27,7 +28,7 @@ export const shipmentRetryWorker = new Worker(
 
       try {
         const orders = await db.getOrders();
-        const order = orders.find(o => o.id === orderId);
+        const order = orders.find((o: Order) => o.id === orderId);
         if (!order) {
           console.error(`[Shipment Retry Worker] Order ${orderId} not found.`);
           return;

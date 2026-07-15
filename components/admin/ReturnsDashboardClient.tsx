@@ -356,17 +356,12 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
-                          <button
-                            disabled={submitting === o.id}
-                            onClick={() => {
-                              setTargetOrder(o);
-                              setModalType("pickup");
-                              setModalError("");
-                            }}
-                            className={`bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                          <Link
+                            href={`/admindashboard/return-details?orderId=${o.id}`}
+                            className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 flex items-center justify-center no-underline hover:opacity-90"
                           >
-                            Approve Pickup
-                          </button>
+                            View & Approve
+                          </Link>
                           <button
                             disabled={submitting === o.id}
                             onClick={() => {

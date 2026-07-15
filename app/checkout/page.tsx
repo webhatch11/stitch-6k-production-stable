@@ -491,47 +491,53 @@ export default function CheckoutPage() {
 
       if (finalPayable === 0) {
         // Paid fully via Wallet and/or Loyalty Points
-        const res = await processWalletPointsCheckoutAction({
-          cart,
-          couponCode: appliedCouponCode,
-          walletDeduction,
-          pointsRedeemed,
-          loyaltyDiscount,
-          baseTotal,
-          netTotal,
-          customerName,
-          idempotencyKey,
-          addressId: selectedAddress?.id,
-          userId,
-          utm_source,
-          utm_medium,
-          utm_campaign,
-        });
+        setProcessingPayment(true);
+        try {
+          const res = await processWalletPointsCheckoutAction({
+            cart,
+            couponCode: appliedCouponCode,
+            walletDeduction,
+            pointsRedeemed,
+            loyaltyDiscount,
+            baseTotal,
+            netTotal,
+            customerName,
+            idempotencyKey,
+            addressId: selectedAddress?.id,
+            userId,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+          });
 
-        if (!res.success) {
-          triggerToast(res.error || "Failed to place order.");
-          return;
+          if (!res.success) {
+            triggerToast(res.error || "Failed to place order.");
+            setProcessingPayment(false);
+            return;
+          }
+
+          // Sync local storage to match server's computed balances
+          if (res.walletBalance !== undefined) {
+            localStorage.setItem("wallet_balance", res.walletBalance.toString());
+          }
+          if (res.loyaltyPoints !== undefined) {
+            localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
+          }
+
+          // Clear cart
+          useCartStore.getState().clearCart();
+          clearCartAction().catch(() => {});
+          useCheckoutStore.getState().resetCheckout();
+
+          triggerToast("Order placed successfully!");
+          setTimeout(() => {
+            router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
+          }, 500);
+        } catch (err: any) {
+          console.error('[checkout] Wallet checkout error:', err);
+          triggerToast('Checkout failed. Please try again.');
+          setProcessingPayment(false);
         }
-
-        // Sync local storage to match server's computed balances
-        if (res.walletBalance !== undefined) {
-          localStorage.setItem("wallet_balance", res.walletBalance.toString());
-        }
-        if (res.loyaltyPoints !== undefined) {
-          localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
-        }
-
-
-
-        // Clear cart
-        useCartStore.getState().clearCart();
-        clearCartAction().catch(() => {});
-        useCheckoutStore.getState().resetCheckout();
-
-        triggerToast("Order placed successfully!");
-        setTimeout(() => {
-          router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
-        }, 1000);
       } else if (paymentMethod === "cod") {
         // Cash on Delivery Placement
         setProcessingPayment(true);
@@ -1311,9 +1317,9 @@ export default function CheckoutPage() {
                   {/* Primary Action Button */}
                   <button
                     onClick={handleSubmit}
-                    disabled={isStep1Disabled}
+                    disabled={isStep1Disabled || processingPayment}
                     className={`w-full py-4 font-headline font-black text-xs tracking-[0.25em] uppercase transition-all duration-500 ease-out rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-3 mt-4 ${
-                      isStep1Disabled
+                      isStep1Disabled || processingPayment
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
                         : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary hover:shadow-[0_10px_25px_rgba(254,212,136,0.15)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                     }`}
@@ -1365,9 +1371,9 @@ export default function CheckoutPage() {
         )}
         <button
           onClick={handleSubmit}
-          disabled={isStep1Disabled}
+          disabled={isStep1Disabled || processingPayment}
           className={`w-full py-4 font-headline font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 rounded-xl flex items-center justify-center gap-2 shadow-md ${
-            isStep1Disabled
+            isStep1Disabled || processingPayment
               ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60 shadow-none border border-gray-200"
               : "bg-[#775a19] text-white hover:bg-[#fed488] hover:text-primary active:scale-95 cursor-pointer"
           }`}

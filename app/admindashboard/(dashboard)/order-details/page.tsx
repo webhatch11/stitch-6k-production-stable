@@ -61,6 +61,7 @@ function OrderDetailsContent() {
   const [printingLabel, setPrintingLabel] = useState(false);
   const [manifestDownloadUrl, setManifestDownloadUrl] = useState<string | null>(null);
   const [shipment, setShipment] = useState<any>(null);
+  const [mockLoading, setMockLoading] = useState(false);
 
   const handleAcceptOrder = async () => {
     if (!order) return;
@@ -242,6 +243,59 @@ function OrderDetailsContent() {
       }
     } else {
       triggerToast(res.error || "Failed to verify payment");
+    }
+  };
+
+  const handleMockDeliver = async () => {
+    if (!order?.id) return;
+    setMockLoading(true);
+    try {
+      const result = await bulkUpdateOrderStatusAction([order.id], 'Delivered');
+      if (result.success) {
+        await fetch('/api/admin/mock-deliver', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id })
+        });
+        triggerToast('✅ Order marked as delivered');
+        setTimeout(() => router.refresh(), 500);
+      }
+    } catch (err) {
+      triggerToast('Failed to mark delivered');
+    } finally {
+      setMockLoading(false);
+    }
+  };
+
+  const handleMockShip = async () => {
+    if (!order?.id) return;
+    setMockLoading(true);
+    try {
+      const result = await bulkUpdateOrderStatusAction([order.id], 'Shipped');
+      if (result.success) {
+        triggerToast('✅ Order marked as shipped');
+        setTimeout(() => router.refresh(), 500);
+      }
+    } catch (err) {
+      triggerToast('Failed to mark shipped');
+    } finally {
+      setMockLoading(false);
+    }
+  };
+
+  const handleMockReturnArrived = async () => {
+    if (!order?.id) return;
+    setMockLoading(true);
+    try {
+      const result = await bulkUpdateOrderStatusAction([order.id], 'Return in Transit');
+      if (result.success) {
+        triggerToast('✅ Return marked as arrived');
+        setTimeout(() => router.refresh(), 500);
+      }
+    } catch (err) {
+      triggerToast('Failed to update return status');
+    } finally {
+      setMockLoading(false);
     }
   };
 
@@ -1776,6 +1830,54 @@ function OrderDetailsContent() {
                 >
                   Download manifest →
                 </a>
+              </div>
+            )}
+
+            {(process.env.NODE_ENV !== 'production' || 
+              process.env.NEXT_PUBLIC_ENABLE_MOCK_SHIPPING === 'true') && (
+              <div className="mt-4 pt-4 border-t border-dashed border-zinc-800">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3 font-black">
+                  ⚠️ Mock / Testing Only
+                </p>
+                <div className="space-y-2">
+                
+                  {/* Show for Shipped orders */}
+                  {order.status?.toLowerCase() === 'shipped' && (
+                    <button
+                      type="button"
+                      disabled={mockLoading}
+                      onClick={handleMockDeliver}
+                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-green-500 bg-green-500/10 text-green-400 hover:bg-green-500/20 cursor-pointer rounded-none disabled:opacity-40"
+                    >
+                      {mockLoading ? "Processing..." : "🚚 Mock: Mark as Delivered"}
+                    </button>
+                  )}
+                  
+                  {/* Show for Delivered orders */}
+                  {order.status?.toLowerCase() === 'delivered' && (
+                    <button
+                      type="button"
+                      disabled={mockLoading}
+                      onClick={handleMockReturnArrived}
+                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 cursor-pointer rounded-none disabled:opacity-40"
+                    >
+                      {mockLoading ? "Processing..." : "📦 Mock: Mark Return Arrived"}
+                    </button>
+                  )}
+
+                  {/* Show for Processing/Packed/Shipped */}
+                  {['processing', 'packed', 'shipped'].includes(order.status?.toLowerCase() || '') && (
+                    <button
+                      type="button"
+                      disabled={mockLoading}
+                      onClick={handleMockShip}
+                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 cursor-pointer rounded-none disabled:opacity-40"
+                    >
+                      {mockLoading ? "Processing..." : "✈️ Mock: Mark as Shipped (skip label)"}
+                    </button>
+                  )}
+                  
+                </div>
               </div>
             )}
 

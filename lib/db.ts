@@ -2652,12 +2652,10 @@ export const db = {
       console.error("[runPostPaymentSideEffects] createOrderEvent/history failed:", e);
     }
 
-    // i. Dispatch fulfillment
-    try {
-      await this.dispatchFulfillment(dbOrder.id);
-    } catch (e) {
-      console.error("[runPostPaymentSideEffects] dispatchFulfillment failed:", e);
-    }
+    // i. Shiprocket dispatch intentionally removed.
+    // Orders follow the full Kanban admin flow:
+    //   Live Orders (accept) → Processing (print invoice) → Packed → Generate Label → Shipped
+    // dispatchFulfillment() is triggered by generateShipmentLabelAction in admin-orders.ts.
 
     // j. Send Order Confirmation Email
     try {

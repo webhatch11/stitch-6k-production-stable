@@ -97,6 +97,11 @@ export async function POST(req: NextRequest) {
       }).catch(err => console.error("[Webhook RTO Delivered Alert] Failed to send email:", err));
     } else if (isPickupScheduled) {
       eventMsg = "Pickup scheduled by courier.";
+    } else if (
+      lowerStatus.includes("picked up") ||
+      lowerStatus.includes("shipment picked")
+    ) {
+      eventMsg = "Package picked up by courier.";
     } else if (isPickupError) {
       eventMsg = "Pickup failed. Rescheduling required.";
       
@@ -125,6 +130,7 @@ export async function POST(req: NextRequest) {
       }).catch(err => console.error("[Webhook Return Pickup Error Alert] Failed to send email:", err));
     } else if (lowerStatus.includes("delivered")) {
       newStatus = "Delivered";
+      eventMsg = "Package delivered to customer. Return window: 7 days.";
     } else if (lowerStatus.includes("cancelled") || lowerStatus.includes("canceled")) {
       newStatus = "Cancelled";
     } else if (lowerStatus.includes("returned")) {

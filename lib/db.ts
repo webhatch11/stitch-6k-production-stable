@@ -5,32 +5,18 @@ import { InventoryService } from "./services/inventory";
 import { shiprocket } from "./shiprocket";
 import { CartItem } from "@/stores/cartStore";
 import { PRODUCT_CACHE_TTL_SECS, PRODUCT_LIST_CACHE_TTL_SECS, MAX_COUPON_DISCOUNT_INR } from "./inventory-config";
+import { DEFAULT_PICKUP_LOCATION } from "./db/constants";
+import { loadService } from "./db/client";
+import { 
+  mapDbProductToProduct,
+  mapDbOrderToOrder,
+  mapDbAddressToUserAddress,
+  mapDbCouponToCoupon
+} from "./db/utils";
+import { CategorySales, RepeatPurchaseStats, AdSpend, ROASReport } from "./db/types";
+export type { CategorySales, RepeatPurchaseStats, AdSpend, ROASReport };
 
-const DEFAULT_PICKUP_LOCATION = 
-  process.env.SHIPROCKET_PICKUP_LOCATION || 
-  "Primary Warehouse";
-
-// Lazy-loaded service client. The supabase-service module is server-only
-// (it carries SUPABASE_SERVICE_ROLE_KEY and has a browser-throw guard).
-// We import it dynamically inside a server-only branch so it never enters
-// client bundles.
-
-type ServiceModule = typeof import("./supabase-service");
-let _serviceMod: ServiceModule | null = null;
-
-function loadService(): { supabase: ServiceModule["supabaseService"] | null; isSupabaseConfigured: boolean } {
-  if (typeof window !== "undefined") {
-    return { supabase: null, isSupabaseConfigured: false };
-  }
-  if (!_serviceMod) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    _serviceMod = require("./supabase-service") as ServiceModule;
-  }
-  return {
-    supabase: _serviceMod.supabaseService,
-    isSupabaseConfigured: _serviceMod.isServiceClientConfigured,
-  };
-}
+// loadService dynamic loading client is now imported from ./db
 
 // NOTE: BullMQ job scheduling and workers run ONLY in the dedicated worker
 // process (lib/jobs/worker.ts, started via `npm run worker` with IS_WORKER=true).
@@ -39,56 +25,7 @@ function loadService(): { supabase: ServiceModule["supabaseService"] | null; isS
 // separately-deployed worker would double-process every queue.
 
 // Helper mappings for Database compatibility
-const mapDbProductToProduct = (p: any): Product => {
-  if (!p) return p;
-  return {
-    id: p.id,
-    slug: p.slug || "",
-    title: p.title,
-    price: Number(p.price),
-    comparePrice: p.compare_price ? Number(p.compare_price) : undefined,
-    category: p.category,
-    image: p.image,
-    images: p.images || [],
-    isNew: p.is_new,
-    stock: p.stock,
-    description: p.description,
-    isAtelierExclusive: p.is_agent_exclusive || p.is_atelier_exclusive,
-    sizeStock: {
-      S: p.size_stock_s || 0,
-      M: p.size_stock_m || 0,
-      L: p.size_stock_l || 0,
-      XL: p.size_stock_xl || 0,
-      XXL: p.size_stock_xxl || 0,
-    },
-    basePrice: p.base_price ? Number(p.base_price) : undefined,
-    gstRate: p.gst_rate ? Number(p.gst_rate) : undefined,
-    discountRate: p.discount_rate ? Number(p.discount_rate) : undefined,
-    specFabric: p.spec_fabric,
-    specFit: p.spec_fit,
-    specCollar: p.spec_collar,
-    specSleeve: p.spec_sleeve,
-    specCare: p.spec_care,
-    customBadge: p.custom_badge || p.customBadge || "",
-    featured: p.featured || false,
-    bestseller: p.bestseller || false,
-    material: p.material || "",
-    colors: p.colors || [],
-    ratings: p.ratings ? Number(p.ratings) : undefined,
-    reviews: p.reviews || [],
-    deleted_at: p.deleted_at || null,
-    deletedAt: p.deleted_at || null,
-    scheduledPermanentDeletionAt: p.scheduled_permanent_deletion_at || null,
-    display_sections: p.display_sections || [],
-    compareAtPrice: p.compare_at_price ? Number(p.compare_at_price) : (p.compare_price ? Number(p.compare_price) : null),
-    weightGrams: p.weight_grams || null,
-    productStatus: p.product_status || 'active',
-    seoTitle: p.seo_title || null,
-    seoDescription: p.seo_description || null,
-    seoKeywords: p.seo_keywords || null,
-    reorderPoint: p.reorder_point !== undefined ? (p.reorder_point !== null ? Number(p.reorder_point) : null) : null,
-  };
-};
+// mapDbProductToProduct helper mapper is now imported from ./db
 
 async function attachVariantsToProducts(products: Product[]): Promise<Product[]> {
   if (products.length === 0) return products;
@@ -153,137 +90,7 @@ async function attachVariantsToProducts(products: Product[]): Promise<Product[]>
   });
 }
 
-const mapDbOrderToOrder = (o: any): Order => {
-  if (!o) return o;
-  return {
-    id: o.id,
-    customer: o.customer,
-    date: o.date,
-    total: Number(o.total),
-    status: o.status,
-    items: o.items || [],
-    originalTotal: Number(o.original_total),
-    couponDiscount: Number(o.coupon_discount || 0),
-    couponCode: o.coupon_code || "",
-    walletPaid: Number(o.wallet_paid || 0),
-    gatewayPaid: Number(o.gateway_paid || 0),
-    pointsRedeemed: Number(o.points_redeemed || 0),
-    pointsDiscount: Number(o.points_discount || 0),
-    pointsEarned: Number(o.points_earned || 0),
-    pointsCreditStatus: o.points_credit_status || 'pending',
-    pointsCreditScheduledAt: o.points_credit_scheduled_at || null,
-    returnReason: o.return_reason,
-    returnDetails: o.return_details,
-    returnImage: o.return_image,
-    refundOption: o.refund_option,
-    returnRequestDate: o.return_request_date,
-    returnDate: o.return_date,
-    returnRejectReason: o.return_reject_reason,
-    qualityCheckPassed: o.quality_check_passed,
-    shiprocketId: o.shiprocket_id || o.shiprocketId || "",
-    cartItems: o.cart_items || [],
-    paymentStatus: o.payment_status || o.paymentStatus || "",
-    userId: o.user_id || undefined,
-    address_snapshot: o.address_snapshot || null,
-    refund_id: o.refund_id || undefined,
-    refund_amount: o.refund_amount != null ? Number(o.refund_amount) : undefined,
-    refund_status: o.refund_status || undefined,
-    refund_reason: o.refund_reason || undefined,
-    refunded_at: o.refunded_at || undefined,
-    razorpay_payment_id: o.razorpay_payment_id || undefined,
-    created_at: o.created_at || undefined,
-    createdAt: o.created_at || undefined,
-    delivered_at: o.delivered_at || undefined,
-    deliveredAt: o.delivered_at || undefined,
-    return_awb: o.return_awb || undefined,
-    returnAwb: o.return_awb || undefined,
-    return_pickup_scheduled: o.return_pickup_scheduled || undefined,
-    returnPickupScheduled: o.return_pickup_scheduled || undefined,
-    utm_source: o.utm_source || undefined,
-    utmSource: o.utm_source || undefined,
-    utm_medium: o.utm_medium || undefined,
-    utmMedium: o.utm_medium || undefined,
-    utm_campaign: o.utm_campaign || undefined,
-    utmCampaign: o.utm_campaign || undefined,
-    shippingAmount: o.shipping_amount != null ? Number(o.shipping_amount) : 0,
-    shipping_amount: o.shipping_amount != null ? Number(o.shipping_amount) : 0,
-    packedAt: o.packed_at || null,
-    acceptedAt: o.accepted_at || null,
-  };
-};
-
-const mapDbAddressToUserAddress = (a: any): UserAddress => {
-  if (!a) return a;
-  return {
-    id: a.id,
-    user_id: a.user_id,
-    name: a.name,
-    phone: a.phone,
-    address_line_1: a.address_line_1 || a.address_line1 || "",
-    address_line_2: a.address_line_2 || a.address_line2 || "",
-    city: a.city,
-    state: a.state,
-    postal_code: a.postal_code,
-    country: a.country,
-    is_default: !!a.is_default,
-  };
-};
-
-const mapDbCouponToCoupon = (c: any): Coupon => {
-  if (!c) return c;
-  return {
-    id: c.id,
-    code: c.code,
-    discount: Number(c.discount),
-    type: c.type,
-    active: c.active,
-    expiryDate: c.expiry_date || c.expiryDate || null,
-    minCartValue: (c.min_cart_value !== null && c.min_cart_value !== undefined) ? Number(c.min_cart_value) : ((c.minCartValue !== null && c.minCartValue !== undefined) ? Number(c.minCartValue) : null),
-    maxUsage: (c.max_usage !== null && c.max_usage !== undefined) ? Number(c.max_usage) : ((c.maxUsage !== null && c.maxUsage !== undefined) ? Number(c.maxUsage) : null),
-    usageCount: (c.usage_count !== null && c.usage_count !== undefined) ? Number(c.usage_count) : ((c.usageCount !== null && c.usageCount !== undefined) ? Number(c.usageCount) : 0),
-    min_cart_value: (c.min_cart_value !== null && c.min_cart_value !== undefined) ? Number(c.min_cart_value) : ((c.minCartValue !== null && c.minCartValue !== undefined) ? Number(c.minCartValue) : null),
-    max_usage: (c.max_usage !== null && c.max_usage !== undefined) ? Number(c.max_usage) : ((c.maxUsage !== null && c.maxUsage !== undefined) ? Number(c.maxUsage) : null),
-    usage_count: (c.usage_count !== null && c.usage_count !== undefined) ? Number(c.usage_count) : ((c.usageCount !== null && c.usageCount !== undefined) ? Number(c.usageCount) : 0),
-    buyQuantity: c.buy_quantity !== undefined ? c.buy_quantity : (c.buyQuantity || null),
-    getQuantity: c.get_quantity !== undefined ? c.get_quantity : (c.getQuantity || null),
-    getDiscountPercent: c.get_discount_percent !== undefined ? c.get_discount_percent : (c.getDiscountPercent || null),
-    buyProductId: c.buy_product_id !== undefined ? c.buy_product_id : (c.buyProductId || null),
-    getProductId: c.get_product_id !== undefined ? c.get_product_id : (c.getProductId || null),
-  };
-};
-
-export interface CategorySales {
-  category: string;
-  revenue: number;
-  orderCount: number;
-  unitsSold: number;
-  percentage: number;
-}
-
-export interface RepeatPurchaseStats {
-  totalCustomers: number;
-  repeatCustomers: number;
-  repeatRate: number;
-}
-
-export interface AdSpend {
-  id?: string;
-  channel: string;
-  month: string;
-  spendAmount: number;
-  campaignName?: string | null;
-  notes?: string | null;
-  createdAt?: string;
-}
-
-export interface ROASReport {
-  channel: string;
-  month: string;
-  spend: number;
-  revenue: number;
-  roas: number;
-  roasFormatted: string;
-}
+// mapDbOrderToOrder, mapDbAddressToUserAddress, mapDbCouponToCoupon helpers and category interfaces are now imported from ./db
 
 export const db = {
   // --- Products ---

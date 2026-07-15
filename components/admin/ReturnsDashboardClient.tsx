@@ -380,7 +380,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                             Reject
                           </button>
                           <Link
-                            href={`/admindashboard/order-details?orderId=${o.id}`}
+                            href={`/admindashboard/return-details?orderId=${o.id}`}
                             className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] flex items-center gap-1"
                           >
                             View
@@ -446,7 +446,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                             Mark Received
                           </button>
                           <Link
-                            href={`/admindashboard/order-details?orderId=${o.id}`}
+                            href={`/admindashboard/return-details?orderId=${o.id}`}
                             className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] flex items-center gap-1"
                           >
                             View
@@ -522,7 +522,7 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       </td>
                       <td className="px-8 py-6 text-right">
                         <Link
-                          href={`/admindashboard/order-details?orderId=${o.id}`}
+                          href={`/admindashboard/return-details?orderId=${o.id}`}
                           className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] inline-flex items-center gap-1"
                         >
                           Details

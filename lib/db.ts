@@ -1,4 +1,4 @@
-import { Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote } from "./types";
+import { Product, ProductVariant, Order, Coupon, WalletTransaction, LoyaltyTransaction, UserAddress, OrderStatusHistory, Shipment, ShipmentEvent, TrackingLog, OrderNote, OrderEvent } from "./types";
 import { ShippingRules } from "./shipping";
 import { CacheService } from "./cache";
 import { InventoryService } from "./services/inventory";
@@ -5506,6 +5506,57 @@ export const db = {
     await CacheService.delPattern("products:list*");
     await CacheService.delPattern(`products:slug:*`);
     return true;
+  },
+
+  async getReturnByOrderId(orderId: string): Promise<{
+    order: Order;
+    events: OrderEvent[];
+    notes: OrderNote[];
+  } | null> {
+    const { supabase, isSupabaseConfigured } = loadService();
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('Database connection not configured.');
+    }
+    const order = await this.getOrderById(orderId);
+    if (!order) return null;
+
+    const { data: eventsData, error: eventsError } = await supabase
+      .from("order_events")
+      .select("id, order_id, event, created_at")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true });
+
+    if (eventsError) {
+      console.error("Error fetching events for return details:", eventsError);
+    }
+
+    const filteredEvents: OrderEvent[] = (eventsData || [])
+      .filter((e: any) => {
+        const txt = (e.event || "").toLowerCase();
+        return (
+          txt.includes("return") ||
+          txt.includes("qc") ||
+          txt.includes("pickup") ||
+          txt.includes("refund")
+        );
+      })
+      .map((e: any) => ({
+        id: e.id,
+        orderId: e.order_id,
+        order_id: e.order_id,
+        event: e.event,
+        description: e.event,
+        created_at: e.created_at,
+        createdAt: e.created_at,
+      }));
+
+    const notes = await this.getOrderNotes(orderId);
+
+    return {
+      order,
+      events: filteredEvents,
+      notes,
+    };
   },
 };
 

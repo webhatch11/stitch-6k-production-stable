@@ -1736,7 +1736,7 @@ function OrderDetailsContent() {
                         Return in progress — manage from Returns page
                       </div>
                       <Link
-                        href="/admindashboard/returns"
+                        href={`/admindashboard/return-details?orderId=${order.id}`}
                         className="w-full flex items-center justify-center gap-2 p-3 bg-zinc-900 text-white border border-zinc-850 hover:bg-zinc-800 rounded-[8px] transition-all text-[10px] font-bold uppercase tracking-wider text-center"
                       >
                         <span>→ View Return Details</span>

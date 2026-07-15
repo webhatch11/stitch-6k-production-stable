@@ -672,4 +672,142 @@ export async function sendOrderDeliveredEmail(params: {
   }
 }
 
+export async function sendReturnDeclinedEmail(order: {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  reason: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #ef4444; font-size: 24px;">
+        Return Request Declined
+      </h1>
+      <p>Hi ${order.customerName},</p>
+      <p>Your return request for Order <strong>#${order.id}</strong> has been declined.</p>
+      
+      <h2 style="font-size: 16px; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Rejection Reason
+      </h2>
+      <p style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; font-style: italic; color: #991b1b; margin-top: 16px;">
+        "${order.reason}"
+      </p>
+      
+      <p style="margin-top: 24px;">
+        Your item remains with you. Contact us if you have questions.
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        6kthebrand@gmail.com | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: order.customerEmail,
+      subject: "Your return request has been declined",
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[sendReturnDeclinedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
+  }
+}
+
+export async function sendReturnQcFailedEmail(order: {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  reason: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #ef4444; font-size: 24px;">
+        Return Inspection Result
+      </h1>
+      <p>Hi ${order.customerName},</p>
+      <p>Your return item for Order <strong>#${order.id}</strong> has been inspected by our warehouse quality check team.</p>
+      
+      <h2 style="font-size: 16px; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
+        Inspection Result
+      </h2>
+      <p style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; font-style: italic; color: #991b1b; margin-top: 16px;">
+        Item was inspected and could not be accepted for return. Reason: ${order.reason}
+      </p>
+      
+      <p style="margin-top: 24px;">
+        Please contact us to arrange reshipping.
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        6kthebrand@gmail.com | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: order.customerEmail,
+      subject: "Return inspection result",
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[sendReturnQcFailedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
+  }
+}
+
+export async function sendReturnPickupAssignedEmail(order: {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  awb: string;
+}): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #BA7517; font-size: 24px;">
+        Return Pickup Scheduled
+      </h1>
+      <p>Hi ${order.customerName},</p>
+      <p>Return pickup scheduled — courier arrives in 2-3 business days. No label needed.</p>
+      <p><strong>AWB:</strong> ${order.awb}</p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
+      
+      <p style="color: #9ca3af; font-size: 12px;">
+        — 6K Brand | JRT TEXTILES<br>
+        Tiruchirappalli, Tamil Nadu<br>
+        6kthebrand@gmail.com | +91 93636 93004
+      </p>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: fromEmail,
+      to: order.customerEmail,
+      subject: `Return Pickup Scheduled — #${order.id}`,
+      html: htmlContent,
+    });
+  } catch (err: any) {
+    console.error(`[sendReturnPickupAssignedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
+  }
+}
+
+
 

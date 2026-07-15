@@ -36,9 +36,16 @@ const ALLOWED_STATUSES = [
   "Delivered",
   "Cancelled",
   "Return Requested",
+  "Return Accepted",
   "Return in Transit",
   "Returned",
   "Return Rejected",
+  "Return Pickup Scheduled",
+  "Return QC Pending",
+  "Return QC Failed",
+  "Refund Initiated",
+  "Reship Requested",
+  "Return Approved",
 ];
 
 export async function bulkUpdateOrderStatusAction(
@@ -1173,6 +1180,243 @@ export async function generateBulkInvoicePdfAction(
   } catch (e: any) {
     console.error("[generateBulkInvoicePdfAction]", e);
     return { success: false, error: e.message || "Failed to fetch bulk invoice data" };
+  }
+}
+
+export async function rejectReturnWithReasonAction(
+  orderId: string,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  let user;
+  try {
+    user = await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    await db.saveOrder({
+      id: orderId,
+      status: "Return Rejected",
+      returnRejectReason: reason,
+    });
+
+    const createdBy = user.email || "admin@the6k.com";
+    await db.addOrderNote(orderId, `Return request rejected. Reason: ${reason}`, createdBy);
+
+    const email = await getCustomerEmailForOrder(order);
+    if (email) {
+      const { sendReturnDeclinedEmail } = await import("@/lib/email");
+      await sendReturnDeclinedEmail({
+        id: orderId,
+        customerName: order.customer || "Valued Customer",
+        customerEmail: email,
+        reason: reason,
+      });
+    }
+
+    await db.addOrderEvent(orderId, `Return rejected: ${reason}`);
+
+    return { success: true };
+  } catch (e: any) {
+    console.error("[rejectReturnWithReasonAction] Error:", e);
+    return { success: false, error: e.message || "Failed to reject return" };
+  }
+}
+
+export async function assignShiprocketReturnPickupAction(
+  orderId: string
+): Promise<{ success: boolean; awb?: string; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const order = await db.getOrderById(orderId);
+    if (!order) {
+      return { success: false, error: "Order not found" };
+    }
+
+    const { shiprocket } = await import("@/lib/shiprocket");
+
+    const customerAddress = order.address_snapshot || {
+      name: order.customer || "Guest Customer",
+      phone: "9999999999",
+      address: "123 Main Street",
+      city: "Mumbai",
+      state: "Maharashtra",
+      pincode: "400001",
+    };
+
+    const items = (order.cartItems && order.cartItems.length > 0)
+      ? order.cartItems.map((item: any) => ({
+          name: item.productName || item.title || "Shirt",
+          sku: item.productId || "sku",
+          units: item.quantity || 1,
+          price: item.price || 0
+        }))
+      : [{ name: "Designer Shirt", sku: "sku-stitch", units: 1, price: order.total }];
+
+    const pickup = await shiprocket.createReversePickup(orderId, customerAddress, items);
+
+    if (pickup.success && pickup.awb) {
+      await db.saveOrder({
+        id: orderId,
+        returnAwb: pickup.awb,
+        returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString(),
+        status: "Return Pickup Scheduled",
+      });
+
+      await db.addOrderEvent(orderId, `Return pickup scheduled. AWB: ${pickup.awb}`);
+
+      const email = await getCustomerEmailForOrder(order);
+      if (email) {
+        const { sendReturnPickupAssignedEmail } = await import("@/lib/email");
+        await sendReturnPickupAssignedEmail({
+          id: orderId,
+          customerName: order.customer || "Valued Customer",
+          customerEmail: email,
+          awb: pickup.awb,
+        });
+      }
+
+      return { success: true, awb: pickup.awb };
+    } else {
+      return { success: false, error: pickup.error || "Shiprocket reverse pickup failed." };
+    }
+  } catch (e: any) {
+    console.error("[assignShiprocketReturnPickupAction] Error:", e);
+    return { success: false, error: e.message || "Failed to assign reverse pickup" };
+  }
+}
+
+export async function markReturnReceivedAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await db.saveOrder({
+      id: orderId,
+      status: "Return QC Pending",
+    });
+
+    await db.addOrderEvent(orderId, "Item received at warehouse. QC in progress.");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[markReturnReceivedAction] Error:", e);
+    return { success: false, error: e.message || "Failed to mark return received" };
+  }
+}
+
+export async function processQcResultAction(
+  orderId: string,
+  qcPassed: boolean,
+  reason: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    if (qcPassed) {
+      await db.saveOrder({
+        id: orderId,
+        status: "Return Approved",
+      });
+
+      const refundRes = await processReturnRefundAction(orderId, true, reason || "Return QC Passed");
+      if (!refundRes.success) {
+        return { success: false, error: refundRes.error || "Failed to process refund" };
+      }
+
+      await db.addOrderEvent(orderId, "QC passed — refund initiated");
+    } else {
+      await db.saveOrder({
+        id: orderId,
+        status: "Return QC Failed",
+        returnRejectReason: reason,
+      });
+
+      await db.addOrderEvent(orderId, `QC failed: ${reason}`);
+
+      const order = await db.getOrderById(orderId);
+      if (order) {
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendReturnQcFailedEmail } = await import("@/lib/email");
+          await sendReturnQcFailedEmail({
+            id: orderId,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            reason: reason,
+          });
+        }
+      }
+    }
+    return { success: true };
+  } catch (e: any) {
+    console.error("[processQcResultAction] Error:", e);
+    return { success: false, error: e.message || "Failed to process QC result" };
+  }
+}
+
+export async function reshipReturnItemAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await db.saveOrder({
+      id: orderId,
+      status: "Reship Requested",
+    });
+
+    await db.addOrderEvent(orderId, "Item to be reshipped to customer");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[reshipReturnItemAction] Error:", e);
+    return { success: false, error: e.message || "Failed to request reship" };
+  }
+}
+
+export async function acceptReturnRequestAction(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    await db.saveOrder({
+      id: orderId,
+      status: "Return Accepted",
+    });
+
+    await db.addOrderEvent(orderId, "Return request accepted by admin");
+    return { success: true };
+  } catch (e: any) {
+    console.error("[acceptReturnRequestAction] Error:", e);
+    return { success: false, error: e.message || "Failed to accept return" };
   }
 }
 

@@ -145,6 +145,17 @@ export interface OrderNote {
   createdAt: string;
 }
 
+export interface OrderEvent {
+  id: string;
+  order_id?: string;
+  orderId?: string;
+  event: string;
+  description?: string;
+  created_at: string;
+  createdAt?: string;
+}
+
+
 export interface Coupon {
   id: string;
   code: string;

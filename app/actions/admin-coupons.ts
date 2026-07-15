@@ -113,7 +113,8 @@ export async function getCouponDiscountTotalAction(): Promise<{
     const { data, error } = await supabaseService
       .from("orders")
       .select("coupon_code, coupon_discount")
-      .not("coupon_code", "is", null);
+      .not("coupon_code", "is", null)
+      .neq("coupon_code", "");
     
     if (error) return { success: false, error: error.message };
     

@@ -732,19 +732,13 @@ export async function processCodCheckoutAction(payload: {
     }
   }
 
-  // Award new loyalty points (only if logged in)
-  if (user) {
-    const creditAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    await db.saveOrder({
-      id: idempotencyKey,
-      pointsCreditStatus: 'pending',
-      pointsCreditScheduledAt: creditAt
-    });
-  }
+  // ONLY AFTER ALL GUARDS PASS — generate the sequence ID once.
+  const orderId = await db.generateOrderId('wallet');
 
   // F. Save Order server-side
   const orderData = {
-    id: idempotencyKey,
+    id: orderId,
+    idempotencyKey: idempotencyKey,
     customer: customerName,
     date: new Date().toLocaleDateString("en-IN", {
       day: "numeric",
@@ -780,6 +774,8 @@ export async function processCodCheckoutAction(payload: {
     utm_source: utm_source || undefined,
     utm_medium: utm_medium || undefined,
     utm_campaign: utm_campaign || undefined,
+    pointsCreditStatus: user ? 'pending' as const : undefined,
+    pointsCreditScheduledAt: user ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
   };
 
   let savedOrder;
@@ -787,7 +783,7 @@ export async function processCodCheckoutAction(payload: {
     savedOrder = await db.saveOrder(orderData);
 
     // Add status history entry
-    await db.addOrderStatusHistory(idempotencyKey, "Order Placed", "COD Checkout System", {
+    await db.addOrderStatusHistory(orderId, "Order Placed", "COD Checkout System", {
       payment_method: "COD",
       amount_to_collect: verifiedFinalPayable
     });
@@ -795,7 +791,7 @@ export async function processCodCheckoutAction(payload: {
     console.error('[checkout.ts]:', err);
     if (supabase) {
       await supabase.rpc('atomic_checkout_rollback', {
-        p_order_id: idempotencyKey,
+        p_order_id: orderId,
         p_user_id: userId,
         p_wallet_amount: finalWalletDeduction,
         p_coupon_code: couponCode || ''

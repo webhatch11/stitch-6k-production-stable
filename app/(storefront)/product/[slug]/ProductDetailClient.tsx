@@ -91,6 +91,18 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     }
   }, [product]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.fbq && product) {
+      window.fbq('track', 'ViewContent', {
+        content_ids: [product.id],
+        content_name: product.title,
+        content_type: 'product',
+        value: product.price,
+        currency: 'INR'
+      });
+    }
+  }, [product.id, product.title, product.price]);
+
   // Clamp quantity when size changes to prevent choosing more than stock
   useEffect(() => {
     setQuantity(1);
@@ -132,6 +144,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       size: selectedSize,
       color: selectedColor || product.colors?.[0] || "Default",
     });
+
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'AddToCart', {
+        content_ids: [product.id],
+        content_name: product.title,
+        content_type: 'product',
+        value: product.price,
+        currency: 'INR',
+        num_items: quantity
+      });
+    }
 
     // Trigger cart badge bounce micro-animation
     setAnimateCart(true);

@@ -67,6 +67,7 @@ export async function sendMetaPurchase(order: {
   customerEmail?: string
   customerPhone?: string
   customerName?: string
+  createdAt?: string
 }) {
   const PIXEL_ID = 
     process.env.NEXT_PUBLIC_META_PIXEL_ID
@@ -86,6 +87,9 @@ export async function sendMetaPurchase(order: {
       .update(value.toLowerCase().trim())
       .digest('hex')
 
+  const timestamp = order.createdAt ? new Date(order.createdAt).getTime() : Date.now();
+  const eventId = `purchase_${order.orderId}_${timestamp}`;
+
   try {
     await fetch(
       `https://graph.facebook.com/v19.0/${PIXEL_ID}/events?access_token=${ACCESS_TOKEN}`,
@@ -100,7 +104,7 @@ export async function sendMetaPurchase(order: {
             event_time: Math.floor(
               Date.now() / 1000
             ),
-            event_id: order.orderId,
+            event_id: eventId,
             action_source: 'website',
             user_data: {
               em: order.customerEmail 

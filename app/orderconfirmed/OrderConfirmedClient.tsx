@@ -18,6 +18,7 @@ export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfir
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(true);
+  const trackedOrders = React.useRef<Record<string, boolean>>({});
 
   const supabase = React.useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -89,18 +90,91 @@ export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfir
   // Ensure type checker knows lastOrder is defined past this point
 
   React.useEffect(() => {
-    if (lastOrder) {
-      const itemsMapped = lastOrder.cartItems || (lastOrder.items || []).map((name) => ({
-        productId: lastOrder.id,
+    if (lastOrder && !trackedOrders.current[lastOrder.id]) {
+      trackedOrders.current[lastOrder.id] = true;
+      const order = lastOrder;
+
+      // 1. Meta Pixel Purchase
+      const timestamp = order.created_at ? new Date(order.created_at).getTime() : Date.now();
+      const eventId = `purchase_${order.id}_${timestamp}`;
+
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq("track", "Purchase", {
+          value: order.total,
+          currency: "INR",
+          content_ids: order.cartItems?.map(
+            (i: any) => i.productId
+          ) || [],
+          content_type: "product",
+          num_items: order.cartItems?.length || 1,
+          order_id: order.id
+        }, { eventID: eventId });
+      }
+
+      // 2. Google Ads conversion
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "conversion", {
+          send_to: `${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}/${process.env.NEXT_PUBLIC_GOOGLE_ADS_LABEL}`,
+          value: order.total,
+          currency: "INR",
+          transaction_id: order.id
+        });
+      }
+
+      // 3. GA4 purchase conversion
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "purchase", {
+          transaction_id: order.id,
+          value: order.total,
+          currency: "INR",
+          coupon: order.couponCode || "",
+          items: order.cartItems?.map(
+            (item: any, index: number) => ({
+              item_id: item.productId,
+              item_name: item.productName || item.name,
+              price: item.price,
+              quantity: item.quantity || 1,
+              index: index,
+              item_category: "Shirts"
+            })
+          ) || []
+        });
+      }
+
+      // 4. GTM dataLayer push
+      if (typeof window !== "undefined") {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: "purchase",
+          ecommerce: {
+            transaction_id: order.id,
+            value: order.total,
+            currency: "INR",
+            coupon: order.couponCode || "",
+            items: order.cartItems?.map(
+              (item: any) => ({
+                item_id: item.productId,
+                item_name: item.productName,
+                price: item.price,
+                quantity: item.quantity || 1
+              })
+            ) || []
+          }
+        });
+      }
+
+      // 5. Custom Analytics fallback wrapper
+      const itemsMapped = order.cartItems || (order.items || []).map((name) => ({
+        productId: order.id,
         productName: name,
-        price: lastOrder.total,
+        price: order.total,
         quantity: 1
       }));
       trackPurchase({
-        orderId: lastOrder.id,
-        total: lastOrder.total,
+        orderId: order.id,
+        total: order.total,
         items: itemsMapped,
-        couponCode: lastOrder.couponCode
+        couponCode: order.couponCode
       });
     }
   }, [lastOrder]);

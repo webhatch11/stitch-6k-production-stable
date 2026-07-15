@@ -404,6 +404,7 @@ export async function POST(req: NextRequest) {
         customerEmail: dbOrder.address_snapshot?.email || undefined,
         customerPhone: dbOrder.address_snapshot?.phone || undefined,
         customerName: dbOrder.customer,
+        createdAt: dbOrder.created_at,
       }),
     ]).catch((err) => {
       console.error("[Server Analytics]:", err);

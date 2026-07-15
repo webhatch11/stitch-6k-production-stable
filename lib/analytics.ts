@@ -1,7 +1,12 @@
 declare global {
   interface Window {
-    gtag: Function;
-    fbq: Function;
+    fbq: (
+      action: string, 
+      event: string, 
+      params?: Record<string, any>,
+      options?: Record<string, any>
+    ) => void;
+    gtag: (...args: any[]) => void;
     dataLayer: any[];
   }
 }

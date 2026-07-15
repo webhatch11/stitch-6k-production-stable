@@ -98,6 +98,32 @@ export const useCartStore = create<CartState>()(
         }
         set({ cartItems: newItems });
 
+        const productId = item.productId || "unknown";
+        const productName = item.productName || "Product";
+        const price = item.price || 0;
+
+        if (typeof window !== "undefined" && window.fbq) {
+          window.fbq("track", "AddToCart", {
+            content_ids: [productId],
+            content_name: productName,
+            value: price,
+            currency: "INR"
+          });
+        }
+
+        if (typeof window !== "undefined" && window.gtag) {
+          window.gtag("event", "add_to_cart", {
+            currency: "INR",
+            value: price,
+            items: [{
+              item_id: productId,
+              item_name: productName,
+              price: price,
+              quantity: 1
+            }]
+          });
+        }
+
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {

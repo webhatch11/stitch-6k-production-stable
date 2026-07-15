@@ -191,6 +191,7 @@ export default function CheckoutPage() {
   // Cart & Calculation States
   const cartItems = useCartStore((state) => state.cartItems);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const hasInitiatedCheckout = React.useRef(false);
 
   const [availablePoints, setAvailablePoints] = useState(0);
   const [availableWallet, setAvailableWallet] = useState(0);
@@ -215,6 +216,16 @@ export default function CheckoutPage() {
 
     const totalVal = savedCart.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
     trackBeginCheckout(totalVal, savedCart);
+
+    if (typeof window !== "undefined" && window.fbq && !hasInitiatedCheckout.current) {
+      hasInitiatedCheckout.current = true;
+      window.fbq("track", "InitiateCheckout", {
+        value: totalVal,
+        currency: "INR",
+        num_items: savedCart.length,
+        content_ids: savedCart.map((i) => i.productId || "unknown"),
+      });
+    }
 
     // Fetch Available Perks
     const fetchPerks = async () => {

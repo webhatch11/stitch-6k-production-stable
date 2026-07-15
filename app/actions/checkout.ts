@@ -288,14 +288,10 @@ export async function processWalletPointsCheckoutAction(payload: {
     console.error('[processWalletPointsCheckoutAction] Order event creation failed:', eventErr);
   }
 
-  try {
-    await db.dispatchFulfillment(savedOrder.id);
-  } catch (dispatchError) {
-    console.error(
-      '[processWalletPointsCheckoutAction] ' +
-      'Shiprocket dispatch failed:', dispatchError
-    );
-  }
+  // NOTE: Shiprocket dispatch is intentionally NOT called here.
+  // Wallet orders follow the same Kanban admin flow as Razorpay orders:
+  // Live Orders (accept) → Processing (print invoice) → Packed (generate label) → Shipped
+  // dispatchFulfillment() is triggered by generateShipmentLabelAction when admin generates the label.
 
   try {
     const { sendOrderConfirmationEmail } = await import('@/lib/email');

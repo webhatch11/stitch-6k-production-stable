@@ -676,26 +676,60 @@ export async function generateShipmentLabelAction(
   try {
     const shipment = await db.getShipmentByOrderId(orderId);
     if (!shipment) {
+      // No shipment exists yet — dispatch to Shiprocket now.
+      // This handles wallet orders (and any order where dispatchFulfillment was not
+      // called at checkout). Dispatch creates the Shiprocket order, assigns the AWB,
+      // and creates a row in the shipments table.
+      console.log(`[generateShipmentLabelAction] No shipment found for #${orderId} — dispatching to Shiprocket now.`);
+      try {
+        await db.dispatchFulfillment(orderId);
+      } catch (dispatchErr: any) {
+        console.error(`[generateShipmentLabelAction] dispatchFulfillment failed for #${orderId}:`, dispatchErr);
+        return {
+          success: false,
+          labelUrl: null,
+          manifestUrl: null,
+          cached: false,
+          error: `Shiprocket dispatch failed: ${dispatchErr.message || "Unknown error"}`
+        };
+      }
+
+      // Re-fetch the shipment now that it has been created
+      const newShipment = await db.getShipmentByOrderId(orderId);
+      if (!newShipment) {
+        return {
+          success: false,
+          labelUrl: null,
+          manifestUrl: null,
+          cached: false,
+          error: "Shiprocket dispatch succeeded but shipment record was not created"
+        };
+      }
+    }
+
+    // Use latest shipment record (either existing or freshly created via dispatchFulfillment)
+    const resolvedShipment = await db.getShipmentByOrderId(orderId);
+    if (!resolvedShipment) {
       return {
         success: false,
         labelUrl: null,
         manifestUrl: null,
         cached: false,
-        error: "No shipment found for this order"
+        error: "Shipment record not found after dispatch attempt"
       };
     }
 
-    if (shipment.label_url) {
+    if (resolvedShipment.label_url) {
       return {
         success: true,
-        labelUrl: shipment.label_url,
-        manifestUrl: shipment.manifest_url || null,
+        labelUrl: resolvedShipment.label_url,
+        manifestUrl: resolvedShipment.manifest_url || null,
         cached: true
       };
     }
 
     const { shiprocket } = await import("@/lib/shiprocket");
-    const shipmentIdNum = Number(shipment.shipment_id);
+    const shipmentIdNum = Number(resolvedShipment.shipment_id);
 
     if (!shipmentIdNum || isNaN(shipmentIdNum)) {
       return {

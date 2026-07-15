@@ -313,7 +313,7 @@ export default function AdminDashboardClient({
 
         {/* Card 5: Refund Requests */}
         <Link
-          href="/admindashboard/orders?filter=returns"
+          href="/admindashboard/returns"
           className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group block hover:border-primary transition-all text-left"
         >
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Refund Requests</p>

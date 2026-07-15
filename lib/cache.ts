@@ -44,6 +44,10 @@ export const CacheService = {
    * Retrieves a parsed JSON object from cache. Returns null on miss or fallback.
    */
   async get<T>(key: string): Promise<T | null> {
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return null;
+    }
+
     const now = Date.now();
 
     // 1. Try memory cache first (as fallback/offline option)
@@ -54,10 +58,6 @@ export const CacheService = {
       } else {
         memoryCache.delete(key);
       }
-    }
-
-    if (process.env.DISABLE_REDIS_CACHE === "true") {
-      return null;
     }
 
     // 2. Try Redis if available
@@ -79,14 +79,14 @@ export const CacheService = {
    * Caches a value with a given Time-To-Live (TTL) in seconds.
    */
   async set(key: string, value: any, ttlSecs: number): Promise<void> {
+    if (process.env.DISABLE_REDIS_CACHE === "true") {
+      return;
+    }
+
     const expiresAt = Date.now() + ttlSecs * 1000;
     
     // Save to memory cache fallback
     memoryCache.set(key, { value, expiresAt });
-
-    if (process.env.DISABLE_REDIS_CACHE === "true") {
-      return;
-    }
 
     // Save to Redis
     if (redisClient && isRedisAvailable) {

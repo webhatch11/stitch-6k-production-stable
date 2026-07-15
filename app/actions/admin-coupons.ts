@@ -47,6 +47,23 @@ export async function saveCouponAction(
   const data = parsed.data;
 
   try {
+    const { supabaseService } = await import("@/lib/supabase-service");
+    if (supabaseService) {
+      const { data: existingCoupon } = await supabaseService
+        .from("coupons")
+        .select("id")
+        .eq("code", data.code)
+        .maybeSingle();
+
+      if (existingCoupon && existingCoupon.id !== data.id) {
+        return { success: false, error: `Coupon code "${data.code}" is already in use by another coupon.` };
+      }
+    }
+  } catch (err: any) {
+    console.error("[saveCouponAction] uniqueness check failed:", err);
+  }
+
+  try {
     const newCoupon: Coupon = {
       id: data.id || "CPN-" + Date.now() + "-" + Math.floor(Math.random() * 9000 + 1000),
       code: data.code,

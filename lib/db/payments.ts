@@ -1,3 +1,4 @@
+import { mapDbOrderToOrder } from "./utils";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { loadService } from "./client-raw";
 import { CacheService } from "../cache";
@@ -426,8 +427,9 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     return false;
   }
 
-  const walletPaid = Number(orderData.wallet_paid || 0);
-  const gatewayPaid = Number(orderData.gateway_paid || 0);
+  const order = mapDbOrderToOrder(orderData);
+  const walletPaid = order.walletPaid || 0;
+  const gatewayPaid = order.gatewayPaid || 0;
   const totalRefundAmount = walletPaid + gatewayPaid;
   const refundReason = reason || "Return approved by admin";
 
@@ -448,10 +450,37 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     return false;
   }
 
-  await supabase
-    .from("orders")
-    .update({ points_credit_status: "cancelled" })
-    .eq("id", orderId);
+  // FIX 3: Reversing loyalty points on return
+  try {
+    // 1. Reverse earned points (points customer earned from this order)
+    // Note: applyLoyaltyDebit takes 3 parameters: points, orderId, userId
+    if (order.pointsEarned && order.pointsEarned > 0 && order.userId) {
+      await loyaltyDb.applyLoyaltyDebit(
+        order.pointsEarned,
+        orderId,
+        order.userId
+      );
+    }
+
+    // 2. Restore redeemed points (points customer SPENT at checkout)
+    // Note: applyLoyaltyCredit takes 4 parameters: points, description, orderId, userId
+    if (order.pointsRedeemed && order.pointsRedeemed > 0 && order.userId) {
+      await loyaltyDb.applyLoyaltyCredit(
+        order.pointsRedeemed,
+        `Redeemed points restored — Order #${orderId}`,
+        orderId,
+        order.userId
+      );
+    }
+
+    // 3. Cancel pending points credit
+    await supabase
+      .from('orders')
+      .update({ points_credit_status: 'cancelled' })
+      .eq('id', orderId);
+  } catch (loyaltyErr) {
+    console.error('[processReturnRefund] loyalty reversal failed:', loyaltyErr);
+  }
 
   if (qualityCheckPassed) {
     try {
@@ -482,13 +511,14 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     }
   }
 
-  if (orderData.refund_option === "wallet") {
-    if (orderData.user_id) {
+  // FIX 4: Split payment refund
+  if (order.refundOption === "wallet") {
+    if (order.userId) {
       const creditResult = await usersDb.applyWalletCredit(
         totalRefundAmount,
         `Return Credit for Order #${orderId}`,
         orderId,
-        orderData.user_id
+        order.userId
       );
       if (!creditResult.success) {
         console.error("[processReturnRefund] wallet credit failed:", creditResult.error);
@@ -500,77 +530,67 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
       .eq("id", orderId);
   } else {
-    if (walletPaid > 0 && orderData.user_id) {
-      const creditResult = await usersDb.applyWalletCredit(
-        walletPaid,
-        `Refund of Wallet Portion for Order #${orderId}`,
-        orderId,
-        orderData.user_id
-      );
-      if (!creditResult.success) {
-        console.error("[processReturnRefund] wallet credit failed:", creditResult.error);
-        throw new Error(`Wallet credit failed: ${creditResult.error}`);
-      }
-    }
-
-    if (gatewayPaid > 0) {
-      const razorpayPaymentId = orderData.razorpay_payment_id;
-
-      if (!razorpayPaymentId) {
-        console.warn(`[Refund] No razorpay_payment_id for order ${orderId}; skipping Razorpay refund.`);
-        await supabase
-          .from("orders")
-          .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
-          .eq("id", orderId);
-      } else {
-        try {
-          const { razorpay } = require("../razorpay") as typeof import("../razorpay");
-          const refundResult = await razorpay.payments.refund(razorpayPaymentId, {
-            amount: Math.round(gatewayPaid * 100),
-            speed: "normal",
-            notes: { order_id: orderId, reason: refundReason },
-            receipt: `REF-${orderId}-${Date.now()}`,
-          });
-
-          await supabase
-            .from("orders")
-            .update({
-              refund_id: refundResult.id,
-              refund_status: "initiated",
-              refunded_at: new Date().toISOString(),
-            })
-            .eq("id", orderId);
-        } catch (e: any) {
-          console.error(`[Refund] Razorpay refund failed for ${orderId}:`, e.message);
-          await supabase
-            .from("orders")
-            .update({
-              refund_status: "failed",
-              refund_reason: `${refundReason} | Razorpay error: ${e.message}`,
-              refunded_at: new Date().toISOString(),
-            })
-            .eq("id", orderId);
+    if (qualityCheckPassed) {
+      // Refund wallet portion back to wallet
+      if (walletPaid > 0 && order.userId) {
+        const creditResult = await usersDb.applyWalletCredit(
+          walletPaid,
+          `Refund for return — Order #${orderId}`,
+          orderId,
+          order.userId
+        );
+        if (!creditResult.success) {
+          console.error("[processReturnRefund] wallet credit failed:", creditResult.error);
+          throw new Error(`Wallet credit failed: ${creditResult.error}`);
         }
       }
-    } else {
-      await supabase
-        .from("orders")
-        .update({
-          refund_status: walletPaid > 0 ? "wallet_only" : "processed",
-          refunded_at: new Date().toISOString(),
-        })
-        .eq("id", orderId);
+
+      // Refund Razorpay portion back to bank
+      if (gatewayPaid > 0 && order.razorpayPaymentId) {
+        try {
+          const { razorpay } = require("../razorpay") as typeof import("../razorpay");
+          const razorpayRefund = await razorpay.payments.refund(order.razorpayPaymentId, {
+            amount: Math.round(gatewayPaid * 100), // paise
+            notes: {
+              orderId: orderId,
+              reason: 'Return approved'
+            }
+          });
+          
+          await supabase
+            .from('orders')
+            .update({
+              refund_id: razorpayRefund.id,
+              refund_status: 'initiated',
+              refund_amount: totalRefundAmount,
+              refunded_at: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        } catch (razorpayErr: any) {
+          console.error('[processReturnRefund] Razorpay refund failed:', razorpayErr);
+          await supabase
+            .from('orders')
+            .update({
+              refund_status: 'failed',
+              refund_reason: `Razorpay refund failed: ${razorpayErr.message}`,
+              refunded_at: new Date().toISOString()
+            })
+            .eq('id', orderId);
+        }
+      }
+
+      // If wallet-only order
+      if (walletPaid > 0 && gatewayPaid === 0) {
+        await supabase
+          .from('orders')
+          .update({
+            refund_status: 'wallet_only',
+            refund_amount: walletPaid,
+            refunded_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+      }
     }
-  }
-
-  const pointsEarned = Number(orderData.points_earned || 0);
-  if (pointsEarned > 0 && orderData.user_id) {
-    await loyaltyDb.applyLoyaltyDebit(pointsEarned, "REVOKE-RETURN-" + orderId, orderData.user_id);
-  }
-
-  const pointsRedeemed = Number(orderData.points_redeemed || 0);
-  if (pointsRedeemed > 0 && orderData.user_id) {
-    await loyaltyDb.applyLoyaltyCredit(pointsRedeemed, `Restored for Returned Order #${orderId}`, "RESTORE-RETURN-" + orderId, orderData.user_id);
   }
 
   return true;

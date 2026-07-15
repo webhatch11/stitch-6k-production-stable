@@ -24,6 +24,8 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   const [returnDetails, setReturnDetails] = useState("");
   const [refundOption, setRefundOption] = useState("wallet");
   const [uploadedImageName, setUploadedImageName] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Toast Alerts
   const [toastText, setToastText] = useState("");
@@ -149,11 +151,41 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   const handleCloseReturnModal = () => {
     setReturnModalOpen(false);
     setSelectedOrderId(null);
+    setUploadedImageUrl("");
+    setUploadedImageName("");
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setUploadedImageName(e.target.files[0].name);
+      const file = e.target.files[0];
+      setUploadedImageName(file.name);
+      setUploadingImage(true);
+      
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, ""));
+        
+        const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUploadedImageUrl(data.secure_url);
+          triggerToast("Image uploaded successfully!");
+        } else {
+          console.error("Cloudinary upload failed:", await res.text());
+          triggerToast("Failed to upload image. Using local filename fallback.");
+        }
+      } catch (err) {
+        console.error("Cloudinary upload error:", err);
+        triggerToast("Upload failed due to network error.");
+      } finally {
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -165,6 +197,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
       details: returnDetails,
       image: uploadedImageName || "No image provided",
       refundOption: refundOption,
+      imageUrl: uploadedImageUrl || undefined
     };
 
     const res = await requestManualReturnAction(selectedOrderId, payload);
@@ -742,7 +775,9 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                   <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                   <div className="flex flex-col items-center justify-center">
                     <span className="material-symbols-outlined text-outline/60 text-3xl mb-2">upload_file</span>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-outline">Upload Product Image *</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-outline">
+                      {uploadingImage ? "Uploading to Cloudinary..." : "Upload Product Image *"}
+                    </span>
                     {uploadedImageName && (
                       <span className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-2">
                         {uploadedImageName}

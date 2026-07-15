@@ -212,8 +212,9 @@ export default function ReturnDetailsClient({
     email === 'aditya.singhania@heritage.com';
 
   const returnImage = 
-    (order as any).returnImageUrl || 
-    (order as any).return_image_url ||
+    order.returnImageUrl || 
+    order.return_image_url ||
+    (order as any).returnImageUrl ||
     (order.returnImage !== "No image provided" ? order.returnImage : null) ||
     null;
 

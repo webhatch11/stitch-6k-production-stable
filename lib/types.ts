@@ -90,6 +90,9 @@ export interface Order {
   returnReason?: string;
   returnDetails?: string;
   returnImage?: string;
+  returnImageUrl?: string | null;
+  return_image_url?: string | null;
+  razorpayPaymentId?: string;
   refundOption?: string;
   returnRequestDate?: string;
   returnDate?: string;

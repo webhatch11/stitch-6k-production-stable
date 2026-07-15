@@ -267,14 +267,16 @@ export async function processWalletPointsCheckoutAction(payload: {
     savedOrder = await db.saveOrder(orderData);
   } catch (err) {
     console.error('[checkout.ts]:', err);
-    if (couponCode) {
-      await db.decrementCouponUsage(couponCode);
+    if (supabase) {
+      await supabase.rpc('atomic_checkout_rollback', {
+        p_order_id: idempotencyKey,
+        p_user_id: userId,
+        p_wallet_amount: walletDeduction,
+        p_coupon_code: couponCode || ''
+      });
     }
     if (pointsRedeemed > 0) {
       await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId);
-    }
-    if (walletDeduction > 0) {
-      await db.applyWalletCredit(walletDeduction, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId);
     }
     await db.restoreStock(cart, idempotencyKey);
     return { success: false, error: "Failed to record checkout order in database." };
@@ -735,14 +737,16 @@ export async function processCodCheckoutAction(payload: {
     });
   } catch (err) {
     console.error('[checkout.ts]:', err);
-    if (couponCode) {
-      await db.decrementCouponUsage(couponCode);
+    if (supabase) {
+      await supabase.rpc('atomic_checkout_rollback', {
+        p_order_id: idempotencyKey,
+        p_user_id: userId,
+        p_wallet_amount: finalWalletDeduction,
+        p_coupon_code: couponCode || ''
+      });
     }
     if (user && finalPointsRedeemed > 0) {
-      await db.applyLoyaltyCredit(finalPointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId!);
-    }
-    if (user && finalWalletDeduction > 0) {
-      await db.applyWalletCredit(finalWalletDeduction, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId!);
+      await db.applyLoyaltyCredit(finalPointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId);
     }
     await db.restoreStock(cart, idempotencyKey);
     return { success: false, error: "Failed to record checkout order in database." };

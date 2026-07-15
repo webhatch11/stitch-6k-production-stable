@@ -224,7 +224,22 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
           </div>
         ) : (
           <section className="bg-transparent md:bg-white border-0 md:border md:border-outline-variant/10 md:shadow-2xl overflow-hidden rounded-none">
-            <div className="overflow-x-auto">
+            <style dangerouslySetInnerHTML={{ __html: `
+              .custom-scrollbar::-webkit-scrollbar {
+                height: 6px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background-color: rgba(0, 0, 0, 0.15);
+                border-radius: 3px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background-color: rgba(0, 0, 0, 0.3);
+              }
+            `}} />
+            <div className="overflow-x-auto custom-scrollbar pb-2">
               <table className="w-full text-left border-collapse hidden md:table">
                 <thead className="hidden md:table-header-group">
                   <tr className="bg-surface-container-low border-b border-outline-variant/20">

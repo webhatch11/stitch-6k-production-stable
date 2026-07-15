@@ -295,30 +295,53 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                           </div>
                         </td>
                         <td className="block md:table-cell py-4 md:py-10 px-6 md:px-8 border-b border-outline-variant/5 md:border-b-0">
-                          <div className="flex items-start gap-4">
-                            {(() => {
-                              const firstItem = order.cartItems?.[0] || (order as any).cart_items?.[0];
-                              const img = firstItem?.image;
-                              return img ? (
-                                <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0">
-                                  <Image
-                                    className="object-cover transition-transform duration-700 hover:scale-105"
-                                    src={img}
-                                    alt={firstItem?.productName || order.items[0] || "Shirt"}
-                                    fill
-                                    sizes="64px"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0 flex items-center justify-center text-2xl" style={{ backgroundColor: '#f5f5f5' }}>
-                                  👕
+                          <div className="flex flex-col gap-4">
+                            {(order.cartItems && order.cartItems.length > 0 ? order.cartItems : (order.items || []).map((name, idx) => ({ productName: name, productId: `${order.id}-item-${idx}`, price: 0, quantity: 1 }))).map((item: any, idx: number) => {
+                              const img = item.image;
+                              return (
+                                <div key={idx} className="flex items-start gap-4">
+                                  {img ? (
+                                    <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0">
+                                      <Image
+                                        className="object-cover transition-transform duration-700 hover:scale-105"
+                                        src={img}
+                                        alt={item.productName || "Shirt"}
+                                        fill
+                                        sizes="64px"
+                                      />
+                                      {item.quantity > 1 && (
+                                        <span className="absolute bottom-1 right-1 bg-black text-white text-[8px] font-black px-1.5 py-0.5 tracking-tighter text-center min-w-[14px]">
+                                          {item.quantity}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative transition-transform duration-300 shrink-0 flex items-center justify-center text-2xl" style={{ backgroundColor: '#f5f5f5' }}>
+                                      👕
+                                      {item.quantity > 1 && (
+                                        <span className="absolute bottom-1 right-1 bg-black text-white text-[8px] font-black px-1.5 py-0.5 tracking-tighter text-center min-w-[14px]">
+                                          {item.quantity}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                                    <p className="text-xs font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{item.productName}</p>
+                                    <div className="flex gap-2 mt-1 items-center">
+                                      {item.size && (
+                                        <span className="text-[8px] font-bold bg-neutral-100 text-neutral-600 px-1 py-0.5 uppercase">Size: {item.size}</span>
+                                      )}
+                                      {item.color && (
+                                        <span className="text-[8px] font-bold bg-neutral-100 text-neutral-600 px-1 py-0.5 uppercase">Color: {item.color}</span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               );
-                            })()}
-                            <div className="flex-1 min-w-0">
-                              <span className="text-[11px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
-                              <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
-                              <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
+                            })}
+                            <div className="pt-2 border-t border-outline-variant/5">
+                              <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Heritage Manufacture</p>
                               {/* Return Eligibility Banner */}
                               {order.status === "Delivered" && (() => {
                                 const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
@@ -588,24 +611,53 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     </div>
 
                     {/* Product row */}
-                    <div className="flex gap-3">
-                      {firstItem?.image ? (
-                        <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative shrink-0">
-                          <Image
-                            className="object-cover"
-                            src={firstItem.image}
-                            alt={firstItem?.productName || order.items[0] || "Shirt"}
-                            fill
-                            sizes="64px"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-20 bg-surface-container-high flex items-center justify-center text-2xl border border-outline-variant/10 shrink-0">👕</div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[11px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
-                        <p className="text-sm font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{order.items[0]}</p>
-                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold mt-1">Heritage Manufacture</p>
+                    <div className="flex flex-col gap-3">
+                      {(order.cartItems && order.cartItems.length > 0 ? order.cartItems : (order.items || []).map((name, idx) => ({ productName: name, productId: `${order.id}-item-${idx}`, price: 0, quantity: 1 }))).map((item: any, idx: number) => {
+                        const img = item.image;
+                        return (
+                          <div key={idx} className="flex gap-3 items-start">
+                            {img ? (
+                              <div className="w-16 h-20 bg-surface-container-high overflow-hidden border border-outline-variant/10 relative shrink-0">
+                                <Image
+                                  className="object-cover"
+                                  src={img}
+                                  alt={item.productName || "Shirt"}
+                                  fill
+                                  sizes="64px"
+                                />
+                                {item.quantity > 1 && (
+                                  <span className="absolute bottom-1 right-1 bg-black text-white text-[8px] font-black px-1.5 py-0.5 tracking-tighter text-center min-w-[14px]">
+                                    {item.quantity}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="w-16 h-20 bg-surface-container-high flex items-center justify-center text-2xl border border-outline-variant/10 shrink-0 relative" style={{ backgroundColor: '#f5f5f5' }}>
+                                👕
+                                {item.quantity > 1 && (
+                                  <span className="absolute bottom-1 right-1 bg-black text-white text-[8px] font-black px-1.5 py-0.5 tracking-tighter text-center min-w-[14px]">
+                                    {item.quantity}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                              <p className="text-xs font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{item.productName}</p>
+                              <div className="flex gap-2 mt-1 items-center">
+                                {item.size && (
+                                  <span className="text-[8px] font-bold bg-neutral-100 text-neutral-600 px-1 py-0.5 uppercase">Size: {item.size}</span>
+                                )}
+                                {item.color && (
+                                  <span className="text-[8px] font-bold bg-neutral-100 text-neutral-600 px-1 py-0.5 uppercase">Color: {item.color}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div className="pt-2 border-t border-outline-variant/5">
+                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Heritage Manufacture</p>
                       </div>
                     </div>
 

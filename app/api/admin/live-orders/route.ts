@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       .from("orders")
       .select("id, customer, total, cart_items, address_snapshot, created_at")
       .gt("created_at", since)
-      .in("status", ["Paid", "Processing", "Shipped", "Delivered"])
+      .in("status", ["Paid", "Paid via Wallet", "Processing", "Shipped", "Delivered"])
       .order("created_at", { ascending: false })
       .limit(10);
 

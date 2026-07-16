@@ -129,14 +129,19 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
   // Conditional returns placed AFTER all hook definitions
   if (!order) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center px-6">
-          <div className="text-5xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold mb-2">Order Placed!</h2>
-          <p className="text-gray-500 mb-8">Check your email for confirmation.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#faf9f8] px-6 py-12 relative overflow-hidden">
+        <div className="absolute inset-0 ambient-glow-gold pointer-events-none opacity-40" />
+        <div className="w-full max-w-md bg-white border border-[#7f7667]/20 p-8 md:p-12 text-center relative z-10 rounded-none shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
+          <div className="w-16 h-16 border border-[#775a19]/30 flex items-center justify-center mx-auto mb-6 bg-[#faf9f8] rounded-none">
+            <svg className="w-6 h-6 text-[#775a19]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-headline font-black tracking-tighter text-[#1a1c1c] uppercase leading-none mb-3">Order Placed!</h2>
+          <p className="text-xs text-[#7f7667] mb-8 font-medium uppercase tracking-wider">Check your email for confirmation.</p>
           <Link
             href="/orderhistory"
-            className="bg-black text-white px-8 py-3 rounded-full font-medium"
+            className="w-full flex items-center justify-center bg-[#1a1c1c] text-[#faf9f8] py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all duration-300 rounded-none cursor-pointer border-none"
           >
             View Orders
           </Link>
@@ -149,97 +154,111 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
   const isSplit = (order.walletPaid || 0) > 0 && (order.gatewayPaid || 0) > 0;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
-      {/* Success animation */}
-      <div
-        className={`transition-all duration-700 ${
-          animationDone ? "scale-100 opacity-100" : "scale-50 opacity-0"
-        }`}
-      >
-        <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-          <span className="text-5xl">✅</span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#faf9f8] flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
+      {/* Background ambient glow */}
+      <div className="absolute inset-0 ambient-glow-gold pointer-events-none opacity-40" />
 
-      {/* Title */}
-      <h1 className="text-3xl font-bold text-gray-900 text-center mb-2">
-        Order Placed Successfully!
-      </h1>
-      <p className="text-gray-500 text-center mb-8">
-        {isWallet
-          ? "Paid via Store Wallet"
-          : isSplit
-          ? "Paid via Razorpay + Wallet"
-          : "Paid via Razorpay"}
-      </p>
+      {/* Main content box */}
+      <div className="w-full max-w-md bg-white border border-[#7f7667]/20 p-8 md:p-12 relative z-10 rounded-none shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
+        {/* Top Gold Bar */}
+        <div className="w-full h-1 bg-[#775a19] mb-8" />
 
-      {/* Order details card */}
-      <div className="w-full max-w-md bg-gray-50 rounded-2xl p-6 mb-8">
-        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-          <span className="text-gray-500 text-sm">Order ID</span>
-          <span className="font-mono font-bold">#{order.id}</span>
+        {/* Success animation / indicator */}
+        <div
+          className={`transition-all duration-700 mx-auto mb-6 w-16 h-16 border border-[#775a19]/30 bg-[#faf9f8] flex items-center justify-center rounded-none ${
+            animationDone ? "scale-100 opacity-100" : "scale-50 opacity-0"
+          }`}
+        >
+          <svg className="w-6 h-6 text-[#775a19]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
         </div>
 
-        {/* Items */}
-        {order.cartItems?.slice(0, 3).map((item: any, i: number) => (
-          <div key={i} className="flex justify-between items-center py-2">
-            <span className="text-sm text-gray-700">
-              {item.productName || item.name}
-              {item.size ? ` (${item.size})` : ""}
-            </span>
-            <span className="text-sm font-medium">
-              ₹{item.price?.toLocaleString("en-IN")}
+        {/* Headings */}
+        <h1 className="text-3xl font-headline font-black tracking-tighter text-[#1a1c1c] text-center uppercase leading-none mb-2">
+          Order Placed
+        </h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] text-center mb-8">
+          {isWallet
+            ? "Paid via Store Wallet"
+            : isSplit
+            ? "Paid via Razorpay + Wallet"
+            : "Paid via Razorpay"}
+        </p>
+
+        {/* Order details card (Brutalist Receipt Style) */}
+        <div className="w-full bg-[#faf9f8] border border-[#7f7667]/15 p-6 mb-8 rounded-none">
+          <div className="flex justify-between items-center mb-4 pb-4 border-b border-[#7f7667]/10">
+            <span className="text-[9px] font-black uppercase tracking-wider text-[#7f7667]">Order ID</span>
+            <span className="font-mono font-bold text-xs text-[#1a1c1c]">#{order.id}</span>
+          </div>
+
+          {/* Items */}
+          <div className="space-y-3">
+            {order.cartItems?.slice(0, 3).map((item: any, i: number) => (
+              <div key={i} className="flex justify-between items-start py-1">
+                <span className="text-xs text-[#1a1c1c] font-medium leading-tight max-w-[200px]">
+                  {item.productName || item.name}
+                  {item.size ? <span className="text-[9px] text-[#7f7667] block font-black uppercase tracking-wider mt-0.5">Size: {item.size}</span> : ""}
+                </span>
+                <span className="text-xs font-bold text-[#1a1c1c] whitespace-nowrap">
+                  ₹{item.price?.toLocaleString("en-IN")}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {order.cartItems && order.cartItems.length > 3 && (
+            <p className="text-[9px] font-black uppercase tracking-wider text-[#7f7667] mt-3 pt-3 border-t border-[#7f7667]/5">
+              + {order.cartItems.length - 3} more items
+            </p>
+          )}
+
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-[#7f7667]/15">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#1a1c1c]">Total Paid</span>
+            <span className="font-headline font-black text-lg text-[#775a19]">
+              ₹{order.total?.toLocaleString("en-IN")}
             </span>
           </div>
-        ))}
 
-        {order.cartItems && order.cartItems.length > 3 && (
-          <p className="text-xs text-gray-500 mt-1 mb-2">
-            +{order.cartItems.length - 3} more items
+          {/* Delivery estimate */}
+          <div className="mt-4 pt-4 border-t border-[#7f7667]/10 flex items-center gap-3">
+            <svg className="w-5 h-5 text-[#7f7667] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10M21 16v-4a1 1 0 00-.3-.7l-3-3a1 1 0 00-.7-.3H13v8" />
+            </svg>
+            <span className="text-[10px] text-[#7f7667] font-bold uppercase tracking-wider leading-tight">
+              Estimated delivery in 3-5 business days
+            </span>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="w-full space-y-3">
+          <Link
+            href="/orderhistory"
+            className="w-full flex items-center justify-center bg-[#1a1c1c] text-[#faf9f8] py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all duration-300 rounded-none cursor-pointer border-none"
+          >
+            View My Orders
+          </Link>
+          <Link
+            href="/shopallshirts"
+            className="w-full flex items-center justify-center border border-[#7f7667]/20 text-[#1a1c1c] py-4 text-[10px] font-black uppercase tracking-[0.2em] hover:border-[#1a1c1c] transition-all duration-300 rounded-none cursor-pointer bg-white"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+
+        {/* Auto redirect countdown & Email note */}
+        <div className="mt-8 pt-6 border-t border-[#7f7667]/10 text-center">
+          <p className="text-[9px] text-[#7f7667] font-bold uppercase tracking-widest">
+            Redirecting to orders in <span className="font-black text-[#1a1c1c]">{countdown}s</span>...
           </p>
-        )}
-
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-          <span className="font-medium">Total Paid</span>
-          <span className="font-bold text-lg">
-            ₹{order.total?.toLocaleString("en-IN")}
-          </span>
-        </div>
-
-        {/* Delivery estimate */}
-        <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
-          <span className="text-lg">🚚</span>
-          <span className="text-sm text-gray-600">
-            Estimated delivery in 3-5 business days
-          </span>
+          <p className="text-[9px] text-[#7f7667]/80 font-bold uppercase tracking-wide mt-2 max-w-xs mx-auto leading-normal">
+            A confirmation email has been sent to your registered email address
+          </p>
         </div>
       </div>
-
-      {/* Action buttons */}
-      <div className="w-full max-w-md space-y-3">
-        <Link
-          href="/orderhistory"
-          className="w-full flex items-center justify-center bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800 transition-colors"
-        >
-          View My Orders
-        </Link>
-        <Link
-          href="/shopallshirts"
-          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-3 rounded-full font-medium hover:bg-gray-50 transition-colors"
-        >
-          Continue Shopping
-        </Link>
-      </div>
-
-      {/* Auto redirect countdown */}
-      <p className="text-xs text-gray-500 mt-6">
-        Redirecting to orders in {countdown}s...
-      </p>
-
-      {/* Email confirmation note */}
-      <p className="text-xs text-gray-500 mt-2 text-center max-w-xs">
-        A confirmation email has been sent to your registered email address
-      </p>
     </div>
   );
 }

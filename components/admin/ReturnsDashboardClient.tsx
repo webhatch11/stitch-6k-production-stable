@@ -347,10 +347,10 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                             ₹{(o.refund_amount !== undefined && o.refund_amount !== null ? o.refund_amount : o.total || 0).toLocaleString("en-IN")}
                           </span>
                           {o.refundOption === "wallet" && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-full">Wallet</span>
+                            <span className="px-2 py-0.5 bg-[#775a19]/10 text-[#775a19] border border-[#775a19]/20 text-[8px] font-black uppercase tracking-widest rounded-none">Wallet</span>
                           )}
                           {(o.refundOption === "bank" || o.refundOption === "original_source") && (
-                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[8px] font-black uppercase tracking-widest rounded-full">Bank</span>
+                            <span className="px-2 py-0.5 bg-[#1a1c1c] text-[#faf9f8] border border-[#1a1c1c] text-[8px] font-black uppercase tracking-widest rounded-none">Bank</span>
                           )}
                         </div>
                       </td>

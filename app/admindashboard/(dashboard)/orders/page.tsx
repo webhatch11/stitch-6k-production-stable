@@ -14,6 +14,7 @@ import {
   printManifestAction,
   generateBulkInvoicePdfAction
 } from "@/app/actions/admin-orders";
+import { buildInvoiceHtml, orderToInvoiceData } from "@/lib/invoice-template";
 
 const tabs = [
   { 
@@ -144,539 +145,37 @@ const filterByTab = (orders: Order[], tab: string) => {
   }
 };
 
-const getStateInfo = (address: any) => {
-  if (!address) {
-    return { state: "Tamil Nadu", code: "33", isLocal: true };
-  }
-  const addr = typeof address === "string" ? JSON.parse(address) : address;
-  const stateName = (addr.state || "Tamil Nadu").toUpperCase().trim();
-  const stateCodes: Record<string, string> = {
-    "TAMIL NADU": "33", "TAMILNADU": "33", "TN": "33",
-    "MAHARASHTRA": "27", "MH": "27",
-    "KARNATAKA": "29", "KA": "29",
-    "DELHI": "07", "DL": "07",
-    "GUJARAT": "24", "GJ": "24",
-    "UTTAR PRADESH": "09", "UP": "09",
-    "WEST BENGAL": "19", "WB": "19",
-    "TELANGANA": "36", "TS": "36",
-    "KERALA": "32", "KL": "32",
-    "RAJASTHAN": "08", "RJ": "08",
-    "ANDHRA PRADESH": "37", "AP": "37",
-    "MADHYA PRADESH": "23", "MP": "23",
-    "BIHAR": "10", "BR": "10",
-    "PUNJAB": "03", "PB": "03",
-    "HARYANA": "06", "HR": "06",
-    "GOA": "30", "GA": "30",
-  };
-  const code = stateCodes[stateName] || "33";
-  const isLocal = code === "33";
-  return { state: addr.state || "Tamil Nadu", code, isLocal };
-};
-
-const getHSN = (category: string) => {
-  if (category?.toLowerCase().includes("t-shirt") || category?.toLowerCase().includes("tshirt")) {
-    return "6109";
-  }
-  return "6205";
-};
-
-const buildBulkInvoiceHtml = (orders: any[], products: Product[], gstin: string, origin: string) => {
-  let html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Concatenated Tax Invoices</title>
+function buildBulkInvoiceHtml(
+  orders: any[],
+  _products?: any[],
+  _gstin?: string,
+  _origin?: string
+): string {
+  return `<!DOCTYPE html><html><head>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-      background: white;
-    }
-    .invoice {
-      border: 1px solid #ddd;
-      padding: 30px;
-      margin: 0 auto 30px auto;
-      max-width: 800px;
-      position: relative;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-    .page-break {
-      page-break-after: always;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 10px;
-      position: relative;
-      z-index: 10;
-    }
-    .company-title {
-      font-size: 18px;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin: 0;
-    }
-    .invoice-title {
-      font-size: 26px;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin: 0;
-      text-align: right;
-    }
-    .meta-grid {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      font-size: 11px;
-      position: relative;
-      z-index: 10;
-    }
-    .bill-to {
-      border-left: 4px solid #775a19;
-      padding-left: 20px;
-    }
-    .bill-to h4, .invoice-details h4 {
-      margin: 0 0 5px 0;
-      font-size: 9px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .invoice-details {
-      text-align: right;
-    }
-    .invoice-details p {
-      margin: 5px 0;
-      font-weight: bold;
-    }
-    table.items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    table.items-table th {
-      border-bottom: 2px solid #000;
-      padding: 6px 0;
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-      text-align: left;
-    }
-    table.items-table td {
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-      font-size: 12px;
-    }
-    .text-right {
-      text-align: right !important;
-    }
-    .text-center {
-      text-align: center !important;
-    }
-    .totals {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    .totals-box {
-      width: 320px;
-    }
-    .totals-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 10px;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-    .grand-total {
-      border-top: 1px solid #eee;
-      padding-top: 6px;
-      font-size: 13px;
-      font-weight: 900;
-    }
-    .tax-breakdown {
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    .tax-table {
-      width: 100%;
-      font-size: 9px;
-      border: 1px solid #ddd;
-      border-collapse: collapse;
-    }
-    .tax-table th, .tax-table td {
-      border: 1px solid #ddd;
-      padding: 5px;
-      font-weight: bold;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-top: 20px;
-      position: relative;
-      z-index: 10;
-    }
-    .declaration {
-      font-size: 9px;
-      color: #666;
-      max-width: 400px;
-      line-height: 1.5;
-      position: relative;
-      z-index: 10;
-    }
-    .signature {
-      text-align: right;
-    }
-    .signature-title {
-      font-style: italic;
-      color: #888;
-      margin-bottom: 10px;
-      font-size: 11px;
-    }
-    .signature-line {
-      border-top: 1px solid #000;
-      padding-top: 5px;
-      font-weight: bold;
-      font-size: 9px;
-      text-transform: uppercase;
-    }
     @media print {
-      @page {
-        size: A4;
-        margin: 5mm 8mm 5mm 8mm;
-      }
-      body {
-        padding: 0;
-        margin: 0 !important;
-        background: white;
-      }
-      .invoice {
-        border: none;
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-        height: 280mm !important; /* Constrains height to standard A4 printing window */
-        box-sizing: border-box !important;
-        page-break-inside: avoid !important;
-        page-break-after: always !important;
-      }
-      .page-break {
-        page-break-after: always !important;
-      }
+      @page { size: A4; margin: 6mm; }
+      .page-break { page-break-after: always; }
     }
+    body { margin: 0; padding: 0; }
   </style>
-</head>
-<body>`;
-
-  orders.forEach((order, orderIdx) => {
-    const isLast = orderIdx === orders.length - 1;
-    const pageBreakClass = isLast ? "" : "page-break";
-
-    const stateInfo = getStateInfo(order.address_snapshot || (order as any).address);
-
-    let sumItemPrices = 0;
-    let sumItemTaxable = 0;
-
-    const itemsWithTax = order.items.map((itemName: string) => {
-      const matchedProd = products.find((p) => p.title.toLowerCase() === itemName.toLowerCase());
-      const price = matchedProd ? matchedProd.price : (itemName.includes("Classic") ? 1299 : 1450);
-      const gstRate = matchedProd?.gstRate ?? (price <= 1000 ? 5 : 12);
-      const hsn = getHSN(matchedProd?.category || "");
-      const taxableValue = price / (1 + gstRate / 100);
-      
-      sumItemPrices += price;
-      sumItemTaxable += taxableValue;
-
-      return {
-        itemName,
-        price,
-        gstRate,
-        hsn,
-        taxableValue,
-        category: matchedProd ? matchedProd.category : "Premium Handcrafted Shirt"
-      };
-    });
-
-    const blendedGstRate = sumItemPrices > 0 ? (sumItemPrices / sumItemTaxable) - 1 : 0.12;
-    const taxableBase = order.total / (1 + blendedGstRate);
-    const totalGst = order.total - taxableBase;
-    const cgst = stateInfo.isLocal ? totalGst / 2 : 0;
-    const sgst = stateInfo.isLocal ? totalGst / 2 : 0;
-    const igst = !stateInfo.isLocal ? totalGst : 0;
-
-    const gstGroups: Record<number, { taxableBase: number; cgst: number; sgst: number; igst: number; totalTax: number }> = {};
-    itemsWithTax.forEach((item: any) => {
-      const rate = item.gstRate;
-      const proportion = sumItemPrices > 0 ? item.price / sumItemPrices : 0;
-      const categoryTotal = order.total * proportion;
-      const categoryTaxableBase = categoryTotal / (1 + rate / 100);
-      const categoryGst = categoryTotal - categoryTaxableBase;
-
-      if (!gstGroups[rate]) {
-        gstGroups[rate] = { taxableBase: 0, cgst: 0, sgst: 0, igst: 0, totalTax: 0 };
-      }
-      gstGroups[rate].taxableBase += categoryTaxableBase;
-      if (stateInfo.isLocal) {
-        gstGroups[rate].cgst += categoryGst / 2;
-        gstGroups[rate].sgst += categoryGst / 2;
-      } else {
-        gstGroups[rate].igst += categoryGst;
-      }
-      gstGroups[rate].totalTax += categoryGst;
-    });
-
-    const walletPaid = order.walletPaid || 0;
-    const couponDiscount = order.couponDiscount || 0;
-    const pointsDiscount = order.pointsDiscount || 0;
-    const originalTotal = order.originalTotal !== undefined ? order.originalTotal : (order.total + pointsDiscount + couponDiscount);
-    const finalGatewayAmount = order.gatewayPaid !== undefined ? order.gatewayPaid : Math.max(0, order.total - walletPaid);
-
-    let addressHtml = "12/A Sky Gardens, Worli Sea Face<br />Mumbai, Maharashtra 400018";
-    if (order.address_snapshot) {
-      try {
-        const addr = typeof order.address_snapshot === "string" ? JSON.parse(order.address_snapshot) : order.address_snapshot;
-        const line1 = addr.address_line_1 || addr.address || "";
-        const line2 = addr.address_line_2 || "";
-        const city = addr.city || "";
-        const state = addr.state || "";
-        const zip = addr.postal_code || addr.pincode || "";
-        addressHtml = `${line1}${line2 ? `<br />${line2}` : ""}<br />${city}, ${state} ${zip}${addr.phone ? `<br />T: ${addr.phone}` : ""}`;
-      } catch (e) {}
-    }
-
-    html += `
-    <div class="invoice ${pageBreakClass}">
-      <!-- Large centered watermark background -->
-      <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
-        <img src="${origin}/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
-      </div>
-
-      <div class="header">
-        <div>
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <img src="${origin}/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
-            <span class="company-title">JRT TEXTILES (6K Brand)</span>
-          </div>
-          <div style="font-size: 8px; color: #888; text-transform: uppercase; line-height: 1.5;">
-            <p style="margin: 0;">1st Floor, 66/D, 1st Cross, Devar Colony, Thillai Nagar</p>
-            <p style="margin: 0;">Tiruchirappalli – 620018, Tamil Nadu, India</p>
-            <p style="margin: 5px 0 0 0; color: black; font-weight: bold;">GSTIN: ${gstin}</p>
-          </div>
-        </div>
-        <div class="invoice-details">
-          <h1 class="invoice-title">Tax Invoice</h1>
-          <p style="margin: 0; font-size: 9px; color: #888; letter-spacing: 0.05em;">Rule 46 CGST Rules 2017</p>
-        </div>
-      </div>
-
-      <div class="meta-grid">
-        <div class="bill-to">
-          <h4>Bill To / Ship To</h4>
-          <p style="margin: 0; font-size: 12px; font-weight: bold; text-transform: uppercase;">${order.customer}</p>
-          <p style="margin: 5px 0 0 0; font-size: 9px; color: #555; line-height: 1.4; text-transform: uppercase;">
-            ${addressHtml}
-          </p>
-        </div>
-        <div class="invoice-details" style="text-align: right;">
-          <h4>Invoice Details</h4>
-          <p><span style="color: #888; font-weight: normal;">Invoice No:</span> <span style="font-family: monospace;">#${order.id}</span></p>
-          <p><span style="color: #888; font-weight: normal;">Date:</span> <span>${order.date}</span></p>
-          <p><span style="color: #888; font-weight: normal;">Supply Place:</span> <span>${stateInfo.state} (${stateInfo.code})</span></p>
-          <p><span style="color: #888; font-weight: normal;">Status:</span> <span>${order.status}</span></p>
-        </div>
-      </div>
-
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th>Item Description</th>
-            <th class="text-center" style="width: 80px;">HSN</th>
-            <th class="text-center" style="width: 50px;">Qty</th>
-            <th class="text-right" style="width: 100px;">Taxable Rate</th>
-            <th class="text-right" style="width: 100px;">Taxable Value</th>
-          </tr>
-        </thead>
-        <tbody>`;
-
-    itemsWithTax.forEach((item: any) => {
-      html += `
-          <tr>
-            <td>
-              <p style="margin: 0; font-weight: bold; text-transform: uppercase;">${item.itemName}</p>
-              <p style="margin: 3px 0 0 0; font-size: 8px; color: #888; text-transform: uppercase;">${item.category}</p>
-            </td>
-            <td class="text-center" style="font-family: monospace; font-weight: bold;">${item.hsn}</td>
-            <td class="text-center">01</td>
-            <td class="text-right" style="font-family: monospace;">₹${item.taxableValue.toFixed(2)}</td>
-            <td class="text-right" style="font-family: monospace;">₹${item.taxableValue.toFixed(2)}</td>
-          </tr>`;
-    });
-
-    html += `
-        </tbody>
-      </table>
-
-      <div class="totals">
-        <div class="totals-box">
-          <div class="totals-row">
-            <span style="color: #888;">Subtotal (Original)</span>
-            <span style="font-family: monospace;">₹${originalTotal.toFixed(2)}</span>
-          </div>`;
-
-    if (couponDiscount > 0) {
-      html += `
-          <div class="totals-row" style="color: red;">
-            <span style="color: #888;">Coupon Discount (${order.couponCode || "N/A"})</span>
-            <span style="font-family: monospace;">-₹${couponDiscount.toFixed(2)}</span>
-          </div>`;
-    }
-
-    if (pointsDiscount > 0) {
-      html += `
-          <div class="totals-row" style="color: red;">
-            <span style="color: #888;">Loyalty Discount (${order.pointsRedeemed} pts)</span>
-            <span style="font-family: monospace;">-₹${pointsDiscount.toFixed(2)}</span>
-          </div>`;
-    }
-
-    html += `
-          <div class="totals-row">
-            <span style="color: #888;">Shipping</span>
-            <span style="font-family: monospace; color: #775a19;">FREE</span>
-          </div>
-          <div class="totals-row" style="border-top: 1px solid #eee; padding-top: 5px;">
-            <span style="color: #888;">Taxable Value</span>
-            <span style="font-family: monospace;">₹${taxableBase.toFixed(2)}</span>
-          </div>`;
-
-    if (stateInfo.isLocal) {
-      html += `
-          <div class="totals-row" style="color: #555;">
-            <span style="color: #888;">CGST</span>
-            <span style="font-family: monospace;">₹${cgst.toFixed(2)}</span>
-          </div>
-          <div class="totals-row" style="color: #555;">
-            <span style="color: #888;">SGST</span>
-            <span style="font-family: monospace;">₹${sgst.toFixed(2)}</span>
-          </div>`;
-    } else {
-      html += `
-          <div class="totals-row" style="color: #555;">
-            <span style="color: #888;">IGST</span>
-            <span style="font-family: monospace;">₹${igst.toFixed(2)}</span>
-          </div>`;
-    }
-
-    html += `
-          <div class="totals-row" style="border-top: 1px solid #eee; padding-top: 5px;">
-            <span style="color: #888;">Total (incl. GST)</span>
-            <span style="font-family: monospace;">₹${order.total.toFixed(2)}</span>
-          </div>`;
-
-    if (walletPaid > 0) {
-      html += `
-          <div class="totals-row" style="color: #775a19;">
-            <span style="color: #888;">Paid via Wallet</span>
-            <span style="font-family: monospace;">-₹${walletPaid.toFixed(2)}</span>
-          </div>`;
-    }
-
-    html += `
-          <div class="totals-row grand-total">
-            <span>${finalGatewayAmount === 0 ? "Total Paid (Wallet)" : "Total Gateway Paid"}</span>
-            <span style="font-family: monospace; font-size: 15px;">₹${(finalGatewayAmount === 0 ? walletPaid : finalGatewayAmount).toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="tax-breakdown">
-        <h4 style="margin: 0 0 10px 0; font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.1em;">GST Tax Breakup</h4>
-        <table class="tax-table">
-          <thead>
-            <tr style="background: #f5f5f5;">
-              <th>HSN</th>
-              <th class="text-right">Taxable Value</th>`;
-
-    if (stateInfo.isLocal) {
-      html += `
-              <th class="text-center">CGST Rate</th>
-              <th class="text-right">CGST Amt</th>
-              <th class="text-center">SGST Rate</th>
-              <th class="text-right">SGST Amt</th>`;
-    } else {
-      html += `
-              <th class="text-center">IGST Rate</th>
-              <th class="text-right">IGST Amt</th>`;
-    }
-
-    html += `
-              <th class="text-right">Total Tax</th>
-            </tr>
-          </thead>
-          <tbody>`;
-
-    Object.entries(gstGroups).forEach(([rateStr, group]: any) => {
-      const rate = Number(rateStr);
-      html += `
-            <tr style="font-family: monospace;">
-              <td style="font-family: sans-serif;">6205</td>
-              <td class="text-right">₹${group.taxableBase.toFixed(2)}</td>`;
-
-      if (stateInfo.isLocal) {
-        html += `
-              <td class="text-center">${(rate / 2).toFixed(1)}%</td>
-              <td class="text-right">₹${group.cgst.toFixed(2)}</td>
-              <td class="text-center">${(rate / 2).toFixed(1)}%</td>
-              <td class="text-right">₹${group.sgst.toFixed(2)}</td>`;
-      } else {
-        html += `
-              <td class="text-center">${rate.toFixed(1)}%</td>
-              <td class="text-right">₹${group.igst.toFixed(2)}</td>`;
-      }
-
-      html += `
-              <td class="text-right">₹${group.totalTax.toFixed(2)}</td>
-            </tr>`;
-    });
-
-    html += `
-          </tbody>
-        </table>
-      </div>
-
-      <p class="declaration">
-        <strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
-      </p>
-
-      <div class="footer">
-        <p style="font-size: 8px; color: #888; max-width: 250px; text-transform: uppercase; margin: 0; line-height: 1.4;">
-          This document serves as a compliant GST Tax Invoice. Thank you for shopping with us.
-        </p>
-        <div class="signature">
-          <div class="signature-title">Workshop Manager</div>
-          <div class="signature-line">Authorized Signature</div>
-        </div>
-      </div>
-    </div>`;
-  });
-
-  html += `
-</body>
-</html>`;
-  return html;
-};
+  </head><body>` +
+  orders.map((order, i) => {
+    const data = orderToInvoiceData(
+      order,
+      order.id.replace('6K-RPO-','')
+        .replace('6K-WPO-','')
+    )
+    const fullHtml = buildInvoiceHtml(data, true)
+    const bodyMatch = fullHtml.match(
+      /<body>([\s\S]*)<\/body>/
+    )
+    const body = bodyMatch ? bodyMatch[1] : fullHtml
+    return body + (i < orders.length - 1 
+      ? '<div class="page-break"></div>' 
+      : '')
+  }).join('') + '</body></html>'
+}
 
 export default function OrdersKanbanPage() {
   const router = useRouter();
@@ -1084,14 +583,14 @@ export default function OrdersKanbanPage() {
             >
               {tab.label}
               {count > 0 && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-all
+                <span className={`px-2 py-0.5 rounded-none text-[10px] font-black transition-all border
                   ${tab.id === 'pending' 
-                    ? 'bg-red-100 text-red-700'
+                    ? 'bg-[#ba1a1a]/10 text-[#ba1a1a] border-[#ba1a1a]/20'
                     : tab.id === 'live'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-[#775a19]/10 text-[#775a19] border-[#775a19]/20'
                       : isActive 
-                        ? 'bg-gray-200 text-gray-800'
-                        : 'bg-gray-100 text-gray-500'
+                        ? 'bg-[#1a1c1c] text-[#faf9f8] border-[#1a1c1c]'
+                        : 'bg-[#faf9f8] text-[#7f7667] border-[#7f7667]/20'
                   }`}>
                   {count}
                 </span>
@@ -1103,15 +602,15 @@ export default function OrdersKanbanPage() {
 
       {/* Bulk Action Panels */}
       {activeTab === 'live' && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-5 mb-6 animate-fade-in">
+        <div className="flex items-center justify-between bg-white border border-[#7f7667]/20 rounded-none p-5 mb-6 animate-fade-in">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-green-800">
-              ✓ {selectedIds.length} order(s) selected
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#775a19]">
+              SELECT: {selectedIds.length} order(s) selected
             </span>
             <button
               onClick={handleBulkAccept}
               disabled={submitting}
-              className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors border-none"
+              className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-2.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
             >
               Accept Selected Orders
             </button>
@@ -1123,15 +622,15 @@ export default function OrdersKanbanPage() {
       )}
 
       {activeTab === 'processing' && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6 animate-fade-in">
+        <div className="flex items-center justify-between bg-white border border-[#7f7667]/20 rounded-none p-5 mb-6 animate-fade-in">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-blue-800">
-              🖨️ {selectedIds.length} order(s) selected
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#775a19]">
+              INVOICE: {selectedIds.length} order(s) selected
             </span>
             <button
               onClick={handleBulkPrintInvoices}
               disabled={submitting}
-              className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors border-none"
+              className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-2.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
             >
               Print Concatenated Invoices ({selectedIds.length})
             </button>
@@ -1143,15 +642,15 @@ export default function OrdersKanbanPage() {
       )}
 
       {activeTab === 'packed' && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 animate-fade-in">
+        <div className="flex items-center justify-between bg-white border border-[#7f7667]/20 rounded-none p-5 mb-6 animate-fade-in">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-amber-800">
-              📦 {selectedIds.length} order(s) selected
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#775a19]">
+              LABELS: {selectedIds.length} order(s) selected
             </span>
             <button
               onClick={handleBulkGenerateLabels}
               disabled={submitting}
-              className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors border-none"
+              className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-2.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
             >
               Generate Shiprocket Labels ({selectedIds.length})
             </button>
@@ -1167,7 +666,7 @@ export default function OrdersKanbanPage() {
           <button
             onClick={handlePrintManifest}
             disabled={submitting}
-            className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-6 py-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors border-none"
+            className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-3 rounded-none text-[10px] font-black uppercase tracking-widest flex items-center gap-2 cursor-pointer transition-colors border-none"
           >
             <span className="material-symbols-outlined text-sm">assignment</span>
             Print Shipped Manifests
@@ -1178,12 +677,12 @@ export default function OrdersKanbanPage() {
       {/* Main Ledger Table */}
       {loading ? (
         <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-gray-200 rounded-xl"/>
-          <div className="h-32 bg-gray-200 rounded-xl"/>
-          <div className="h-64 bg-gray-200 rounded-xl"/>
+          <div className="h-32 bg-gray-200 rounded-none"/>
+          <div className="h-32 bg-gray-200 rounded-none"/>
+          <div className="h-64 bg-gray-200 rounded-none"/>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-xl">
+        <div className="bg-white border border-gray-200 shadow-sm overflow-hidden rounded-none">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -1253,7 +752,7 @@ export default function OrdersKanbanPage() {
                           ₹{order.total.toLocaleString("en-IN")}.00
                         </td>
                         <td className="px-8 py-6 text-center" onClick={(e) => e.stopPropagation()}>
-                          <span className={`inline-block px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md ${getStatusStyle(order.status)}`}>
+                          <span className={`inline-block px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-none ${getStatusStyle(order.status)}`}>
                             {order.status}
                           </span>
                         </td>
@@ -1262,7 +761,7 @@ export default function OrdersKanbanPage() {
                             {activeTab === 'live' && (
                               <button
                                 onClick={() => handleSingleAccept(order.id)}
-                                className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-3 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors border-none"
+                                className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
                               >
                                 Accept
                               </button>
@@ -1270,7 +769,7 @@ export default function OrdersKanbanPage() {
                             {activeTab === 'processing' && (
                               <button
                                 onClick={() => handleSinglePrintInvoice(order.id)}
-                                className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-3 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors border-none"
+                                className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
                               >
                                 Print Invoice
                               </button>
@@ -1278,7 +777,7 @@ export default function OrdersKanbanPage() {
                             {activeTab === 'packed' && (
                               <button
                                 onClick={() => handleSingleGenerateLabel(order.id)}
-                                className="bg-[#0a0a0a] text-white hover:bg-gray-800 px-3 py-1.5 rounded text-[10px] font-bold cursor-pointer transition-colors border-none"
+                                className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
                               >
                                 Generate Label
                               </button>
@@ -1286,7 +785,7 @@ export default function OrdersKanbanPage() {
                             {isPendingTab && (
                               <Link
                                 href={detailLink}
-                                className="bg-[#775a19] text-white hover:bg-[#634812] px-3 py-1.5 rounded text-[10px] font-bold transition-colors text-center no-underline"
+                                className="bg-[#775a19] text-[#faf9f8] hover:bg-[#634812] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest transition-colors text-center no-underline"
                               >
                                 Process Now
                               </Link>
@@ -1294,7 +793,7 @@ export default function OrdersKanbanPage() {
                             {activeTab === 'payment_pending' && (
                               <Link
                                 href={detailLink}
-                                className="bg-amber-600 text-white hover:bg-amber-700 px-3 py-1.5 rounded text-[10px] font-bold transition-colors text-center no-underline"
+                                className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest transition-colors text-center no-underline"
                               >
                                 Verify Payment
                               </Link>
@@ -1317,28 +816,28 @@ export default function OrdersKanbanPage() {
       {/* Bulk Label Generation Progress Modal */}
       {labelModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
-          <div className="bg-white border border-gray-200 shadow-2xl rounded-2xl p-8 max-w-md w-full animate-zoom-in">
-            <h3 className="text-lg font-black uppercase tracking-wider text-black mb-4">
+          <div className="bg-white border border-[#7f7667]/20 shadow-2xl rounded-none p-8 max-w-md w-full animate-zoom-in">
+            <h3 className="text-lg font-headline font-black uppercase tracking-tighter text-black mb-4">
               Generating Shipping Labels...
             </h3>
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-4 leading-relaxed">
               Dispatching shipments and requesting label generation from Shiprocket sequentially to respect rate limits.
             </p>
-            <div className="space-y-2.5 max-h-64 overflow-y-auto mb-6 border border-gray-100 p-4 rounded-xl bg-gray-50/50">
+            <div className="space-y-2.5 max-h-64 overflow-y-auto mb-6 border border-gray-100 p-4 rounded-none bg-gray-50/50">
               {labelResults.map(result => (
                 <div key={result.orderId} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0 text-xs">
                   {result.pending ? (
-                    <span className="text-amber-500 animate-pulse text-base">⏳</span>
+                    <span className="text-amber-500 animate-pulse text-xs font-bold uppercase">Pending</span>
                   ) : result.success ? (
-                    <span className="text-green-600 text-base">✅</span>
+                    <span className="text-green-600 text-xs font-bold uppercase">Success</span>
                   ) : (
-                    <span className="text-red-600 text-base">❌</span>
+                    <span className="text-red-600 text-xs font-bold uppercase">Failed</span>
                   )}
                   <span className="font-bold font-mono flex-1 text-gray-700">
                     #{result.orderId}
                   </span>
                   {result.success && result.awb && (
-                    <span className="text-[10px] bg-green-50 text-green-700 font-mono px-2 py-0.5 rounded border border-green-200/50">
+                    <span className="text-[10px] bg-green-50 text-green-700 font-mono px-2 py-0.5 rounded-none border border-green-200/50">
                       AWB: {result.awb}
                     </span>
                   )}
@@ -1360,7 +859,7 @@ export default function OrdersKanbanPage() {
                     setLabelModalOpen(false);
                     loadOrders();
                   }}
-                  className="bg-black text-white hover:bg-gray-800 px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none"
+                  className="bg-black text-white hover:bg-gray-800 px-6 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none"
                 >
                   Done
                 </button>

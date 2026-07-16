@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import LiveOrderToast from "@/components/admin/LiveOrderToast";
 
 interface AdminSidebarProps {
   user: { id: string; email: string; role: string };
@@ -274,6 +275,9 @@ export default function AdminSidebar({ user, pendingReturnsCount, pendingOrdersC
           {children}
         </main>
       </div>
+
+      {/* Live order toast notifications — bottom-right, all admin pages */}
+      <LiveOrderToast />
     </div>
   );
 }

@@ -3,6 +3,54 @@
 import React, { useState, useEffect } from "react";
 import { getLiveAnalyticsAction } from "@/app/actions/admin-analytics";
 
+// Time-ago helper
+function timeAgo(isoString: string): string {
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.floor(diffHr / 24)}d ago`;
+}
+
+// Color-coded event badge helper
+function eventBadge(tag: string) {
+  const upper = tag.toUpperCase();
+  if (upper === "PIXEL") {
+    return {
+      border: "border-purple-500",
+      badge: "text-purple-800 bg-purple-100 border border-purple-200",
+    };
+  }
+  if (upper === "DATABASE" || upper === "ORDER") {
+    return {
+      border: "border-blue-500",
+      badge: "text-blue-800 bg-blue-100 border border-blue-200",
+    };
+  }
+  if (upper === "STOREFRONT" || upper === "UTM" || upper === "PING") {
+    return {
+      border: "border-green-500",
+      badge: "text-green-800 bg-green-100 border border-green-200",
+    };
+  }
+  if (upper === "ERROR") {
+    return {
+      border: "border-red-500",
+      badge: "text-red-800 bg-red-100 border border-red-200",
+    };
+  }
+  // Default: amber / yellow
+  return {
+    border: "border-[#fed488]",
+    badge: "text-[#7a5c00] bg-[#fed488]/20 border border-[#fed488]/50",
+  };
+}
+
 export default function LiveAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -59,9 +107,21 @@ export default function LiveAnalyticsPage() {
   const activeCarts = data?.activeCarts ?? 7;
   const todayOrdersCount = data?.todayOrdersCount ?? 0;
   const todayRevenue = data?.todayRevenue ?? 0;
+  const todayPendingOrders = data?.todayPendingOrders ?? 0;
+  const recentOrders: { id: string; customer: string; total: number; created_at: string }[] =
+    data?.recentOrders ?? [];
   const cityOrders = data?.cityOrders || [];
 
-  const maxCityOrders = cityOrders.length > 0 ? Math.max(...cityOrders.map((c: any) => c.count)) : 1;
+  const maxCityOrders =
+    cityOrders.length > 0 ? Math.max(...cityOrders.map((c: any) => c.count)) : 1;
+
+  // Static system events with color-coded types
+  const systemEvents = [
+    { tag: "PING", message: "Page views session tracker updated successfully", meta: "Just now • System" },
+    { tag: "DATABASE", message: "Order sequence cache verified for checkout", meta: "2 mins ago • Database" },
+    { tag: "UTM", message: "sessionStorage UTM parameters parsed cleanly", meta: "5 mins ago • Storefront" },
+    { tag: "PIXEL", message: "Meta Pixel purchase event dispatched", meta: "8 mins ago • Pixel" },
+  ];
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-white font-body">
@@ -100,8 +160,8 @@ export default function LiveAnalyticsPage() {
         </div>
       </div>
 
-      {/* Real-time stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+      {/* Real-time stats row — 4 cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Card 1: Online Visitors */}
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
           <div className="flex justify-between items-start">
@@ -152,7 +212,63 @@ export default function LiveAnalyticsPage() {
             </div>
           </div>
         </div>
+
+        {/* Card 4: Today's Pending Orders */}
+        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Pending Orders</h3>
+              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Paid today, awaiting dispatch</p>
+            </div>
+            <span className="material-symbols-outlined text-amber-400 text-lg bg-amber-400/10 p-2">pending_actions</span>
+          </div>
+          <div className="mt-4">
+            <span className="text-5xl font-black font-headline text-white font-mono">{todayPendingOrders}</span>
+            <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider ml-3 bg-amber-400/10 px-2 py-0.5 select-none">
+              {todayPendingOrders === 1 ? "Needs Action" : "Awaiting"}
+            </span>
+          </div>
+        </div>
       </div>
+
+      {/* Recent Orders Feed */}
+      {recentOrders.length > 0 && (
+        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
+          <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Recent Orders Feed</h3>
+          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Last 5 orders placed on the storefront</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40">Order ID</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40">Customer</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Amount</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {recentOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3 text-xs font-black uppercase tracking-wider text-[#fed488] font-mono">
+                      {String(order.id).slice(0, 8).toUpperCase()}
+                    </td>
+                    <td className="py-3 text-xs text-white/70 tracking-wider">
+                      {order.customer}
+                    </td>
+                    <td className="py-3 text-xs font-bold font-mono text-white text-right">
+                      ₹{Number(order.total).toLocaleString()}
+                    </td>
+                    <td className="py-3 text-[10px] font-mono text-white/40 text-right uppercase tracking-widest">
+                      {timeAgo(order.created_at)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Grid: Geo Distribution and Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -196,29 +312,20 @@ export default function LiveAnalyticsPage() {
           </div>
 
           <div className="space-y-4 my-auto">
-            <div className="flex items-start gap-4 border-l-2 border-green-500 pl-4 py-1">
-              <span className="text-[9px] font-bold font-mono text-green-500 uppercase tracking-wider bg-green-500/10 px-1.5 py-0.5 select-none shrink-0">PING</span>
-              <div>
-                <p className="text-xs font-bold text-white/80">Page views session tracker updated successfully</p>
-                <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">Just now • System</span>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 border-l-2 border-blue-500 pl-4 py-1">
-              <span className="text-[9px] font-bold font-mono text-blue-500 uppercase tracking-wider bg-blue-500/10 px-1.5 py-0.5 select-none shrink-0">ORDER</span>
-              <div>
-                <p className="text-xs font-bold text-white/80">Order sequence cache verified for checkout</p>
-                <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">2 mins ago • Database</span>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 border-l-2 border-[#fed488] pl-4 py-1">
-              <span className="text-[9px] font-bold font-mono text-[#fed488] uppercase tracking-wider bg-[#fed488]/10 px-1.5 py-0.5 select-none shrink-0">UTM</span>
-              <div>
-                <p className="text-xs font-bold text-white/80">sessionStorage UTM parameters parsed cleanly</p>
-                <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">5 mins ago • Storefront</span>
-              </div>
-            </div>
+            {systemEvents.map((event, i) => {
+              const { border, badge } = eventBadge(event.tag);
+              return (
+                <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
+                  <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
+                    {event.tag}
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white/80">{event.message}</p>
+                    <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">{event.meta}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">

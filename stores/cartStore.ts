@@ -86,6 +86,22 @@ interface CartState {
   getCartCount: () => number;
 }
 
+const pingCartActivity = (items: CartItem[]) => {
+  if (typeof window === "undefined") return;
+  const sessionId = sessionStorage.getItem("storefront_session_id");
+  if (!sessionId) return;
+  const cartValue = items.reduce((sum, i) => sum + (i.price || 0), 0);
+  fetch("/api/analytics/cart-activity", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId,
+      cartCount: items.length,
+      cartValue,
+    }),
+  }).catch(() => {});
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -97,6 +113,7 @@ export const useCartStore = create<CartState>()(
           newItems.push({ ...item });
         }
         set({ cartItems: newItems });
+        pingCartActivity(newItems);
 
         const productId = item.productId || "unknown";
         const productName = item.productName || "Product";
@@ -146,6 +163,7 @@ export const useCartStore = create<CartState>()(
         );
 
         set({ cartItems: newItems });
+        pingCartActivity(newItems);
 
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
@@ -180,6 +198,11 @@ export const useCartStore = create<CartState>()(
             });
           }
 
+          // Trigger ping activity with updated items list
+          setTimeout(() => {
+            pingCartActivity(newItems);
+          }, 50);
+
           return { cartItems: newItems };
         });
       },
@@ -208,6 +231,7 @@ export const useCartStore = create<CartState>()(
 
         const newItems = [...state.cartItems, { ...templateItem }];
         set({ cartItems: newItems });
+        pingCartActivity(newItems);
 
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }) => {
@@ -223,6 +247,7 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => {
         set({ cartItems: [] });
+        pingCartActivity([]);
       },
 
       getCartCount: () => {
@@ -234,3 +259,4 @@ export const useCartStore = create<CartState>()(
     }
   )
 );
+

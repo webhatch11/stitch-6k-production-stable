@@ -58,6 +58,20 @@ export default function LiveAnalyticsPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
+  // Revenue ticker animation state
+  const [prevRevenue, setPrevRevenue] = useState(0);
+  const [revenueChanged, setRevenueChanged] = useState(false);
+
+  useEffect(() => {
+    if (data?.todayRevenue !== undefined && data.todayRevenue !== prevRevenue) {
+      if (prevRevenue !== 0) {
+        setRevenueChanged(true);
+        setTimeout(() => setRevenueChanged(false), 2000);
+      }
+      setPrevRevenue(data.todayRevenue);
+    }
+  }, [data?.todayRevenue, prevRevenue]);
+
   // 1. Fetch live data every 30 seconds
   useEffect(() => {
     async function load() {
@@ -103,25 +117,20 @@ export default function LiveAnalyticsPage() {
     );
   }
 
-  const onlineVisitors = data?.onlineVisitors ?? 3;
-  const activeCarts = data?.activeCarts ?? 7;
+  const onlineVisitors = data?.onlineVisitors ?? 0;
+  const activeCarts = data?.activeCarts ?? 0;
   const todayOrdersCount = data?.todayOrdersCount ?? 0;
   const todayRevenue = data?.todayRevenue ?? 0;
   const todayPendingOrders = data?.todayPendingOrders ?? 0;
   const recentOrders: { id: string; customer: string; total: number; created_at: string }[] =
     data?.recentOrders ?? [];
   const cityOrders = data?.cityOrders || [];
+  const recentEvents: { order_id: string; event: string; created_at: string }[] =
+    data?.recentEvents ?? [];
 
   const maxCityOrders =
     cityOrders.length > 0 ? Math.max(...cityOrders.map((c: any) => c.count)) : 1;
 
-  // Static system events with color-coded types
-  const systemEvents = [
-    { tag: "PING", message: "Page views session tracker updated successfully", meta: "Just now • System" },
-    { tag: "DATABASE", message: "Order sequence cache verified for checkout", meta: "2 mins ago • Database" },
-    { tag: "UTM", message: "sessionStorage UTM parameters parsed cleanly", meta: "5 mins ago • Storefront" },
-    { tag: "PIXEL", message: "Meta Pixel purchase event dispatched", meta: "8 mins ago • Pixel" },
-  ];
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-white font-body">
@@ -207,7 +216,11 @@ export default function LiveAnalyticsPage() {
               <span className="text-xs text-white/40 uppercase tracking-widest ml-2">Orders</span>
             </div>
             <div className="text-right">
-              <span className="text-lg font-black font-mono text-[#fed488]">₹{todayRevenue.toLocaleString()}</span>
+              <span className={`text-lg font-black font-mono transition-colors duration-500 ${
+                revenueChanged ? "text-green-400 scale-105" : "text-[#fed488]"
+              }`}>
+                ₹{todayRevenue.toLocaleString()}
+              </span>
               <p className="text-[9px] text-white/20 uppercase tracking-widest">Gross Sales</p>
             </div>
           </div>
@@ -312,20 +325,28 @@ export default function LiveAnalyticsPage() {
           </div>
 
           <div className="space-y-4 my-auto">
-            {systemEvents.map((event, i) => {
-              const { border, badge } = eventBadge(event.tag);
-              return (
-                <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
-                  <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
-                    {event.tag}
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold text-white/80">{event.message}</p>
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">{event.meta}</span>
+            {recentEvents.length === 0 ? (
+              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                No recent order events recorded
+              </p>
+            ) : (
+              recentEvents.map((event, i) => {
+                const { border, badge } = eventBadge("ORDER");
+                return (
+                  <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
+                    <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
+                      ORDER
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-white/80">{event.event}</p>
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
+                        #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">

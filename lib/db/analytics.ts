@@ -527,17 +527,16 @@ export async function getOnlineVisitorsCount(): Promise<number> {
     );
   }
 
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from("page_views")
-    .select("session_id")
-    .gte("created_at", fiveMinutesAgo);
+    .select("session_id", { count: "exact", head: true })
+    .gte("last_seen", fiveMinutesAgo);
 
   if (error) {
     console.error("Error getting online visitors:", error);
-    return 3;
+    return 0;
   }
-  const uniqueSessions = new Set((data || []).map((r) => r.session_id));
-  return Math.max(3, uniqueSessions.size);
+  return count || 0;
 }
 
 export async function getActiveCartsCount(): Promise<number> {
@@ -553,16 +552,18 @@ export async function getActiveCartsCount(): Promise<number> {
   }
 
   const { count, error } = await supabase
-    .from("user_cart")
-    .select("id", { count: "exact", head: true })
-    .gte("updated_at", thirtyMinsAgo);
+    .from("page_views")
+    .select("session_id", { count: "exact", head: true })
+    .gte("last_seen", thirtyMinsAgo)
+    .gt("cart_items_count", 0);
 
   if (error) {
     console.error("Error fetching active carts count:", error);
-    return 7;
+    return 0;
   }
-  return count || 7;
+  return count || 0;
 }
+
 
 export async function getMonthlyFinanceSummary(
   year: number,

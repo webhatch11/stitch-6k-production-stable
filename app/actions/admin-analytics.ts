@@ -129,6 +129,10 @@ export async function getLiveAnalyticsAction() {
       { id: "ORD-001", customer: "Sample Customer", total: 1499, created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
       { id: "ORD-002", customer: "Demo User", total: 2199, created_at: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
     ];
+    let recentEvents: { order_id: string; event: string; created_at: string }[] = [
+      { order_id: "ORD-001", event: "Order created successfully", created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
+      { order_id: "ORD-002", event: "Order payment verified", created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() },
+    ];
     
     if (isSupabaseConfigured && supabase) {
       const todayStart = new Date();
@@ -173,6 +177,21 @@ export async function getLiveAnalyticsAction() {
           created_at: o.created_at,
         }));
       }
+
+      // Fetch last 5 recent order events
+      const { data: events, error: eventsErr } = await supabase
+        .from("order_events")
+        .select("order_id, event, created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!eventsErr && events) {
+        recentEvents = events.map((ev) => ({
+          order_id: ev.order_id || "",
+          event: ev.event || "",
+          created_at: ev.created_at,
+        }));
+      }
     }
 
     const cityOrders = await db.getCityOrders();
@@ -186,6 +205,7 @@ export async function getLiveAnalyticsAction() {
       todayPendingOrders,
       recentOrders,
       cityOrders,
+      recentEvents,
     };
   } catch (err: any) {
     console.error("Live action error:", err);

@@ -18,8 +18,9 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
 
   const order = lastOrder;
 
-  // Auto redirect after 5 seconds
+  // Auto redirect after 5 seconds - with guard
   useEffect(() => {
+    if (!order) return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -31,15 +32,18 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [router]);
+  }, [order, router]);
 
-  // Show checkmark animation after mount
+  // Show checkmark animation after mount - with guard
   useEffect(() => {
-    setTimeout(() => setAnimationDone(true), 500);
-  }, []);
+    if (!order) return;
+    const timerId = setTimeout(() => setAnimationDone(true), 500);
+    return () => clearTimeout(timerId);
+  }, [order]);
 
-  // Analytics tracking effect
+  // Analytics tracking effect - with guard
   useEffect(() => {
+    if (!order) return;
     if (order && !trackedOrders.current[order.id]) {
       trackedOrders.current[order.id] = true;
 
@@ -122,6 +126,7 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
     }
   }, [order]);
 
+  // Conditional returns placed AFTER all hook definitions
   if (!order) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">

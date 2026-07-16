@@ -360,7 +360,9 @@ BEGIN
         RETURN json_build_object('success', false, 'error', 'Coupon is inactive');
     END IF;
 
-    IF v_coupon.expiry_date IS NOT NULL AND v_coupon.expiry_date < NOW() THEN
+    -- Treat expiry_date as end of that calendar day (not midnight).
+    IF v_coupon.expiry_date IS NOT NULL
+       AND DATE_TRUNC('day', v_coupon.expiry_date) + INTERVAL '1 day' <= NOW() THEN
         RETURN json_build_object('success', false, 'error', 'Coupon has expired');
     END IF;
 

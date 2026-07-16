@@ -14,10 +14,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing ?since= param" }, { status: 400 });
   }
 
+  const serverTime = new Date().toISOString();
+
+  if (since === "init") {
+    return NextResponse.json({ orders: [], serverTime });
+  }
+
   try {
     if (!supabaseService) {
       // Service role key not configured — return empty gracefully
-      return NextResponse.json({ orders: [] });
+      return NextResponse.json({ orders: [], serverTime });
     }
 
     const { data, error } = await supabaseService
@@ -58,7 +64,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ orders });
+    return NextResponse.json({ orders, serverTime });
   } catch (err) {
     console.error("[live-orders] Unexpected error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

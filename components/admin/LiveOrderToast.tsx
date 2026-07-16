@@ -24,7 +24,8 @@ const AUTO_DISMISS = 5_000;  // 5 seconds
 export default function LiveOrderToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   // Track the timestamp of the last check so we only get *new* orders
-  const sinceRef = useRef<string>(new Date().toISOString());
+  // Anchored to server time; defaults to 'init' to fetch baseline on first query
+  const sinceRef = useRef<string>("init");
 
   const dismiss = useCallback((toastId: string) => {
     setToasts((prev) => prev.filter((t) => t.toastId !== toastId));
@@ -32,17 +33,31 @@ export default function LiveOrderToast() {
 
   const poll = useCallback(async () => {
     try {
+      const currentSince = sinceRef.current;
       const res = await fetch(
-        `/api/admin/live-orders?since=${encodeURIComponent(sinceRef.current)}`,
+        `/api/admin/live-orders?since=${encodeURIComponent(currentSince)}`,
         { cache: "no-store" }
       );
       if (!res.ok) return;
       const json = await res.json();
       const orders: LiveOrder[] = json.orders || [];
+      const serverTime = json.serverTime;
+
+      if (currentSince === "init") {
+        if (serverTime) {
+          sinceRef.current = serverTime;
+          localStorage.setItem("admin_last_order_check", serverTime);
+        }
+        return;
+      }
 
       if (orders.length > 0) {
         // Advance the cursor to the most recent order's timestamp
-        sinceRef.current = orders[0].createdAt;
+        const nextSince = orders[0].createdAt || serverTime;
+        if (nextSince) {
+          sinceRef.current = nextSince;
+          localStorage.setItem("admin_last_order_check", nextSince);
+        }
 
         const newToasts: ToastItem[] = orders.map((o) => ({
           toastId: `${o.id}-${Date.now()}-${Math.random()}`,
@@ -63,6 +78,22 @@ export default function LiveOrderToast() {
   }, [dismiss]);
 
   useEffect(() => {
+    // Attempt to restore check cursor from localStorage if fresh (less than 30 mins old)
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("admin_last_order_check");
+        if (stored) {
+          const parsedTime = new Date(stored).getTime();
+          const nowTime = Date.now();
+          if (!isNaN(parsedTime) && nowTime - parsedTime < 30 * 60 * 1000) {
+            sinceRef.current = stored;
+          }
+        }
+      } catch (e) {
+        console.warn("[LiveOrderToast] Failed to read from localStorage:", e);
+      }
+    }
+
     // Initial poll after a short delay (let page settle)
     const initTimer = setTimeout(poll, 2000);
     const interval = setInterval(poll, POLL_INTERVAL);

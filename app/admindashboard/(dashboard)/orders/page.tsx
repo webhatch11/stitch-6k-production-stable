@@ -153,14 +153,27 @@ function buildBulkInvoiceHtml(
 ): string {
   return `<!DOCTYPE html><html><head>
   <meta charset="utf-8">
+  <title>Concatenated Tax Invoices</title>
   <style>
     @media print {
       @page { size: A4; margin: 6mm; }
       .page-break { page-break-after: always; }
+      .no-print { display: none !important; }
     }
-    body { margin: 0; padding: 0; }
+    body { margin: 0; padding: 0; background: #f9f9f9; padding-top: 80px; }
+    @media print {
+      body { background: white; padding-top: 0; }
+    }
   </style>
-  </head><body>` +
+  </head><body>
+  <div class="no-print" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <button onclick="window.print()" style="background: black; color: white; border: none; padding: 12px 24px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+      Print / Download PDF
+    </button>
+    <button onclick="window.close()" style="background: white; color: #666; border: 1px solid #ddd; padding: 12px 20px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer;">
+      Go Back
+    </button>
+  </div>` +
   orders.map((order, i) => {
     const data = orderToInvoiceData(
       order,
@@ -443,33 +456,26 @@ export default function OrdersKanbanPage() {
   const handleSinglePrintInvoice = async (orderId: string) => {
     if (submitting) return;
     setSubmitting(true);
-    const res = await generateBulkInvoicePdfAction([orderId]);
+    const invoiceUrl = `/invoice?orderId=${orderId}`;
+    const printWindow = window.open(invoiceUrl, "_blank");
     setSubmitting(false);
-    if (res.success && res.orders && res.products) {
-      const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE", window.location.origin);
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const printWindow = window.open(blobUrl, "_blank");
-      if (printWindow) {
-        printWindow.focus();
-        let hasRun = false;
-        const runUpdate = async () => {
-          if (hasRun) return;
-          hasRun = true;
-          await markOrderPackedAction(orderId);
-          await loadOrders();
-          URL.revokeObjectURL(blobUrl);
-        };
-        printWindow.onafterprint = runUpdate;
-        const checkWindow = setInterval(() => {
-          if (printWindow.closed) {
-            clearInterval(checkWindow);
-            runUpdate();
-          }
-        }, 1000);
-      }
+    if (printWindow) {
+      printWindow.focus();
+      let hasRun = false;
+      const runUpdate = async () => {
+        if (hasRun) return;
+        hasRun = true;
+        await markOrderPackedAction(orderId);
+        await loadOrders();
+      };
+      const checkWindow = setInterval(() => {
+        if (printWindow.closed) {
+          clearInterval(checkWindow);
+          runUpdate();
+        }
+      }, 1000);
     } else {
-      triggerToast("Failed to print invoice");
+      triggerToast("Pop-up blocked! Please allow popups for this dashboard.");
     }
   };
 

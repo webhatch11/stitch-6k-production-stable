@@ -50,13 +50,13 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
   }
 
   return (
-    <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] relative z-[60]">
+    <div className="marquee-container overflow-hidden w-full bg-[#1a1c1c] text-[#faf9f8] py-1.5 text-[9px] font-black uppercase tracking-[0.3em] relative z-[60] border-y border-[#7f7667]/20">
       <div className="flex animate-marquee whitespace-nowrap">
         <div className="flex shrink-0 items-center gap-12 px-6">
           {items.map((item, idx) => (
             <React.Fragment key={idx}>
               <span>{item}</span>
-              <span className="text-secondary-fixed-dim">•</span>
+              <span className="text-[#775a19] font-black">•</span>
             </React.Fragment>
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
           {items.map((item, idx) => (
             <React.Fragment key={idx}>
               <span>{item}</span>
-              <span className="text-secondary-fixed-dim">•</span>
+              <span className="text-[#775a19] font-black">•</span>
             </React.Fragment>
           ))}
         </div>

@@ -904,91 +904,7 @@ export default function HomeClient({
         {/* Large Infinite Announcement Marquee */}
         <AnnouncementMarquee marquee={marquee} isHomepage={true} />
 
-        {/* Section 2: Promotional Spotlight */}
-        {offerBox?.enabled && (
-          <section className="bg-surface-container-low py-16 md:py-24 px-4 md:px-8 lg:px-12 relative overflow-hidden group">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
-              className="max-w-4xl mx-auto w-full relative min-h-[280px] lg:min-h-[320px] flex items-center justify-center overflow-hidden bg-black border border-white/5 shadow-2xl"
-            >
-              {/* Background Image with slow zoom-scale */}
-              <Image
-                alt="Elegant dark silk fabric texture"
-                className="absolute inset-0 w-full h-full object-cover grayscale brightness-[0.2] group-hover:scale-105 transition-transform duration-[3000ms] ease-out select-none pointer-events-none"
-                src={offerBox?.bg_image_url || "https://lh3.googleusercontent.com/aida-public/AB6AXuBt_dM_PwNyCwIwT-O1Hdc00MIZ22eGAUgYi9vEfWdoVc132M9C6iGLoFpcH8jO3Ef-tMj5hHNCSqM6luyueIIuCAzB2muFZoy5zrcS6-J6xi7bbBWJq9Vyy44Q5AaYLfV6B6xsYzHw0ZkNcVDrBXiQK17gSFXF9x3nD3Q9pNhJWSjTd_zcb6fo_VxbX_1BNBczo3rMeCVhL6lBg88mr66F5-9-dmZp16Hwth9jmqvFTgyCzd5dvpwfsUpu5d-js0dRPMLDm1UPQmA"}
-                fill
-                style={{ objectFit: 'cover' }}
-              />
-              
-              {/* Double-Gold Framed Card */}
-              <div className="relative z-10 w-full max-w-lg mx-6 p-6 lg:p-10 border-4 border-double border-secondary/30 bg-black/60 backdrop-blur-md text-center flex flex-col items-center gap-4 shadow-2xl transition-all duration-500 hover:border-secondary/50">
-                {/* Limited offer header */}
-                {offerBox?.label && (
-                  <span className="text-secondary text-[9px] font-black uppercase tracking-[0.4em]">
-                    {offerBox.label}
-                  </span>
-                )}
 
-                {/* Mixed Typography Header */}
-                <div className="flex flex-col items-center">
-                  <span className="font-serif italic text-secondary text-xl lg:text-3xl tracking-wide lowercase leading-none">
-                    our new
-                  </span>
-                  <h2 className="text-white font-headline text-2xl lg:text-4xl font-extrabold tracking-[0.25em] uppercase mt-2 leading-none">
-                    {offerBox?.heading || "S E A S O N"}
-                  </h2>
-                </div>
-
-                {/* Subtitle */}
-                {offerBox?.body && (
-                  <p className="text-gray-400 font-label text-[9px] uppercase tracking-[0.2em] max-w-sm leading-relaxed mt-1">
-                    {offerBox.body}
-                  </p>
-                )}
-
-                {/* Stitched Atelier Tag (Interactive Coupon) */}
-                {offerBox?.coupon_code && (
-                  <div className="relative group/tag mt-1">
-                    {/* Circular thread hole on the left side of the tag */}
-                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-black border border-secondary/30 shadow-inner z-10"></div>
-                    
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(offerBox.coupon_code);
-                        // Trigger a custom toast notification on the client side
-                        const toast = document.createElement("div");
-                        toast.className = "fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10 rounded-none animate-fade-in";
-                        toast.innerText = `COUPON ${offerBox.coupon_code} COPIED TO CLIPBOARD!`;
-                        document.body.appendChild(toast);
-                        setTimeout(() => toast.remove(), 2500);
-                      }}
-                      className="pl-7 pr-5 py-2.5 bg-white/5 border border-dashed border-secondary/55 hover:bg-white/10 hover:border-secondary text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer select-all rounded-none"
-                      title="Click to copy coupon code tag"
-                    >
-                      <span className="text-[#fed488] font-black">{offerBox.coupon_code}</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 group-hover/tag:text-[#fed488] transition-colors"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                    </button>
-                  </div>
-                )}
-
-                {/* Minimalist Button */}
-                {offerBox?.cta_text && (
-                  <div className="mt-2">
-                    <Link
-                      href={offerBox.cta_url && offerBox.cta_url !== "/text-url" ? offerBox.cta_url : "/shopallshirts"}
-                      className="bg-secondary text-white hover:bg-[#fed488] hover:text-primary px-8 py-3 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 inline-block border-none font-bold"
-                    >
-                      {offerBox.cta_text}
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </section>
-        )}
 
         {/* Section 3: Best Sellers / Featured Collection */}
         <section className="py-16 md:py-24 px-4 md:px-8 lg:px-12 bg-black border-y border-white/5 scroll-mt-24 relative overflow-hidden bg-[radial-gradient(circle_at_center,rgba(119,90,25,0.04)_0%,rgba(0,0,0,0)_70%)]">
@@ -1061,7 +977,7 @@ export default function HomeClient({
                     setActiveFavIndex((prev) => (prev - 1 + activeNewArrivals.length) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-11 h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
+                  className="w-11 h-11 rounded-none border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Previous item"
                   aria-label="Previous item"
                 >
@@ -1072,7 +988,7 @@ export default function HomeClient({
                     setActiveFavIndex((prev) => (prev + 1) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-11 h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
+                  className="w-11 h-11 rounded-none border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Next item"
                   aria-label="Next item"
                 >
@@ -1123,17 +1039,17 @@ export default function HomeClient({
                         '--card-scale': scale,
                         '--card-depth': absOffset,
                       } as React.CSSProperties}
-                      className={`card-3d-item absolute transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex h-[280px] md:h-[360px] rounded-[1.8rem] bg-[#0c0c0e] select-none cursor-pointer group hover:-translate-y-2 hover:scale-[1.02] ${
+                      className={`card-3d-item absolute transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] flex h-[280px] md:h-[360px] rounded-none bg-[#0c0c0e] select-none cursor-pointer group hover:-translate-y-2 hover:scale-[1.02] ${
                         isActive ? "border border-secondary/40 shadow-[0_0_50px_rgba(254,212,136,0.22)]" : "border border-white/5 shadow-2xl"
                       } ${blurClass} ${grayscaleClass}`}
                     >
                       {/* Ambient spotlight radial gold glow behind active card */}
                       {isActive && (
-                        <div className="absolute -inset-4 rounded-[2.2rem] bg-gradient-to-r from-secondary/20 via-[#fed488]/10 to-secondary/20 opacity-40 group-hover:opacity-60 blur-3xl transition-opacity duration-700 pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
+                        <div className="absolute -inset-4 rounded-none bg-gradient-to-r from-secondary/20 via-[#fed488]/10 to-secondary/20 opacity-40 group-hover:opacity-60 blur-3xl transition-opacity duration-700 pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '4s' }} />
                       )}
 
                       {/* Unified Card Frame */}
-                      <div className={`h-full relative overflow-hidden transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] rounded-[1.8rem] bg-surface-container-low border border-black/5 flex flex-col justify-end ${
+                      <div className={`h-full relative overflow-hidden transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)] rounded-none bg-surface-container-low border border-black/5 flex flex-col justify-end ${
                         isActive ? "w-[180px] md:w-[210px]" : "w-[110px] sm:w-[130px] md:w-[150px]"
                       }`}>
                       {/* Product Image with smooth group hover scale */}
@@ -1154,12 +1070,12 @@ export default function HomeClient({
                             <Link
                               href={product.link}
                               onClick={(e) => {
-                                if (isQuickShopOpen) {
-                                  e.preventDefault();
-                                  setSelectedQuickShopIndex(null);
-                                }
+                                  if (isQuickShopOpen) {
+                                    e.preventDefault();
+                                    setSelectedQuickShopIndex(null);
+                                  }
                               }}
-                              className="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-secondary text-white hover:text-[#fed488] font-bold tracking-[0.25em] text-[9px] uppercase py-3 px-6 rounded-full backdrop-blur-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 shadow-lg"
+                              className="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-secondary text-white hover:text-[#fed488] font-bold tracking-[0.25em] text-[9px] uppercase py-3 px-6 rounded-none backdrop-blur-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 shadow-sm"
                             >
                               Discover Piece
                             </Link>
@@ -1167,7 +1083,7 @@ export default function HomeClient({
                         )}
 
                         {/* NEW Badge Tag on active card (Top-left, gold border semi-transparent capsule) */}
-                        <div className={`absolute top-3 left-3 md:top-4 md:left-4 bg-black/60 backdrop-blur-sm text-secondary border border-secondary/30 px-2 py-0.5 md:px-2.5 md:py-1 text-[7px] md:text-[7.5px] font-black uppercase tracking-[0.18em] md:tracking-[0.3em] transition-opacity duration-500 z-10 rounded-full shadow-lg ${
+                        <div className={`absolute top-3 left-3 md:top-4 md:left-4 bg-black/60 backdrop-blur-sm text-secondary border border-secondary/30 px-2 py-0.5 md:px-2.5 md:py-1 text-[7px] md:text-[7.5px] font-black uppercase tracking-[0.18em] md:tracking-[0.3em] transition-opacity duration-500 z-10 rounded-none shadow-sm ${
                           isActive ? "opacity-100" : "opacity-0"
                         }`}>
                           {product.tag}
@@ -1250,7 +1166,7 @@ export default function HomeClient({
                                     e.stopPropagation();
                                     handleAddToBag(product.name, product.price, product.image, size, product.id, product.colors);
                                   }}
-                                  className="w-11 h-11 md:w-11 md:h-11 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-lg flex items-center justify-center cursor-pointer"
+                                  className="w-11 h-11 md:w-11 md:h-11 border border-white/10 hover:border-secondary hover:bg-secondary hover:text-black text-white text-[9px] md:text-[10px] font-black tracking-wider transition-all duration-300 rounded-none flex items-center justify-center cursor-pointer"
                                 >
                                   {size}
                                 </button>
@@ -1277,8 +1193,8 @@ export default function HomeClient({
                       }}
                       className={`transition-all duration-500 cursor-pointer ${
                         isActive 
-                          ? "w-8 h-1.5 bg-secondary rounded-full" 
-                          : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40 rounded-full"
+                          ? "w-8 h-1.5 bg-secondary rounded-none" 
+                          : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40 rounded-none"
                       }`}
                       title={`Go to slide ${i + 1}`}
                     />
@@ -1336,7 +1252,7 @@ export default function HomeClient({
                   className="group flex flex-col cursor-pointer transition-all duration-300 active:scale-[0.98] select-none"
                 >
                   {/* Image container */}
-                  <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#F5F5F5] border border-black/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
+                  <div className="relative aspect-[3/4] w-full rounded-none overflow-hidden bg-[#F5F5F5] border border-black/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(0,0,0,0.06)]">
                     <ProductImage
                       src={item.image}
                       alt={item.name}
@@ -1385,7 +1301,7 @@ export default function HomeClient({
                     })()}
 
                     {/* Color Dots Indicator */}
-                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-black/5 shadow-sm">
+                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-2 py-1.5 rounded-none flex gap-1 items-center border border-black/5 shadow-sm">
                       {item.colors.map((color, cIdx) => (
                         <span
                           key={cIdx}
@@ -1435,7 +1351,7 @@ export default function HomeClient({
             <div className="flex justify-center mt-16">
               <Link
                 href="/shopallshirts"
-                className="bg-neutral-950 text-white hover:bg-secondary hover:text-white px-10 py-4 rounded-full text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-md flex items-center gap-2 hover:scale-[1.03] active:scale-[0.98]"
+                className="bg-neutral-950 text-white hover:bg-secondary hover:text-white px-10 py-4 rounded-none text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-md flex items-center gap-2 hover:scale-[1.03] active:scale-[0.98]"
               >
                 <span>All Products</span>
                 <span className="material-symbols-outlined text-sm font-black">arrow_forward</span>
@@ -1484,7 +1400,7 @@ export default function HomeClient({
                     className="group flex flex-col cursor-pointer transition-all duration-300 active:scale-[0.98] select-none"
                   >
                     {/* Image container */}
-                    <div className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-neutral-900 border border-white/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(255,255,255,0.02)]">
+                    <div className="relative aspect-[3/4] w-full rounded-none overflow-hidden bg-neutral-900 border border-white/5 mb-3 md:mb-5 shadow-[0_4px_16px_rgba(0,0,0,0.01)] transition-all duration-500 hover:shadow-[0_12px_24px_rgba(255,255,255,0.02)]">
                       <ProductImage
                         src={item.image}
                         alt={item.name}
@@ -1533,7 +1449,7 @@ export default function HomeClient({
                       })()}
 
                       {/* Color Dots Indicator */}
-                      <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-full flex gap-1 items-center border border-white/5 shadow-sm">
+                      <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-none flex gap-1 items-center border border-white/5 shadow-sm">
                         {item.colors.map((color, cIdx) => (
                           <span
                             key={cIdx}
@@ -1612,7 +1528,7 @@ export default function HomeClient({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.9, delay: 0.1, ease: [0.25, 1, 0.5, 1] }}
-              className="relative w-full rounded-[2.5rem] overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[380px] md:min-h-[460px] lg:min-h-[540px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
+              className="relative w-full rounded-none overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.5)] min-h-[380px] md:min-h-[460px] lg:min-h-[540px] flex flex-col justify-between p-6 md:p-12 transition-all duration-[1s] ease-in-out"
               style={{
                 background: activeCategories[safeCategoryIndex].activeBg
               }}
@@ -1656,7 +1572,7 @@ export default function HomeClient({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 0.95, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="mb-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-white p-3.5 flex items-center justify-center shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-300"
+                  className="mb-4 w-12 h-12 md:w-16 md:h-16 rounded-none bg-white p-3.5 flex items-center justify-center shadow-2xl border border-white/20 hover:scale-105 transition-transform duration-300"
                 >
                   <Image
                     src="/assets/logo.png"
@@ -1716,7 +1632,7 @@ export default function HomeClient({
                 >
                   <Link
                     href={activeCategories[safeCategoryIndex].cta_url || "/shopallshirts"}
-                    className="inline-block bg-black/40 hover:bg-neutral-950/80 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black tracking-[0.3em] uppercase text-white px-7 py-2.5 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+                    className="inline-block bg-black/40 hover:bg-neutral-950/80 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black tracking-[0.3em] uppercase text-white px-7 py-2.5 rounded-none shadow-[0_4px_16px_rgba(0,0,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
                   >
                     {activeCategories[safeCategoryIndex].badge}
                   </Link>
@@ -1735,7 +1651,7 @@ export default function HomeClient({
                         onClick={() => setActiveCategoryIndex(idx)}
                         onMouseEnter={() => setActiveCategoryIndex(idx)}
                         suppressHydrationWarning={true}
-                        className={`group/card relative flex-shrink-0 w-[68px] h-[92px] md:w-[110px] md:h-[148px] rounded-[1.25rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border ${
+                        className={`group/card relative flex-shrink-0 w-[68px] h-[92px] md:w-[110px] md:h-[148px] rounded-none overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border ${
                           isActive
                             ? "scale-[1.08] border-[#fed488]/60 shadow-[0_0_24px_rgba(254,212,136,0.22)] ring-1 ring-[#fed488]/20 z-10"
                             : "opacity-75 hover:opacity-100 hover:scale-[1.03] hover:-translate-y-1 border-white/10 hover:border-white/25 shadow-[0_4px_16px_rgba(0,0,0,0.35)]"
@@ -1947,62 +1863,41 @@ export default function HomeClient({
             </motion.div>
 
             {/* Reviews Carousel Grid */}
-            <div className="max-w-[1400px] mx-auto overflow-hidden relative px-0 md:px-4">
-              <div 
-                className="flex transition-transform duration-500 ease-out mx-0 md:-mx-[10px]"
-                style={{ transform: `translateX(-${slideIndex * (100 / itemsPerPage)}%)` }}
-              >
-                {reviews.map((rev) => (
-                  <div 
-                    key={rev.id} 
-                    className="w-full md:w-1/2 lg:w-1/3 px-4 md:px-[10px] shrink-0"
-                  >
-                    <div className="bg-white p-6 border border-[#e5e5e5] rounded-[8px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex flex-col justify-between h-full min-h-[220px]">
-                      <div>
-                        {/* Top row: stars + verified badge */}
-                        <div className="flex justify-between items-center mb-4">
-                          <StarRating rating={Number(rev.rating) || 5} />
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
-                            <span className="text-[11px] text-gray-500 font-medium">Verified Purchase</span>
-                          </div>
+            <div className="max-w-[1400px] mx-auto overflow-x-auto scrollbar-none snap-x snap-mandatory flex gap-6 px-4 md:px-8 py-4">
+              {reviews.map((rev) => (
+                <div 
+                  key={rev.id} 
+                  className="w-[280px] sm:w-[320px] md:w-[380px] shrink-0 snap-center"
+                >
+                  <div className="bg-[#faf9f8] p-6 border border-[#7f7667]/20 rounded-none flex flex-col justify-between h-full min-h-[220px] transition-all duration-300 hover:border-[#775a19]/40">
+                    <div>
+                      {/* Top row: stars + verified badge */}
+                      <div className="flex justify-between items-center mb-4">
+                        <StarRating rating={Number(rev.rating) || 5} />
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-[#775a19]"></span>
+                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Verified</span>
                         </div>
-                        
-                        {/* Review text */}
-                        <p className="text-[15px] text-[#1a1a1a] font-normal leading-[1.6] mb-6 text-left">
-                          "{rev.comment}"
-                        </p>
                       </div>
                       
-                      {/* Bottom row: name + location */}
-                      <div className="flex justify-between items-center mt-auto pt-4 border-t border-[#e5e5e5]">
-                        <span className="text-[13px] font-semibold text-[#1a1a1a] uppercase tracking-wider">
-                          {rev.name}
-                        </span>
-                        <span className="text-[12px] text-[#9ca3af]">
-                          {rev.location}
-                        </span>
-                      </div>
+                      {/* Review text */}
+                      <p className="text-xs md:text-sm text-[#1a1c1c] font-normal leading-[1.6] mb-6 text-left">
+                        "{rev.comment}"
+                      </p>
+                    </div>
+                    
+                    {/* Bottom row: name + location */}
+                    <div className="flex justify-between items-center mt-auto pt-4 border-t border-[#7f7667]/10">
+                      <span className="text-[10px] font-black text-[#1a1c1c] uppercase tracking-widest">
+                        {rev.name}
+                      </span>
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                        {rev.location}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Navigation dots */}
-              {Math.max(0, reviews.length - itemsPerPage) > 0 && (
-                <div className="flex justify-center items-center gap-2 mt-8">
-                  {Array.from({ length: reviews.length - itemsPerPage + 1 }).map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSlideIndex(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                        slideIndex === idx ? "bg-[#BA7517] scale-110" : "bg-neutral-300 hover:bg-neutral-400"
-                      }`}
-                      aria-label={`Go to slide ${idx + 1}`}
-                    />
-                  ))}
                 </div>
-              )}
+              ))}
             </div>
 
             {/* Form Button & Drawer inside centered container */}
@@ -2194,7 +2089,7 @@ export default function HomeClient({
         return (
           <a
             id="whatsapp-sticky-btn"
-            className="fixed bottom-8 right-8 z-[100] bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
+            className="fixed bottom-8 right-8 z-[100] bg-[#25D366] text-white w-14 h-14 rounded-none flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"

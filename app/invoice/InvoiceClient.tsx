@@ -38,14 +38,7 @@ export default function InvoiceClient({
         window.dispatchEvent(new Event("storage"));
       }
     }
-    
-    const iframe = document.getElementById("invoice-iframe") as HTMLIFrameElement;
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } else {
-      window.print();
-    }
+    window.print();
   };
 
   const invoiceData = orderToInvoiceData(
@@ -55,11 +48,33 @@ export default function InvoiceClient({
   const html = buildInvoiceHtml(invoiceData, false);
 
   return (
-    <div className="bg-[#f9f9f9] text-on-surface font-body min-h-screen py-12 px-6">
+    <div className="bg-[#f9f9f9] min-h-screen py-12 px-6 no-print-bg">
+      {/* Dynamic print stylesheet to isolate layout during browser printing */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          .no-print, .no-print * {
+            display: none !important;
+          }
+          body, .no-print-bg {
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .invoice-preview-container {
+            border: none !important;
+            box-shadow: none !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+        }
+      `}} />
+
       <div className="fixed top-6 right-6 flex gap-4 no-print z-50">
         <button
           onClick={handlePrint}
-          className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer"
+          className="bg-black text-white px-8 py-3 LoggedInAdminOnly text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer"
         >
           Print / Download PDF
         </button>
@@ -71,13 +86,8 @@ export default function InvoiceClient({
         </button>
       </div>
 
-      <div className="max-w-[800px] mx-auto shadow-sm border border-gray-200 bg-white">
-        <iframe
-          id="invoice-iframe"
-          srcDoc={html}
-          className="w-full"
-          style={{ height: "297mm", border: "none", display: "block" }}
-        />
+      <div className="invoice-preview-container max-w-[800px] mx-auto shadow-sm border border-gray-200 bg-white">
+        <div dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     </div>
   );

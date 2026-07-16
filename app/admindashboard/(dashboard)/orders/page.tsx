@@ -167,11 +167,7 @@ function buildBulkInvoiceHtml(
         .replace('6K-WPO-','')
     )
     const fullHtml = buildInvoiceHtml(data, true)
-    const bodyMatch = fullHtml.match(
-      /<body>([\s\S]*)<\/body>/
-    )
-    const body = bodyMatch ? bodyMatch[1] : fullHtml
-    return body + (i < orders.length - 1 
+    return fullHtml + (i < orders.length - 1 
       ? '<div class="page-break"></div>' 
       : '')
   }).join('') + '</body></html>'

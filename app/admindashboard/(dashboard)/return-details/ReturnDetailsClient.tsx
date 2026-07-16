@@ -257,6 +257,10 @@ export default function ReturnDetailsClient({
               </Link>
             </span>
             <span>•</span>
+            <Link href={`/invoice?orderId=${order.id}`} target="_blank" className="text-black hover:underline no-underline flex items-center gap-1">
+              📄 View Invoice
+            </Link>
+            <span>•</span>
             <Link href="/admindashboard/returns" className="text-[#BA7517] hover:underline no-underline">
               ← Back to Returns
             </Link>
@@ -284,6 +288,12 @@ export default function ReturnDetailsClient({
                 <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Original Order ID</span>
                 <Link href={`/admindashboard/order-details?orderId=${order.id}`} className="font-bold text-black hover:underline text-sm no-underline">
                   #{order.id}
+                </Link>
+              </div>
+              <div className="space-y-1">
+                <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Original Invoice</span>
+                <Link href={`/invoice?orderId=${order.id}`} target="_blank" className="font-bold text-[#BA7517] hover:underline text-sm no-underline">
+                  📄 View Invoice
                 </Link>
               </div>
               <div className="space-y-1">

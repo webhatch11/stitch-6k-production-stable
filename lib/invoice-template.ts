@@ -135,208 +135,203 @@ const pointsDiscount = data.pointsDiscount || 0;
 const originalTotal = data.originalTotal !== undefined ? data.originalTotal : (data.total + pointsDiscount + couponDiscount);
 const finalGatewayAmount = Math.max(0, data.total - walletPaid);
 
-const pagePadding = compact ? '20px' : '30px';
+// Dynamic spacing configuration to cover 80% A4 height for normal view
+const spacing = {
+  padding: compact ? '30px' : '50px 45px 60px 45px',
+  headerMargin: compact ? '15px' : '30px',
+  metaGridMargin: compact ? '15px' : '35px',
+  tableMargin: compact ? '15px' : '35px',
+  thPadding: compact ? '6px 0' : '12px 0',
+  tdPadding: compact ? '8px 0' : '16px 0',
+  totalsMargin: compact ? '15px' : '30px',
+  totalsRowMargin: compact ? '6px' : '10px',
+  taxMargin: compact ? '15px' : '35px',
+  taxPadding: compact ? '5px' : '8px',
+  footerMargin: compact ? '20px' : '50px'
+};
 
-return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Tax Invoice - #${data.invoiceNumber}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: ${compact ? '0' : '20px'};
-      color: #333;
-      background: ${compact ? 'white' : '#f9f9f9'};
+const css = `
+  .invoice {
+    border: ${compact ? 'none' : '1px solid #ddd'};
+    padding: ${spacing.padding};
+    margin: 0 auto;
+    max-width: 800px;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: white;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #333;
+  }
+  .invoice .header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: ${spacing.headerMargin};
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .company-title {
+    font-size: 18px;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .invoice .invoice-title {
+    font-size: 26px;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin: 0;
+    text-align: right;
+  }
+  .invoice .meta-grid {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: ${spacing.metaGridMargin};
+    font-size: 11px;
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .bill-to {
+    border-left: 4px solid #775a19;
+    padding-left: 20px;
+  }
+  .invoice .bill-to h4, .invoice .invoice-details h4 {
+    margin: 0 0 5px 0;
+    font-size: 9px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .invoice .invoice-details {
+    text-align: right;
+  }
+  .invoice .invoice-details p {
+    margin: 5px 0;
+    font-weight: bold;
+    font-size: 11px;
+  }
+  .invoice table.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: ${spacing.tableMargin};
+    position: relative;
+    z-index: 10;
+  }
+  .invoice table.items-table th {
+    border-bottom: 2px solid #000;
+    padding: ${spacing.thPadding};
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    text-align: left;
+  }
+  .invoice table.items-table td {
+    padding: ${spacing.tdPadding};
+    border-bottom: 1px solid #eee;
+    font-size: 12px;
+  }
+  .invoice .text-right {
+    text-align: right !important;
+  }
+  .invoice .text-center {
+    text-align: center !important;
+  }
+  .invoice .totals {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: ${spacing.totalsMargin};
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .totals-box {
+    width: 320px;
+  }
+  .invoice .totals-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: ${spacing.totalsRowMargin};
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+  .invoice .grand-total {
+    border-top: 1px solid #eee;
+    padding-top: 6px;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .invoice .tax-breakdown {
+    margin-bottom: ${spacing.taxMargin};
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .tax-table {
+    width: 100%;
+    font-size: 9px;
+    border: 1px solid #ddd;
+    border-collapse: collapse;
+  }
+  .invoice .tax-table th, .invoice .tax-table td {
+    border: 1px solid #ddd;
+    padding: ${spacing.taxPadding};
+    font-weight: bold;
+  }
+  .invoice .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: ${spacing.footerMargin};
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .declaration {
+    font-size: 9px;
+    color: #666;
+    max-width: 400px;
+    line-height: 1.5;
+    position: relative;
+    z-index: 10;
+  }
+  .invoice .signature {
+    text-align: right;
+  }
+  .invoice .signature-title {
+    font-style: italic;
+    color: #888;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+  .invoice .signature-line {
+    border-top: 1px solid #000;
+    padding-top: 5px;
+    font-weight: bold;
+    font-size: 9px;
+    text-transform: uppercase;
+  }
+  @media print {
+    @page {
+      size: A4;
+      margin: 5mm 8mm 5mm 8mm;
     }
     .invoice {
-      border: ${compact ? 'none' : '1px solid #ddd'};
-      padding: ${pagePadding};
-      margin: 0 auto ${compact ? '0' : '30px'} auto;
-      max-width: 800px;
-      position: relative;
-      overflow: hidden;
-      box-sizing: border-box;
-      background: white;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      height: 280mm !important;
+      box-sizing: border-box !important;
+      page-break-inside: avoid !important;
+      page-break-after: always !important;
     }
     .page-break {
-      page-break-after: always;
+      page-break-after: always !important;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 10px;
-      position: relative;
-      z-index: 10;
-    }
-    .company-title {
-      font-size: 18px;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin: 0;
-    }
-    .invoice-title {
-      font-size: 26px;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin: 0;
-      text-align: right;
-    }
-    .meta-grid {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 15px;
-      font-size: 11px;
-      position: relative;
-      z-index: 10;
-    }
-    .bill-to {
-      border-left: 4px solid #775a19;
-      padding-left: 20px;
-    }
-    .bill-to h4, .invoice-details h4 {
-      margin: 0 0 5px 0;
-      font-size: 9px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .invoice-details {
-      text-align: right;
-    }
-    .invoice-details p {
-      margin: 5px 0;
-      font-weight: bold;
-      font-size: 11px;
-    }
-    table.items-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    table.items-table th {
-      border-bottom: 2px solid #000;
-      padding: 6px 0;
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-      text-align: left;
-    }
-    table.items-table td {
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-      font-size: 12px;
-    }
-    .text-right {
-      text-align: right !important;
-    }
-    .text-center {
-      text-align: center !important;
-    }
-    .totals {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    .totals-box {
-      width: 320px;
-    }
-    .totals-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 10px;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-    .grand-total {
-      border-top: 1px solid #eee;
-      padding-top: 6px;
-      font-size: 13px;
-      font-weight: 900;
-    }
-    .tax-breakdown {
-      margin-bottom: 15px;
-      position: relative;
-      z-index: 10;
-    }
-    .tax-table {
-      width: 100%;
-      font-size: 9px;
-      border: 1px solid #ddd;
-      border-collapse: collapse;
-    }
-    .tax-table th, .tax-table td {
-      border: 1px solid #ddd;
-      padding: 5px;
-      font-weight: bold;
-    }
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-top: 20px;
-      position: relative;
-      z-index: 10;
-    }
-    .declaration {
-      font-size: 9px;
-      color: #666;
-      max-width: 400px;
-      line-height: 1.5;
-      position: relative;
-      z-index: 10;
-    }
-    .signature {
-      text-align: right;
-    }
-    .signature-title {
-      font-style: italic;
-      color: #888;
-      margin-bottom: 10px;
-      font-size: 11px;
-    }
-    .signature-line {
-      border-top: 1px solid #000;
-      padding-top: 5px;
-      font-weight: bold;
-      font-size: 9px;
-      text-transform: uppercase;
-    }
-    @media print {
-      @page {
-        size: A4;
-        margin: 5mm 8mm 5mm 8mm;
-      }
-      body {
-        padding: 0;
-        margin: 0 !important;
-        background: white;
-      }
-      .invoice {
-        border: none;
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-        height: 280mm !important;
-        box-sizing: border-box !important;
-        page-break-inside: avoid !important;
-        page-break-after: always !important;
-      }
-      .page-break {
-        page-break-after: always !important;
-      }
-    }
-  </style>
-</head>
-<body>
+  }
+`;
+
+const bodyHtml = `
   <div class="invoice">
     <!-- Large centered watermark background -->
     <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
@@ -453,7 +448,7 @@ return `<!DOCTYPE html>
             <span style="color: #888;">Paid via Wallet</span>
             <span style="font-family: monospace;">-₹${walletPaid.toFixed(2)}</span>
           </div>` : ''}
-        <div class="totals-row grand-total">
+        <div class="totals-row grand-total" style="border-top: 2px double #333; padding-top: 8px;">
           <span>${finalGatewayAmount === 0 ? "Total Paid (Wallet)" : "Total Gateway Paid"}</span>
           <span style="font-family: monospace; font-size: 15px;">₹${(finalGatewayAmount === 0 ? walletPaid : finalGatewayAmount).toFixed(2)}</span>
         </div>
@@ -509,8 +504,9 @@ return `<!DOCTYPE html>
       </div>
     </div>
   </div>
-</body>
-</html>`;
+`;
+
+return `<style>${css}</style>${bodyHtml}`;
 }
 
 export function orderToInvoiceData(
@@ -561,7 +557,7 @@ export function orderToInvoiceData(
     items,
     couponDiscount: order.couponDiscount || order.coupon_discount || 0,
     pointsDiscount: order.pointsDiscount || order.points_discount || 0,
-    shippingCharge: order.shippingCharge || order.shipping_charge || 0,
+    shippingCharge: order.shippingCharge || order.shippingAmount || order.shipping_amount || 0,
     walletPaid: order.walletPaid || order.wallet_paid || 0,
     gatewayPaid: order.gatewayPaid || order.gateway_paid || 0,
     pointsRedeemed: order.pointsRedeemed || order.points_redeemed || 0,

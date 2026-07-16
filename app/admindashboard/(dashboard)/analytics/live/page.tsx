@@ -431,18 +431,7 @@ export default function LiveAnalyticsPage() {
                   }}
                   style={{ width: "100%", maxHeight: "380px" }}
                 >
-                  <Geographies
-                    geography="/maps/india-states.json"
-                    parseGeographies={(topo: any) => {
-                      // TopoJSON from udit-001/india-maps-data uses 'districts' as object key
-                      if (topo && topo.objects) {
-                        const key = topo.objects.districts ? 'districts' : Object.keys(topo.objects)[0];
-                        const { feature } = require('topojson-client') as any;
-                        return feature(topo, topo.objects[key]).features;
-                      }
-                      return [];
-                    }}
-                  >
+                  <Geographies geography="/maps/india-states.json">
                     {({ geographies }) =>
                       geographies.map((geo) => (
                         <Geography

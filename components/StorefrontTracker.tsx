@@ -38,9 +38,35 @@ export function StorefrontTracker() {
     // Ping immediately on page change
     ping();
 
-    // Keep session "active" by pinging every 30s
-    const interval = setInterval(ping, 30000);
-    return () => clearInterval(interval);
+    // Keep session "active" by pinging every 45s
+    const interval = setInterval(ping, 45000);
+
+    // Add unload handler
+    const handleUnload = () => {
+      if (sessionId.current) {
+        navigator.sendBeacon(
+          '/api/analytics/ping-leave',
+          JSON.stringify({ 
+            sessionId: sessionId.current 
+          })
+        )
+      }
+    }
+
+    window.addEventListener(
+      'beforeunload', 
+      handleUnload
+    )
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener(
+        'beforeunload',
+        handleUnload
+      )
+      // Ping on unmount too
+      handleUnload()
+    }
   }, [pathname]);
 
   return null;

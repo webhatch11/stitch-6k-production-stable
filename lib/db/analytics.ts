@@ -518,7 +518,7 @@ export async function recordPageView(path: string, sessionId: string): Promise<v
 
 export async function getOnlineVisitorsCount(): Promise<number> {
   const { supabase, isSupabaseConfigured } = loadService();
-  const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
+  const ninetySecondsAgo = new Date(Date.now() - 90000).toISOString();
 
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -531,7 +531,7 @@ export async function getOnlineVisitorsCount(): Promise<number> {
   const { count, error } = await supabase
     .from("page_views")
     .select("session_id", { count: "exact", head: true })
-    .gte("last_seen", fiveMinutesAgo);
+    .gte("last_seen", ninetySecondsAgo);
 
   if (error) {
     console.error("Error getting online visitors:", error);

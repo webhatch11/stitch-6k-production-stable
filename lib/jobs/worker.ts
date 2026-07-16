@@ -10,7 +10,8 @@
  * knows to start workers (not just schedule queues).
  */
 
-import "dotenv/config";
+import "./env";
+
 import IORedis from "ioredis";
 
 const REDIS_URL = process.env.REDIS_URL;

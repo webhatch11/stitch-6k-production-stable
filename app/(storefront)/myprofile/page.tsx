@@ -53,6 +53,7 @@ export default async function MyProfilePage() {
       initialLoyaltyPoints={points}
       initialLoyaltyTxs={lTxs}
       initialRecentOrders={orders.slice(0, 3)}
+      initialAllOrders={orders}
     />
   );
 }

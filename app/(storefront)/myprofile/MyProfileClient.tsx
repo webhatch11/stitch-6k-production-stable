@@ -27,6 +27,7 @@ interface MyProfileClientProps {
   initialLoyaltyPoints: number;
   initialLoyaltyTxs: LoyaltyTransaction[];
   initialRecentOrders: Order[];
+  initialAllOrders: Order[];
 }
 
 export default function MyProfileClient({
@@ -39,9 +40,10 @@ export default function MyProfileClient({
   initialLoyaltyPoints,
   initialLoyaltyTxs,
   initialRecentOrders,
+  initialAllOrders,
 }: MyProfileClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "wishlist">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "wishlist" | "returns">("profile");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const wishlistStore = useWishlistStore();
   const wishlistItems = wishlistStore.wishlistItems;
@@ -53,6 +55,7 @@ export default function MyProfileClient({
   const [loyaltyTxs, setLoyaltyTxs] = useState<LoyaltyTransaction[]>(initialLoyaltyTxs);
   const [pendingPoints, setPendingPoints] = useState(0);
   const [recentOrders, setRecentOrders] = useState<Order[]>(initialRecentOrders);
+  const [allOrders, setAllOrders] = useState<Order[]>(initialAllOrders);
 
   // Profile Edit States
   const [name, setName] = useState(userName);
@@ -63,6 +66,20 @@ export default function MyProfileClient({
   const [isSaving, setIsSaving] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  const userReturns = allOrders.filter(o => 
+    [
+      'Return Requested',
+      'Return Accepted',
+      'Return in Transit', 
+      'Return QC Pending',
+      'Returned',
+      'Return Rejected',
+      'Refund Initiated',
+      'Refunded'
+    ].includes(o.status || '')
+  );
+
 
   // Address CRUD States
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
@@ -186,18 +203,19 @@ export default function MyProfileClient({
     }
   };
 
-  const handleDeleteAddress = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this address?")) return;
-    try {
-      const res = await deleteUserAddressAction(id);
-      if (res.success) {
-        useToastStore.getState().addToast("✓ Address deleted successfully");
-        await loadAddresses();
-      } else {
-        useToastStore.getState().addToast(`❌ Delete failed: ${res.error}`);
+  const handleDeleteAddress = async (addressId: string) => {
+    if (window.confirm("Delete this address? This cannot be undone.")) {
+      try {
+        const res = await deleteUserAddressAction(addressId);
+        if (res.success) {
+          useToastStore.getState().addToast("✓ Address deleted successfully");
+          await loadAddresses();
+        } else {
+          useToastStore.getState().addToast(`❌ Delete failed: ${res.error}`);
+        }
+      } catch (err: any) {
+        useToastStore.getState().addToast(`❌ Delete failed: ${err.message}`);
       }
-    } catch (err: any) {
-      useToastStore.getState().addToast(`❌ Delete failed: ${err.message}`);
     }
   };
 
@@ -236,6 +254,9 @@ export default function MyProfileClient({
       setLoyaltyPoints(res.data.loyaltyPoints);
       setLoyaltyTxs(res.data.loyaltyTxs);
       setRecentOrders(res.data.recentOrders);
+      if (res.data.allOrders) {
+        setAllOrders(res.data.allOrders);
+      }
     }
     const pendingRes = await getPendingPointsAction();
     if (pendingRes.success && pendingRes.pendingPoints !== undefined) {
@@ -251,7 +272,7 @@ export default function MyProfileClient({
     router.push("/login");
   };
 
-  const handleTabSwitch = (tabName: "profile" | "loyalty" | "wishlist") => {
+  const handleTabSwitch = (tabName: "profile" | "loyalty" | "wishlist" | "returns") => {
     setActiveTab(tabName);
     setSidebarOpen(false);
   };
@@ -332,6 +353,16 @@ export default function MyProfileClient({
             >
               <span className="material-symbols-outlined text-[20px]">favorite</span>
               My Wishlist
+            </button>
+
+            <button
+              onClick={() => handleTabSwitch("returns")}
+              className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer text-left rounded-none border-none ${
+                activeTab === "returns" ? "bg-black text-white" : "hover:bg-gray-100 bg-transparent text-on-surface"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">keyboard_return</span>
+              Returns
             </button>
 
             <Link
@@ -770,6 +801,15 @@ export default function MyProfileClient({
                     </tbody>
                   </table>
                 </div>
+
+                <div className="mt-4 text-center">
+                  <a href="/orderhistory"
+                    className="text-sm text-gray-600 
+                      hover:text-black underline 
+                      underline-offset-2 transition-colors">
+                    View all orders →
+                  </a>
+                </div>
               </section>
             </div>
           )}
@@ -950,20 +990,24 @@ export default function MyProfileClient({
                 <h1 className="text-on-surface text-5xl font-headline font-extrabold tracking-tighter">MY WISHLIST</h1>
               </div>
 
-              {wishlistItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 bg-white border border-outline-variant/20 text-center gap-4">
-                  <span className="material-symbols-outlined text-[#775a19] text-5xl">favorite_border</span>
-                  <p className="text-sm font-black uppercase tracking-wider text-neutral-850">
-                    Your wishlist is empty. Start saving items you love.
+              {wishlistItems.length === 0 && (
+                <div className="text-center py-12 px-6">
+                  <div className="text-5xl mb-4">🤍</div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    Your wishlist is empty
+                  </h3>
+                  <p className="text-gray-500 text-sm mb-6">
+                    Save items you love and find them here
                   </p>
-                  <Link
-                    href="/shopallshirts"
-                    className="px-8 py-3.5 bg-black hover:bg-[#fed488] hover:text-black text-white text-xs font-black uppercase tracking-widest rounded-none border-none transition-all cursor-pointer"
-                  >
-                    Browse Collections
-                  </Link>
+                  <a href="/shopallshirts"
+                    className="inline-block bg-black text-white 
+                      px-8 py-3 rounded-full text-sm font-medium">
+                    Shop Now
+                  </a>
                 </div>
-              ) : (
+              )}
+
+              {wishlistItems.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                   {wishlistItems.map((item) => (
                     <div
@@ -1009,6 +1053,60 @@ export default function MyProfileClient({
                           </p>
                         </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 4: RETURNS HISTORY */}
+          {activeTab === "returns" && (
+            <div className="flex flex-col gap-12 animate-fade-in">
+              <div className="flex flex-col gap-2 border-l-4 border-secondary pl-6">
+                <p className="text-secondary text-xs font-bold tracking-[0.3em] uppercase">Order Returns</p>
+                <h1 className="text-on-surface text-5xl font-headline font-extrabold tracking-tighter">RETURN HISTORY</h1>
+              </div>
+
+              {userReturns.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-4">📦</div>
+                  <h3 className="font-bold text-gray-900 mb-2">
+                    No returns yet
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    Your return requests will appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {userReturns.map(order => (
+                    <div key={order.id}
+                      className="border border-gray-200 
+                        rounded-xl p-4 bg-white shadow-sm">
+                      <div className="flex justify-between 
+                        items-start mb-2">
+                        <span className="font-mono text-sm 
+                          font-bold">
+                          #{order.id}
+                        </span>
+                        <span className="text-xs px-2 py-1 
+                          rounded-full bg-amber-100 
+                          text-amber-700 font-bold uppercase tracking-wider">
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Reason: {order.returnReason || 'N/A'}
+                      </p>
+                      <p className="text-sm font-medium text-gray-900">
+                        Refund: ₹{order.total
+                          ?.toLocaleString('en-IN')}
+                        {' '}via{' '}
+                        {order.refundOption === 'wallet'
+                          ? 'Store Wallet'
+                          : 'Bank'}
+                      </p>
                     </div>
                   ))}
                 </div>

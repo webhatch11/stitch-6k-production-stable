@@ -24,7 +24,8 @@ export async function getProfileDataAction() {
         walletTxs: wTxs,
         loyaltyPoints: points,
         loyaltyTxs: lTxs,
-        recentOrders: orders.slice(0, 3)
+        recentOrders: orders.slice(0, 3),
+        allOrders: orders
       }
     };
   } catch (err: any) {

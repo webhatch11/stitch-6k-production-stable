@@ -692,9 +692,11 @@ export default function CheckoutPage() {
                     useCheckoutStore.getState().resetCheckout();
                     setIdempotencyKey(typeof window !== "undefined" && window.crypto?.randomUUID ? window.crypto.randomUUID() : "ORD-" + Math.floor(Math.random() * 900000 + 100000));
                     
-                    const confirmedOrderId = verifyData.orderId || 
+                    const currentIdempotencyKey = idempotencyKey;
+                    const confirmedOrderId = 
+                      verifyData.orderId || 
                       verifyData.order?.id ||
-                      idempotencyKey;
+                      currentIdempotencyKey;
 
                     if (confirmedOrderId) {
                       router.push(`/orderconfirmed?orderId=${confirmedOrderId}`);
@@ -703,14 +705,12 @@ export default function CheckoutPage() {
                     }
                  } else {
                    setProcessingPayment(false);
-                   setPaymentFailureError(verifyData.error || "Payment verification failed.");
-                   setPaymentFailed(true);
+                   router.push('/payment-failed');
                 }
               } catch (e) {
                  console.error("[Razorpay] Verification network error:", e);
                  setProcessingPayment(false);
-                 setPaymentFailureError("Network error during verification.");
-                 setPaymentFailed(true);
+                 router.push('/payment-failed');
               }
             },
             prefill: {
@@ -734,8 +734,7 @@ export default function CheckoutPage() {
           rzp1.on('payment.failed', function (response: any){
             console.error("[Razorpay] Payment failed on modal:", response.error);
             setProcessingPayment(false);
-            setPaymentFailureError(response.error.description || "Payment failed.");
-            setPaymentFailed(true);
+            router.push('/payment-failed');
           });
           
           rzp1.open();

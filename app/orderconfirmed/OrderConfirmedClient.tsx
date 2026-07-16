@@ -1,360 +1,240 @@
 "use client";
 
-import { createBrowserClient } from "@supabase/ssr";
-
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { Order } from "@/lib/types";
 import { trackPurchase } from "@/lib/analytics";
-import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
 
 interface OrderConfirmedClientProps {
-  lastOrder: Order | null;
+  lastOrder: any;
   marquee?: any;
 }
 
-export default function OrderConfirmedClient({ lastOrder, marquee }: OrderConfirmedClientProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(true);
-  const trackedOrders = React.useRef<Record<string, boolean>>({});
+export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClientProps) {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(5);
+  const [animationDone, setAnimationDone] = useState(false);
+  const trackedOrders = useRef<Record<string, boolean>>({});
 
-  const supabase = React.useMemo(() => createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-  ), []);
+  const order = lastOrder;
 
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      if (!lastOrder) {
-        setAuthChecked(true);
-        return;
-      }
-      const orderUserId = lastOrder.userId || lastOrder.user_id;
-      if (!orderUserId) {
-        setAuthChecked(true);
-        return;
-      }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || session.user.id !== orderUserId) {
-        setIsAuthorized(false);
-      }
-      setAuthChecked(true);
-    };
-    checkAuth();
-  }, [lastOrder, supabase]);
+  // Auto redirect after 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push("/orderhistory");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [router]);
 
-  if (!lastOrder) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
-        <div className="text-center p-6">
-          <h2 className="text-xl font-black uppercase mb-4 tracking-wider">Order not found</h2>
-          <p className="text-xs text-outline uppercase tracking-wider mb-6 leading-relaxed max-w-sm mx-auto">
-            Your payment was successful. Check your email for confirmation or view your order history.
-          </p>
-          <Link href="/orderhistory" className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10">
-            View Order History
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Show checkmark animation after mount
+  useEffect(() => {
+    setTimeout(() => setAnimationDone(true), 500);
+  }, []);
 
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
-        <div className="text-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-secondary">Verifying Session...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface text-on-surface font-body">
-        <div className="text-center p-6">
-          <h2 className="text-xl font-black uppercase mb-4 tracking-wider">Order not found</h2>
-          <p className="text-xs text-outline uppercase tracking-wider mb-6 leading-relaxed max-w-sm mx-auto">
-            Please check your order history or contact support.
-          </p>
-          <Link href="/orderhistory" className="inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all border border-on-surface/10">
-            View Order History
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Ensure type checker knows lastOrder is defined past this point
-
-  React.useEffect(() => {
-    if (lastOrder && !trackedOrders.current[lastOrder.id]) {
-      trackedOrders.current[lastOrder.id] = true;
-      const order = lastOrder;
+  // Analytics tracking effect
+  useEffect(() => {
+    if (order && !trackedOrders.current[order.id]) {
+      trackedOrders.current[order.id] = true;
 
       // 1. Meta Pixel Purchase
       const timestamp = order.created_at ? new Date(order.created_at).getTime() : Date.now();
       const eventId = `purchase_${order.id}_${timestamp}`;
 
-      if (typeof window !== "undefined" && window.fbq) {
-        window.fbq("track", "Purchase", {
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq("track", "Purchase", {
           value: order.total,
           currency: "INR",
-          content_ids: order.cartItems?.map(
-            (i: any) => i.productId
-          ) || [],
+          content_ids: order.cartItems?.map((i: any) => i.productId) || [],
           content_type: "product",
           num_items: order.cartItems?.length || 1,
-          order_id: order.id
+          order_id: order.id,
         }, { eventID: eventId });
       }
 
       // 2. Google Ads conversion
-      if (typeof window !== "undefined" && window.gtag) {
-        window.gtag("event", "conversion", {
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "conversion", {
           send_to: `${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}/${process.env.NEXT_PUBLIC_GOOGLE_ADS_LABEL}`,
           value: order.total,
           currency: "INR",
-          transaction_id: order.id
+          transaction_id: order.id,
         });
       }
 
       // 3. GA4 purchase conversion
-      if (typeof window !== "undefined" && window.gtag) {
-        window.gtag("event", "purchase", {
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "purchase", {
           transaction_id: order.id,
           value: order.total,
           currency: "INR",
           coupon: order.couponCode || "",
-          items: order.cartItems?.map(
-            (item: any, index: number) => ({
-              item_id: item.productId,
-              item_name: item.productName || item.name,
-              price: item.price,
-              quantity: item.quantity || 1,
-              index: index,
-              item_category: "Shirts"
-            })
-          ) || []
+          items: order.cartItems?.map((item: any, index: number) => ({
+            item_id: item.productId,
+            item_name: item.productName || item.name,
+            price: item.price,
+            quantity: item.quantity || 1,
+            index: index,
+            item_category: "Shirts",
+          })) || [],
         });
       }
 
       // 4. GTM dataLayer push
       if (typeof window !== "undefined") {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        (window as any).dataLayer.push({
           event: "purchase",
           ecommerce: {
             transaction_id: order.id,
             value: order.total,
             currency: "INR",
             coupon: order.couponCode || "",
-            items: order.cartItems?.map(
-              (item: any) => ({
-                item_id: item.productId,
-                item_name: item.productName,
-                price: item.price,
-                quantity: item.quantity || 1
-              })
-            ) || []
-          }
+            items: order.cartItems?.map((item: any) => ({
+              item_id: item.productId,
+              item_name: item.productName,
+              price: item.price,
+              quantity: item.quantity || 1,
+            })) || [],
+          },
         });
       }
 
       // 5. Custom Analytics fallback wrapper
-      const itemsMapped = order.cartItems || (order.items || []).map((name) => ({
+      const itemsMapped = order.cartItems || (order.items || []).map((name: string) => ({
         productId: order.id,
         productName: name,
         price: order.total,
-        quantity: 1
+        quantity: 1,
       }));
       trackPurchase({
         orderId: order.id,
         total: order.total,
         items: itemsMapped,
-        couponCode: order.couponCode
+        couponCode: order.couponCode,
       });
     }
-  }, [lastOrder]);
+  }, [order]);
 
-  const orderId = lastOrder ? lastOrder.id : "STK-2026-000001";
-  const customer = lastOrder ? lastOrder.customer : "Valued Client";
-  const total = lastOrder ? lastOrder.total : 14500;
-  const items = lastOrder ? lastOrder.items : ["Your Order"];
-  const subtotal = lastOrder ? (lastOrder.originalTotal !== undefined ? lastOrder.originalTotal : lastOrder.total) : 14500;
-  const discount = lastOrder ? ((lastOrder.couponDiscount || 0) + (lastOrder.pointsDiscount || 0)) : 0;
-  const shipping = lastOrder ? (lastOrder.shippingAmount || (lastOrder as any).shipping_amount || 0) : 0;
+  if (!order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center px-6">
+          <div className="text-5xl mb-4">✅</div>
+          <h2 className="text-2xl font-bold mb-2">Order Placed!</h2>
+          <p className="text-gray-500 mb-8">Check your email for confirmation.</p>
+          <Link
+            href="/orderhistory"
+            className="bg-black text-white px-8 py-3 rounded-full font-medium"
+          >
+            View Orders
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isWallet = (order.walletPaid || 0) > 0 && (order.gatewayPaid || 0) === 0;
+  const isSplit = (order.walletPaid || 0) > 0 && (order.gatewayPaid || 0) > 0;
 
   return (
-    <div className="bg-surface text-on-surface font-body min-h-screen flex flex-col">
-      {/* Top Announcement Scrolling Marquee */}
-      <AnnouncementMarquee marquee={marquee} />
-
-      {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10 px-6 lg:px-20 py-2.5">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-12">
-            <Link href="/" className="flex items-center group">
-              <div className="w-11 h-11 rounded-full bg-white p-1.5 flex items-center justify-center shadow-md border border-[#775a19]/15">
-                <Image 
-                  src="/assets/logo.png" 
-                  alt="6K Logo" 
-                  width={44}
-                  height={44}
-                  className="max-w-full max-h-full object-contain" 
-                  draggable={false}
-                />
-              </div>
-            </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/">Home</Link>
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/genz">GEN-Z</Link>
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/shopallshirts">Shop All</Link>
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/orderhistory">Order History</Link>
-              <Link className="text-[10px] font-black uppercase tracking-widest text-outline hover:text-primary transition-colors" href="/ordertracking">Track Order</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/shoppingbag" className="material-symbols-outlined text-outline hover:text-primary transition-colors">shopping_bag</Link>
-            <Link href="/myprofile" className="material-symbols-outlined text-outline hover:text-primary transition-colors">person</Link>
-            <Link href="/admindashboard" className="material-symbols-outlined text-outline hover:text-primary transition-colors">admin_panel_settings</Link>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="material-symbols-outlined md:hidden bg-transparent border-none">menu</button>
-          </div>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
+      {/* Success animation */}
+      <div
+        className={`transition-all duration-700 ${
+          animationDone ? "scale-100 opacity-100" : "scale-50 opacity-0"
+        }`}
+      >
+        <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+          <span className="text-5xl">✅</span>
         </div>
-        {mobileMenuOpen && (
-          <div className="flex flex-col mt-4 space-y-4 md:hidden">
-            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/">Home</Link>
-            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/genz">GEN-Z</Link>
-            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/shopallshirts">Shop All</Link>
-            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/orderhistory">Order History</Link>
-            <Link className="block text-[10px] font-black uppercase tracking-widest" href="/ordertracking">Track Order</Link>
-          </div>
-        )}
-      </header>
+      </div>
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-6 py-16 lg:py-32 flex-grow w-full">
-        {/* Hero Section */}
-        <div className="text-center mb-24 max-w-3xl mx-auto">
-          <span className="text-[10px] font-black uppercase tracking-[0.5em] text-secondary mb-8 block">Order Confirmation</span>
-          <h1 className="font-headline text-5xl lg:text-7xl font-black tracking-tighter text-on-surface uppercase leading-none mb-6">
-            Order<br />
-            <span className="opacity-30">Confirmed.</span>
-          </h1>
-          <div className="h-px bg-gradient-to-r from-transparent via-[#d1c5b4] to-transparent w-32 mx-auto mb-8"></div>
-          <p className="text-xs font-bold text-outline uppercase tracking-[0.2em] leading-relaxed">
-            Your order has been recorded in our system. <br />
-            Reference: <span className="text-on-surface font-mono font-bold">#{orderId}</span>
+      {/* Title */}
+      <h1 className="text-3xl font-bold text-gray-900 text-center mb-2">
+        Order Placed Successfully!
+      </h1>
+      <p className="text-gray-500 text-center mb-8">
+        {isWallet
+          ? "Paid via Store Wallet"
+          : isSplit
+          ? "Paid via Razorpay + Wallet"
+          : "Paid via Razorpay"}
+      </p>
+
+      {/* Order details card */}
+      <div className="w-full max-w-md bg-gray-50 rounded-2xl p-6 mb-8">
+        <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+          <span className="text-gray-500 text-sm">Order ID</span>
+          <span className="font-mono font-bold">#{order.id}</span>
+        </div>
+
+        {/* Items */}
+        {order.cartItems?.slice(0, 3).map((item: any, i: number) => (
+          <div key={i} className="flex justify-between items-center py-2">
+            <span className="text-sm text-gray-700">
+              {item.productName || item.name}
+              {item.size ? ` (${item.size})` : ""}
+            </span>
+            <span className="text-sm font-medium">
+              ₹{item.price?.toLocaleString("en-IN")}
+            </span>
+          </div>
+        ))}
+
+        {order.cartItems && order.cartItems.length > 3 && (
+          <p className="text-xs text-gray-400 mt-1 mb-2">
+            +{order.cartItems.length - 3} more items
           </p>
+        )}
+
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+          <span className="font-medium">Total Paid</span>
+          <span className="font-bold text-lg">
+            ₹{order.total?.toLocaleString("en-IN")}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-          {/* Left Column: Timeline */}
-          <div className="lg:col-span-7 space-y-16">
-            <section>
-              <h3 className="font-headline text-xs font-black uppercase tracking-[0.3em] mb-12 border-l-2 border-secondary pl-6">Order Timeline</h3>
-              <div className="space-y-12">
-                <div className="flex gap-8">
-                  <span className="text-[10px] font-black text-secondary uppercase tracking-widest pt-1 flex-shrink-0 w-24">Immediate</span>
-                  <div>
-                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Workshop Preparation</h4>
-                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Materials selection and design layouts matching details for #{orderId}.</p>
-                  </div>
-                </div>
-                <div className="flex gap-8">
-                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">12-24 Hours</span>
-                  <div>
-                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Handloom Tailoring</h4>
-                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Atelier master tailors begin weaving work. Finishes handloom seams and sets custom embroidery accents.</p>
-                  </div>
-                </div>
-                <div className="flex gap-8">
-                  <span className="text-[10px] font-black text-outline/50 uppercase tracking-widest pt-1 flex-shrink-0 w-24">2-3 Business Days</span>
-                  <div>
-                    <h4 className="font-headline font-black text-lg uppercase tracking-tight">Logistics Despatch</h4>
-                    <p className="text-xs text-outline leading-relaxed font-medium mt-1">Order packaged securely in luxury design box. Assigned to Shiprocket express delivery partner.</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Right Column: Invoice Details */}
-          <div className="lg:col-span-5 bg-white border border-outline-variant/10 p-8 shadow-sm">
-            <h3 className="font-headline text-xs font-black uppercase tracking-[0.3em] mb-8">Summary Receipt</h3>
-            <div className="space-y-6 text-xs font-bold uppercase tracking-wider text-outline">
-              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
-                <span>Client Name</span>
-                <span className="text-on-surface font-extrabold">{customer}</span>
-              </div>
-              <div className="flex justify-between items-start border-b border-outline-variant/10 pb-4">
-                <span>Products Ordered</span>
-                <div className="text-right">
-                  {items.map((item, idx) => (
-                    <span key={idx} className="block text-on-surface font-extrabold">{item}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-between items-center border-b border-outline-variant/10 pb-4">
-                <span>Shipment Status</span>
-                <span className="text-secondary font-black">PREPARING ATELIER DISPATCH</span>
-              </div>
-              <div className="flex justify-between items-center pt-2">
-                <span>Subtotal</span>
-                <span className="text-on-surface font-extrabold">₹{subtotal.toLocaleString("en-IN")}</span>
-              </div>
-              {discount > 0 && (
-                <div className="flex justify-between items-center text-green-700">
-                  <span>Discount</span>
-                  <span>-₹{discount.toLocaleString("en-IN")}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span>Shipping</span>
-                <span className={shipping === 0 ? "text-green-700 font-extrabold" : "text-on-surface font-extrabold"}>
-                  {shipping === 0 ? "FREE" : `₹${shipping.toLocaleString("en-IN")}`}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-t border-outline-variant/10 pt-4">
-                <span className="text-on-surface font-black">Valuation / Total</span>
-                <span className="font-headline font-black text-2xl text-on-surface">₹{total.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-            <div className="mt-12 space-y-4">
-              <Link
-                href="/shopallshirts"
-                className="w-full inline-flex items-center justify-center bg-transparent text-on-surface hover:bg-on-surface hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-on-surface"
-              >
-                Continue Shopping
-              </Link>
-              <Link
-                href="/orderhistory"
-                className="w-full inline-flex items-center justify-center bg-on-surface text-surface hover:bg-secondary hover:text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-on-surface/10"
-              >
-                View My Orders
-              </Link>
-              <Link
-                href={`/invoice?orderId=${orderId}`}
-                className="w-full inline-flex items-center justify-center bg-transparent text-outline hover:text-on-surface py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all border border-outline-variant/30 hover:border-on-surface/50"
-              >
-                Download Invoice (PDF)
-              </Link>
-              <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest text-center mt-4">
-                ✓ Order confirmation sent to your email address.
-              </p>
-            </div>
-          </div>
+        {/* Delivery estimate */}
+        <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-2">
+          <span className="text-lg">🚚</span>
+          <span className="text-sm text-gray-600">
+            Estimated delivery in 3-5 business days
+          </span>
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-outline-variant/10 py-8 px-6 lg:px-20 bg-surface-container-lowest text-center">
-        <p className="text-[9px] font-bold text-outline uppercase tracking-widest">
-          © {new Date().getFullYear()} Stitch 6K Atelier. Handcrafted in South India. All rights reserved.
-        </p>
-      </footer>
+      {/* Action buttons */}
+      <div className="w-full max-w-md space-y-3">
+        <Link
+          href="/orderhistory"
+          className="w-full flex items-center justify-center bg-black text-white py-4 rounded-2xl font-medium hover:bg-gray-800 transition-colors"
+        >
+          View My Orders
+        </Link>
+        <Link
+          href="/shopallshirts"
+          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-4 rounded-2xl font-medium hover:bg-gray-50 transition-colors"
+        >
+          Continue Shopping
+        </Link>
+      </div>
+
+      {/* Auto redirect countdown */}
+      <p className="text-xs text-gray-400 mt-6">
+        Redirecting to orders in {countdown}s...
+      </p>
+
+      {/* Email confirmation note */}
+      <p className="text-xs text-gray-400 mt-2 text-center max-w-xs">
+        A confirmation email has been sent to your registered email address
+      </p>
     </div>
   );
 }

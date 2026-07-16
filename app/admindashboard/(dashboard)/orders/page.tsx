@@ -149,9 +149,10 @@ function buildBulkInvoiceHtml(
   orders: any[],
   _products?: any[],
   _gstin?: string,
-  _origin?: string
+  origin?: string
 ): string {
   return `<!DOCTYPE html><html><head>
+  <meta charset="utf-8">
   <style>
     @media print {
       @page { size: A4; margin: 6mm; }
@@ -166,7 +167,7 @@ function buildBulkInvoiceHtml(
       order.id.replace('6K-RPO-','')
         .replace('6K-WPO-','')
     )
-    const fullHtml = buildInvoiceHtml(data, true)
+    const fullHtml = buildInvoiceHtml(data, true, origin || "")
     return fullHtml + (i < orders.length - 1 
       ? '<div class="page-break"></div>' 
       : '')
@@ -328,7 +329,7 @@ export default function OrdersKanbanPage() {
 
       // Generate HTML
       const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE", window.location.origin);
-      const blob = new Blob([html], { type: "text/html" });
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const blobUrl = URL.createObjectURL(blob);
 
       const printWindow = window.open(blobUrl, "_blank");
@@ -446,7 +447,7 @@ export default function OrdersKanbanPage() {
     setSubmitting(false);
     if (res.success && res.orders && res.products) {
       const html = buildBulkInvoiceHtml(res.orders, res.products, res.gstin || "33BFOPT4938Q1ZE", window.location.origin);
-      const blob = new Blob([html], { type: "text/html" });
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const blobUrl = URL.createObjectURL(blob);
       const printWindow = window.open(blobUrl, "_blank");
       if (printWindow) {

@@ -1,6 +1,7 @@
 export function buildInvoiceHtml(
   data: InvoiceData,
-  compact: boolean = false
+  compact: boolean = false,
+  origin: string = ""
 ): string {
 
 // State codes - complete India list
@@ -335,13 +336,13 @@ const bodyHtml = `
   <div class="invoice">
     <!-- Large centered watermark background -->
     <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
-      <img src="/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
+      <img src="${origin}/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />
     </div>
 
     <div class="header">
       <div>
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <img src="/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
+          <img src="${origin}/assets/logo.png" alt="6K Logo" style="height: 40px; width: 40px; object-fit: contain;" />
           <span class="company-title">${SELLER.name}</span>
         </div>
         <div style="font-size: 8px; color: #888; text-transform: uppercase; line-height: 1.5;">

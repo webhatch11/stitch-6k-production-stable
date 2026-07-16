@@ -29,6 +29,11 @@ export default function InvoiceClient({
 }: InvoiceClientProps) {
   const router = useRouter();
   const [matchedOrder, setMatchedOrder] = useState<Order>(initialOrder);
+  const [origin, setOrigin] = useState("");
+
+  React.useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const handlePrint = async () => {
     if (matchedOrder && matchedOrder.status === "Paid") {
@@ -45,7 +50,7 @@ export default function InvoiceClient({
     matchedOrder,
     matchedOrder.id.replace("6K-RPO-", "").replace("6K-WPO-", "")
   );
-  const html = buildInvoiceHtml(invoiceData, false);
+  const html = buildInvoiceHtml(invoiceData, false, origin);
 
   return (
     <div className="bg-[#f9f9f9] min-h-screen py-12 px-6 no-print-bg">

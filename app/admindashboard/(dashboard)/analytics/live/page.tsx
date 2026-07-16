@@ -132,6 +132,24 @@ function timeAgo(isoString: string): string {
   return `${Math.floor(diffHr / 24)}d ago`;
 }
 
+// Classify event description text into specific system event tags
+function classifyEvent(eventText: string): string {
+  const text = (eventText || "").toLowerCase();
+  if (text.includes("pixel") || text.includes("tracking") || text.includes("meta") || text.includes("analytics")) {
+    return "PIXEL";
+  }
+  if (text.includes("database") || text.includes("cache") || text.includes("save") || text.includes("db") || text.includes("sequence") || text.includes("updated in")) {
+    return "DATABASE";
+  }
+  if (text.includes("storefront") || text.includes("session") || text.includes("utm") || text.includes("view") || text.includes("checkout") || text.includes("created")) {
+    return "STOREFRONT";
+  }
+  if (text.includes("error") || text.includes("failed") || text.includes("critical") || text.includes("exception")) {
+    return "ERROR";
+  }
+  return "DATABASE"; // default fallback
+}
+
 // Color-coded event badge helper
 function eventBadge(tag: string) {
   const upper = tag.toUpperCase();
@@ -774,11 +792,12 @@ export default function LiveAnalyticsPage() {
               </p>
             ) : (
               recentEvents.map((event, i) => {
-                const { border, badge } = eventBadge("ORDER");
+                const tag = classifyEvent(event.event);
+                const { border, badge } = eventBadge(tag);
                 return (
                   <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
                     <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
-                      ORDER
+                      {tag}
                     </span>
                     <div>
                       <p className="text-xs font-bold text-white/80">{event.event}</p>

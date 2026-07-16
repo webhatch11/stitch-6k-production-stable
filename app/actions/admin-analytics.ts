@@ -130,8 +130,10 @@ export async function getLiveAnalyticsAction() {
       { id: "ORD-002", customer: "Demo User", total: 2199, created_at: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
     ];
     let recentEvents: { order_id: string; event: string; created_at: string }[] = [
-      { order_id: "ORD-001", event: "Order created successfully", created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
-      { order_id: "ORD-002", event: "Order payment verified", created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString() },
+      { order_id: "6K-PIXEL", event: "Meta Pixel Purchase event tracked successfully", created_at: new Date(Date.now() - 3 * 60 * 1000).toISOString() },
+      { order_id: "6K-DATABASE", event: "Order record updated in database", created_at: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+      { order_id: "6K-STOREFRONT", event: "Storefront session checkout initiated", created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString() },
+      { order_id: "6K-ERROR", event: "Error: Payment gateway webhook signature verification failed", created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
     ];
     
     if (isSupabaseConfigured && supabase) {

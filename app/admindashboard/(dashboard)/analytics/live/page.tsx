@@ -124,63 +124,58 @@ function timeAgo(isoString: string): string {
   const then = new Date(isoString).getTime();
   const diffMs = now - then;
   const diffSec = Math.floor(diffMs / 1000);
-  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 60) {
+    return diffSec <= 1 ? "1 sec ago" : `${diffSec} secs ago`;
+  }
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 60) {
+    return diffMin === 1 ? "1 min ago" : `${diffMin} mins ago`;
+  }
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${Math.floor(diffHr / 24)}d ago`;
+  if (diffHr < 24) {
+    return diffHr === 1 ? "1 hour ago" : `${diffHr} hours ago`;
+  }
+  const diffDays = Math.floor(diffHr / 24);
+  return diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
 }
 
 // Classify event description text into specific system event tags
 function classifyEvent(eventText: string): string {
   const text = (eventText || "").toLowerCase();
-  if (text.includes("pixel") || text.includes("tracking") || text.includes("meta") || text.includes("analytics")) {
-    return "PIXEL";
+  if (text.includes("return") || text.includes("refund") || text.includes("returned")) {
+    return "RETURN";
   }
-  if (text.includes("database") || text.includes("cache") || text.includes("save") || text.includes("db") || text.includes("sequence") || text.includes("updated in")) {
-    return "DATABASE";
+  if (text.includes("payment") || text.includes("paid") || text.includes("wallet")) {
+    return "PAYMENT";
   }
-  if (text.includes("storefront") || text.includes("session") || text.includes("utm") || text.includes("view") || text.includes("checkout") || text.includes("created")) {
-    return "STOREFRONT";
-  }
-  if (text.includes("error") || text.includes("failed") || text.includes("critical") || text.includes("exception")) {
-    return "ERROR";
-  }
-  return "DATABASE"; // default fallback
+  return "ORDER"; // default fallback for order creation/shipment
 }
 
 // Color-coded event badge helper
 function eventBadge(tag: string) {
   const upper = tag.toUpperCase();
-  if (upper === "PIXEL") {
+  if (upper === "RETURN") {
     return {
       border: "border-purple-500",
-      badge: "text-purple-800 bg-purple-100 border border-purple-200",
+      badge: "text-purple-400 bg-purple-500/10 border border-purple-500/20",
     };
   }
-  if (upper === "DATABASE" || upper === "ORDER") {
-    return {
-      border: "border-blue-500",
-      badge: "text-blue-800 bg-blue-100 border border-blue-200",
-    };
-  }
-  if (upper === "STOREFRONT" || upper === "UTM" || upper === "PING") {
+  if (upper === "PAYMENT") {
     return {
       border: "border-green-500",
-      badge: "text-green-800 bg-green-100 border border-green-200",
+      badge: "text-green-400 bg-green-500/10 border border-green-500/20",
     };
   }
-  if (upper === "ERROR") {
+  if (upper === "ORDER") {
     return {
-      border: "border-red-500",
-      badge: "text-red-800 bg-red-100 border border-red-200",
+      border: "border-blue-500",
+      badge: "text-blue-400 bg-blue-500/10 border border-blue-500/20",
     };
   }
   // Default: amber / yellow
   return {
     border: "border-[#fed488]",
-    badge: "text-[#7a5c00] bg-[#fed488]/20 border border-[#fed488]/50",
+    badge: "text-[#fed488] bg-[#fed488]/10 border border-[#fed488]/20",
   };
 }
 
@@ -265,7 +260,7 @@ export default function LiveAnalyticsPage() {
   const recentOrders: { id: string; customer: string; total: number; created_at: string }[] =
     data?.recentOrders ?? [];
   const cityOrders = data?.cityOrders || [];
-  const recentEvents: { order_id: string; event: string; created_at: string }[] =
+  const recentEvents: { order_id: string; event: string; created_at: string; customer?: string; total?: number }[] =
     data?.recentEvents ?? [];
   const productViewers = data?.productViewers || [];
   const funnel = data?.funnel ?? {
@@ -324,13 +319,14 @@ export default function LiveAnalyticsPage() {
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Active Online Visitors</h3>
-              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Visits in the last 5 minutes</p>
+              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Visits in active tracking window</p>
             </div>
             <span className="material-symbols-outlined text-[#fed488] text-lg bg-[#fed488]/10 p-2">public</span>
           </div>
           <div className="mt-4">
             <span className="text-5xl font-black font-headline text-white font-mono">{onlineVisitors}</span>
             <span className="text-[10px] font-black uppercase text-green-500 tracking-wider ml-3 bg-green-500/10 px-2 py-0.5 select-none">Live</span>
+            <span className="text-[10px] text-white/40 uppercase tracking-widest block mt-2">last 90 sec</span>
           </div>
         </div>
 
@@ -396,12 +392,8 @@ export default function LiveAnalyticsPage() {
       <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">Conversion Funnel</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">CONVERSION FUNNEL — LAST 30 MINUTES</h3>
             <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Real-time visitor → order pipeline</p>
-          </div>
-          <div className="flex gap-6 text-[10px] text-white/30 uppercase tracking-widest">
-            <span>Visitors: last 5 min</span>
-            <span>Cart / Checkout: last 30 min</span>
           </div>
         </div>
 
@@ -474,6 +466,11 @@ export default function LiveAnalyticsPage() {
                   <span className="text-4xl font-black font-mono text-white mb-1">
                     {step.value.toLocaleString()}
                   </span>
+                  {step.label === "Visitors" && (
+                    <span className="text-[9px] text-[#60a5fa] uppercase tracking-widest font-black mb-1">
+                      last 30 min
+                    </span>
+                  )}
                   {pct !== null && (
                     <span
                       className="text-[11px] font-bold px-2 py-0.5 rounded-full"
@@ -802,7 +799,7 @@ export default function LiveAnalyticsPage() {
                     <div>
                       <p className="text-xs font-bold text-white/80">{event.event}</p>
                       <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
-                        #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
+                        #{String(event.order_id).slice(0, 8).toUpperCase()} • {timeAgo(event.created_at)}{event.total ? ` • ₹${Number(event.total).toLocaleString("en-IN")}` : ""}
                       </span>
                     </div>
                   </div>

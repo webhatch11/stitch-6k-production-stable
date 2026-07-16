@@ -849,7 +849,7 @@ export async function getGSTReport(
   }
 }
 
-export async function getCityOrders(): Promise<Array<{ city: string; count: number; revenue: number }>> {
+export async function getCityOrders(): Promise<Array<{ city: string; count: number; revenue: number; state?: string }>> {
   const { supabase, isSupabaseConfigured } = loadService();
 
   if (!isSupabaseConfigured || !supabase) {
@@ -862,44 +862,68 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
+  // Dynamically select deleted_at; handle fallback if it does not exist
   const { data, error } = await supabase
     .from("orders")
-    .select("address_snapshot, total, status")
+    .select("address_snapshot, total, status, cart_items, deleted_at")
     .gte("created_at", thirtyDaysAgo);
 
   if (error) {
-    console.error("Error loading city orders:", error);
-    return [];
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("orders")
+      .select("address_snapshot, total, status, cart_items")
+      .gte("created_at", thirtyDaysAgo);
+    
+    if (fallbackError) {
+      console.error("Error loading city orders:", fallbackError);
+      return [];
+    }
+    return processCityOrdersData(fallbackData);
   }
 
-  const cityData: Record<string, { count: number; revenue: number }> = {};
+  return processCityOrdersData(data);
+}
+
+function processCityOrdersData(data: any[]): Array<{ city: string; count: number; revenue: number; state?: string }> {
+  const cityData: Record<string, { count: number; revenue: number; state: string }> = {};
   for (const row of data || []) {
-    const statusLower = (row.status || "").toLowerCase();
-    if (
-      statusLower === "cancelled" ||
-      statusLower === "returned" ||
-      statusLower === "expired" ||
-      statusLower === "failed"
-    ) {
+    if (row.deleted_at) {
       continue;
     }
+    
+    const cartItems = row.cart_items;
+    if (cartItems) {
+      const itemsArr = typeof cartItems === "string" ? JSON.parse(cartItems) : cartItems;
+      if (Array.isArray(itemsArr) && itemsArr.length === 0) {
+        continue;
+      }
+    }
+
     const snap = row.address_snapshot;
     if (snap && snap.city) {
       const city = snap.city
         .trim()
-        .replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-      if (!cityData[city]) {
-        cityData[city] = { count: 0, revenue: 0 };
+        .replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+      const state = snap.state
+        ? snap.state.trim().replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())
+        : "";
+      
+      const key = `${city}:${state}`;
+      if (!cityData[key]) {
+        cityData[key] = { count: 0, revenue: 0, state };
       }
-      cityData[city].count += 1;
-      cityData[city].revenue += Number(row.total || 0);
+      cityData[key].count += 1;
+      cityData[key].revenue += Number(row.total || 0);
     }
   }
 
   return Object.entries(cityData)
-    .map(([city, val]) => ({ city, count: val.count, revenue: Math.round(val.revenue) }))
+    .map(([key, val]) => {
+      const [city] = key.split(":");
+      return { city, count: val.count, revenue: Math.round(val.revenue), state: val.state };
+    })
     .sort((a, b) => b.count - a.count)
-    .slice(0, 50);
+    .slice(0, 20);
 }
 
 export async function getSalesByCategory(days: number = 30): Promise<CategorySales[]> {

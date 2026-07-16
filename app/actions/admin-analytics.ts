@@ -129,12 +129,7 @@ export async function getLiveAnalyticsAction() {
       { id: "ORD-001", customer: "Sample Customer", total: 1499, created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString() },
       { id: "ORD-002", customer: "Demo User", total: 2199, created_at: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
     ];
-    let recentEvents: { order_id: string; event: string; created_at: string }[] = [
-      { order_id: "6K-PIXEL", event: "Meta Pixel Purchase event tracked successfully", created_at: new Date(Date.now() - 3 * 60 * 1000).toISOString() },
-      { order_id: "6K-DATABASE", event: "Order record updated in database", created_at: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
-      { order_id: "6K-STOREFRONT", event: "Storefront session checkout initiated", created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString() },
-      { order_id: "6K-ERROR", event: "Error: Payment gateway webhook signature verification failed", created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString() },
-    ];
+    let recentEvents: { order_id: string; event: string; created_at: string; customer?: string; total?: number }[] = [];
     
     if (isSupabaseConfigured && supabase) {
       const todayStart = new Date();
@@ -180,19 +175,34 @@ export async function getLiveAnalyticsAction() {
         }));
       }
 
-      // Fetch last 5 recent order events
+      // Fetch last 8 recent order events with order details
       const { data: events, error: eventsErr } = await supabase
         .from("order_events")
-        .select("order_id, event, created_at")
+        .select(`
+          order_id,
+          event,
+          created_at,
+          orders (
+            customer,
+            total
+          )
+        `)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(8);
 
       if (!eventsErr && events) {
-        recentEvents = events.map((ev) => ({
-          order_id: ev.order_id || "",
-          event: ev.event || "",
-          created_at: ev.created_at,
-        }));
+        recentEvents = events.map((ev: any) => {
+          const ord = ev.orders;
+          const orderTotal = ord ? (Array.isArray(ord) ? ord[0]?.total : ord?.total) : null;
+          const customer = ord ? (Array.isArray(ord) ? ord[0]?.customer : ord?.customer) : null;
+          return {
+            order_id: ev.order_id || "",
+            event: ev.event || "",
+            created_at: ev.created_at,
+            customer: customer || "Unknown",
+            total: orderTotal != null ? Number(orderTotal) : undefined,
+          };
+        });
       }
     }
 
@@ -201,23 +211,35 @@ export async function getLiveAnalyticsAction() {
 
     // ── Conversion Funnel ──────────────────────────────────────
     let funnel = {
-      visitors: onlineVisitors,      // last 5 min
-      productViews: 0,               // on /product/* last 5 min
+      visitors: onlineVisitors,      // last 30 min fallback
+      productViews: 0,               // on /product/* last 30 min
       activeCarts: activeCarts,      // cart_items_count > 0, last 30 min
       checkoutStarted: 0,            // on /checkout last 30 min
       ordersToday: todayOrdersCount, // already computed above
     };
 
     if (isSupabaseConfigured && supabase) {
-      const fiveMinAgo  = new Date(Date.now() -  5 * 60 * 1000).toISOString();
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-      // Product viewers (distinct sessions on /product/* in last 5 min)
+      // Visitors (distinct sessions in last 30 min)
+      const { count: visitorsCount } = await supabase
+        .from("page_views")
+        .select("session_id", { count: "exact", head: true })
+        .gte("last_seen", thirtyMinAgo);
+
+      // Product viewers (distinct sessions on /product/* in last 30 min)
       const { count: pvCount } = await supabase
         .from("page_views")
         .select("session_id", { count: "exact", head: true })
-        .gte("last_seen", fiveMinAgo)
+        .gte("last_seen", thirtyMinAgo)
         .like("page", "/product/%");
+
+      // In Cart (distinct sessions with cart items count > 0 in last 30 min)
+      const { count: cartCount } = await supabase
+        .from("page_views")
+        .select("session_id", { count: "exact", head: true })
+        .gte("last_seen", thirtyMinAgo)
+        .gt("cart_items_count", 0);
 
       // Checkout sessions (distinct sessions on /checkout in last 30 min)
       const { count: coCount } = await supabase
@@ -227,9 +249,9 @@ export async function getLiveAnalyticsAction() {
         .eq("page", "/checkout");
 
       funnel = {
-        visitors: onlineVisitors,
+        visitors: visitorsCount ?? 0,
         productViews: pvCount ?? 0,
-        activeCarts: activeCarts,
+        activeCarts: cartCount ?? 0,
         checkoutStarted: coCount ?? 0,
         ordersToday: todayOrdersCount,
       };

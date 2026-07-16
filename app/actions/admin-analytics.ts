@@ -197,6 +197,42 @@ export async function getLiveAnalyticsAction() {
     const cityOrders = await db.getCityOrders();
     const productViewers = await db.getActiveProductViewers();
 
+    // ── Conversion Funnel ──────────────────────────────────────
+    let funnel = {
+      visitors: onlineVisitors,      // last 5 min
+      productViews: 0,               // on /product/* last 5 min
+      activeCarts: activeCarts,      // cart_items_count > 0, last 30 min
+      checkoutStarted: 0,            // on /checkout last 30 min
+      ordersToday: todayOrdersCount, // already computed above
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      const fiveMinAgo  = new Date(Date.now() -  5 * 60 * 1000).toISOString();
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      // Product viewers (distinct sessions on /product/* in last 5 min)
+      const { count: pvCount } = await supabase
+        .from("page_views")
+        .select("session_id", { count: "exact", head: true })
+        .gte("last_seen", fiveMinAgo)
+        .like("page", "/product/%");
+
+      // Checkout sessions (distinct sessions on /checkout in last 30 min)
+      const { count: coCount } = await supabase
+        .from("page_views")
+        .select("session_id", { count: "exact", head: true })
+        .gte("last_seen", thirtyMinAgo)
+        .eq("page", "/checkout");
+
+      funnel = {
+        visitors: onlineVisitors,
+        productViews: pvCount ?? 0,
+        activeCarts: activeCarts,
+        checkoutStarted: coCount ?? 0,
+        ordersToday: todayOrdersCount,
+      };
+    }
+
     return {
       success: true,
       onlineVisitors,
@@ -208,12 +244,14 @@ export async function getLiveAnalyticsAction() {
       cityOrders,
       recentEvents,
       productViewers,
+      funnel,
     };
   } catch (err: any) {
     console.error("Live action error:", err);
     return { success: false, error: err.message };
   }
 }
+
 
 
 export async function getFinanceAnalyticsAction(year: number, month: number) {

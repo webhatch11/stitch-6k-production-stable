@@ -250,7 +250,13 @@ export default function LiveAnalyticsPage() {
   const recentEvents: { order_id: string; event: string; created_at: string }[] =
     data?.recentEvents ?? [];
   const productViewers = data?.productViewers || [];
-
+  const funnel = data?.funnel ?? {
+    visitors: onlineVisitors,
+    productViews: 0,
+    activeCarts: activeCarts,
+    checkoutStarted: 0,
+    ordersToday: todayOrdersCount,
+  };
 
   const maxCityOrders =
     cityOrders.length > 0 ? Math.max(...cityOrders.map((c: any) => c.count)) : 1;
@@ -364,6 +370,146 @@ export default function LiveAnalyticsPage() {
             <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider ml-3 bg-amber-400/10 px-2 py-0.5 select-none">
               {todayPendingOrders === 1 ? "Needs Action" : "Awaiting"}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Conversion Funnel ─────────────────────────────────── */}
+      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">Conversion Funnel</h3>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Real-time visitor → order pipeline</p>
+          </div>
+          <div className="flex gap-6 text-[10px] text-white/30 uppercase tracking-widest">
+            <span>Visitors: last 5 min</span>
+            <span>Cart / Checkout: last 30 min</span>
+          </div>
+        </div>
+
+        {/* Funnel steps */}
+        <div className="flex flex-col sm:flex-row items-stretch gap-0 sm:gap-0 relative">
+          {[
+            {
+              emoji: "👥",
+              label: "Visitors",
+              value: funnel.visitors,
+              sub: "Active on site",
+              color: "#60a5fa",
+              pctOf: null,
+            },
+            {
+              emoji: "👀",
+              label: "Viewing",
+              value: funnel.productViews,
+              sub: "On product pages",
+              color: "#a78bfa",
+              pctOf: funnel.visitors,
+            },
+            {
+              emoji: "🛒",
+              label: "In Cart",
+              value: funnel.activeCarts,
+              sub: "Items added to bag",
+              color: "#fb923c",
+              pctOf: funnel.visitors,
+            },
+            {
+              emoji: "💳",
+              label: "Checkout",
+              value: funnel.checkoutStarted,
+              sub: "Reached checkout",
+              color: "#f472b6",
+              pctOf: funnel.visitors,
+            },
+            {
+              emoji: "✅",
+              label: "Ordered",
+              value: funnel.ordersToday,
+              sub: "Orders today",
+              color: "#4ade80",
+              pctOf: null,
+            },
+          ].map((step, i, arr) => {
+            const pct =
+              step.pctOf != null && step.pctOf > 0
+                ? Math.round((step.value / step.pctOf) * 100)
+                : null;
+            const isLast = i === arr.length - 1;
+            return (
+              <div key={step.label} className="flex-1 flex items-stretch">
+                {/* Step card */}
+                <div
+                  className="flex-1 flex flex-col items-center justify-center py-6 px-4 relative"
+                  style={{
+                    background: `linear-gradient(160deg, ${step.color}08 0%, transparent 70%)`,
+                    borderTop: `2px solid ${step.color}`,
+                  }}
+                >
+                  <span className="text-2xl mb-2">{step.emoji}</span>
+                  <span
+                    className="text-[10px] font-black uppercase tracking-widest mb-1"
+                    style={{ color: step.color }}
+                  >
+                    {step.label}
+                  </span>
+                  <span className="text-4xl font-black font-mono text-white mb-1">
+                    {step.value.toLocaleString()}
+                  </span>
+                  {pct !== null && (
+                    <span
+                      className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: `${step.color}20`,
+                        color: step.color,
+                      }}
+                    >
+                      {pct}% of visitors
+                    </span>
+                  )}
+                  <span className="text-[10px] text-white/30 mt-1 uppercase tracking-wider text-center">
+                    {step.sub}
+                  </span>
+                </div>
+                {/* Arrow between steps (not after last) */}
+                {!isLast && (
+                  <div className="hidden sm:flex items-center justify-center w-6 text-white/20 text-lg font-light select-none">
+                    →
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Conversion summary row */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-white/8 pt-5">
+          <div className="text-center">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Visitors → Checkout</p>
+            <p className="text-xl font-black font-mono text-[#f472b6] mt-1">
+              {funnel.visitors > 0
+                ? `${Math.round((funnel.checkoutStarted / funnel.visitors) * 100)}%`
+                : "—"}
+            </p>
+            <p className="text-[10px] text-white/20 tracking-wider">Conversion Rate</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Checkout → Order</p>
+            <p className="text-xl font-black font-mono text-[#4ade80] mt-1">
+              {funnel.checkoutStarted > 0
+                ? `${Math.min(100, Math.round((funnel.ordersToday / funnel.checkoutStarted) * 100))}%`
+                : "—"}
+            </p>
+            <p className="text-[10px] text-white/20 tracking-wider">Close Rate</p>
+          </div>
+          <div className="text-center sm:block hidden">
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">Cart Abandonment</p>
+            <p className="text-xl font-black font-mono text-[#fb923c] mt-1">
+              {funnel.activeCarts > 0
+                ? `${Math.max(0, 100 - Math.min(100, Math.round((funnel.checkoutStarted / funnel.activeCarts) * 100)))}%`
+                : "—"}
+            </p>
+            <p className="text-[10px] text-white/20 tracking-wider">Did not checkout</p>
           </div>
         </div>
       </div>

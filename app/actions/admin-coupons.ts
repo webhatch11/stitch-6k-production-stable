@@ -64,20 +64,23 @@ export async function saveCouponAction(
   }
 
   try {
-    const newCoupon: Coupon = {
-      id: data.id || "CPN-" + Date.now() + "-" + Math.floor(Math.random() * 9000 + 1000),
+    const newCoupon: Partial<Coupon> = {
+      // For new coupons: do NOT pre-generate an id here.
+      // saveCoupon checks !coupon.id to initialize usage_count = 0.
+      // For edits: pass the existing id so the upsert updates the row.
+      ...(data.id ? { id: data.id } : {}),
       code: data.code,
       discount: data.discount,
       type: data.type,
       active: data.active,
       minCartValue: data.min_cart_value,
-      maxUsage: data.max_usage,
-      expiryDate: data.expiry_date,
-      buyQuantity: data.buy_quantity,
-      getQuantity: data.get_quantity,
-      getDiscountPercent: data.get_discount_percent,
-      buyProductId: data.buy_product_id,
-      getProductId: data.get_product_id,
+      maxUsage: data.max_usage ?? null,
+      expiryDate: data.expiry_date ?? null,
+      buyQuantity: data.buy_quantity ?? null,
+      getQuantity: data.get_quantity ?? null,
+      getDiscountPercent: data.get_discount_percent ?? null,
+      buyProductId: data.buy_product_id ?? null,
+      getProductId: data.get_product_id ?? null,
     };
     await db.saveCoupon(newCoupon);
     return { success: true };

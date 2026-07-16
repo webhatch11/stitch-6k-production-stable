@@ -117,7 +117,7 @@ export async function validateCoupon(
   const { data, error } = await supabase
     .from("coupons")
     .select("id, code, discount, type, active, min_cart_value, buy_product_id, get_product_id, get_discount_percent, buy_quantity, get_quantity, usage_count, max_usage, expiry_date")
-    .eq("code", code.toUpperCase())
+    .eq("code", code.trim().toUpperCase())
     .maybeSingle();
 
   if (error) {
@@ -165,7 +165,7 @@ export async function validateCoupon(
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("coupon_code", code.toUpperCase())
+      .eq("coupon_code", code.trim().toUpperCase())
       .not("status", "in", '("Cancelled","Returned","Return Rejected","RTO Delivered","Failed")');
 
     if (countError) {

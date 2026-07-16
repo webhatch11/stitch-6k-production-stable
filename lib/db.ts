@@ -154,4 +154,5 @@ export const db = {
   getROASReport: analyticsDb.getROASReport,
   getLiabilityReport: analyticsDb.getLiabilityReport,
   getNetRevenueReport: analyticsDb.getNetRevenueReport,
+  getRevenueByCategory: analyticsDb.getRevenueByCategory,
 };

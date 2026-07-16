@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getSalesAnalyticsAction } from "@/app/actions/admin-analytics";
+import { getSalesAnalyticsAction, getRevenueByCategoryAction } from "@/app/actions/admin-analytics";
 import {
   ResponsiveContainer,
   LineChart,
@@ -34,6 +34,26 @@ export default function SalesAnalyticsPage() {
       setLoading(false);
     }
     load();
+  }, [days]);
+
+  // Category revenue — uses same days window converted to ISO dates
+  const [categoryData, setCategoryData] = useState<Array<{
+    category: string;
+    orders: number;
+    revenue: number;
+    percentage: number;
+  }>>([]);
+
+  useEffect(() => {
+    const endDate = new Date().toISOString();
+    const startDate = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000
+    ).toISOString();
+    getRevenueByCategoryAction(startDate, endDate).then((res) => {
+      if (res.success && res.data) {
+        setCategoryData(res.data);
+      }
+    });
   }, [days]);
 
   const handleExportDetailedReport = () => {
@@ -416,6 +436,65 @@ export default function SalesAnalyticsPage() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Revenue by Collection (display_section grouping) */}
+      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mt-8">
+        <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">
+          Revenue by Collection
+        </h3>
+        <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">
+          Sales breakdown by product display section — last {days} days
+        </p>
+
+        {categoryData.length === 0 ? (
+          <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+            No collection data available for this period
+          </p>
+        ) : (
+          <>
+            <div className="space-y-5">
+              {categoryData.map((cat) => (
+                <div key={cat.category}>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/80">
+                      {cat.category}
+                    </span>
+                    <div className="flex items-center gap-5 font-mono">
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest">
+                        {cat.orders} items
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        ₹{cat.revenue.toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-[9px] font-bold text-[#fed488] w-9 text-right">
+                        {cat.percentage}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-white/5 border border-white/10 h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-[#fed488]/60 to-[#fed488] h-full transition-all duration-700 ease-out"
+                      style={{ width: `${cat.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary footer */}
+            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
+              <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold">
+                {categoryData.length} collections tracked
+              </span>
+              <span className="text-xs font-black font-mono text-white">
+                Total: ₹{categoryData
+                  .reduce((sum, c) => sum + c.revenue, 0)
+                  .toLocaleString("en-IN")}
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

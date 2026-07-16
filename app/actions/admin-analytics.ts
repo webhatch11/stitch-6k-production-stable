@@ -297,3 +297,18 @@ export async function saveAdSpendAction(data: {
     return { success: false, error: err.message || "Failed to save ad spend" };
   }
 }
+
+export async function getRevenueByCategoryAction(
+  startDate: string,
+  endDate: string
+) {
+  try {
+    await requireAdmin();
+    const data = await db.getRevenueByCategory(startDate, endDate);
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("getRevenueByCategoryAction error:", err);
+    return { success: false, error: err.message || "Failed to load category revenue", data: [] };
+  }
+}
+

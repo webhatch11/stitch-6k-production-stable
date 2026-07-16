@@ -1328,6 +1328,84 @@ export async function getNetRevenueReport(
   };
 }
 
+export async function getRevenueByCategory(
+  startDate: string,
+  endDate: string
+): Promise<Array<{
+  category: string;
+  orders: number;
+  revenue: number;
+  percentage: number;
+}>> {
+  const { supabase, isSupabaseConfigured } = loadService();
+
+  if (!isSupabaseConfigured || !supabase) {
+    // Mock data for sandbox mode
+    return [
+      { category: "Featured", orders: 42, revenue: 63000, percentage: 45 },
+      { category: "New Arrivals", orders: 28, revenue: 42000, percentage: 30 },
+      { category: "Best Sellers", orders: 18, revenue: 27000, percentage: 19 },
+      { category: "General", orders: 8, revenue: 8400, percentage: 6 },
+    ];
+  }
+
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select("total, cart_items, status, created_at")
+    .gte("created_at", startDate)
+    .lte("created_at", endDate)
+    .not("status", "in", '("Cancelled","Failed","Payment Pending")');
+
+  if (error) {
+    console.error("[getRevenueByCategory] error:", error);
+    return [];
+  }
+
+  const categoryMap: Record<string, { orders: number; revenue: number }> = {};
+
+  for (const order of orders || []) {
+    const items: any[] = order.cart_items || [];
+    for (const item of items) {
+      // Derive category from display_section on the cart item
+      const rawCategory: string =
+        item.displaySection ||
+        item.display_section ||
+        (Array.isArray(item.displaySections) && item.displaySections[0]) ||
+        (Array.isArray(item.display_sections) && item.display_sections[0]) ||
+        "General";
+
+      // Format: underscores → spaces, title-case each word
+      const categoryName = rawCategory
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+      if (!categoryMap[categoryName]) {
+        categoryMap[categoryName] = { orders: 0, revenue: 0 };
+      }
+      categoryMap[categoryName].orders++;
+      categoryMap[categoryName].revenue +=
+        Number(item.price || 0) * Number(item.quantity || 1);
+    }
+  }
+
+  const totalRevenue = Object.values(categoryMap).reduce(
+    (sum, c) => sum + c.revenue,
+    0
+  );
+
+  return Object.entries(categoryMap)
+    .map(([category, data]) => ({
+      category,
+      orders: data.orders,
+      revenue: Math.round(data.revenue),
+      percentage:
+        totalRevenue > 0
+          ? Math.round((data.revenue / totalRevenue) * 100)
+          : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+}
+
 export const analyticsDb = {
   getTodaySalesKPI,
   getDashboardKPIMetrics,
@@ -1348,4 +1426,5 @@ export const analyticsDb = {
   getROASReport,
   getLiabilityReport,
   getNetRevenueReport,
+  getRevenueByCategory,
 };

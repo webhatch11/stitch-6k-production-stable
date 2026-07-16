@@ -153,7 +153,17 @@ export async function getTrackingLogs(limit: number = 100): Promise<any[]> {
   if (!isSupabaseConfigured || !supabase) return [];
   const { data, error } = await supabase
     .from("tracking_logs")
-    .select("*")
+    .select(`
+      id,
+      shipment_id,
+      raw_payload,
+      created_at,
+      shipments:shipment_id (
+        awb_code,
+        order_id,
+        status
+      )
+    `)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) {

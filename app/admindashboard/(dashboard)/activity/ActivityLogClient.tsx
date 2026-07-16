@@ -172,19 +172,24 @@ export default function ActivityLogClient({ productLogs, paymentLogs, shippingLo
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {shippingLogs.map((log: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-[11px] font-mono text-gray-700">{log.awb || log.shiprocket_id || log.tracking_number || "—"}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[8px] font-black uppercase tracking-widest">
-                          {log.event || log.action || "tracking"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-[11px] font-mono text-gray-700">{log.order_id || "—"}</td>
-                      <td className="px-6 py-4 text-[11px] text-gray-700">{log.status || log.current_status || "—"}</td>
-                      <td className="px-6 py-4 text-[11px] text-gray-500 whitespace-nowrap">{formatTime(log.created_at)}</td>
-                    </tr>
-                  ))}
+                  {shippingLogs.map((log: any, idx: number) => {
+                    const awb = log.shipments?.awb_code || log.awb || log.shiprocket_id || log.tracking_number || "—";
+                    const orderId = log.shipments?.order_id || log.order_id || "—";
+                    const status = log.shipments?.status || log.status || log.current_status || "—";
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 text-[11px] font-mono text-gray-700">{awb}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[8px] font-black uppercase tracking-widest">
+                            {log.event || log.action || "tracking"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-[11px] font-mono text-gray-700">{orderId}</td>
+                        <td className="px-6 py-4 text-[11px] text-gray-700">{status}</td>
+                        <td className="px-6 py-4 text-[11px] text-gray-500 whitespace-nowrap">{formatTime(log.created_at)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

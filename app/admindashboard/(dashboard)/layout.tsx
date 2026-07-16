@@ -26,9 +26,17 @@ export default async function AdminLayout({
   ).length;
 
   // Check for recent audit activity (last 24h) for the Activity Log badge
-  const recentAudit = await db.getAllProductAuditLogs(5);
+  const [recentProductAudits, recentPaymentAudits, recentShippingAudits] = await Promise.all([
+    db.getAllProductAuditLogs(5),
+    db.getPaymentAuditLogs(5),
+    db.getTrackingLogs(5),
+  ]);
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const hasRecentAudit = recentAudit.some((r: any) => r.created_at && r.created_at > oneDayAgo);
+  const hasRecentAudit = [
+    ...recentProductAudits,
+    ...recentPaymentAudits,
+    ...recentShippingAudits
+  ].some((r: any) => r.created_at && r.created_at > oneDayAgo);
 
   return (
     <>

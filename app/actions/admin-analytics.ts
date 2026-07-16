@@ -195,6 +195,7 @@ export async function getLiveAnalyticsAction() {
     }
 
     const cityOrders = await db.getCityOrders();
+    const productViewers = await db.getActiveProductViewers();
 
     return {
       success: true,
@@ -206,6 +207,7 @@ export async function getLiveAnalyticsAction() {
       recentOrders,
       cityOrders,
       recentEvents,
+      productViewers,
     };
   } catch (err: any) {
     console.error("Live action error:", err);

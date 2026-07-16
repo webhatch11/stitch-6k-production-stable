@@ -144,6 +144,7 @@ export const db = {
   recordPageView: analyticsDb.recordPageView,
   getOnlineVisitorsCount: analyticsDb.getOnlineVisitorsCount,
   getActiveCartsCount: analyticsDb.getActiveCartsCount,
+  getActiveProductViewers: analyticsDb.getActiveProductViewers,
   getMonthlyFinanceSummary: analyticsDb.getMonthlyFinanceSummary,
   getGSTReport: analyticsDb.getGSTReport,
   getCityOrders: analyticsDb.getCityOrders,

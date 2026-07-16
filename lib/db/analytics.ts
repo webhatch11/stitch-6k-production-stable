@@ -2,6 +2,7 @@
 import { loadService } from "./client-raw";
 import { CacheService } from "../cache";
 import { ordersDb } from "./orders";
+import { productsDb } from "./products";
 import { CategorySales, RepeatPurchaseStats, AdSpend, ROASReport } from "./types";
 import { InventoryService } from "../services/inventory";
 
@@ -563,6 +564,82 @@ export async function getActiveCartsCount(): Promise<number> {
   }
   return count || 0;
 }
+
+export async function getActiveProductViewers(): Promise<Array<{ page: string; viewers: number; productName: string }>> {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) return [];
+
+  const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
+
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("page, session_id")
+    .gte("last_seen", fiveMinutesAgo)
+    .like("page", "/product/%");
+
+  if (error || !data) {
+    console.error("Error loading active product viewers:", error);
+    return [];
+  }
+
+  const pageGroups: Record<string, Set<string>> = {};
+  for (const row of data) {
+    if (row.page && row.session_id) {
+      if (!pageGroups[row.page]) {
+        pageGroups[row.page] = new Set();
+      }
+      pageGroups[row.page].add(row.session_id);
+    }
+  }
+
+  const viewersList = Object.entries(pageGroups)
+    .map(([page, sessions]) => ({
+      page,
+      viewers: sessions.size
+    }))
+    .sort((a, b) => b.viewers - a.viewers)
+    .slice(0, 5);
+
+  const result: Array<{ page: string; viewers: number; productName: string }> = [];
+
+  for (const item of viewersList) {
+    const parts = item.page.split("/");
+    const slug = parts[parts.length - 1];
+    if (slug) {
+      try {
+        const product = await productsDb.getProductBySlug(slug);
+        if (product) {
+          result.push({
+            page: item.page,
+            viewers: item.viewers,
+            productName: product.title
+          });
+        } else {
+          const formattedSlug = slug
+            .replace(/-/g, " ")
+            .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+          result.push({
+            page: item.page,
+            viewers: item.viewers,
+            productName: formattedSlug
+          });
+        }
+      } catch (err) {
+        const formattedSlug = slug
+          .replace(/-/g, " ")
+          .replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+        result.push({
+          page: item.page,
+          viewers: item.viewers,
+          productName: formattedSlug
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
 
 
 export async function getMonthlyFinanceSummary(
@@ -1417,6 +1494,7 @@ export const analyticsDb = {
   recordPageView,
   getOnlineVisitorsCount,
   getActiveCartsCount,
+  getActiveProductViewers,
   getMonthlyFinanceSummary,
   getGSTReport,
   getCityOrders,

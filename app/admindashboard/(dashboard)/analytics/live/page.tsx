@@ -249,6 +249,8 @@ export default function LiveAnalyticsPage() {
   const cityOrders = data?.cityOrders || [];
   const recentEvents: { order_id: string; event: string; created_at: string }[] =
     data?.recentEvents ?? [];
+  const productViewers = data?.productViewers || [];
+
 
   const maxCityOrders =
     cityOrders.length > 0 ? Math.max(...cityOrders.map((c: any) => c.count)) : 1;
@@ -573,41 +575,82 @@ export default function LiveAnalyticsPage() {
         </div>
       </div>
 
-      {/* Live System Events Log */}
-      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Live System Events Log</h3>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">System logs of active events and operations</p>
-        </div>
-
-        <div className="space-y-4 my-auto">
-          {recentEvents.length === 0 ? (
-            <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
-              No recent order events recorded
-            </p>
-          ) : (
-            recentEvents.map((event, i) => {
-              const { border, badge } = eventBadge("ORDER");
-              return (
-                <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
-                  <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
-                    ORDER
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold text-white/80">{event.event}</p>
-                    <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
-                      #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
-                    </span>
+      {/* Bottom Log & Active Products Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Popular Products Viewers */}
+        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#fed488] block animate-pulse">
+              🔥 POPULAR PRODUCTS
+            </span>
+            <h3 className="font-headline text-lg font-black uppercase tracking-tight mt-0.5 text-white">Live Product Viewers</h3>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Top products currently being viewed by customers</p>
+            
+            <div className="mt-6 space-y-4">
+              {productViewers && productViewers.length > 0 ? (
+                productViewers.map((pv: any, index: number) => (
+                  <div key={pv.page} className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-white/40 font-bold">{index + 1}.</span>
+                      <span className="text-xs text-white/80 font-bold uppercase tracking-wider">{pv.productName}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-[#fed488] font-bold">{pv.viewers} viewing now</span>
+                      <span className="animate-pulse text-xs">🔥</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                ))
+              ) : (
+                <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                  No active product page views in the last 5 minutes.
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="text-[8px] text-white/30 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
+            * Aggregated dynamically over 5 minute active session windows
+          </div>
         </div>
 
-        <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
-          * Operational health check: 100% active and healthy.
+        {/* Live System Events Log */}
+        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Live System Events Log</h3>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">System logs of active events and operations</p>
+          </div>
+
+          <div className="space-y-4 my-auto">
+            {recentEvents.length === 0 ? (
+              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                No recent order events recorded
+              </p>
+            ) : (
+              recentEvents.map((event, i) => {
+                const { border, badge } = eventBadge("ORDER");
+                return (
+                  <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
+                    <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
+                      ORDER
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-white/80">{event.event}</p>
+                      <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
+                        #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
+            * Operational health check: 100% active and healthy.
+          </div>
         </div>
+
       </div>
     </div>
   );

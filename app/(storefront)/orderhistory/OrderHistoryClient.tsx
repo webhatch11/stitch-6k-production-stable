@@ -359,7 +359,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                     </div>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                                    <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">6K COLLECTION</span>
                                     <p className="text-xs font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{item.productName}</p>
                                     <div className="flex gap-2 mt-1 items-center">
                                       {item.size && (
@@ -374,7 +374,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               );
                             })}
                             <div className="pt-2 border-t border-outline-variant/5">
-                              <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Heritage Manufacture</p>
+                              <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Premium Quality</p>
                               {/* Return Eligibility Banner */}
                               {order.status === "Delivered" && (() => {
                                 const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
@@ -675,7 +675,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">ATELIER STITCH</span>
+                              <span className="text-[9px] font-bold tracking-[0.2em] text-secondary/70 uppercase">6K COLLECTION</span>
                               <p className="text-xs font-black text-on-surface uppercase tracking-wide leading-tight mt-0.5 truncate">{item.productName}</p>
                               <div className="flex gap-2 mt-1 items-center">
                                 {item.size && (
@@ -690,7 +690,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                         );
                       })}
                       <div className="pt-2 border-t border-outline-variant/5">
-                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Heritage Manufacture</p>
+                        <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Premium Quality</p>
                       </div>
                     </div>
 

@@ -13,14 +13,14 @@ export default function PaymentFailedPage() {
       <p className="text-gray-500 text-center mb-2 max-w-sm">
         Your payment could not be processed. No money has been deducted.
       </p>
-      <p className="text-gray-400 text-sm text-center mb-8 max-w-sm">
+      <p className="text-gray-500 text-sm text-center mb-8 max-w-sm">
         Your cart items are saved. Please try again.
       </p>
 
       <div className="w-full max-w-md space-y-3">
         <Link
           href="/checkout"
-          className="w-full flex items-center justify-center bg-black text-white py-4 rounded-2xl font-medium hover:bg-gray-800 transition-colors"
+          className="w-full flex items-center justify-center bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800 transition-colors"
         >
           Try Again
         </Link>
@@ -28,7 +28,7 @@ export default function PaymentFailedPage() {
           href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_PHONE || "919000000000"}?text=Payment failed for my order`}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-4 rounded-2xl font-medium hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-3 rounded-full font-medium hover:bg-gray-50 transition-colors"
         >
           Contact Support
         </a>

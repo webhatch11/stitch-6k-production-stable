@@ -235,6 +235,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
               <button 
                 onClick={() => setShowToast(false)} 
+                aria-label="Close notification"
                 className="material-symbols-outlined text-gray-400 hover:text-black text-sm bg-transparent border-none cursor-pointer"
               >
                 close

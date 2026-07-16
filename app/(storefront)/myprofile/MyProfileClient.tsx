@@ -44,6 +44,7 @@ export default function MyProfileClient({
 }: MyProfileClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "wishlist" | "returns">("profile");
+  const [tabLoading, setTabLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const wishlistStore = useWishlistStore();
   const wishlistItems = wishlistStore.wishlistItems;
@@ -273,8 +274,10 @@ export default function MyProfileClient({
   };
 
   const handleTabSwitch = (tabName: "profile" | "loyalty" | "wishlist" | "returns") => {
+    setTabLoading(true);
     setActiveTab(tabName);
     setSidebarOpen(false);
+    setTimeout(() => setTabLoading(false), 300);
   };
 
   if (isLoading) {
@@ -305,7 +308,7 @@ export default function MyProfileClient({
         >
           {/* Mobile close button */}
           <div className="flex justify-end mb-4 lg:hidden">
-            <button onClick={() => setSidebarOpen(false)} className="p-2 bg-transparent border-none">
+            <button onClick={() => setSidebarOpen(false)} aria-label="Close sidebar" className="p-2 bg-transparent border-none">
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
@@ -396,8 +399,16 @@ export default function MyProfileClient({
             <span className="material-symbols-outlined text-sm">menu_open</span> Profile Menu
           </button>
 
-          {/* TAB 1: PROFILE OVERVIEW */}
-          {activeTab === "profile" && (
+          {tabLoading ? (
+            <div className="animate-pulse space-y-4 p-4">
+              <div className="h-12 bg-gray-100 rounded-xl"/>
+              <div className="h-12 bg-gray-100 rounded-xl"/>
+              <div className="h-12 bg-gray-100 rounded-xl"/>
+            </div>
+          ) : (
+            <>
+              {/* TAB 1: PROFILE OVERVIEW */}
+              {activeTab === "profile" && (
             <div className="flex flex-col gap-12 animate-fade-in">
               <div className="flex flex-col gap-2 border-l-4 border-secondary pl-6">
                 <p className="text-secondary text-xs font-bold tracking-[0.3em] uppercase">Welcome Back</p>
@@ -419,6 +430,7 @@ export default function MyProfileClient({
                       }}
                       className="p-1 text-secondary bg-transparent border-none cursor-pointer hover:text-black flex items-center justify-center transition-colors"
                       title="Edit Profile"
+                      aria-label="Edit Profile"
                     >
                       <span className="material-symbols-outlined text-lg">edit</span>
                     </button>
@@ -1030,6 +1042,7 @@ export default function MyProfileClient({
                             wishlistStore.removeFromWishlist(item.id);
                             useToastStore.getState().addToast("✓ Removed from wishlist");
                           }}
+                          aria-label="Remove from wishlist"
                           className="absolute top-2 right-2 bg-black/75 backdrop-blur-md p-1.5 rounded-full border border-white/10 text-white z-20 hover:text-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-sm font-black">close</span>
@@ -1112,6 +1125,8 @@ export default function MyProfileClient({
                 </div>
               )}
             </div>
+          )}
+            </>
           )}
         </div>
       </div>

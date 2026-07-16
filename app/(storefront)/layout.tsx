@@ -19,7 +19,7 @@ export default async function StorefrontLayout({
       <StorefrontTracker />
       <AnnouncementMarquee marquee={marquee} />
       <Navbar />
-      <div className="flex-grow">{children}</div>
+      <div className="flex-grow animate-fadeIn">{children}</div>
       <Footer business={business} />
     </div>
   );

@@ -185,6 +185,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                           <div className="flex items-center border border-outline-variant">
                             <button
                               onClick={() => handleDecrement(item)}
+                              aria-label="Decrease quantity"
                               className="px-3 py-2 hover:bg-surface-container-low transition-colors btn-active-scale"
                             >
                               <span className="material-symbols-outlined">remove</span>
@@ -192,6 +193,7 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                             <span className="px-4 font-headline font-bold">{item.quantity}</span>
                             <button
                               onClick={() => handleIncrement(item)}
+                              aria-label="Increase quantity"
                               className="px-3 py-2 hover:bg-surface-container-low transition-colors btn-active-scale"
                             >
                               <span className="material-symbols-outlined">add</span>

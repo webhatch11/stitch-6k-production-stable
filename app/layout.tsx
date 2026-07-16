@@ -8,6 +8,10 @@ import { GA4Script } from "@/components/analytics/GA4Script";
 import { StorefrontPageViewTracker } from "@/components/analytics/StorefrontPageViewTracker";
 
 export const metadata: Metadata = {
+  icons: {
+    icon: '/assets/logo.png',
+    apple: '/assets/logo.png',
+  },
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"
   ),

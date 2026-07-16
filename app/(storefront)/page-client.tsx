@@ -1061,8 +1061,9 @@ export default function HomeClient({
                     setActiveFavIndex((prev) => (prev - 1 + activeNewArrivals.length) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
+                  className="w-11 h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Previous item"
+                  aria-label="Previous item"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
@@ -1071,8 +1072,9 @@ export default function HomeClient({
                     setActiveFavIndex((prev) => (prev + 1) % activeNewArrivals.length);
                     setSelectedQuickShopIndex(null);
                   }}
-                  className="w-8 h-8 md:w-11 md:h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
+                  className="w-11 h-11 rounded-full border border-white/10 hover:border-[#fed488]/40 bg-black/50 hover:bg-[#775a19]/25 text-white hover:text-[#fed488] flex items-center justify-center transition-all duration-300 ease-out cursor-pointer pointer-events-auto backdrop-blur-md hover:scale-105 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(254,212,136,0.15)]"
                   title="Next item"
+                  aria-label="Next item"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>

@@ -786,7 +786,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+    <div className="bg-surface text-on-surface min-h-screen flex flex-col overflow-x-hidden">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {processingPayment && <PaymentProcessingScreen />}
       {paymentFailed && (

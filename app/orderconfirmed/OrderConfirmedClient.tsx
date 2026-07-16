@@ -194,7 +194,7 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
         ))}
 
         {order.cartItems && order.cartItems.length > 3 && (
-          <p className="text-xs text-gray-400 mt-1 mb-2">
+          <p className="text-xs text-gray-500 mt-1 mb-2">
             +{order.cartItems.length - 3} more items
           </p>
         )}
@@ -219,25 +219,25 @@ export default function OrderConfirmedClient({ lastOrder }: OrderConfirmedClient
       <div className="w-full max-w-md space-y-3">
         <Link
           href="/orderhistory"
-          className="w-full flex items-center justify-center bg-black text-white py-4 rounded-2xl font-medium hover:bg-gray-800 transition-colors"
+          className="w-full flex items-center justify-center bg-black text-white py-3 rounded-full font-medium hover:bg-gray-800 transition-colors"
         >
           View My Orders
         </Link>
         <Link
           href="/shopallshirts"
-          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-4 rounded-2xl font-medium hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center justify-center border border-gray-300 text-gray-700 py-3 rounded-full font-medium hover:bg-gray-50 transition-colors"
         >
           Continue Shopping
         </Link>
       </div>
 
       {/* Auto redirect countdown */}
-      <p className="text-xs text-gray-400 mt-6">
+      <p className="text-xs text-gray-500 mt-6">
         Redirecting to orders in {countdown}s...
       </p>
 
       {/* Email confirmation note */}
-      <p className="text-xs text-gray-400 mt-2 text-center max-w-xs">
+      <p className="text-xs text-gray-500 mt-2 text-center max-w-xs">
         A confirmation email has been sent to your registered email address
       </p>
     </div>

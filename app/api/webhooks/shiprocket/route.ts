@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
-import { supabaseService as supabase } from "@/lib/supabase-service";
 
 // Shiprocket webhooks are authenticated with a pre-shared token: set the same
 // value in the Shiprocket dashboard (Settings → API → Webhooks, sent as the
@@ -142,8 +141,49 @@ export async function POST(req: NextRequest) {
 
     // Update the database order
     if (newStatus !== order.status) {
+      const isDeliveredNow = newStatus === "Delivered";
       order.status = newStatus;
       await db.saveOrder(order);
+
+      if (isDeliveredNow) {
+        try {
+          const { sendOrderDeliveredEmail } = await import('@/lib/email');
+          
+          const freshOrder = await db.getOrderById(order.id);
+          if (freshOrder && freshOrder.address_snapshot) {
+            const addressSnap = freshOrder.address_snapshot;
+            if (addressSnap.email) {
+              const returnDeadline = new Date(
+                Date.now() + 7 * 24 * 60 * 60 * 1000
+              ).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              });
+              
+              await sendOrderDeliveredEmail({
+                to: addressSnap.email,
+                customerName: addressSnap.name || 'Customer',
+                orderId: freshOrder.id,
+                items: (freshOrder.cartItems || []).map(
+                  (item: any) => ({
+                    name: item.productName || item.name,
+                    quantity: item.quantity || 1
+                  })
+                ),
+                total: freshOrder.total,
+                deliveredAt: new Date().toLocaleDateString('en-IN'),
+                returnDeadline
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error(
+            '[shiprocket webhook] delivered email failed:',
+            emailErr
+          );
+        }
+      }
     }
 
     // Insert order event if defined

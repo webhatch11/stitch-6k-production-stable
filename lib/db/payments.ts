@@ -433,23 +433,6 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
   const totalRefundAmount = walletPaid + gatewayPaid;
   const refundReason = reason || "Return approved by admin";
 
-  const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
-  const { error: orderUpdateErr } = await supabase
-    .from("orders")
-    .update({
-      status: "Returned",
-      return_date: returnDate,
-      quality_check_passed: qualityCheckPassed,
-      refund_reason: refundReason,
-      refund_amount: totalRefundAmount,
-    })
-    .eq("id", orderId);
-
-  if (orderUpdateErr) {
-    await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
-    return false;
-  }
-
   // FIX 3: Reversing loyalty points on return
   try {
     // 1. Reverse earned points (points customer earned from this order)
@@ -490,24 +473,6 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       }
     } catch (e) {
       console.error("[processReturnRefund] coupon decrement failed:", e);
-    }
-    const cartItemsForRestock = orderData.cart_items;
-    if (Array.isArray(cartItemsForRestock) && cartItemsForRestock.length > 0) {
-      for (const item of cartItemsForRestock) {
-        const productId = item.productId || item.product_id;
-        const size = item.size;
-        const color = item.color;
-        const quantity = item.quantity || 1;
-        if (productId && size && color) {
-          try {
-            await InventoryService.restoreStockAtomic(productId, size, color, quantity);
-          } catch (e: any) {
-            console.error(`[Restock] failed for ${productId} ${size}/${color}:`, e.message);
-          }
-        }
-      }
-    } else {
-      console.warn(`[Restock] order ${orderId} has no cart_items JSONB; inventory not restocked`);
     }
   }
 
@@ -591,6 +556,48 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
           .eq('id', orderId);
       }
     }
+  }
+
+  // Restore stock for returned items (CRITICAL FIX 1)
+  try {
+    // Restore stock for returned items
+    if (order.cartItems && order.cartItems.length > 0) {
+      for (const item of order.cartItems) {
+        await inventoryDb.restoreStock(
+          item.productId,
+          item.size || item.variant,
+          item.quantity || 1
+        )
+      }
+      console.error(
+        '[processReturnRefund] Stock restored for',
+        order.id
+      )
+    }
+  } catch (stockErr) {
+    console.error(
+      '[processReturnRefund] Stock restore failed:',
+      stockErr
+    )
+    // Don't fail refund if stock restore fails
+    // Log for manual review
+  }
+
+  // Update order status to Returned
+  const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+  const { error: orderUpdateErr } = await supabase
+    .from("orders")
+    .update({
+      status: "Returned",
+      return_date: returnDate,
+      quality_check_passed: qualityCheckPassed,
+      refund_reason: refundReason,
+      refund_amount: totalRefundAmount,
+    })
+    .eq("id", orderId);
+
+  if (orderUpdateErr) {
+    console.error("[processReturnRefund] Failed to update final status to Returned:", orderUpdateErr.message);
   }
 
   return true;

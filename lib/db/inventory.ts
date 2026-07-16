@@ -108,20 +108,31 @@ export async function deductStock(items: any[], sessionId?: string): Promise<boo
   return true;
 }
 
-export async function restoreStock(items: any[], sessionId?: string): Promise<void> {
+export async function restoreStock(
+  itemsOrProductId: any[] | string,
+  sizeOrSessionId?: string,
+  quantity?: number
+): Promise<void> {
   const { supabase, isSupabaseConfigured } = loadService();
-  const products = await productsDb.getProducts();
-  for (const item of items) {
-    const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
-    if (product) {
-      const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
-      const color = item.color || "Default";
-      const qty = item.quantity || 1;
-      await InventoryService.restoreStockAtomic(product.id, size, color, qty);
+  if (Array.isArray(itemsOrProductId)) {
+    const products = await productsDb.getProducts();
+    for (const item of itemsOrProductId) {
+      const product = products.find((p) => p.title.toLowerCase() === item.productName.toLowerCase());
+      if (product) {
+        const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
+        const color = item.color || "Default";
+        const qty = item.quantity || 1;
+        await InventoryService.restoreStockAtomic(product.id, size, color, qty);
+      }
     }
-  }
-  if (isSupabaseConfigured && supabase && sessionId) {
-    await supabase.from("inventory_reservations").update({ status: "cancelled" }).eq("session_id", sessionId);
+    if (isSupabaseConfigured && supabase && sizeOrSessionId) {
+      await supabase.from("inventory_reservations").update({ status: "cancelled" }).eq("session_id", sizeOrSessionId);
+    }
+  } else {
+    const productId = itemsOrProductId;
+    const size = (sizeOrSessionId || "M") as "S" | "M" | "L" | "XL" | "XXL";
+    const qty = quantity || 1;
+    await InventoryService.restoreStockAtomic(productId, size, "Default", qty);
   }
 }
 

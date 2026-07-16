@@ -668,6 +668,7 @@ export default function CheckoutPage() {
             description: "Premium Shirts Checkout",
             image: "/assets/logo.png",
             order_id: createData.razorpayOrderId,
+            callback_url: `${window.location.origin}/api/payments/razorpay-callback`,
             handler: async function (response: any) {
               setProcessingPayment(true);
               try {

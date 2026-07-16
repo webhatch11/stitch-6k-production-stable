@@ -31,8 +31,6 @@ export default function SettingsDashboardPage() {
 
   // States for Hero Settings
   const [heroImage, setHeroImage] = useState("");
-  const [heroCtaText, setHeroCtaText] = useState("");
-  const [heroCtaUrl, setHeroCtaUrl] = useState("");
   const [carouselSlides, setCarouselSlides] = useState<string[]>([]);
   const [activeUploadHeroSlideIndex, setActiveUploadHeroSlideIndex] = useState<number | null>(null);
   const [uploadOptions, setUploadOptions] = useState<any>({});
@@ -165,8 +163,6 @@ export default function SettingsDashboardPage() {
 
       if (heroRes.success && heroRes.value) {
         setHeroImage(heroRes.value.image_url || "");
-        setHeroCtaText(heroRes.value.cta_text || "");
-        setHeroCtaUrl(heroRes.value.cta_url || "");
         setCarouselSlides(heroRes.value.carousel_slides || []);
       }
 
@@ -250,8 +246,6 @@ export default function SettingsDashboardPage() {
     e.preventDefault();
     const payload = {
       image_url: heroImage,
-      cta_text: heroCtaText,
-      cta_url: heroCtaUrl,
       carousel_slides: carouselSlides,
     };
     const res = await saveHeroAction(payload);
@@ -669,37 +663,6 @@ export default function SettingsDashboardPage() {
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Max 5 MB</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">JPG / PNG / WebP</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Min 1920 × 1080px</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA Button Text
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    maxLength={40}
-                    value={heroCtaText}
-                    onChange={(e) => setHeroCtaText(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="Shop Collection"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
-                    CTA URL
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    maxLength={200}
-                    value={heroCtaUrl}
-                    onChange={(e) => setHeroCtaUrl(e.target.value)}
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-neutral-50 rounded-md"
-                    placeholder="/shopallshirts"
-                  />
                 </div>
               </div>
 

@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
         console.warn(`[verify] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
         isRecoveryMode = true;
       } else {
-        return NextResponse.json({ success: true, message: "Order already processed" });
+        return NextResponse.json({ success: true, message: "Order already processed", orderId: dbOrder.id });
       }
     }
 

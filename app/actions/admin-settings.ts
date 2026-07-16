@@ -18,8 +18,8 @@ const heroSchema = z.object({
   image_url: z.string().optional().default(""),
   headline: z.string().min(1).max(120).optional(),
   subheadline: z.string().max(300).optional(),
-  cta_text: z.string().min(1).max(40),
-  cta_url: z.string().min(1).max(200),
+  cta_text: z.string().max(40).optional().default(""),
+  cta_url: z.string().max(200).optional().default(""),
   slides: z.array(heroSlideSchema).max(6).optional().default([]),
   carousel_slides: z.array(z.string()).max(6).optional().default([]),
 });

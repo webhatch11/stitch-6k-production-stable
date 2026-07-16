@@ -80,7 +80,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     "@type": "Product",
     "name": product.title,
     "image": [product.image, ...(product.images || [])].filter(Boolean),
-    "description": product.seoDescription || product.description || `Buy ${product.title} at Stitch 6K.`,
+    "description": product.seoDescription || product.description || `Buy ${product.title} at 6K.`,
     "sku": product.id,
     "offers": {
       "@type": "Offer",
@@ -93,7 +93,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         : "https://schema.org/OutOfStock",
       "seller": {
         "@type": "Organization",
-        "name": "Stitch 6K"
+        "name": "6K"
       }
     }
   };

@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Return & Exchange Policy | Stitch 6K",
-  description: "How returns and exchanges work at Stitch 6K, including eligibility windows and refund options.",
+  title: "Return & Exchange Policy | 6K",
+  description: "How returns and exchanges work at 6K, including eligibility windows and refund options.",
   openGraph: {
-    title: "Return & Exchange Policy | Stitch 6K",
-    description: "How returns and exchanges work at Stitch 6K, including eligibility windows and refund options.",
+    title: "Return & Exchange Policy | 6K",
+    description: "How returns and exchanges work at 6K, including eligibility windows and refund options.",
     images: [{ url: "/og-default.jpg" }],
   },
 };

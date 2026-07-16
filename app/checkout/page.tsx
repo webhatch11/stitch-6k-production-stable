@@ -664,7 +664,7 @@ export default function CheckoutPage() {
             key,
             amount: createData.amount,
             currency: createData.currency,
-            name: "Stitch 6K",
+            name: "6K",
             description: "Premium Shirts Checkout",
             image: "/assets/logo.png",
             order_id: createData.razorpayOrderId,

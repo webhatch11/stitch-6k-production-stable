@@ -70,7 +70,7 @@ export default function SalesAnalyticsPage() {
     let csvContent = "data:text/csv;charset=utf-8,";
 
     // 1. Executive Summary
-    csvContent += "=== STITCH 6K SALES ANALYTICS REPORT ===\n";
+    csvContent += "=== 6K SALES ANALYTICS REPORT ===\n";
     csvContent += `Report Generated At,${new Date().toLocaleString()}\n`;
     csvContent += `Period Selected,Last ${days} Days\n\n`;
 

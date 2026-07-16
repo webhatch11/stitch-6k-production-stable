@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Refund Policy | Stitch 6K",
-  description: "Refund processing timelines and methods at Stitch 6K.",
+  title: "Refund Policy | 6K",
+  description: "Refund processing timelines and methods at 6K.",
   openGraph: {
-    title: "Refund Policy | Stitch 6K",
-    description: "Refund processing timelines and methods at Stitch 6K.",
+    title: "Refund Policy | 6K",
+    description: "Refund processing timelines and methods at 6K.",
     images: [{ url: "/og-default.jpg" }],
   },
 };

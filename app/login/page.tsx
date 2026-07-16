@@ -156,7 +156,7 @@ export default function LoginPage() {
         if (!userExists) {
           // New user — switch to Create Account form
           setIsSignIn(false);
-          setInfoMsg("Welcome! Let's create your 6K Brand account.");
+          setInfoMsg("Welcome! Let's create your 6K account.");
           setLoading(false);
           return;
         }
@@ -378,7 +378,7 @@ export default function LoginPage() {
               <Image src="/assets/logo.png" alt="6K Logo" width={40} height={40} className="max-w-full max-h-full object-contain filter invert" />
             </div>
             <div>
-              <h1 className="text-white text-[11px] font-black tracking-[0.25em] uppercase leading-none">Stitch 6K</h1>
+              <h1 className="text-white text-[11px] font-black tracking-[0.25em] uppercase leading-none">6K</h1>
               <p className="text-[#BA7517] text-[8px] font-bold uppercase tracking-[0.18em] mt-1.5">Heritage & Streetwear</p>
             </div>
           </Link>
@@ -434,7 +434,7 @@ export default function LoginPage() {
 
         {/* Footer Credit */}
         <div className="relative z-10 text-[8px] font-bold uppercase tracking-widest text-white/30">
-          © 2026 STITCH 6K • HANDCRAFTED IN TAMIL NADU, INDIA
+          © 2026 6K • HANDCRAFTED IN TAMIL NADU, INDIA
         </div>
       </div>
 
@@ -462,7 +462,7 @@ export default function LoginPage() {
             <div className="w-8 h-8 rounded-full bg-[#0a0a0a] p-1 flex items-center justify-center">
               <Image src="/assets/logo.png" alt="6K Logo" width={32} height={32} className="max-w-full max-h-full object-contain filter invert" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-black">Stitch 6K</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-black">6K</span>
           </Link>
           <Link 
             href="/shopallshirts" 
@@ -521,7 +521,7 @@ export default function LoginPage() {
                     Welcome Back
                   </h3>
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                    Sign in to your 6K Brand account
+                    Sign in to your 6K account
                   </p>
                 </div>
 
@@ -575,7 +575,7 @@ export default function LoginPage() {
                     Create Account
                   </h3>
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">
-                    Join 6K Brand and elevate your style
+                    Join 6K and elevate your style
                   </p>
                 </div>
 
@@ -773,7 +773,7 @@ export default function LoginPage() {
 
         {/* Footer Credit (shown on right panel ONLY on mobile) */}
         <div className="md:hidden text-[8px] font-bold uppercase tracking-widest text-gray-400 text-center pt-8 border-t border-gray-100">
-          © 2026 STITCH 6K • HANDCRAFTED IN TAMIL NADU, INDIA
+          © 2026 6K • HANDCRAFTED IN TAMIL NADU, INDIA
         </div>
 
         {/* Empty placeholder to keep layout balanced on desktop */}

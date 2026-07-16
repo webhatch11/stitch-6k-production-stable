@@ -877,7 +877,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
             {/* Printable Area */}
             <div id="printable-return-label" className="border-2 border-double border-secondary p-6 space-y-6 bg-white text-neutral-900 select-none">
               <div className="flex justify-between items-center pb-4 border-b border-neutral-200">
-                <span className="text-xs font-black tracking-widest">STITCH 6K ATELIER</span>
+                <span className="text-xs font-black tracking-widest">6K</span>
                 <span className="text-[11px] font-black border border-neutral-800 px-1 py-0.5 uppercase tracking-widest">PREPAID</span>
               </div>
 

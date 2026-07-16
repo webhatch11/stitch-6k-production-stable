@@ -40,7 +40,7 @@ export default function Footer({ business }: FooterProps) {
                   draggable={false}
                 />
               </div>
-              <span className="font-headline text-2xl font-black tracking-tighter uppercase text-white">Stitch 6K</span>
+              <span className="font-headline text-2xl font-black tracking-tighter uppercase text-white">6K</span>
             </div>
             <p className="text-[10px] text-white/60 leading-relaxed max-w-sm uppercase tracking-widest font-light mb-6">
               Premium menswear born from the looms of South India. Crafted with precision, shipped globally.
@@ -259,7 +259,7 @@ export default function Footer({ business }: FooterProps) {
 
         <div className="pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-white/60">
-            © 2026 STITCH 6K • HANDCRAFTED IN TAMIL NADU, INDIA
+            © 2026 6K • HANDCRAFTED IN TAMIL NADU, INDIA
           </p>
           {gst_no && (
             <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/40">

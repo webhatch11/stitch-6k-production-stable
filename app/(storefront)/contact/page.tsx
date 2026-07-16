@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Contact Us | Stitch 6K",
-  description: "Reach the Stitch 6K atelier concierge — email, phone and workshop location in Tiruchirappalli, Tamil Nadu.",
+  title: "Contact Us | 6K",
+  description: "Reach the 6K atelier concierge — email, phone and workshop location in Tiruchirappalli, Tamil Nadu.",
 };
 
 export default function ContactPage() {

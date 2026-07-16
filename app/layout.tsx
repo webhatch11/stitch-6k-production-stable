@@ -15,20 +15,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com"
   ),
-  title: "Stitch 6K | Predefining Luxury",
+  title: "6K | Predefining Luxury",
   description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India. Limited batches, precision tailored.",
-  keywords: ["luxury shirts", "GEN-Z streetwear", "linen shirts", "premium cotton", "Stitch 6K", "menswear", "South India"],
+  keywords: ["luxury shirts", "GEN-Z streetwear", "linen shirts", "premium cotton", "6K", "menswear", "South India"],
   openGraph: {
-    title: "Stitch 6K | Predefining Luxury",
+    title: "6K | Predefining Luxury",
     description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India.",
     url: "https://the6k.com",
-    siteName: "Stitch 6K",
+    siteName: "6K",
     images: [
       {
         url: "/assets/logo.png",
         width: 800,
         height: 600,
-        alt: "Stitch 6K Logo",
+        alt: "6K Logo",
       },
     ],
     locale: "en_IN",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Stitch 6K | Predefining Luxury",
+    title: "6K | Predefining Luxury",
     description: "Handcrafted luxury menswear and GEN-Z streetwear woven from the looms of South India.",
     images: ["/assets/logo.png"],
   },

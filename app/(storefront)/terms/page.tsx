@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions | Stitch 6K",
-  description: "The terms and conditions governing purchases and use of the Stitch 6K store.",
+  title: "Terms & Conditions | 6K",
+  description: "The terms and conditions governing purchases and use of the 6K store.",
   openGraph: {
-    title: "Terms & Conditions | Stitch 6K",
-    description: "The terms and conditions governing purchases and use of the Stitch 6K store.",
+    title: "Terms & Conditions | 6K",
+    description: "The terms and conditions governing purchases and use of the 6K store.",
     images: [{ url: "/og-default.jpg" }],
   },
 };

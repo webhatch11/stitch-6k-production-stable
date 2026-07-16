@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+﻿import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
@@ -18,12 +18,12 @@ export async function sendOrderConfirmationEmail(order: {
   couponCode?: string | null;
   couponDiscount?: number | null;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #BA7517; font-size: 24px;">
-        Order Confirmed ✓
+        Order Confirmed âœ“
       </h1>
       <p>Hi ${order.customerName},</p>
       <p>Your order has been confirmed and will be processed within 2-3 business days.</p>
@@ -38,10 +38,10 @@ export async function sendOrderConfirmationEmail(order: {
         <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
           <strong>${item.productName}</strong><br>
           <span style="color: #6b7280; font-size: 14px;">
-            Size: ${item.size} × ${item.quantity}
+            Size: ${item.size} Ã— ${item.quantity}
           </span>
           <span style="float: right;">
-            ₹${item.price}
+            â‚¹${item.price}
           </span>
         </div>
       `
@@ -52,13 +52,13 @@ export async function sendOrderConfirmationEmail(order: {
         <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5; color: #166534; font-size: 14px;">
           <strong>Coupon (${order.couponCode}):</strong>
           <span style="float: right;">
-            -₹${order.couponDiscount}
+            -â‚¹${order.couponDiscount}
           </span>
         </div>
       ` : ""}
       
       <div style="padding: 16px 0; font-size: 18px; font-weight: bold;">
-        Total: ₹${order.total}
+        Total: â‚¹${order.total}
       </div>
       
       <p style="color: #6b7280; font-size: 13px;">
@@ -72,7 +72,7 @@ export async function sendOrderConfirmationEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -83,7 +83,7 @@ export async function sendOrderConfirmationEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Order Confirmed — #${order.id} | 6K Brand`,
+      subject: `Order Confirmed â€” #${order.id} | 6K Brand`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -98,13 +98,13 @@ export async function sendReturnAcceptedEmail(order: {
   refundAmount: number;
   refundOption: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const methodText = order.refundOption === "wallet" ? "Store Wallet Credit" : "Original Bank Account / Card";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #BA7517; font-size: 24px;">
-        Return Request Approved ✓
+        Return Request Approved âœ“
       </h1>
       <p>Hi ${order.customerName},</p>
       <p>Your return request for Order <strong>#${order.id}</strong> has been accepted. The quality inspection has passed, and we have processed your refund.</p>
@@ -115,7 +115,7 @@ export async function sendReturnAcceptedEmail(order: {
       
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Refund Amount:</strong>
-        <span style="float: right; font-weight: bold;">₹${order.refundAmount.toLocaleString("en-IN")}.00</span>
+        <span style="float: right; font-weight: bold;">â‚¹${order.refundAmount.toLocaleString("en-IN")}.00</span>
       </div>
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Refund Destination:</strong>
@@ -129,7 +129,7 @@ export async function sendReturnAcceptedEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -140,7 +140,7 @@ export async function sendReturnAcceptedEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Return Approved — #${order.id} | 6K Brand`,
+      subject: `Return Approved â€” #${order.id} | 6K Brand`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -154,7 +154,7 @@ export async function sendReturnRejectedEmail(order: {
   customerEmail: string;
   rejectReason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -179,7 +179,7 @@ export async function sendReturnRejectedEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -190,7 +190,7 @@ export async function sendReturnRejectedEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Return Update — #${order.id} | 6K Brand`,
+      subject: `Return Update â€” #${order.id} | 6K Brand`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -206,7 +206,7 @@ export async function sendOrderCancelledEmail(order: {
   refundAmount: number;
   refundDetails: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -226,7 +226,7 @@ export async function sendOrderCancelledEmail(order: {
       </div>
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Total Refunded:</strong>
-        <span style="float: right; font-weight: bold;">₹${order.refundAmount.toLocaleString("en-IN")}.00</span>
+        <span style="float: right; font-weight: bold;">â‚¹${order.refundAmount.toLocaleString("en-IN")}.00</span>
       </div>
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Refund Action:</strong>
@@ -240,7 +240,7 @@ export async function sendOrderCancelledEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -251,7 +251,7 @@ export async function sendOrderCancelledEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Order Cancelled — #${order.id} | 6K Brand`,
+      subject: `Order Cancelled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -266,7 +266,7 @@ export async function sendReturnPickupScheduledEmail(order: {
   awb: string;
   pickupDate: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const formattedDate = new Date(order.pickupDate).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -276,7 +276,7 @@ export async function sendReturnPickupScheduledEmail(order: {
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #BA7517; font-size: 24px;">
-        Return Pickup Scheduled ✓
+        Return Pickup Scheduled âœ“
       </h1>
       <p>Hi ${order.customerName},</p>
       <p>Your return request for Order <strong>#${order.id}</strong> has been approved, and we have scheduled a reverse courier pickup for the item(s).</p>
@@ -301,7 +301,7 @@ export async function sendReturnPickupScheduledEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -312,7 +312,7 @@ export async function sendReturnPickupScheduledEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Return Pickup Scheduled — #${order.id} | 6K Brand`,
+      subject: `Return Pickup Scheduled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -330,14 +330,14 @@ export async function sendShippingConfirmationEmail(params: {
   items: Array<{ name: string; quantity: number }>;
   trackingUrl: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
       <div style="text-align: center; margin-bottom: 24px;">
         <h1 style="color: #BA7517; font-size: 26px; margin: 0; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;">
-          STITCH 6K
+          6K
         </h1>
         <p style="color: #6b7280; font-size: 11px; tracking-widest; text-transform: uppercase; margin: 4px 0 0 0;">
           Atelier / Workshop Series
@@ -345,10 +345,10 @@ export async function sendShippingConfirmationEmail(params: {
       </div>
 
       <h2 style="color: #BA7517; font-size: 20px; margin-top: 0; font-weight: bold; border-bottom: 1px solid #e5e5e5; padding-bottom: 8px;">
-        Your order is on its way ✓
+        Your order is on its way âœ“
       </h2>
       <p style="font-size: 14px; color: #1f2937; line-height: 1.6;">Hi ${params.customerName},</p>
-      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">Great news! Your Stitch 6K order <strong>#${params.orderId}</strong> has been shipped and handed over to our logistics partner.</p>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">Great news! Your 6K order <strong>#${params.orderId}</strong> has been shipped and handed over to our logistics partner.</p>
       
       <div style="background: #fafafa; border: 1px solid #e5e5e5; padding: 16px; margin: 24px 0; border-radius: 4px;">
         <p style="margin: 0 0 12px 0; font-size: 14px; color: #374151;">
@@ -394,7 +394,7 @@ export async function sendShippingConfirmationEmail(params: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px; line-height: 1.6;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -405,7 +405,7 @@ export async function sendShippingConfirmationEmail(params: {
     await resend.emails.send({
       from: fromEmail,
       to: params.to,
-      subject: `Your 6K order has been shipped — #${params.orderId}`,
+      subject: `Your 6K order has been shipped â€” #${params.orderId}`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -419,7 +419,7 @@ export async function sendAdminAlert(params: {
   orderId: string;
   awb?: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()).filter(Boolean) || [];
 
   if (adminEmails.length === 0) {
@@ -467,7 +467,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
   refundMethod: string;
   reason?: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const methodText = params.refundMethod === "wallet" ? "Store Wallet Credit" : "Original Bank Account / Card";
   const timeText = params.refundMethod === "wallet" ? "instant for wallet" : "5-7 business days for bank";
 
@@ -486,7 +486,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
       
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Refund Amount:</strong>
-        <span style="float: right; font-weight: bold;">₹${params.refundAmount.toLocaleString("en-IN")}.00</span>
+        <span style="float: right; font-weight: bold;">â‚¹${params.refundAmount.toLocaleString("en-IN")}.00</span>
       </div>
       <div style="padding: 12px 0; border-bottom: 1px solid #f5f5f5;">
         <strong>Refund Destination:</strong>
@@ -500,7 +500,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -527,7 +527,7 @@ export async function sendWalletCreditedEmail(params: {
   newBalance: number;
   creditedAt: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
 
   const htmlContent = `
@@ -537,7 +537,7 @@ export async function sendWalletCreditedEmail(params: {
       </div>
       
       <h1 style="color: #16a34a; font-size: 22px; text-align: center; margin-bottom: 24px;">
-        Wallet Credited ✓
+        Wallet Credited âœ“
       </h1>
       
       <p>Hi ${params.customerName},</p>
@@ -546,7 +546,7 @@ export async function sendWalletCreditedEmail(params: {
       <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; text-align: center; border-radius: 6px; margin: 24px 0;">
         <span style="color: #6b7280; font-size: 12px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em;">Amount Credited</span>
         <h2 style="color: #16a34a; font-size: 32px; margin: 8px 0 0 0; font-weight: 900;">
-          ₹${params.amount.toLocaleString("en-IN")}.00
+          â‚¹${params.amount.toLocaleString("en-IN")}.00
         </h2>
       </div>
 
@@ -558,7 +558,7 @@ export async function sendWalletCreditedEmail(params: {
           </tr>
           <tr style="border-bottom: 1px solid #f5f5f5;">
             <td style="padding: 12px 0; color: #6b7280;">New Wallet Balance</td>
-            <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #16a34a;">₹${params.newBalance.toLocaleString("en-IN")}.00</td>
+            <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #16a34a;">â‚¹${params.newBalance.toLocaleString("en-IN")}.00</td>
           </tr>
         </tbody>
       </table>
@@ -576,7 +576,7 @@ export async function sendWalletCreditedEmail(params: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px; text-align: center; line-height: 1.5;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -587,7 +587,7 @@ export async function sendWalletCreditedEmail(params: {
     await resend.emails.send({
       from: fromEmail,
       to: params.to,
-      subject: `₹${params.amount} credited to your 6K wallet`,
+      subject: `â‚¹${params.amount} credited to your 6K wallet`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -604,7 +604,7 @@ export async function sendOrderDeliveredEmail(params: {
   deliveredAt: string;
   returnDeadline: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
 
   const htmlContent = `
@@ -633,7 +633,7 @@ export async function sendOrderDeliveredEmail(params: {
         .join("")}
       
       <div style="padding: 16px 0; font-size: 18px; font-weight: bold; border-bottom: 1px solid #e5e5e5; margin-bottom: 16px;">
-        Total: ₹${params.total.toLocaleString("en-IN")}.00
+        Total: â‚¹${params.total.toLocaleString("en-IN")}.00
       </div>
 
       <p style="margin-bottom: 12px;">
@@ -653,7 +653,7 @@ export async function sendOrderDeliveredEmail(params: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -678,7 +678,7 @@ export async function sendReturnDeclinedEmail(order: {
   customerEmail: string;
   reason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -702,7 +702,7 @@ export async function sendReturnDeclinedEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         6kthebrand@gmail.com | +91 93636 93004
       </p>
@@ -727,7 +727,7 @@ export async function sendReturnQcFailedEmail(order: {
   customerEmail: string;
   reason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -751,7 +751,7 @@ export async function sendReturnQcFailedEmail(order: {
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         6kthebrand@gmail.com | +91 93636 93004
       </p>
@@ -776,7 +776,7 @@ export async function sendReturnPickupAssignedEmail(order: {
   customerEmail: string;
   awb: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -784,13 +784,13 @@ export async function sendReturnPickupAssignedEmail(order: {
         Return Pickup Scheduled
       </h1>
       <p>Hi ${order.customerName},</p>
-      <p>Return pickup scheduled — courier arrives in 2-3 business days. No label needed.</p>
+      <p>Return pickup scheduled â€” courier arrives in 2-3 business days. No label needed.</p>
       <p><strong>AWB:</strong> ${order.awb}</p>
       
       <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         6kthebrand@gmail.com | +91 93636 93004
       </p>
@@ -801,7 +801,7 @@ export async function sendReturnPickupAssignedEmail(order: {
     await resend.emails.send({
       from: fromEmail,
       to: order.customerEmail,
-      subject: `Return Pickup Scheduled — #${order.id}`,
+      subject: `Return Pickup Scheduled â€” #${order.id}`,
       html: htmlContent,
     });
   } catch (err: any) {
@@ -816,14 +816,14 @@ export async function sendQcFailedEmail(params: {
   reason: string;
   refundOption: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "Stitch 6K <noreply@the6k.com>";
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
       <div style="text-align: center; margin-bottom: 24px;">
         <h1 style="color: #BA7517; font-size: 26px; margin: 0; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;">
-          STITCH 6K
+          6K
         </h1>
         <p style="color: #6b7280; font-size: 11px; tracking-widest; text-transform: uppercase; margin: 4px 0 0 0;">
           Atelier / Workshop Series
@@ -855,7 +855,7 @@ export async function sendQcFailedEmail(params: {
       <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 24px 0;">
       
       <p style="color: #9ca3af; font-size: 12px; line-height: 1.6;">
-        — 6K Brand | JRT TEXTILES<br>
+        â€” 6K Brand | JRT TEXTILES<br>
         Tiruchirappalli, Tamil Nadu<br>
         ${supportEmail} | +91 93636 93004
       </p>
@@ -866,13 +866,15 @@ export async function sendQcFailedEmail(params: {
     await resend.emails.send({
       from: fromEmail,
       to: params.to,
-      subject: `Return inspection update — Order #${params.orderId}`,
+      subject: `Return inspection update â€” Order #${params.orderId}`,
       html: htmlContent,
     });
   } catch (err: any) {
     console.error(`[sendQcFailedEmail] Failed to deliver to ${params.to}:`, err.message || err);
   }
 }
+
+
 
 
 

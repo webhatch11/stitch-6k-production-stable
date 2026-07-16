@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "About Us | Stitch 6K",
-  description: "The story of Stitch 6K — premium menswear born from the looms of South India.",
+  title: "About Us | 6K",
+  description: "The story of 6K — premium menswear born from the looms of South India.",
   openGraph: {
-    title: "About Us | Stitch 6K",
-    description: "The story of Stitch 6K — premium menswear born from the looms of South India.",
+    title: "About Us | 6K",
+    description: "The story of 6K — premium menswear born from the looms of South India.",
     images: [{ url: "/og-default.jpg" }],
   },
 };

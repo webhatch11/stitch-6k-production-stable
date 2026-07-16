@@ -164,7 +164,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                 minute: "2-digit",
               })
             : "Date unavailable",
-          desc: `Stitch 6K System log for order lifecycle transition.`,
+          desc: `6K System log for order lifecycle transition.`,
           icon,
           active: true,
         };

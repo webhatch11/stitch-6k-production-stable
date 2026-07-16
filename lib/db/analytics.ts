@@ -822,7 +822,7 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
   return Object.entries(cityData)
     .map(([city, val]) => ({ city, count: val.count, revenue: Math.round(val.revenue) }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    .slice(0, 50);
 }
 
 export async function getSalesByCategory(days: number = 30): Promise<CategorySales[]> {

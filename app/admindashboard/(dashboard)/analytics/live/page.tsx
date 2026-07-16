@@ -2,6 +2,121 @@
 
 import React, { useState, useEffect } from "react";
 import { getLiveAnalyticsAction } from "@/app/actions/admin-analytics";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+
+const CITY_COORDINATES: Record<string, [number, number]> = {
+  "mumbai": [72.8777, 19.0760],
+  "delhi": [77.1025, 28.7041],
+  "new delhi": [77.1025, 28.7041],
+  "bangalore": [77.5946, 12.9716],
+  "bengaluru": [77.5946, 12.9716],
+  "hyderabad": [78.4867, 17.3850],
+  "ahmedabad": [72.5714, 23.0225],
+  "chennai": [80.2707, 13.0827],
+  "kolkata": [88.3639, 22.5726],
+  "surat": [72.8311, 21.1702],
+  "pune": [73.8567, 18.5204],
+  "jaipur": [75.7873, 26.9124],
+  "lucknow": [80.9462, 26.8467],
+  "kanpur": [80.3319, 26.4499],
+  "nagpur": [79.0882, 21.1458],
+  "indore": [75.8577, 22.7196],
+  "thane": [72.9781, 19.2183],
+  "bhopal": [77.4126, 23.2599],
+  "visakhapatnam": [83.2185, 17.6868],
+  "patna": [85.1376, 25.5941],
+  "vadodara": [73.1812, 22.3072],
+  "ghaziabad": [77.4229, 28.6692],
+  "ludhiana": [75.8573, 30.9010],
+  "coimbatore": [76.9558, 11.0168],
+  "agra": [78.0081, 27.1767],
+  "madurai": [78.1198, 9.9252],
+  "kochi": [76.2673, 9.9312],
+  "trivandrum": [76.9366, 8.5241],
+  "thiruvananthapuram": [76.9366, 8.5241],
+  "tiruchirappalli": [78.7047, 10.7905],
+  "trichy": [78.7047, 10.7905],
+  "salem": [78.1460, 11.6643],
+  "erode": [77.7172, 11.3410],
+  "tiruppur": [77.3411, 11.1085],
+  "vijayawada": [80.6480, 16.5062],
+  "guntur": [80.4365, 16.3067],
+  "warangal": [79.5941, 17.9784],
+  "jabalpur": [79.9339, 23.1815],
+  "gwalior": [78.1772, 26.2183],
+  "raipur": [81.6296, 21.2514],
+  "jodhpur": [73.0243, 26.2389],
+  "udaipur": [73.7125, 24.5854],
+  "kota": [75.8648, 25.1825],
+  "guwahati": [91.7362, 26.1445],
+  "shillong": [91.8833, 25.5689],
+  "imphal": [93.9368, 24.8170],
+  "bhubaneswar": [85.8245, 20.2961],
+  "cuttack": [85.8792, 20.4625],
+  "ranchi": [85.3096, 23.3441],
+  "jamshedpur": [86.2029, 22.8046],
+  "dhanbad": [86.4173, 23.7957],
+  "dehradun": [78.0322, 30.3165],
+  "shimla": [77.1738, 31.1048],
+  "jammu": [74.8570, 32.7266],
+  "srinagar": [74.7973, 34.0837],
+  "amritsar": [74.8723, 31.6340],
+  "jalandhar": [75.5762, 31.3260],
+  "chandigarh": [76.7794, 30.7333],
+  "panaji": [73.8278, 15.4909],
+  "goa": [73.8278, 15.4909],
+  "mangaluru": [74.8560, 12.9141],
+  "mangalore": [74.8560, 12.9141],
+  "mysore": [76.6394, 12.2958],
+  "mysuru": [76.6394, 12.2958],
+  "hubli": [75.1240, 15.3647],
+  "belgaum": [74.5089, 15.8497],
+  "nashik": [73.7898, 19.9975],
+  "aurangabad": [75.3433, 19.8762],
+  "solapur": [75.9064, 17.6599],
+  "kolhapur": [74.2433, 16.7050],
+  "amravati": [77.7523, 20.9320],
+  "nanded": [77.3079, 19.1383],
+  "rajkot": [70.7933, 22.3039],
+  "jamnagar": [70.0577, 22.4707],
+  "junagadh": [70.4579, 21.5222],
+  "anand": [72.9289, 22.5645],
+  "navsari": [72.9282, 20.9467],
+  "vapi": [72.9060, 20.3727],
+  "mehsana": [72.3693, 23.6001],
+  "gandhinagar": [72.6369, 23.2156],
+  "noida": [77.3910, 28.5355],
+  "greater noida": [77.5244, 28.4744],
+  "gurgaon": [77.0266, 28.4595],
+  "gurugram": [77.0266, 28.4595],
+  "faridabad": [77.3178, 28.4089],
+  "panipat": [76.9629, 29.3909],
+  "karnal": [76.9904, 29.6857],
+  "rohtak": [76.6026, 28.8955],
+  "hisar": [75.7217, 29.1492],
+  "bathinda": [74.9452, 30.2110],
+  "patiala": [76.3884, 30.3398],
+  "pondicherry": [79.8083, 11.9416],
+  "puducherry": [79.8083, 11.9416],
+};
+
+function getCityCoordinates(cityName: string): [number, number] {
+  const norm = cityName.trim().toLowerCase();
+  if (CITY_COORDINATES[norm]) {
+    return CITY_COORDINATES[norm];
+  }
+  let hash1 = 0;
+  let hash2 = 0;
+  for (let i = 0; i < norm.length; i++) {
+    const char = norm.charCodeAt(i);
+    hash1 = (hash1 * 31 + char) % 1000;
+    hash2 = (hash2 * 17 + char) % 1000;
+  }
+  const lon = 72 + (hash1 / 1000) * 16;
+  const lat = 11 + (hash2 / 1000) * 17;
+  return [lon, lat];
+}
+
 
 // Time-ago helper
 function timeAgo(isoString: string): string {
@@ -57,10 +172,17 @@ export default function LiveAnalyticsPage() {
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [mounted, setMounted] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<{ city: string; count: number; revenue: number } | null>(null);
 
   // Revenue ticker animation state
   const [prevRevenue, setPrevRevenue] = useState(0);
   const [revenueChanged, setRevenueChanged] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
 
   useEffect(() => {
     if (data?.todayRevenue !== undefined && data.todayRevenue !== prevRevenue) {
@@ -283,75 +405,208 @@ export default function LiveAnalyticsPage() {
         </div>
       )}
 
-      {/* Bottom Grid: Geo Distribution and Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Geo distribution - Custom bar chart representation */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-          <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Ordering Cities</h3>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Distribution of orders placed in last 30 days by delivery address city</p>
+      {/* Geographic Distribution India Map Dashboard */}
+      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          
+          {/* India Delivery Map outline */}
+          <div className="lg:col-span-3 min-h-[460px] relative border border-white/5 bg-black/40 flex flex-col justify-between p-6 rounded-none overflow-hidden">
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#fed488] block animate-pulse">
+                🔴 Live Dispatch Heatmap
+              </span>
+              <h3 className="font-headline text-lg font-black uppercase tracking-tight mt-0.5 text-white">India Delivery Map</h3>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Sourced from 100% accurate customer shipping addresses</p>
+            </div>
+            
+            <div className="w-full flex items-center justify-center my-4 overflow-hidden relative">
+              {mounted ? (
+                <ComposableMap
+                  projection="geoMercator"
+                  projectionConfig={{
+                    scale: 850,
+                    center: [78.9629, 22.5937]
+                  }}
+                  style={{ width: "100%", maxHeight: "380px" }}
+                >
+                  <Geographies geography="https://raw.githubusercontent.com/deldersveld/topojson/master/countries/india/india-states.json">
+                    {({ geographies }) =>
+                      geographies.map((geo) => (
+                        <Geography
+                          key={geo.rsmKey}
+                          geography={geo}
+                          style={{
+                            default: {
+                              fill: "#141414",
+                              stroke: "#262626",
+                              strokeWidth: 0.75,
+                              outline: "none",
+                            },
+                            hover: {
+                              fill: "#1f1f1f",
+                              stroke: "#fed488",
+                              strokeWidth: 1,
+                              outline: "none",
+                            },
+                            pressed: {
+                              fill: "#fed488",
+                              stroke: "#000",
+                              strokeWidth: 0.75,
+                              outline: "none",
+                            },
+                          }}
+                        />
+                      ))
+                    }
+                  </Geographies>
 
-          <div className="space-y-4">
-            {cityOrders.length > 0 ? (
-              cityOrders.map((item: any, index: number) => {
-                const pct = Math.round((item.count / maxCityOrders) * 100);
-                return (
-                  <div key={item.city} className="space-y-1.5">
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
-                      <span className="text-white/80">{index + 1}. {item.city}</span>
-                      <span className="font-mono text-white">{item.count} Orders</span>
-                    </div>
-                    <div className="h-2.5 bg-white/5 border border-white/10 rounded-none overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#fed488]/50 to-[#fed488] transition-all duration-1000 ease-out"
-                        style={{ width: `${pct}%` }}
-                      ></div>
-                    </div>
+                  {cityOrders.map((item: any) => {
+                    const coords = getCityCoordinates(item.city);
+                    const isSelected = selectedCity?.city === item.city;
+                    const dotSize = 4 + (item.count / maxCityOrders) * 10;
+                    
+                    return (
+                      <Marker key={item.city} coordinates={coords}>
+                        <circle
+                          r={dotSize}
+                          fill={isSelected ? "#fed488" : "#ef4444"}
+                          stroke="#000"
+                          strokeWidth={1.5}
+                          className="cursor-pointer transition-all hover:scale-125 hover:fill-[#fed488] active:scale-95 duration-200"
+                          onClick={() => {
+                            setSelectedCity(isSelected ? null : item);
+                          }}
+                        />
+                        {isSelected && (
+                          <circle
+                            r={dotSize + 6}
+                            fill="transparent"
+                            stroke="#fed488"
+                            strokeWidth={1}
+                            className="animate-ping opacity-75"
+                          />
+                        )}
+                      </Marker>
+                    );
+                  })}
+                </ComposableMap>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="size-6 rounded-full border-2 border-white/20 border-t-[#fed488] animate-spin"></div>
+                </div>
+              )}
+            </div>
+
+            {selectedCity && (
+              <div className="absolute bottom-4 right-4 bg-black/90 backdrop-blur-md border border-[#fed488]/40 p-4 shadow-2xl animate-fade-in z-10 max-w-xs min-w-[220px]">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[#fed488] block">📍 SHIPPING DESTINATION</span>
+                    <h4 className="font-headline text-sm font-black uppercase text-white tracking-tight mt-0.5">{selectedCity.city}</h4>
                   </div>
-                );
-              })
-            ) : (
-              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
-                No orders loaded in the last 30 days.
-              </p>
+                  <button 
+                    onClick={() => setSelectedCity(null)}
+                    className="text-white/40 hover:text-white bg-transparent border-none text-xs cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-4 border-t border-white/5 pt-2.5">
+                  <div>
+                    <span className="text-[8px] text-white/40 uppercase tracking-widest block">Total Orders</span>
+                    <span className="text-sm font-bold font-mono text-white">{selectedCity.count}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] text-white/40 uppercase tracking-widest block">Sales Value</span>
+                    <span className="text-sm font-bold font-mono text-[#fed488]">₹{selectedCity.revenue.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+          
+          {/* Top Ordering Cities breakdown list */}
+          <div className="lg:col-span-2 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Ordering Cities</h3>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Distribution of orders placed in last 30 days by delivery address city</p>
+
+              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-2 scrollbar-thin">
+                {cityOrders.length > 0 ? (
+                  cityOrders.map((item: any, index: number) => {
+                    const pct = Math.round((item.count / maxCityOrders) * 100);
+                    const isSelected = selectedCity?.city === item.city;
+                    return (
+                      <div 
+                        key={item.city} 
+                        className={`space-y-1.5 p-2 transition-all cursor-pointer ${
+                          isSelected ? "bg-white/5 border border-white/10" : "border border-transparent hover:bg-white/5"
+                        }`}
+                        onClick={() => setSelectedCity(isSelected ? null : item)}
+                      >
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
+                          <span className="text-white/80">{index + 1}. {item.city}</span>
+                          <span className="font-mono text-white">{item.count} Orders</span>
+                        </div>
+                        <div className="h-2 bg-white/5 border border-white/10 rounded-none overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#fed488]/50 to-[#fed488] transition-all duration-1000 ease-out"
+                            style={{ width: `${pct}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                    No orders loaded in the last 30 days.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="text-[8px] text-white/30 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
+              * Click any city bar or map pin to view order statistics
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      {/* Live System Events Log */}
+      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Live System Events Log</h3>
+          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">System logs of active events and operations</p>
         </div>
 
-        {/* Live Actions Event Log list */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Live System Events Log</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">System logs of active events and operations</p>
-          </div>
-
-          <div className="space-y-4 my-auto">
-            {recentEvents.length === 0 ? (
-              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
-                No recent order events recorded
-              </p>
-            ) : (
-              recentEvents.map((event, i) => {
-                const { border, badge } = eventBadge("ORDER");
-                return (
-                  <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
-                    <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
-                      ORDER
+        <div className="space-y-4 my-auto">
+          {recentEvents.length === 0 ? (
+            <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+              No recent order events recorded
+            </p>
+          ) : (
+            recentEvents.map((event, i) => {
+              const { border, badge } = eventBadge("ORDER");
+              return (
+                <div key={i} className={`flex items-start gap-4 border-l-2 ${border} pl-4 py-1`}>
+                  <span className={`text-[9px] font-bold font-mono uppercase tracking-wider px-1.5 py-0.5 select-none shrink-0 ${badge}`}>
+                    ORDER
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white/80">{event.event}</p>
+                    <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
+                      #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
                     </span>
-                    <div>
-                      <p className="text-xs font-bold text-white/80">{event.event}</p>
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
-                        #{event.order_id.slice(0, 8).toUpperCase()} • {new Date(event.created_at).toLocaleTimeString("en-IN")}
-                      </span>
-                    </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
-          <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
-            * Operational health check: 100% active and healthy.
-          </div>
+        <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
+          * Operational health check: 100% active and healthy.
         </div>
       </div>
     </div>

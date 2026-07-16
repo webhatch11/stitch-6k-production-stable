@@ -42,22 +42,27 @@ export async function saveCoupon(coupon: Partial<Coupon>): Promise<void> {
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
-  const dbPayload = {
+  const dbPayload: any = {
     id: coupon.id || "CPN-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-    code: (coupon.code || "CODE").toUpperCase(),
+    code: (coupon.code || "CODE").trim().toUpperCase(),
     discount: coupon.discount !== undefined ? coupon.discount : 0,
     type: coupon.type || "percent",
     active: coupon.active !== undefined ? coupon.active : true,
     expiry_date: coupon.expiryDate,
     min_cart_value: coupon.minCartValue,
     max_usage: coupon.maxUsage,
-    usage_count: coupon.usageCount,
     buy_quantity: coupon.buyQuantity,
     get_quantity: coupon.getQuantity,
     get_discount_percent: coupon.getDiscountPercent,
     buy_product_id: coupon.buyProductId,
     get_product_id: coupon.getProductId,
   };
+
+  if (!coupon.id) {
+    dbPayload.usage_count = coupon.usageCount ?? 0;
+  } else if (coupon.usageCount !== undefined) {
+    dbPayload.usage_count = coupon.usageCount;
+  }
 
   const { error } = await supabase.from("coupons").upsert(dbPayload);
   if (error) {
@@ -367,7 +372,7 @@ export async function incrementCouponUsage(code: string): Promise<boolean> {
     );
   }
   const { data, error } = await supabase.rpc("coupon_atomic_increment", {
-    p_code: code.toUpperCase(),
+    p_code: code.trim().toUpperCase(),
   });
 
   if (error) {
@@ -393,7 +398,7 @@ export async function decrementCouponUsage(code: string): Promise<boolean> {
     );
   }
   const { data, error } = await supabase.rpc("coupon_atomic_decrement", {
-    p_code: code.toUpperCase(),
+    p_code: code.trim().toUpperCase(),
   });
 
   if (error) {
@@ -401,7 +406,7 @@ export async function decrementCouponUsage(code: string): Promise<boolean> {
     const { data: cData } = await supabase
       .from("coupons")
       .select("id, usage_count")
-      .eq("code", code.toUpperCase())
+      .eq("code", code.trim().toUpperCase())
       .maybeSingle();
 
     if (cData) {

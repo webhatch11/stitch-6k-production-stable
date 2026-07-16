@@ -524,6 +524,7 @@ export default function CheckoutPage() {
           if (!res.success) {
             triggerToast(res.error || "Failed to place order.");
             setProcessingPayment(false);
+            router.push(`/payment-failed?error=${encodeURIComponent(res.error || "Failed to place order.")}`);
             return;
           }
 

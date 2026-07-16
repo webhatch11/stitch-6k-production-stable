@@ -1,6 +1,13 @@
 import Link from "next/link";
 
-export default function PaymentFailedPage() {
+interface Props {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function PaymentFailedPage({ searchParams }: Props) {
+  const resolvedParams = await searchParams;
+  const errorMsg = resolvedParams.error || "Your payment could not be processed. No money has been deducted.";
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 py-12">
       <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
@@ -11,7 +18,7 @@ export default function PaymentFailedPage() {
         Payment Failed
       </h1>
       <p className="text-gray-500 text-center mb-2 max-w-sm">
-        Your payment could not be processed. No money has been deducted.
+        {errorMsg}
       </p>
       <p className="text-gray-500 text-sm text-center mb-8 max-w-sm">
         Your cart items are saved. Please try again.

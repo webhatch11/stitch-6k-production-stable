@@ -48,7 +48,13 @@ export async function saveCoupon(coupon: Partial<Coupon>): Promise<void> {
     discount: coupon.discount !== undefined ? coupon.discount : 0,
     type: coupon.type || "percent",
     active: coupon.active !== undefined ? coupon.active : true,
-    expiry_date: coupon.expiryDate,
+    expiry_date: coupon.expiryDate
+      ? (() => {
+          const d = new Date(coupon.expiryDate!);
+          d.setUTCHours(23, 59, 59, 999);
+          return d.toISOString();
+        })()
+      : null,
     min_cart_value: coupon.minCartValue,
     max_usage: coupon.maxUsage,
     buy_quantity: coupon.buyQuantity,

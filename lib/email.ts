@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
+import { queueEmailHelper } from "./email-queue";
 
-const transporter = nodemailer.createTransport({
+export const transporter = nodemailer.createTransport({
   host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
   port: Number(process.env.BREVO_SMTP_PORT) || 587,
   secure: false,
@@ -10,8 +11,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const FROM_EMAIL = `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`;
-const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
+export const FROM_EMAIL = `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`;
+export const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
 export async function sendOrderConfirmationEmail(order: {
   id: string;
@@ -89,16 +90,14 @@ export async function sendOrderConfirmationEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Order Confirmed &mdash; #${order.id} | 6K Brand`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendOrderConfirmationEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Order Confirmed &mdash; #${order.id} | 6K Brand`,
+    html: htmlContent,
+    templateName: "order_confirmation",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:confirmation`
+  });
 }
 
 export async function sendReturnAcceptedEmail(order: {
@@ -146,16 +145,14 @@ export async function sendReturnAcceptedEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Return Approved &mdash; #${order.id} | 6K Brand`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnAcceptedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Return Approved &mdash; #${order.id} | 6K Brand`,
+    html: htmlContent,
+    templateName: "return_accepted",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-accepted`
+  });
 }
 
 export async function sendReturnRejectedEmail(order: {
@@ -196,16 +193,14 @@ export async function sendReturnRejectedEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Return Update &mdash; #${order.id} | 6K Brand`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnRejectedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Return Update &mdash; #${order.id} | 6K Brand`,
+    html: htmlContent,
+    templateName: "return_rejected",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-rejected`
+  });
 }
 
 export async function sendOrderCancelledEmail(order: {
@@ -257,16 +252,14 @@ export async function sendOrderCancelledEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Order Cancelled &mdash; #${order.id} | 6K Brand`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendOrderCancelledEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Order Cancelled &mdash; #${order.id} | 6K Brand`,
+    html: htmlContent,
+    templateName: "order_cancelled",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:cancelled`
+  });
 }
 
 export async function sendReturnPickupScheduledEmail(order: {
@@ -318,16 +311,14 @@ export async function sendReturnPickupScheduledEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Return Pickup Scheduled &mdash; #${order.id} | 6K Brand`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnPickupScheduledEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Return Pickup Scheduled &mdash; #${order.id} | 6K Brand`,
+    html: htmlContent,
+    templateName: "return_pickup_scheduled",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-pickup`
+  });
 }
 
 export async function sendShippingConfirmationEmail(params: {
@@ -411,16 +402,14 @@ export async function sendShippingConfirmationEmail(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: params.to,
-      subject: `Your 6K order has been shipped &mdash; #${params.orderId}`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver shipping confirmation email for order ${params.orderId} to ${params.to}. Error:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: params.to,
+    subject: `Your 6K order has been shipped &mdash; #${params.orderId}`,
+    html: htmlContent,
+    templateName: "shipping_confirmation",
+    variables: { orderId: params.orderId },
+    deduplicationKey: `order:${params.orderId}:shipping`
+  });
 }
 
 export async function sendAdminAlert(params: {
@@ -457,16 +446,14 @@ export async function sendAdminAlert(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: adminEmails,
-      subject: `[6K Admin Alert] ${params.subject}`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver admin alert for order ${params.orderId}. Error:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: adminEmails.join(", "),
+    subject: `[6K Admin Alert] ${params.subject}`,
+    html: htmlContent,
+    templateName: "admin_alert",
+    variables: { orderId: params.orderId, subject: params.subject },
+    deduplicationKey: `admin-alert:${params.orderId}:${params.subject.replace(/\s+/g, '-')}:${Date.now()}`
+  });
 }
 
 export async function sendOrderCancelledByAdminEmail(params: {
@@ -517,16 +504,14 @@ export async function sendOrderCancelledByAdminEmail(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: params.to,
-      subject: `Your 6K order #${params.orderId} has been cancelled`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver order cancelled email to ${params.to} via Brevo SMTP. Error:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: params.to,
+    subject: `Your 6K order #${params.orderId} has been cancelled`,
+    html: htmlContent,
+    templateName: "order_cancelled_by_admin",
+    variables: { orderId: params.orderId },
+    deduplicationKey: `order:${params.orderId}:cancelled-by-admin`
+  });
 }
 
 export async function sendWalletCreditedEmail(params: {
@@ -593,16 +578,14 @@ export async function sendWalletCreditedEmail(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: params.to,
-      subject: `&#8377;${params.amount} credited to your 6K wallet`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver wallet credit email to ${params.to} via Brevo SMTP. Error:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: params.to,
+    subject: `&#8377;${params.amount} credited to your 6K wallet`,
+    html: htmlContent,
+    templateName: "wallet_credited",
+    variables: { amount: params.amount, newBalance: params.newBalance },
+    deduplicationKey: `wallet-credit:${params.to}:${params.amount}:${params.creditedAt.replace(/[:.\s]+/g, '-')}`
+  });
 }
 
 export async function sendOrderDeliveredEmail(params: {
@@ -670,16 +653,14 @@ export async function sendOrderDeliveredEmail(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: params.to,
-      subject: `Your 6K order #${params.orderId} has been delivered!`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendOrderDeliveredEmail] Failed to deliver to ${params.to}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: params.to,
+    subject: `Your 6K order #${params.orderId} has been delivered!`,
+    html: htmlContent,
+    templateName: "order_delivered",
+    variables: { orderId: params.orderId },
+    deduplicationKey: `order:${params.orderId}:delivered`
+  });
 }
 
 export async function sendReturnDeclinedEmail(order: {
@@ -719,16 +700,14 @@ export async function sendReturnDeclinedEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: "Your return request has been declined",
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnDeclinedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: "Your return request has been declined",
+    html: htmlContent,
+    templateName: "return_declined",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-declined`
+  });
 }
 
 export async function sendReturnQcFailedEmail(order: {
@@ -768,16 +747,14 @@ export async function sendReturnQcFailedEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: "Return inspection result",
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnQcFailedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: "Return inspection result",
+    html: htmlContent,
+    templateName: "return_qc_failed",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-qc-failed`
+  });
 }
 
 export async function sendReturnPickupAssignedEmail(order: {
@@ -807,16 +784,14 @@ export async function sendReturnPickupAssignedEmail(order: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: order.customerEmail,
-      subject: `Return Pickup Scheduled &mdash; #${order.id}`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendReturnPickupAssignedEmail] Failed to deliver to ${order.customerEmail}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: order.customerEmail,
+    subject: `Return Pickup Scheduled &mdash; #${order.id}`,
+    html: htmlContent,
+    templateName: "return_pickup_assigned",
+    variables: { orderId: order.id },
+    deduplicationKey: `order:${order.id}:return-pickup-assigned`
+  });
 }
 
 export async function sendQcFailedEmail(params: {
@@ -872,16 +847,14 @@ export async function sendQcFailedEmail(params: {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: FROM_EMAIL,
-      to: params.to,
-      subject: `Return inspection update &mdash; Order #${params.orderId}`,
-      html: htmlContent,
-    });
-  } catch (err: any) {
-    console.error(`[sendQcFailedEmail] Failed to deliver to ${params.to}:`, err.message || err);
-  }
+  await queueEmailHelper({
+    recipient: params.to,
+    subject: `Return inspection update &mdash; Order #${params.orderId}`,
+    html: htmlContent,
+    templateName: "qc_failed",
+    variables: { orderId: params.orderId },
+    deduplicationKey: `order:${params.orderId}:qc-failed`
+  });
 }
 
 

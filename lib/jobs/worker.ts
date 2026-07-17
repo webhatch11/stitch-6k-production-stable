@@ -46,6 +46,7 @@ import "./shipment-sync";
 import "./loyalty-expiry";
 import "./product-cleanup";
 import "./points-credit";
+import "./email-delivery";
 
 // Schedule all repeatable jobs into their queues
 import { initJobs } from "./jobs-init";

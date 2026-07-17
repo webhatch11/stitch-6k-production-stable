@@ -44,7 +44,7 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
 
   // Enforce production-safe invoice lifecycle access controls on the server
   const statusLower = (matchedOrder.status || "").toLowerCase();
-  const paymentStatusLower = (matchedOrder.paymentStatus || matchedOrder.payment_status || "").toLowerCase();
+  const paymentStatusLower = (matchedOrder.paymentStatus || "").toLowerCase();
 
   const isPending = statusLower === "payment pending";
   const isReview = statusLower === "payment review required";

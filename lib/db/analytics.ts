@@ -45,7 +45,16 @@ export async function getTodaySalesKPI(): Promise<{
 
     for (const o of orders) {
       const status = (o.status || "").toLowerCase();
-      if (status === "cancelled" || status === "returned") continue;
+      if (
+        status === "cancelled" ||
+        status === "returned" ||
+        status === "failed" ||
+        status === "payment pending" ||
+        status === "expired" ||
+        status === "payment review required"
+      ) {
+        continue;
+      }
 
       const orderTime = parseOrderDate(o);
       if (orderTime >= todayStart) {
@@ -136,7 +145,15 @@ export async function getDashboardKPIMetrics(): Promise<{
       const status = (o.status || "").toLowerCase();
       const orderTime = parseOrderDate(o);
 
-      if (status !== "cancelled" && status !== "returned" && orderTime >= thirtyDaysAgo) {
+      if (
+        status !== "cancelled" &&
+        status !== "returned" &&
+        status !== "failed" &&
+        status !== "payment pending" &&
+        status !== "expired" &&
+        status !== "payment review required" &&
+        orderTime >= thirtyDaysAgo
+      ) {
         recentTotal += Number(o.total || 0);
         recentCount += 1;
       }
@@ -300,7 +317,16 @@ export async function getRevenueTrend(
 
     for (const o of orders) {
       const status = (o.status || "").toLowerCase();
-      if (status === "cancelled" || status === "returned") continue;
+      if (
+        status === "cancelled" ||
+        status === "returned" ||
+        status === "failed" ||
+        status === "payment pending" ||
+        status === "expired" ||
+        status === "payment review required"
+      ) {
+        continue;
+      }
 
       const orderTime = parseOrderDate(o);
       const orderDate = new Date(orderTime);
@@ -362,7 +388,16 @@ export async function getTopProducts(
 
     for (const o of orders) {
       const status = (o.status || "").toLowerCase();
-      if (status === "cancelled" || status === "returned") continue;
+      if (
+        status === "cancelled" ||
+        status === "returned" ||
+        status === "failed" ||
+        status === "payment pending" ||
+        status === "expired" ||
+        status === "payment review required"
+      ) {
+        continue;
+      }
 
       const orderTime = parseOrderDate(o);
       if (orderTime < cutoff) continue;
@@ -456,7 +491,16 @@ export async function getCouponPerformance(
 
     for (const o of orders) {
       const status = (o.status || "").toLowerCase();
-      if (status === "cancelled" || status === "returned") continue;
+      if (
+        status === "cancelled" ||
+        status === "returned" ||
+        status === "failed" ||
+        status === "payment pending" ||
+        status === "expired" ||
+        status === "payment review required"
+      ) {
+        continue;
+      }
 
       const orderTime = parseOrderDate(o);
       if (orderTime < cutoff) continue;
@@ -529,7 +573,7 @@ export async function getOnlineVisitorsCount(): Promise<number> {
   }
 
   const { count, error } = await supabase
-    .from("page_views")
+    .from("visitor_sessions")
     .select("session_id", { count: "exact", head: true })
     .gte("last_seen", ninetySecondsAgo);
 
@@ -553,10 +597,10 @@ export async function getActiveCartsCount(): Promise<number> {
   }
 
   const { count, error } = await supabase
-    .from("page_views")
+    .from("visitor_sessions")
     .select("session_id", { count: "exact", head: true })
     .gte("last_seen", thirtyMinsAgo)
-    .gt("cart_items_count", 0);
+    .gt("cart_count", 0);
 
   if (error) {
     console.error("Error fetching active carts count:", error);
@@ -572,10 +616,10 @@ export async function getActiveProductViewers(): Promise<Array<{ page: string; v
   const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
 
   const { data, error } = await supabase
-    .from("page_views")
-    .select("page, session_id")
+    .from("visitor_sessions")
+    .select("current_page, session_id")
     .gte("last_seen", fiveMinutesAgo)
-    .like("page", "/product/%");
+    .like("current_page", "/product/%");
 
   if (error || !data) {
     console.error("Error loading active product viewers:", error);
@@ -584,11 +628,11 @@ export async function getActiveProductViewers(): Promise<Array<{ page: string; v
 
   const pageGroups: Record<string, Set<string>> = {};
   for (const row of data) {
-    if (row.page && row.session_id) {
-      if (!pageGroups[row.page]) {
-        pageGroups[row.page] = new Set();
+    if (row.current_page && row.session_id) {
+      if (!pageGroups[row.current_page]) {
+        pageGroups[row.current_page] = new Set();
       }
-      pageGroups[row.page].add(row.session_id);
+      pageGroups[row.current_page].add(row.session_id);
     }
   }
 
@@ -677,7 +721,10 @@ export async function getMonthlyFinanceSummary(
     throw error;
   }
 
-  const validOrders = (orders || []).filter((o) => o.status !== "Cancelled" && o.status !== "Expired");
+  const validOrders = (orders || []).filter((o) => {
+    const s = (o.status || "").toLowerCase();
+    return s !== "cancelled" && s !== "expired" && s !== "payment pending" && s !== "failed" && s !== "payment review required";
+  });
   const grossRevenue = validOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
   const totalRefunds = validOrders.reduce((sum, o) => sum + Number(o.refund_amount || 0), 0);
   const netRevenue = grossRevenue - totalRefunds;
@@ -745,7 +792,10 @@ export async function getGSTReport(
       throw error;
     }
 
-    const validOrders = (orders || []).filter((o) => o.status !== "Cancelled" && o.status !== "Expired");
+    const validOrders = (orders || []).filter((o) => {
+      const s = (o.status || "").toLowerCase();
+      return s !== "cancelled" && s !== "expired" && s !== "payment pending" && s !== "failed" && s !== "payment review required";
+    });
 
     const groups: Record<string, { grossSales: number; gstCollected: number; netSales: number }> = {};
     for (const order of validOrders) {
@@ -791,7 +841,7 @@ export async function getGSTReport(
       .select("id, total, cart_items, created_at, status, address_snapshot")
       .gte("created_at", startDate)
       .lte("created_at", endDate!)
-      .not("status", "in", '("Cancelled","Failed","Payment Pending")');
+      .not("status", "in", '("Cancelled","Failed","FAILED","Payment Pending","Expired","EXPIRED","Payment Review Required")');
 
     if (error) {
       console.error("Error loading GST report range:", error);
@@ -891,6 +941,17 @@ function processCityOrdersData(data: any[]): Array<{ city: string; count: number
       continue;
     }
     
+    const statusLower = (row.status || "").toLowerCase();
+    if (
+      statusLower === "cancelled" ||
+      statusLower === "failed" ||
+      statusLower === "payment pending" ||
+      statusLower === "expired" ||
+      statusLower === "payment review required"
+    ) {
+      continue;
+    }
+    
     const cartItems = row.cart_items;
     if (cartItems) {
       const itemsArr = typeof cartItems === "string" ? JSON.parse(cartItems) : cartItems;
@@ -983,7 +1044,9 @@ export async function getSalesByCategory(days: number = 30): Promise<CategorySal
       statusLower === "cancelled" ||
       statusLower === "returned" ||
       statusLower === "expired" ||
-      statusLower === "failed"
+      statusLower === "failed" ||
+      statusLower === "payment pending" ||
+      statusLower === "payment review required"
     ) {
       continue;
     }
@@ -1080,7 +1143,9 @@ export async function getRepeatPurchaseRate(days: number = 30): Promise<RepeatPu
       statusLower === "cancelled" ||
       statusLower === "returned" ||
       statusLower === "expired" ||
-      statusLower === "failed"
+      statusLower === "failed" ||
+      statusLower === "payment pending" ||
+      statusLower === "payment review required"
     ) {
       continue;
     }
@@ -1409,14 +1474,17 @@ export async function getNetRevenueReport(
   let gatewayRevenue = 0;
 
   for (const order of orders || []) {
-    if (!['Cancelled', 'Failed', 'Payment Pending'].includes(order.status)) {
+    const statusLower = (order.status || "").toLowerCase();
+    const isExcluded = ["cancelled", "failed", "payment pending", "expired", "payment review required"].includes(statusLower);
+    
+    if (!isExcluded) {
       grossRevenue += Number(order.total || 0);
       walletRevenue += Number(order.wallet_paid || 0);
       gatewayRevenue += Number(order.gateway_paid || 0);
       totalDiscounts += Number(order.coupon_discount || 0) + Number(order.points_discount || 0);
-    }
-    if (order.refund_amount) {
-      totalRefunds += Number(order.refund_amount || 0);
+      if (order.refund_amount) {
+        totalRefunds += Number(order.refund_amount || 0);
+      }
     }
   }
 
@@ -1456,7 +1524,7 @@ export async function getRevenueByCategory(
     .select("total, cart_items, status, created_at")
     .gte("created_at", startDate)
     .lte("created_at", endDate)
-    .not("status", "in", '("Cancelled","Failed","Payment Pending")');
+    .not("status", "in", '("Cancelled","Failed","FAILED","Payment Pending","Expired","EXPIRED","Payment Review Required")');
 
   if (error) {
     console.error("[getRevenueByCategory] error:", error);

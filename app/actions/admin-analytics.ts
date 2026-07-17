@@ -143,9 +143,10 @@ export async function getLiveAnalyticsAction() {
         .gte("created_at", todayStartIso);
       
       if (!error && todayOrders) {
-        const validToday = todayOrders.filter(
-          (o) => o.status !== "Cancelled" && o.status !== "Expired"
-        );
+        const validToday = todayOrders.filter((o) => {
+          const s = (o.status || "").toLowerCase();
+          return s !== "cancelled" && s !== "expired" && s !== "payment pending" && s !== "failed" && s !== "payment review required";
+        });
         todayOrdersCount = validToday.length;
         todayRevenue = validToday.reduce(
           (sum, o) => sum + Number(o.total || 0),

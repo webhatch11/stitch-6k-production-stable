@@ -29,7 +29,7 @@ export default async function OrderTrackingPage() {
         </div>
       }
     >
-      <OrderTrackingClient recentOrders={recentOrders} products={products} />
+      <OrderTrackingClient recentOrders={recentOrders} products={products} allUserOrders={orders} />
     </Suspense>
   );
 }

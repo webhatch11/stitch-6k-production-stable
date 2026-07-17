@@ -9,9 +9,14 @@ import { Order, Product } from "@/lib/types";
 interface OrderTrackingClientProps {
   recentOrders: Order[];
   products: Product[];
+  allUserOrders?: Order[];
 }
 
-export default function OrderTrackingClient({ recentOrders, products }: OrderTrackingClientProps) {
+export default function OrderTrackingClient({
+  recentOrders,
+  products,
+  allUserOrders = [],
+}: OrderTrackingClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderIdParam = searchParams.get("orderId");
@@ -25,10 +30,19 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
 
   // Data States
   const [matchedOrder, setMatchedOrder] = useState<Order | null>(null);
-  const [shipment, setShipment] = useState<any | null>(null);
-  const [shipmentEvents, setShipmentEvents] = useState<any[] | null>(null);
-  const [orderEvents, setOrderEvents] = useState<any[]>([]);
   const [matchedProduct, setMatchedProduct] = useState<Product | null>(null);
+
+  // Toast notifications
+  const [toastText, setToastText] = useState("");
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = (msg: string) => {
+    setToastText(msg);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     if (orderIdParam) {
@@ -64,37 +78,28 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
       setLoadingStatusText(messages[msgIndex]);
     }, 150);
 
-    setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/logistics/track?orderId=${orderId}`);
-        clearInterval(msgInterval);
+    setTimeout(() => {
+      clearInterval(msgInterval);
 
-        if (!res.ok) {
-          setViewState("error");
-          return;
-        }
+      const ordersList = allUserOrders.length > 0 ? allUserOrders : recentOrders;
+      const order = ordersList.find(
+        (o) => o.id.toLowerCase() === orderId.toLowerCase()
+      );
 
-        const data = await res.json();
-        if (!data.success) {
-          setViewState("error");
-          return;
-        }
-
-        setMatchedOrder(data.order);
-        setShipment(data.shipment);
-        setShipmentEvents(data.events);
-        setOrderEvents(data.orderEvents || []);
-
-        // Search matching product
-        const product = products.find((p) => p.title.toLowerCase() === data.order.items[0].toLowerCase());
-        setMatchedProduct(product || null);
-
-        setViewState("dashboard");
-      } catch (err) {
-        clearInterval(msgInterval);
-        console.error("Tracking API error:", err);
+      if (!order) {
         setViewState("error");
+        return;
       }
+
+      setMatchedOrder(order);
+
+      // Search matching product
+      const product = products.find(
+        (p) => p.title.toLowerCase() === order.items[0].toLowerCase()
+      );
+      setMatchedProduct(product || null);
+
+      setViewState("dashboard");
     }, 800);
   };
 
@@ -102,9 +107,6 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     setSearchOrderId("");
     setActiveOrderId(null);
     setMatchedOrder(null);
-    setShipment(null);
-    setShipmentEvents(null);
-    setOrderEvents([]);
     setMatchedProduct(null);
     router.push("/ordertracking");
   };
@@ -136,187 +138,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     return timeStr ? `${formattedDate} • ${timeStr}` : formattedDate;
   };
 
-  // Generate dynamic progress milestones list based on order status
-  const getTimelineMilestones = (order: Order) => {
-    if (orderEvents && orderEvents.length > 0) {
-      return orderEvents.map((evt: any) => {
-        let icon = "inventory_2";
-        const evLower = (evt.event || "").toLowerCase();
-        if (evLower.includes("created")) icon = "inventory_2";
-        else if (evLower.includes("pending")) icon = "pending";
-        else if (evLower.includes("successful") || evLower.includes("success") || evLower.includes("paid")) icon = "check_circle";
-        else if (evLower.includes("failed")) icon = "error";
-        else if (evLower.includes("expired")) icon = "timer_off";
-        else if (evLower.includes("shipment created") || evLower.includes("packed")) icon = "package_2";
-        else if (evLower.includes("awb") || evLower.includes("dispatched") || evLower.includes("shipped")) icon = "local_shipping";
-        else if (evLower.includes("delivered")) icon = "check_circle";
-
-        const parsedDate = evt.created_at ? new Date(evt.created_at) : null;
-
-        return {
-          title: evt.event || "Event",
-          dateStr: parsedDate && !isNaN(parsedDate.getTime()) 
-            ? parsedDate.toLocaleString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "Date unavailable",
-          desc: `6K System log for order lifecycle transition.`,
-          icon,
-          active: true,
-        };
-      });
-    }
-
-    if (shipmentEvents && shipmentEvents.length > 0) {
-      return shipmentEvents.map((ev: any) => {
-        let icon = "local_shipping";
-        const statusLower = (ev.status || "").toLowerCase();
-        if (statusLower.includes("placed")) icon = "inventory_2";
-        else if (statusLower.includes("packed")) icon = "package_2";
-        else if (statusLower.includes("out for delivery") || statusLower.includes("out_for_delivery")) icon = "hail";
-        else if (statusLower.includes("delivered")) icon = "check_circle";
-        else if (statusLower.includes("returned")) icon = "assignment_return";
-
-        const parsedDate = ev.timestamp ? new Date(ev.timestamp) : null;
-
-        return {
-          title: ev.activity || "Activity",
-          dateStr: parsedDate && !isNaN(parsedDate.getTime())
-            ? parsedDate.toLocaleString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "Date unavailable",
-          desc: ev.location ? `Facility Location: ${ev.location}` : "Routing through logistics network",
-          icon,
-          active: true,
-        };
-      });
-    }
-
-    const orderDate = getOrderDate(order.date);
-    const milestones = [];
-
-    const statusLower = (order.status || "").toLowerCase();
-    const isPaid = ["paid", "shipped", "delivered", "returned", "packed", "out for delivery", "out_for_delivery"].includes(statusLower);
-    const isPacked = ["packed", "shipped", "out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
-    const isShipped = ["shipped", "out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
-    const isOutForDelivery = ["out for delivery", "out_for_delivery", "delivered", "returned"].includes(statusLower);
-    const isDelivered = ["delivered", "returned"].includes(statusLower);
-    const isReturned = statusLower === "returned";
-    const isReturnTransit = statusLower === "return in transit" || statusLower === "return_in_transit";
-    const isReturnReq = statusLower === "return requested" || statusLower === "return_requested";
-
-    // Milestone 1: Placed
-    milestones.push({
-      title: "Order Placed & Confirmed",
-      dateStr: formatTimelineDate(orderDate, 0, "10:00 AM"),
-      desc: "Your order has been verified and registered. Materials prepared for weaving.",
-      icon: "inventory_2",
-      active: isPaid,
-    });
-
-    // Milestone 2: Packed
-    milestones.push({
-      title: "Package Packed & Ready",
-      dateStr: formatTimelineDate(orderDate, 0, "06:30 PM"),
-      desc: "Package custom-finished and sealed. Waybill generated and assigned to courier partner.",
-      icon: "package_2",
-      active: isPacked || isShipped || isOutForDelivery || isDelivered || isReturned,
-    });
-
-    // Milestone 3: Dispatch
-    milestones.push({
-      title: "Workshop Dispatch",
-      dateStr: formatTimelineDate(orderDate, 1, "08:30 AM"),
-      desc: "Package dispatched from JRT TEXTILES (6K Brand), Tiruchirappalli in custom luxury packing and handed to Shiprocket courier partner.",
-      icon: "local_shipping",
-      active: isShipped || isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
-    });
-
-    // Milestone 4: Sorting
-    milestones.push({
-      title: "Arrived at Sorting Facility",
-      dateStr: formatTimelineDate(orderDate, 2, "04:15 PM"),
-      desc: "Processed through Shiprocket automated routing at Bengaluru West Hub. Handover confirmed.",
-      icon: "hub",
-      active: isShipped || isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
-    });
-
-    // Milestone 5: Out for Delivery
-    milestones.push({
-      title: "Out for Delivery",
-      dateStr: formatTimelineDate(orderDate, 3, "09:00 AM"),
-      desc: "A delivery agent is out for delivery to your address.",
-      icon: "hail",
-      active: isOutForDelivery || isDelivered || isReturned || isReturnTransit || isReturnReq,
-    });
-
-    // Milestone 6: Handed over
-    milestones.push({
-      title: "Package Handed Over",
-      dateStr: formatTimelineDate(orderDate, 3, "02:30 PM"),
-      desc: "Delivered. Secure handover verified by signature receipt.",
-      icon: "check_circle",
-      active: isDelivered || isReturned || isReturnTransit || isReturnReq,
-    });
-
-    // Return milestones
-    if (isReturnReq || isReturnTransit || isReturned) {
-      const returnReqDate = order.returnRequestDate || formatTimelineDate(new Date(), 0, "11:00 AM");
-      milestones.push({
-        title: "Return Request Registered",
-        dateStr: returnReqDate,
-        desc: `Reason: "${order.returnReason || "Size issues"}". Proof Image: ${order.returnImage || "None"}. Awaiting authorization.`,
-        icon: "assignment_return",
-        active: true,
-        isReturn: true,
-      });
-    }
-
-    if (isReturnTransit || isReturned) {
-      milestones.push({
-        title: "Return Shipment Dispatched",
-        dateStr: formatTimelineDate(new Date(), 0, "03:45 PM"),
-        desc: "Reverse logistics partner agent has collected the package. Transit sorting to JRT TEXTILES (6K Brand), Tiruchirappalli in progress.",
-        icon: "local_shipping",
-        active: true,
-        isReturn: true,
-      });
-    }
-
-    if (isReturned) {
-      milestones.push({
-        title: "Return Processed & Refunded",
-        dateStr: order.returnDate || formatTimelineDate(new Date(), 0, "05:00 PM"),
-        desc: `Refund credited back to ${order.refundOption === "wallet" ? "Store Wallet" : "Original Payment Method"}. Restocked in workshop inventory.`,
-        icon: "account_balance_wallet",
-        active: true,
-        isReturn: true,
-      });
-    }
-
-    return milestones;
-  };
-
   const getExpectedDateText = (order: Order) => {
-    if (shipment && shipment.etd) {
-      const parsedEtd = new Date(shipment.etd);
-      if (!isNaN(parsedEtd.getTime())) {
-        return parsedEtd.toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-          year: "numeric"
-        }).toUpperCase();
-      }
-    }
     const parsedDate = getOrderDate(order.date);
     let daysToAdd = 5;
     if (order.status === "Delivered") daysToAdd = 3;
@@ -324,8 +146,18 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
     return formatTimelineDate(parsedDate, daysToAdd).toUpperCase();
   };
 
+  const order = matchedOrder;
+  const awb = order ? (order.awbCode || order.shiprocketId || null) : null;
+
   return (
     <>
+      {/* Toast Alert popup */}
+      {showToast && (
+        <div className="fixed top-6 right-6 z-[1000] bg-black text-white py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl border border-white/10">
+          {toastText}
+        </div>
+      )}
+
       {/* Main Track Station */}
       <main className="max-w-7xl mx-auto px-6 py-12 lg:py-24 flex-grow w-full">
         {/* VIEW 1: SEARCH PAGE */}
@@ -383,21 +215,21 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                   <p className="text-[10px] text-outline font-bold uppercase tracking-widest italic opacity-75">Auto-saved Locally</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {recentOrders.map((order) => (
+                  {recentOrders.map((ro) => (
                     <div
-                      key={order.id}
-                      onClick={() => router.push(`/ordertracking?orderId=${order.id}`)}
+                      key={ro.id}
+                      onClick={() => router.push(`/ordertracking?orderId=${ro.id}`)}
                       className="bg-white border border-outline-variant/10 p-6 flex flex-col justify-between hover:border-secondary transition-all cursor-pointer group shadow-sm hover:shadow-md"
                     >
                       <div>
                         <div className="flex justify-between items-center mb-4">
-                          <span className="font-headline font-black text-sm tracking-tight text-on-surface">#{order.id}</span>
+                          <span className="font-headline font-black text-sm tracking-tight text-on-surface">#{ro.id}</span>
                           <span className="inline-block px-2 py-0.5 border border-outline-variant/20 bg-surface-container-low text-[8px] font-black uppercase tracking-widest text-outline">
-                            {order.status}
+                            {ro.status}
                           </span>
                         </div>
-                        <p className="text-xs font-bold uppercase tracking-wide truncate">{order.items[0]}</p>
-                        <p className="text-[10px] text-outline mt-1 font-semibold uppercase tracking-wider">{order.date}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide truncate">{ro.items[0]}</p>
+                        <p className="text-[10px] text-outline mt-1 font-semibold uppercase tracking-wider">{ro.date}</p>
                       </div>
                       <span className="text-[9px] font-black uppercase tracking-widest text-secondary mt-6 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                         Verify Shipment <span className="material-symbols-outlined text-xs">arrow_forward</span>
@@ -432,7 +264,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
         )}
 
         {/* VIEW 3: TRACKING DASHBOARD */}
-        {viewState === "dashboard" && matchedOrder && (
+        {viewState === "dashboard" && order && (
           <div className="animate-fade-in">
             <section className="mb-12">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-8 border-b border-on-surface/10">
@@ -442,13 +274,13 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                     Order Tracking
                   </h1>
                   <p className="text-xs font-bold text-outline uppercase tracking-widest mt-2">
-                    Order Reference: <span className="text-on-surface font-black font-mono">#{matchedOrder.id}</span>
+                    Order Reference: <span className="text-on-surface font-black font-mono">#{order.id}</span>
                   </p>
                 </div>
                 <div className="flex flex-col items-start md:items-end gap-2">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-outline">Expected Delivery</p>
                   <p className="font-headline text-2xl font-black text-on-surface">
-                    {getExpectedDateText(matchedOrder)}
+                    {getExpectedDateText(order)}
                   </p>
                   <button
                     onClick={clearTracking}
@@ -469,28 +301,28 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                   <div className="flex items-center gap-2">
                     <span
                       className={`size-2 rounded-full ${
-                        (shipment?.status || matchedOrder.status) === "Delivered"
+                        order.status === "Delivered"
                           ? "bg-green-500"
-                          : ["Returned", "Return Rejected", "Cancelled"].includes(shipment?.status || matchedOrder.status)
+                          : ["Returned", "Return Rejected", "Cancelled"].includes(order.status)
                           ? "bg-red-500"
                           : "bg-amber-500"
                       }`}
                     ></span>
-                    <span className="text-xs font-bold uppercase tracking-widest">{shipment?.status || matchedOrder.status}</span>
+                    <span className="text-xs font-bold uppercase tracking-widest">{order.status}</span>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Logistics Partner</p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-widest">
-                      {shipment?.courier_name || "Shiprocket Partner"}
+                      {order.courierName || "Shiprocket Partner"}
                     </span>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Waybill Number</p>
                   <span className="text-xs font-bold font-mono tracking-tight select-all">
-                    {shipment?.awb_code || matchedOrder.shiprocketId || "PENDING"}
+                    {awb || "PENDING"}
                   </span>
                 </div>
                 <div className="bg-surface-container-low p-6">
@@ -500,9 +332,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                 <div className="bg-surface-container-low p-6">
                   <p className="text-[11px] font-black uppercase tracking-widest text-outline mb-1">Est. Delivery</p>
                   <span className="text-xs font-bold uppercase text-secondary">
-                    {shipment?.etd
-                      ? new Date(shipment.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }).toUpperCase()
-                      : getExpectedDateText(matchedOrder)}
+                    {getExpectedDateText(order)}
                   </span>
                 </div>
               </div>
@@ -510,37 +340,64 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
 
             {/* Timeline & Details columns */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
-              {/* Left Column: Milestones vertical path */}
+              {/* Left Column: Milestones vertical path replaced with Shiprocket Widget */}
               <div className="lg:col-span-7 space-y-12">
-                <div className="space-y-10">
-                  <h2 className="font-headline text-xs font-black uppercase tracking-[0.4em] border-l-4 border-secondary pl-6">Tracking History</h2>
-                  
-                  <div className="relative pl-10 space-y-16">
-                    {/* Vertical Connector Line */}
-                    <div className="absolute left-[24px] top-2 bottom-2 w-[1px] bg-outline-variant/30 overflow-hidden">
-                      <div className="absolute left-0 w-full h-20 bg-gradient-to-b from-transparent via-[#fed488] to-transparent animate-[line-flow_4s_infinite_linear]"></div>
+                {awb ? (
+                  <div className="w-full mt-4">
+                    {/* AWB info bar */}
+                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">
+                          Tracking Number (AWB)
+                        </p>
+                        <p className="font-mono font-bold text-lg">
+                          {awb}
+                        </p>
+                        {order.courierName && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Courier: {order.courierName}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(awb);
+                          triggerToast("✓ AWB copied to clipboard!");
+                        }}
+                        className="text-xs text-gray-500 border border-gray-200 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors"
+                      >
+                        Copy AWB 📋
+                      </button>
                     </div>
 
-                    {getTimelineMilestones(matchedOrder).map((milestone, idx) => (
-                      <div key={idx} className={`relative flex gap-8 items-start transition-opacity ${milestone.active ? "opacity-100" : "opacity-35"}`}>
-                        {/* Circle Badge Indicator */}
-                        <div
-                          className={`absolute -left-[24px] size-12 -translate-x-1/2 flex items-center justify-center border bg-white ${
-                            milestone.active ? "border-secondary text-secondary" : "border-outline-variant/35 text-outline/35"
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-lg">{milestone.icon}</span>
-                        </div>
-
-                        <div className="pl-6">
-                          <span className="text-[9px] font-bold text-outline uppercase tracking-wider block">{milestone.dateStr}</span>
-                          <h4 className="font-headline font-black text-lg uppercase tracking-tight mt-1">{milestone.title}</h4>
-                          <p className="text-sm text-outline mt-2 leading-relaxed font-medium">{milestone.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                    {/* Shiprocket Widget */}
+                    <iframe
+                      src={`https://shiprocket.co/tracking/${awb}`}
+                      width="100%"
+                      height="500"
+                      frameBorder="0"
+                      className="rounded-xl border border-gray-200 w-full"
+                      title="Track Your Order"
+                      loading="lazy"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-16 px-6 bg-white border border-outline-variant/10 shadow-sm">
+                    <div className="text-6xl mb-4">📦</div>
+                    <h3 className="font-bold text-gray-900 text-xl mb-2">
+                      Not Shipped Yet
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+                      Your order is being prepared. Tracking will appear here once shipped.
+                    </p>
+                    <Link
+                      href="/orderhistory"
+                      className="inline-block bg-black text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition-colors no-underline"
+                    >
+                      View Order Status
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Address and Product Cards */}
@@ -552,28 +409,28 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                       <Image
                         src={matchedProduct?.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200"}
                         className="object-cover"
-                        alt={matchedOrder?.items?.[0] || "Shirt"}
+                        alt={order?.items?.[0] || "Shirt"}
                         fill
                         sizes="80px"
                       />
                     </div>
                     <div>
-                      <h4 className="font-headline font-black text-xl uppercase tracking-tighter">{matchedOrder?.items?.[0] || "Product Item"}</h4>
+                      <h4 className="font-headline font-black text-xl uppercase tracking-tighter">{order?.items?.[0] || "Product Item"}</h4>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-outline mt-1">
                         {matchedProduct?.category || "Custom Series"} • Reserve
                       </p>
-                      <p className="font-headline font-black text-xl mt-4 text-on-surface">₹{(matchedOrder?.total ?? 0).toLocaleString("en-IN")}</p>
+                      <p className="font-headline font-black text-xl mt-4 text-on-surface">₹{(order?.total ?? 0).toLocaleString("en-IN")}</p>
                     </div>
                   </div>
-                  {matchedOrder?.shiprocketId && (
+                  {awb && (
                     <div className="mt-6 pt-6 border-t border-outline-variant/20 flex flex-col gap-2">
                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
                         <span className="text-outline">Courier Partner</span>
-                        <span className="text-on-surface">Shiprocket Express</span>
+                        <span className="text-on-surface">{order.courierName || "Shiprocket Express"}</span>
                       </div>
                       <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
                         <span className="text-outline">AWB Waybill</span>
-                        <span className="text-on-surface font-mono select-all bg-surface-container-low px-2 py-1 border border-outline-variant/10">{matchedOrder.shiprocketId}</span>
+                        <span className="text-on-surface font-mono select-all bg-surface-container-low px-2 py-1 border border-outline-variant/10">{awb}</span>
                       </div>
                     </div>
                   )}
@@ -582,7 +439,7 @@ export default function OrderTrackingClient({ recentOrders, products }: OrderTra
                 <div className="space-y-6">
                   <h3 className="font-headline text-[10px] font-black uppercase tracking-[0.4em]">Delivery Address</h3>
                   <div className="p-8 bg-surface-container-low border border-outline-variant/5">
-                    <p className="font-headline font-black text-xl uppercase tracking-tighter mb-4">{matchedOrder.customer}</p>
+                    <p className="font-headline font-black text-xl uppercase tracking-tighter mb-4">{order.customer}</p>
                     <p className="text-sm text-on-surface-variant leading-relaxed font-medium">
                       Apt 402, Sky-High Residency<br />
                       7th Main, Sector 4, HSR Layout<br />

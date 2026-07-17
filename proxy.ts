@@ -57,7 +57,56 @@ async function checkRateLimit(ip: string, path: string, limit: number, windowMs:
   return { success: true };
 }
 
-export async function proxy(request: NextRequest) {
+import { logger } from "./lib/logger";
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+export async function proxy(request: NextRequest): Promise<NextResponse> {
+  const traceId = request.headers.get("x-trace-id") || `tr_${generateId()}`;
+  const correlationId = request.headers.get("x-correlation-id") || `corr_${generateId()}`;
+  const requestId = `req_${generateId()}`;
+  const sessionId = request.cookies.get("sb-access-token")?.value || request.cookies.get("mock_user_session")?.value || "anonymous";
+
+  const context = {
+    traceId,
+    requestId,
+    correlationId,
+    sessionId,
+  };
+
+  return await logger.runWithContext(context, async () => {
+    const start = Date.now();
+    logger.info(`Incoming request: ${request.method} ${request.nextUrl.pathname}`);
+    
+    try {
+      const response = await handleProxy(request);
+      
+      const durationMs = Date.now() - start;
+      logger.info(`Request processed`, { route: request.nextUrl.pathname, durationMs });
+      
+      const { recordApiLatency } = await import("./lib/metrics");
+      recordApiLatency(request.nextUrl.pathname, durationMs);
+      
+      // Inject trace context headers into the response
+      response.headers.set("x-trace-id", traceId);
+      response.headers.set("x-correlation-id", correlationId);
+      response.headers.set("x-request-id", requestId);
+      
+      return response;
+    } catch (error: any) {
+      const durationMs = Date.now() - start;
+      logger.critical("Proxy execution crashed", { route: request.nextUrl.pathname, durationMs, error: error.message });
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Internal Server Error" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  });
+}
+
+async function handleProxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const path = request.nextUrl.pathname;
 

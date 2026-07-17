@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getServerUser } from "@/lib/supabase-server"
 
 export async function POST(req: NextRequest) {
+  const user = await getServerUser();
+  if (!user || user.role !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (process.env.NEXT_PUBLIC_ENABLE_MOCK_SHIPPING !== 'true') {
     return NextResponse.json(
       { error: 'Mock mode disabled' },

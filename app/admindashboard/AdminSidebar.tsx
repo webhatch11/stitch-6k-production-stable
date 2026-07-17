@@ -72,6 +72,11 @@ export default function AdminSidebar({ user, pendingReturnsCount, pendingOrdersC
       icon: "history",
     },
     {
+      href: "/admindashboard/operations",
+      label: "Operations",
+      icon: "dns",
+    },
+    {
       href: "/admindashboard/settings",
       label: "Settings",
       icon: "settings",

@@ -47,6 +47,7 @@ const ALLOWED_STATUSES = [
   "Reship Requested",
   "Return Approved",
   "Return QC Failed - Held",
+  "Payment Review Required",
 ];
 
 export async function bulkUpdateOrderStatusAction(
@@ -69,7 +70,8 @@ export async function bulkUpdateOrderStatusAction(
   try {
     // STEP 1: State-machine transition validation & Payment guard on bulkUpdateOrderStatusAction
     const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-      "Payment Pending": ["Paid", "Cancelled"],
+      "Payment Pending": ["Paid", "Cancelled", "Payment Review Required"],
+      "Payment Review Required": ["Paid", "Cancelled"],
       "Paid": ["Processing", "Cancelled"],
       "Paid via Wallet": ["Processing", "Cancelled"],
       "paid via wallet": ["Processing", "Cancelled"],

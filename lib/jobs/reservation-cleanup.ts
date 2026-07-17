@@ -22,7 +22,7 @@ export const reservationCleanupWorker = new Worker(
 
         const { data: pendingOrders, error: fetchError } = await supabase
           .from("orders")
-          .select("id, razorpay_order_id, status, wallet_paid, points_redeemed, idempotency_key")
+          .select("id, razorpay_order_id, status, wallet_paid, points_redeemed, idempotency_key, user_id")
           .eq("status", "Payment Pending")
           .lt("created_at", fifteenMinutesAgo);
 
@@ -41,20 +41,23 @@ export const reservationCleanupWorker = new Worker(
                 }
               }
 
-              console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking Cancelled and releasing reservation.`);
+              // CAS Claim Guard: Atomically claim order cancellation to prevent races
+              const { data: claimedRow, error: claimErr } = await supabase
+                .from("orders")
+                .update({ status: "Cancelled", payment_status: "EXPIRED" })
+                .eq("id", order.id)
+                .eq("status", "Payment Pending")
+                .select("id");
 
-              await db.saveOrder({
-                id: order.id,
-                status: "Cancelled"
-              });
+              if (claimErr || !claimedRow || claimedRow.length === 0) {
+                console.log(`[Reservation Cleanup Worker] Order ${order.id} already claimed or processed by another worker.`);
+                continue;
+              }
+
+              console.log(`[Reservation Cleanup Worker] Order ${order.id} is abandoned. Marking Cancelled and releasing reservation.`);
 
               await db.createPaymentAuditLog(order.id, "Payment Pending", "Cancelled", "cleanup_worker");
               await db.createOrderEvent(order.id, "Order Cancelled");
-
-              await supabase
-                .from("orders")
-                .update({ payment_status: "EXPIRED", status: "Cancelled" })
-                .eq("id", order.id);
 
               if (order.idempotency_key) {
                 await supabase
@@ -63,16 +66,17 @@ export const reservationCleanupWorker = new Worker(
                   .eq("session_id", order.idempotency_key);
               }
 
-              if (order.wallet_paid > 0) {
+              const targetUserId = order.user_id;
+              if (order.wallet_paid > 0 && targetUserId) {
                 try {
-                  await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id);
+                  await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id, targetUserId);
                 } catch (walletErr) {
                   console.warn("[Reservation Cleanup Worker] Failed to credit wallet:", walletErr);
                 }
               }
-              if (order.points_redeemed > 0) {
+              if (order.points_redeemed > 0 && targetUserId) {
                 try {
-                  await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id);
+                  await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id, targetUserId);
                 } catch (loyaltyErr) {
                   console.warn("[Reservation Cleanup Worker] Failed to credit loyalty:", loyaltyErr);
                 }

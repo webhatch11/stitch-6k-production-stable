@@ -16,13 +16,13 @@ export const paymentRecoveryWorker = new Worker(
       
       if (!supabase) return;
 
-      // 1. Find orders PAYMENT_PENDING older than 15 minutes
+      // 1. Find orders Payment Pending older than 15 minutes
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
       const { data: pendingOrders } = await supabase
         .from("orders")
-        .select("id, razorpay_order_id, cart_items, wallet_paid, points_redeemed, idempotency_key")
-        .eq("payment_status", "PAYMENT_PENDING")
+        .select("id, razorpay_order_id, cart_items, wallet_paid, points_redeemed, idempotency_key, user_id")
+        .eq("status", "Payment Pending")
         .lt("created_at", fifteenMinutesAgo);
 
       if (pendingOrders && pendingOrders.length > 0) {
@@ -39,24 +39,36 @@ export const paymentRecoveryWorker = new Worker(
               }
             }
 
-            // Order is truly abandoned or failed.
-            console.log(`[Payment Recovery] Marking order ${order.id} as Cancelled and restoring inventory.`);
-            
-            // Mark Cancelled
-            await supabase.from("orders").update({ payment_status: "EXPIRED", status: "Cancelled" }).eq("id", order.id);
-            await db.saveOrder({ id: order.id, status: "Cancelled" });
+            // 2. CAS Claim Guard: Atomically claim order cancellation to prevent races
+            const { data: claimedRow, error: claimErr } = await supabase
+              .from("orders")
+              .update({ status: "Cancelled", payment_status: "EXPIRED" })
+              .eq("id", order.id)
+              .eq("status", "Payment Pending")
+              .select("id");
 
-            // Restore Inventory
-            if (Array.isArray(order.cart_items) && order.cart_items.length > 0) {
-              await db.restoreStock(order.cart_items, order.idempotency_key);
+            if (claimErr || !claimedRow || claimedRow.length === 0) {
+              console.log(`[Payment Recovery] Order ${order.id} already claimed or processed by another worker.`);
+              continue;
+            }
+
+            console.log(`[Payment Recovery] Marking order ${order.id} as Cancelled (Expired) and releasing reservation.`);
+
+            // Release Inventory Reservation (EXPIRED) — NEVER call restoreStock here as stock was never deducted
+            if (order.idempotency_key) {
+              await supabase
+                .from("inventory_reservations")
+                .update({ status: "EXPIRED" })
+                .eq("session_id", order.idempotency_key);
             }
 
             // Rollback wallet & loyalty if they were deducted initially
-            if (order.wallet_paid > 0) {
-              await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id);
+            const targetUserId = order.user_id;
+            if (order.wallet_paid > 0 && targetUserId) {
+              await db.applyWalletCredit(order.wallet_paid, `Recovery Rollback for ${order.id}`, order.id, targetUserId);
             }
-            if (order.points_redeemed > 0) {
-              await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id);
+            if (order.points_redeemed > 0 && targetUserId) {
+              await db.applyLoyaltyCredit(order.points_redeemed, `Recovery Rollback for ${order.id}`, order.id, targetUserId);
             }
 
             // Log recovery action

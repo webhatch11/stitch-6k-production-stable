@@ -42,9 +42,22 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
     redirect("/orderhistory");
   }
 
-  // Payment pending restriction: invoices are not generated/accessible until payment is complete
-  if (matchedOrder.status?.toLowerCase() === "payment pending") {
-    redirect("/orderhistory?error=payment_pending");
+  // Enforce production-safe invoice lifecycle access controls on the server
+  const statusLower = (matchedOrder.status || "").toLowerCase();
+  const paymentStatusLower = (matchedOrder.paymentStatus || matchedOrder.payment_status || "").toLowerCase();
+
+  const isPending = statusLower === "payment pending";
+  const isReview = statusLower === "payment review required";
+  const isFailed = statusLower === "failed";
+  const isExpired = paymentStatusLower === "expired";
+  const isCancelledBeforePayment = statusLower === "cancelled" && paymentStatusLower !== "paid";
+
+  if (isPending || isReview || isFailed || isExpired || isCancelledBeforePayment) {
+    if (user.role === "admin") {
+      redirect("/admindashboard/invoices?error=invoice_not_ready");
+    } else {
+      redirect("/orderhistory?error=invoice_not_ready");
+    }
   }
 
   const allProducts = await db.getProducts();

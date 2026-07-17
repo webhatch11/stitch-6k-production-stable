@@ -652,10 +652,39 @@ export async function runPostPaymentSideEffects(orderId: string, razorpayPayment
     console.error("[runPostPaymentSideEffects] deductStock failed:", e);
   }
 
-  try {
-    await dispatchFulfillment(orderId);
-  } catch (err) {
-    console.error('[payment] Shiprocket dispatch failed:', err);
+  if (!deductSuccess) {
+    console.error("[runPostPaymentSideEffects] Inventory deduction failed. Auto-refunding...");
+    if (razorpayPaymentId) {
+      try {
+        const { razorpay } = await import("@/lib/razorpay");
+        const refundAmt = Math.round(dbOrder.gatewayPaid * 100);
+        await razorpay.payments.refund(razorpayPaymentId, {
+          amount: refundAmt,
+          notes: { reason: "Inventory unavailable after payment (webhook)" }
+        });
+        await supabase.from("orders").update({
+          status: "Refunded (Out of Stock)",
+          refund_status: "initiated",
+          refund_reason: "Inventory deduction failed post-payment",
+        }).eq("id", orderId);
+      } catch (refundErr: any) {
+        console.error("[runPostPaymentSideEffects] auto-refund failed:", refundErr.message);
+        await supabase.from("orders").update({
+          status: "Payment Review Required",
+          payment_status: "Payment Review Required",
+          refund_status: "failed",
+          refund_reason: "Auto-refund failed: " + refundErr.message
+        }).eq("id", orderId);
+        await ordersDb.addOrderStatusHistory(orderId, "Payment Review Required", "System Webhook (Stock fail & refund fail)");
+      }
+    } else {
+      await supabase.from("orders").update({
+        status: "Payment Review Required",
+        payment_status: "Payment Review Required",
+        refund_reason: "Inventory deduction failed, no razorpay payment ID to refund"
+      }).eq("id", orderId);
+    }
+    return false;
   }
 
   try {
@@ -668,20 +697,45 @@ export async function runPostPaymentSideEffects(orderId: string, razorpayPayment
     console.error("[runPostPaymentSideEffects] incrementCouponUsage failed:", e);
   }
 
+  let hasDebitError = false;
+  let debitErrorMessage = "";
+
   if (dbOrder.walletPaid && dbOrder.walletPaid > 0) {
     try {
-      await usersDb.applyWalletDebit(dbOrder.walletPaid, dbOrder.id, dbOrder.userId || dbOrder.user_id);
-    } catch (e) {
+      const walletRes = await usersDb.applyWalletDebit(dbOrder.walletPaid, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+      if (!walletRes.success) {
+        hasDebitError = true;
+        debitErrorMessage = walletRes.error || "Insufficient wallet balance";
+      }
+    } catch (e: any) {
       console.error("[runPostPaymentSideEffects] applyWalletDebit failed:", e);
+      hasDebitError = true;
+      debitErrorMessage = e.message || "Wallet debit failed";
     }
   }
 
-  if (dbOrder.pointsRedeemed && dbOrder.pointsRedeemed > 0) {
+  if (dbOrder.pointsRedeemed && dbOrder.pointsRedeemed > 0 && !hasDebitError) {
     try {
-      await loyaltyDb.applyLoyaltyDebit(dbOrder.pointsRedeemed, dbOrder.id, dbOrder.userId || dbOrder.user_id);
-    } catch (e) {
+      const loyaltyRes = await loyaltyDb.applyLoyaltyDebit(dbOrder.pointsRedeemed, dbOrder.id, dbOrder.userId || dbOrder.user_id);
+      if (!loyaltyRes.success) {
+        hasDebitError = true;
+        debitErrorMessage = loyaltyRes.error || "Insufficient loyalty points";
+      }
+    } catch (e: any) {
       console.error("[runPostPaymentSideEffects] applyLoyaltyDebit failed:", e);
+      hasDebitError = true;
+      debitErrorMessage = e.message || "Loyalty points debit failed";
     }
+  }
+
+  if (hasDebitError) {
+    console.warn(`[runPostPaymentSideEffects] Post-payment debit failed for order ${dbOrder.id}: ${debitErrorMessage}. Transitioning to Payment Review Required.`);
+    await supabase.from("orders").update({
+      status: "Payment Review Required",
+      payment_status: "Payment Review Required",
+    }).eq("id", dbOrder.id);
+    await ordersDb.addOrderStatusHistory(dbOrder.id, "Payment Review Required", "System Webhook (Debit fail: " + debitErrorMessage + ")");
+    return false;
   }
 
   try {

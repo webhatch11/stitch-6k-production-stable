@@ -233,10 +233,18 @@ export async function POST(req: NextRequest) {
           refund_reason: "Inventory deduction failed post-payment",
         }).eq("id", dbOrder.id);
       } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : String(e);
+        const message = e instanceof Error ? e.message : String(e);
         console.error(`[verify] AUTO-REFUND FAILED, MANUAL INTERVENTION:`, message);
-        // Send alert
         console.warn(`[ADMIN ALERT] Razorpay auto-refund failed for order ${dbOrder.id}: ${message}`);
+        
+        await supabase.from("orders").update({
+          status: "Payment Review Required",
+          payment_status: "Payment Review Required",
+          refund_status: "failed",
+          refund_reason: "Auto-refund failed: " + message
+        }).eq("id", dbOrder.id);
+        
+        await db.createOrderEvent(dbOrder.id, "Payment Review Required: Auto-refund failed: " + message);
       }
 
       return NextResponse.json({ success: false, error: "Inventory deduction failed" }, { status: 400 });
@@ -252,21 +260,56 @@ export async function POST(req: NextRequest) {
     }
 
     // c. Debit wallet
+    let hasDebitError = false;
+    let debitErrorMessage = "";
+
     if (dbOrder.wallet_paid > 0) {
       try {
-        await db.applyWalletDebit(dbOrder.wallet_paid, dbOrder.id, dbOrder.user_id);
-      } catch (e) {
+        const walletRes = await db.applyWalletDebit(dbOrder.wallet_paid, dbOrder.id, dbOrder.user_id);
+        if (!walletRes.success) {
+          hasDebitError = true;
+          debitErrorMessage = walletRes.error || "Insufficient wallet balance";
+        }
+      } catch (e: any) {
         console.error("[verify] applyWalletDebit failed:", e);
+        hasDebitError = true;
+        debitErrorMessage = e.message || "Wallet debit failed";
       }
     }
 
     // d. Debit loyalty points
-    if (dbOrder.points_redeemed > 0) {
+    if (dbOrder.points_redeemed > 0 && !hasDebitError) {
       try {
-        await db.applyLoyaltyDebit(dbOrder.points_redeemed, dbOrder.id, dbOrder.user_id);
-      } catch (e) {
+        const loyaltyRes = await db.applyLoyaltyDebit(dbOrder.points_redeemed, dbOrder.id, dbOrder.user_id);
+        if (!loyaltyRes.success) {
+          hasDebitError = true;
+          debitErrorMessage = loyaltyRes.error || "Insufficient loyalty points";
+        }
+      } catch (e: any) {
         console.error("[verify] applyLoyaltyDebit failed:", e);
+        hasDebitError = true;
+        debitErrorMessage = e.message || "Loyalty points debit failed";
       }
+    }
+
+    if (hasDebitError) {
+      console.warn(`[verify] Post-payment debit failed for order ${dbOrder.id}: ${debitErrorMessage}. Transitioning to Payment Review Required.`);
+      await supabase
+        .from("orders")
+        .update({
+          status: "Payment Review Required",
+          payment_status: "Payment Review Required",
+        })
+        .eq("id", dbOrder.id);
+
+      await db.createOrderEvent(dbOrder.id, "Payment Review Required: " + debitErrorMessage);
+
+      return NextResponse.json({
+        success: true,
+        orderId: dbOrder.id,
+        status: "Payment Review Required",
+        error: debitErrorMessage,
+      });
     }
 
     // e. Schedule loyalty points for credit 7 days from now

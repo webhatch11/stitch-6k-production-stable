@@ -334,7 +334,18 @@ const css = `
 `;
 
 const bodyHtml = `
-  <div class="invoice">
+  <div class="invoice" style="position: relative;">
+    ${(data.status?.toLowerCase() === "cancelled" || data.status?.toLowerCase() === "returned" || data.status?.toLowerCase() === "refunded") ? `
+    <div class="no-print" style="position: absolute; top: 10px; left: 10px; right: 10px; border: 3px solid #e11d48; padding: 15px; text-align: center; color: #e11d48; font-family: sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 0.15em; text-transform: uppercase; z-index: 100; background-color: rgba(255, 255, 255, 0.95); margin-bottom: 20px;">
+      ORDER ${data.status.toUpperCase()}
+    </div>
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.08; pointer-events: none; z-index: 99; overflow: hidden;">
+      <span style="font-size: 80px; font-weight: 900; color: #e11d48; border: 15px solid #e11d48; padding: 20px 40px; letter-spacing: 0.1em; text-transform: uppercase; transform: rotate(-30deg); display: inline-block;">
+        ${data.status.toUpperCase()}
+      </span>
+    </div>
+    ` : ''}
+
     <!-- Large centered watermark background -->
     <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; opacity: 0.10; pointer-events: none; z-index: 0;">
       <img src="${origin}/assets/logo.png" alt="6K Watermark" style="width: 450px; height: 450px; object-fit: contain;" />

@@ -26,7 +26,7 @@ export async function sendOrderConfirmationEmail(order: {
   couponCode?: string | null;
   couponDiscount?: number | null;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -89,7 +89,7 @@ export async function sendOrderConfirmationEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Order Confirmed â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -106,7 +106,7 @@ export async function sendReturnAcceptedEmail(order: {
   refundAmount: number;
   refundOption: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const methodText = order.refundOption === "wallet" ? "Store Wallet Credit" : "Original Bank Account / Card";
 
   const htmlContent = `
@@ -146,7 +146,7 @@ export async function sendReturnAcceptedEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Return Approved â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -162,7 +162,7 @@ export async function sendReturnRejectedEmail(order: {
   customerEmail: string;
   rejectReason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -196,7 +196,7 @@ export async function sendReturnRejectedEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Return Update â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -214,7 +214,7 @@ export async function sendOrderCancelledEmail(order: {
   refundAmount: number;
   refundDetails: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -257,7 +257,7 @@ export async function sendOrderCancelledEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Order Cancelled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -274,7 +274,7 @@ export async function sendReturnPickupScheduledEmail(order: {
   awb: string;
   pickupDate: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const formattedDate = new Date(order.pickupDate).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -318,7 +318,7 @@ export async function sendReturnPickupScheduledEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Return Pickup Scheduled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -338,7 +338,7 @@ export async function sendShippingConfirmationEmail(params: {
   items: Array<{ name: string; quantity: number }>;
   trackingUrl: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
   const htmlContent = `
@@ -411,7 +411,7 @@ export async function sendShippingConfirmationEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: params.to,
       subject: `Your 6K order has been shipped â€” #${params.orderId}`,
       html: htmlContent,
@@ -427,7 +427,7 @@ export async function sendAdminAlert(params: {
   orderId: string;
   awb?: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()).filter(Boolean) || [];
 
   if (adminEmails.length === 0) {
@@ -457,7 +457,7 @@ export async function sendAdminAlert(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: adminEmails,
       subject: `[6K Admin Alert] ${params.subject}`,
       html: htmlContent,
@@ -475,7 +475,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
   refundMethod: string;
   reason?: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const methodText = params.refundMethod === "wallet" ? "Store Wallet Credit" : "Original Bank Account / Card";
   const timeText = params.refundMethod === "wallet" ? "instant for wallet" : "5-7 business days for bank";
 
@@ -517,7 +517,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: params.to,
       subject: `Your 6K order #${params.orderId} has been cancelled`,
       html: htmlContent,
@@ -535,7 +535,7 @@ export async function sendWalletCreditedEmail(params: {
   newBalance: number;
   creditedAt: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
 
   const htmlContent = `
@@ -593,7 +593,7 @@ export async function sendWalletCreditedEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: params.to,
       subject: `â‚¹${params.amount} credited to your 6K wallet`,
       html: htmlContent,
@@ -612,7 +612,7 @@ export async function sendOrderDeliveredEmail(params: {
   deliveredAt: string;
   returnDeadline: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://the6k.com";
 
   const htmlContent = `
@@ -670,7 +670,7 @@ export async function sendOrderDeliveredEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: params.to,
       subject: `Your 6K order #${params.orderId} has been delivered!`,
       html: htmlContent,
@@ -686,7 +686,7 @@ export async function sendReturnDeclinedEmail(order: {
   customerEmail: string;
   reason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -719,7 +719,7 @@ export async function sendReturnDeclinedEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: "Your return request has been declined",
       html: htmlContent,
@@ -735,7 +735,7 @@ export async function sendReturnQcFailedEmail(order: {
   customerEmail: string;
   reason: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -768,7 +768,7 @@ export async function sendReturnQcFailedEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: "Return inspection result",
       html: htmlContent,
@@ -784,7 +784,7 @@ export async function sendReturnPickupAssignedEmail(order: {
   customerEmail: string;
   awb: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
 
   const htmlContent = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -807,7 +807,7 @@ export async function sendReturnPickupAssignedEmail(order: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: order.customerEmail,
       subject: `Return Pickup Scheduled â€” #${order.id}`,
       html: htmlContent,
@@ -824,7 +824,7 @@ export async function sendQcFailedEmail(params: {
   reason: string;
   refundOption: string;
 }): Promise<void> {
-  const fromEmail = process.env.RESEND_FROM_EMAIL || "6K <noreply@the6k.com>";
+  const fromEmail = process.env.BREVO_FROM_EMAIL || "6K <noreply@the6k.com>";
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
   const htmlContent = `
@@ -872,7 +872,7 @@ export async function sendQcFailedEmail(params: {
 
   try {
     await transporter.sendMail({
-      from: process.env.RESEND_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
+      from: process.env.BREVO_FROM_EMAIL || '"6K Designer Shirts" <noreply@the6k.com>',
       to: params.to,
       subject: `Return inspection update â€” Order #${params.orderId}`,
       html: htmlContent,

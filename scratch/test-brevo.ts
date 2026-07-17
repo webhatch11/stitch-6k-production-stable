@@ -24,7 +24,7 @@ async function runTest() {
   }
 
   try {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || '"6K Brand Test" <noreply@the6k.com>';
+    const fromEmail = process.env.BREVO_FROM_EMAIL || '"6K Brand Test" <noreply@the6k.com>';
     console.log("Sending test email to 6kthebrand@gmail.com...");
     
     const info = await transporter.sendMail({

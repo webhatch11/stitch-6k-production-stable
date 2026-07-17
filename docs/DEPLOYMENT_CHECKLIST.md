@@ -67,7 +67,7 @@ Configure the following keys in your production environment variables (e.g. `.en
 
 ### Resend (Transactional Email)
 - `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
+- `BREVO_FROM_EMAIL`
 
 ### Shiprocket (Shipping & Logistics)
 - `SHIPROCKET_EMAIL`

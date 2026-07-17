@@ -927,13 +927,13 @@ function OrderDetailsContent() {
                 <span className={`size-2 rounded-full ${getLogisticsStatusDotClass()}`}></span>
                 <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>{order.status}</p>
               </div>
-              {(shipment?.awb_code || order.shiprocketId) ? (
+              {(shipment?.awb_code || (order.awbCode || order.shiprocketId)) ? (
                 <div className="mt-1.5 space-y-1">
                   <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
-                    AWB: <span className="font-bold text-white font-mono">{shipment?.awb_code || order.shiprocketId}</span>
+                    AWB: <span className="font-bold text-white font-mono">{shipment?.awb_code || (order.awbCode || order.shiprocketId)}</span>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(shipment?.awb_code || order.shiprocketId || "");
+                        navigator.clipboard.writeText(shipment?.awb_code || (order.awbCode || order.shiprocketId) || "");
                         triggerToast("AWB copied to clipboard");
                       }}
                       className="inline-flex items-center justify-center p-0.5 hover:text-white text-gray-400 bg-transparent border-none cursor-pointer"
@@ -2049,3 +2049,4 @@ export default function OrderDetailsPage() {
     </Suspense>
   );
 }
+

@@ -111,6 +111,9 @@ export const mapDbOrderToOrder = (o: any): Order => {
     shipping_amount: o.shipping_amount != null ? Number(o.shipping_amount) : 0,
     packedAt: o.packed_at || null,
     acceptedAt: o.accepted_at || null,
+    awbCode: o.awb_code || o.shiprocket_id || null,
+    courierName: o.courier_name || null,
+    trackingUrl: o.tracking_url || null,
   };
 };
 

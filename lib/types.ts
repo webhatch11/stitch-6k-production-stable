@@ -119,6 +119,9 @@ export interface Order {
   delivered_at?: string;
   return_awb?: string;
   return_pickup_scheduled?: string;
+  awbCode?: string | null;
+  courierName?: string | null;
+  trackingUrl?: string | null;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;

@@ -538,12 +538,12 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                               <span className={`w-1.5 h-1.5 rounded-full ${statusDotClass} mr-1.5`}></span>
                               {order.status}
                             </span>
-                            {order.shiprocketId && (statusLower === "shipped" || statusLower === "delivered") && (
+                            {(order.awbCode || order.shiprocketId) && (statusLower === "shipped" || statusLower === "delivered") && (
                               <div className="mt-1.5 text-[9px] text-outline uppercase tracking-wider flex items-center gap-1">
-                                <span>AWB: <span className="font-mono font-bold text-on-surface select-all">{order.shiprocketId}</span></span>
+                                <span>AWB: <span className="font-mono font-bold text-on-surface select-all">{(order.awbCode || order.shiprocketId)}</span></span>
                                 <button
                                   onClick={() => {
-                                    navigator.clipboard.writeText(order.shiprocketId || "");
+                                    navigator.clipboard.writeText((order.awbCode || order.shiprocketId) || "");
                                     triggerToast("✓ AWB copied to clipboard!");
                                   }}
                                   className="p-1 hover:text-on-surface transition-colors bg-transparent border-none cursor-pointer flex items-center justify-center"
@@ -701,9 +701,9 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                     </div>
 
                     {/* AWB */}
-                    {order.shiprocketId && (statusLower === "shipped" || statusLower === "delivered") && (
+                    {(order.awbCode || order.shiprocketId) && (statusLower === "shipped" || statusLower === "delivered") && (
                       <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">
-                        AWB: <span className="font-mono font-bold text-on-surface select-all">{order.shiprocketId}</span>
+                        AWB: <span className="font-mono font-bold text-on-surface select-all">{(order.awbCode || order.shiprocketId)}</span>
                       </p>
                     )}
 
@@ -971,3 +971,4 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     </>
   );
 }
+

@@ -551,10 +551,12 @@ export async function recordPageView(path: string, sessionId: string): Promise<v
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
-  const { error } = await supabase.from("page_views").insert({
-    path,
-    session_id: sessionId,
-  });
+  const { error } = await supabase
+    .from("page_views")
+    .upsert(
+      { path, session_id: sessionId },
+      { onConflict: "session_id", ignoreDuplicates: false }
+    );
   if (error) {
     console.error("Error recording page view:", error);
   }
@@ -912,23 +914,16 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Dynamically select deleted_at; handle fallback if it does not exist
+  // orders table does NOT have a deleted_at column (soft-delete is products-only).
+  // Status filtering below handles exclusion of non-revenue orders.
   const { data, error } = await supabase
     .from("orders")
-    .select("address_snapshot, total, status, cart_items, deleted_at")
+    .select("address_snapshot, total, status, cart_items")
     .gte("created_at", thirtyDaysAgo);
 
   if (error) {
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from("orders")
-      .select("address_snapshot, total, status, cart_items")
-      .gte("created_at", thirtyDaysAgo);
-    
-    if (fallbackError) {
-      console.error("Error loading city orders:", fallbackError);
-      return [];
-    }
-    return processCityOrdersData(fallbackData);
+    console.error("Error loading city orders:", error);
+    return [];
   }
 
   return processCityOrdersData(data);
@@ -937,9 +932,6 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
 function processCityOrdersData(data: any[]): Array<{ city: string; count: number; revenue: number; state?: string }> {
   const cityData: Record<string, { count: number; revenue: number; state: string }> = {};
   for (const row of data || []) {
-    if (row.deleted_at) {
-      continue;
-    }
     
     const statusLower = (row.status || "").toLowerCase();
     if (

@@ -369,18 +369,20 @@ export async function POST(req: NextRequest) {
               .join(", ")
           : "No address details available";
 
-        sendOrderConfirmationEmail({
-          id: dbOrder.id,
-          customerName: dbOrder.customer || "Valued Customer",
-          customerEmail,
-          items: groupedItems,
-          total: Number(dbOrder.total || 0),
-          address: addressStr,
-          couponCode: dbOrder.coupon_code || dbOrder.couponCode || null,
-          couponDiscount: Number(dbOrder.coupon_discount || dbOrder.couponDiscount || 0)
-        }).catch((emailError) => {
+        try {
+          await sendOrderConfirmationEmail({
+            id: dbOrder.id,
+            customerName: dbOrder.customer || "Valued Customer",
+            customerEmail,
+            items: groupedItems,
+            total: Number(dbOrder.total || 0),
+            address: addressStr,
+            couponCode: dbOrder.coupon_code || dbOrder.couponCode || null,
+            couponDiscount: Number(dbOrder.coupon_discount || dbOrder.couponDiscount || 0)
+          });
+        } catch (emailError) {
           console.error("[Email] Order confirmation email failed:", emailError);
-        });
+        }
       } else {
         console.warn(`[Email] Could not resolve customer email for order #${dbOrder.id}. Email sending skipped.`);
       }

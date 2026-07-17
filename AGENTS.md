@@ -20,3 +20,12 @@ All UI components, pages, and mockups created or modified must strictly adhere t
 4. **No Raw Emojis:** Do not include raw emoji characters (such as ✅, ❌, 🚚, 📦, 🖨️) in user-facing layouts. Replace them with custom, clean vector SVG line-art icons styled in black or gold.
 5. **High-Contrast Brutalist Grids:** Structure detail cards and lists with thin outline borders (e.g. `border border-on-surface/10` or `border-[#7f7667]/20`) and sharp divisions rather than floating shadow cards.
 
+# PHASE 3 PREPARATION: FROZEN MODULES
+The following Phase 2 subsystems are fully frozen and stabilized. Do NOT modify them in Phase 3 unless a production-critical bug is explicitly reported:
+1. **Payment Module**: `lib/db/payments.ts`, `app/api/payments/**`, `app/api/webhooks/razorpay/**`
+2. **Inventory & Reservation**: `lib/db/inventory.ts`
+3. **Finance & Analytics**: `lib/db/analytics.ts`
+4. **Invoice Generation**: `app/invoice/**`, `lib/invoice-template.ts`
+5. **Shiprocket Sync**: `lib/db/shipments.ts`, `lib/shiprocket.ts`, `app/api/webhooks/shiprocket/**`
+6. **Order Lifecycle**: `lib/db/orders.ts` (specifically `transitionOrderStatus` state machine logic).
+

@@ -1,6 +1,14 @@
-﻿import { Resend } from "resend";
+﻿import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+  port: Number(process.env.BREVO_SMTP_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_SMTP_USER,
+    pass: process.env.BREVO_SMTP_PASS
+  }
+});
 const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "6kthebrand@gmail.com";
 
 export async function sendOrderConfirmationEmail(order: {
@@ -80,8 +88,8 @@ export async function sendOrderConfirmationEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Order Confirmed â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -137,8 +145,8 @@ export async function sendReturnAcceptedEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Return Approved â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -187,8 +195,8 @@ export async function sendReturnRejectedEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Return Update â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -248,8 +256,8 @@ export async function sendOrderCancelledEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Order Cancelled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -309,8 +317,8 @@ export async function sendReturnPickupScheduledEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Return Pickup Scheduled â€” #${order.id} | 6K Brand`,
       html: htmlContent,
@@ -402,8 +410,8 @@ export async function sendShippingConfirmationEmail(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: params.to,
       subject: `Your 6K order has been shipped â€” #${params.orderId}`,
       html: htmlContent,
@@ -448,8 +456,8 @@ export async function sendAdminAlert(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: adminEmails,
       subject: `[6K Admin Alert] ${params.subject}`,
       html: htmlContent,
@@ -508,8 +516,8 @@ export async function sendOrderCancelledByAdminEmail(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: params.to,
       subject: `Your 6K order #${params.orderId} has been cancelled`,
       html: htmlContent,
@@ -584,8 +592,8 @@ export async function sendWalletCreditedEmail(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: params.to,
       subject: `â‚¹${params.amount} credited to your 6K wallet`,
       html: htmlContent,
@@ -661,8 +669,8 @@ export async function sendOrderDeliveredEmail(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: params.to,
       subject: `Your 6K order #${params.orderId} has been delivered!`,
       html: htmlContent,
@@ -710,8 +718,8 @@ export async function sendReturnDeclinedEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: "Your return request has been declined",
       html: htmlContent,
@@ -759,8 +767,8 @@ export async function sendReturnQcFailedEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: "Return inspection result",
       html: htmlContent,
@@ -798,8 +806,8 @@ export async function sendReturnPickupAssignedEmail(order: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: order.customerEmail,
       subject: `Return Pickup Scheduled â€” #${order.id}`,
       html: htmlContent,
@@ -863,8 +871,8 @@ export async function sendQcFailedEmail(params: {
   `;
 
   try {
-    await resend.emails.send({
-      from: fromEmail,
+    await transporter.sendMail({
+      from: `"6K Designer Shirts" <${process.env.RESEND_FROM_EMAIL || 'noreply@the6k.com'}>`,
       to: params.to,
       subject: `Return inspection update â€” Order #${params.orderId}`,
       html: htmlContent,

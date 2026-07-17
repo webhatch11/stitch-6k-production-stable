@@ -333,14 +333,14 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                   let badgeElement = null;
                   if (product.isNew) {
                     badgeElement = (
-                      <span className="absolute top-3 left-3 bg-black text-[#fed488] border border-[#fed488]/50 px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] z-10 rounded-none shadow-sm">
-                        New Arrival
+                      <span className="absolute top-2.5 left-2.5 bg-black/80 backdrop-blur-md text-[#fed488] border border-[#fed488]/30 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 rounded-full shadow-md">
+                        Drop New
                       </span>
                     );
                   } else if (product.stock && product.stock < 35) {
                     badgeElement = (
-                      <span className="absolute top-3 left-3 bg-red-600 text-white border border-red-400/50 px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] z-10 rounded-none shadow-sm flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-none bg-white animate-pulse"></span> Low Run
+                      <span className="absolute top-2.5 left-2.5 bg-black/80 backdrop-blur-md text-red-400 border border-red-400/30 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 rounded-full shadow-md flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> Low Run
                       </span>
                     );
                   }
@@ -354,7 +354,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
-                      className="group relative border border-white/5 p-2 bg-[#121214] hover:shadow-[0_4px_16px_rgba(0,0,0,0.5)] hover:-translate-y-1.5 hover:border-white/10 active:scale-[0.98] active:translate-y-0 transition-all duration-500 ease-out rounded-none flex flex-col justify-between"
+                      className="group relative border border-white/5 p-2 bg-[#121214] hover:shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_20px_rgba(254,212,136,0.03)] hover:-translate-y-1.5 hover:border-[#fed488]/30 active:scale-[0.98] active:translate-y-0 transition-all duration-500 ease-out rounded-2xl flex flex-col justify-between"
                     >
                       <Link
                         href={`/product/${product.slug}`}
@@ -365,7 +365,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                           overflow: 'hidden',
                           backgroundColor: '#f5f5f5'
                         }}
-                        className="block relative aspect-[3/4] overflow-hidden bg-neutral-900 border border-white/5 rounded-none select-none"
+                        className="block relative aspect-[3/4] overflow-hidden bg-neutral-900 border border-white/5 rounded-xl select-none"
                       >
                         {/* Primary Image */}
                         <ProductImage

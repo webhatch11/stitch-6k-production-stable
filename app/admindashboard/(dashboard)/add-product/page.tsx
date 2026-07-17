@@ -449,6 +449,10 @@ function AddProductContent() {
       seoKeywords: seoKeywords.trim() || null,
     };
 
+    if (!weightGrams || Number(weightGrams) === 0) {
+      triggerToast("⚠️ Product weight required for shipping. Please enter weight in grams.");
+    }
+
     setIsSubmitting(true);
     try {
       if (!editProductId) {

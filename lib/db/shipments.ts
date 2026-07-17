@@ -177,6 +177,23 @@ export async function dispatchFulfillment(
   orderId: string
 ): Promise<{ success: boolean; status: "CREATED" | "RETRYING"; error?: string }> {
   try {
+    const { supabase } = loadService();
+    if (supabase) {
+      const { data: existing } = await supabase
+        .from('orders')
+        .select('shiprocket_order_id')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (existing?.shiprocket_order_id) {
+        console.log(
+          '[dispatchFulfillment] Already dispatched:',
+          existing.shiprocket_order_id
+        );
+        return { success: true, status: "CREATED" };
+      }
+    }
+
     const order = await ordersDb.getOrderById(orderId);
     if (!order) {
       throw new Error(`Order ${orderId} not found`);
@@ -226,7 +243,6 @@ export async function dispatchFulfillment(
           };
         });
 
-    const { supabase } = loadService();
     // Get weight from order cart items
     const orderData = supabase ? await supabase
       .from('orders')
@@ -237,22 +253,29 @@ export async function dispatchFulfillment(
     const cartItems = orderData?.data?.cart_items || order.cartItems || [];
     let totalWeight = 0;
 
-    for (const item of cartItems) {
-      // Try to get weight from product
-      let weight = 300;
-      if (supabase && item.productId) {
-        const { data: product } = await supabase
-          .from('products')
-          .select('weight_grams')
-          .eq('id', item.productId)
-          .maybeSingle();
-        weight = product?.weight_grams || 300;
+    if (supabase && cartItems.length > 0) {
+      const productIds = cartItems.map((i: any) => i.productId).filter(Boolean);
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, weight_grams')
+        .in('id', productIds);
+
+      const productWeightMap = new Map(
+        (products || []).map(p => [p.id, p.weight_grams])
+      );
+
+      for (const item of cartItems) {
+        const weight = productWeightMap.get(item.productId) || 300;
+        totalWeight += weight * (item.quantity || 1);
       }
-      totalWeight += weight * (item.quantity || 1);
+    } else {
+      for (const item of cartItems) {
+        totalWeight += 300 * (item.quantity || 1);
+      }
     }
 
     // Convert grams to kg for Shiprocket
-    const weightKg = totalWeight / 1000 || 0.3;
+    const weightKg = Math.max(totalWeight / 1000, 0.1);
 
     const weight = weightKg;
     const length = 30;
@@ -320,6 +343,15 @@ export async function dispatchFulfillment(
       await ordersDb.createOrderEvent(order.id, "Shipment Failed - Retrying");
 
       return { success: false, status: "RETRYING", error: result.error };
+    }
+
+    if (supabase && result.shiprocketOrderId) {
+      await supabase
+        .from('orders')
+        .update({
+          shiprocket_order_id: String(result.shiprocketOrderId)
+        })
+        .eq('id', orderId);
     }
 
     await saveShipment({

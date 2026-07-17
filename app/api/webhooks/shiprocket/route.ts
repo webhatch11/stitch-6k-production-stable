@@ -137,6 +137,59 @@ export async function POST(req: NextRequest) {
     } else if (lowerStatus.includes("out for delivery")) {
       newStatus = "Shipped";
       eventMsg = "Package out for delivery.";
+    } else if (
+      lowerStatus.includes("label generated") ||
+      lowerStatus.includes("manifested") ||
+      lowerStatus.includes("ready to ship")
+    ) {
+      const awbCode = body.awb || body.awb_code || body.shipment_track?.awb_code;
+
+      if (awbCode) {
+        newStatus = "Shipped";
+        
+        const { supabase } = await import("@/lib/db/client-raw").then(m => m.loadService());
+        if (supabase) {
+          // Save AWB to shipments
+          await supabase
+            .from("shipments")
+            .update({ awb_code: awbCode })
+            .eq("order_id", order.id);
+
+          // Update order with AWB
+          await supabase
+            .from("orders")
+            .update({ shiprocket_id: awbCode })
+            .eq("id", order.id);
+        }
+
+        eventMsg = `Label generated. AWB: ${awbCode}`;
+
+        // Send shipping email
+        try {
+          const addressSnap = typeof order.address_snapshot === "string" 
+            ? JSON.parse(order.address_snapshot) 
+            : order.address_snapshot;
+            
+          if (addressSnap?.email) {
+            const { sendShippingConfirmationEmail } = await import("@/lib/email");
+            await sendShippingConfirmationEmail({
+              to: addressSnap.email,
+              customerName: addressSnap.name || "Customer",
+              orderId: order.id,
+              awbCode: awbCode,
+              courierName: body.courier_name || "Courier",
+              estimatedDelivery: body.etd || "3-5 Business Days",
+              items: (order.cartItems || []).map((item: any) => ({
+                name: item.productName || item.title || "Item",
+                quantity: item.quantity || 1
+              })),
+              trackingUrl: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.stitch6k.com"}/ordertracking?orderId=${order.id}`
+            });
+          }
+        } catch (e) {
+          console.error("Shipping email failed:", e);
+        }
+      }
     }
 
     // Update the database order

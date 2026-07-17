@@ -676,38 +676,16 @@ export async function generateShipmentLabelAction(
   try {
     const shipment = await db.getShipmentByOrderId(orderId);
     if (!shipment) {
-      // No shipment exists yet — dispatch to Shiprocket now.
-      // This handles wallet orders (and any order where dispatchFulfillment was not
-      // called at checkout). Dispatch creates the Shiprocket order, assigns the AWB,
-      // and creates a row in the shipments table.
-      console.log(`[generateShipmentLabelAction] No shipment found for #${orderId} — dispatching to Shiprocket now.`);
-      try {
-        await db.dispatchFulfillment(orderId);
-      } catch (dispatchErr: any) {
-        console.error(`[generateShipmentLabelAction] dispatchFulfillment failed for #${orderId}:`, dispatchErr);
-        return {
-          success: false,
-          labelUrl: null,
-          manifestUrl: null,
-          cached: false,
-          error: `Shiprocket dispatch failed: ${dispatchErr.message || "Unknown error"}`
-        };
-      }
-
-      // Re-fetch the shipment now that it has been created
-      const newShipment = await db.getShipmentByOrderId(orderId);
-      if (!newShipment) {
-        return {
-          success: false,
-          labelUrl: null,
-          manifestUrl: null,
-          cached: false,
-          error: "Shiprocket dispatch succeeded but shipment record was not created"
-        };
-      }
+      return {
+        success: false,
+        labelUrl: null,
+        manifestUrl: null,
+        cached: false,
+        error: "No shipment record found for order. Dispatch fulfillment must run first."
+      };
     }
 
-    // Use latest shipment record (either existing or freshly created via dispatchFulfillment)
+    // Use latest shipment record
     const resolvedShipment = await db.getShipmentByOrderId(orderId);
     if (!resolvedShipment) {
       return {

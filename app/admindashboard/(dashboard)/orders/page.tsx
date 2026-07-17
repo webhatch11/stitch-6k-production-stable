@@ -645,35 +645,32 @@ export default function OrdersKanbanPage() {
       )}
 
       {activeTab === 'packed' && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between bg-white border border-[#7f7667]/20 rounded-none p-5 mb-6 animate-fade-in">
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#775a19]">
-              LABELS: {selectedIds.length} order(s) selected
-            </span>
-            <button
-              onClick={handleBulkGenerateLabels}
-              disabled={submitting}
-              className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-2.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
-            >
-              Generate Shiprocket Labels ({selectedIds.length})
-            </button>
-          </div>
-          <button onClick={clearSelection} className="text-gray-500 text-xs font-bold uppercase hover:text-black cursor-pointer bg-transparent border-none">
-            Clear Selection
-          </button>
+        <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+          <span className="text-sm font-medium">
+            {selectedIds.length} orders selected
+          </span>
+          
+          <a
+            href="https://app.shiprocket.in/new-orders"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium no-underline"
+          >
+            Open Shiprocket to Generate Labels →
+          </a>
         </div>
       )}
 
       {activeTab === 'shipped' && (
         <div className="flex justify-end mb-6">
-          <button
-            onClick={handlePrintManifest}
-            disabled={submitting}
-            className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-6 py-3 rounded-none text-[10px] font-black uppercase tracking-widest flex items-center gap-2 cursor-pointer transition-colors border-none"
+          <a
+            href="https://app.shiprocket.in/manifests"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-orange-500 underline"
           >
-            <span className="material-symbols-outlined text-sm">assignment</span>
-            Print Shipped Manifests
-          </button>
+            Print Manifest in Shiprocket →
+          </a>
         </div>
       )}
 
@@ -778,12 +775,15 @@ export default function OrdersKanbanPage() {
                               </button>
                             )}
                             {activeTab === 'packed' && (
-                              <button
-                                onClick={() => handleSingleGenerateLabel(order.id)}
-                                className="bg-[#1a1c1c] text-[#faf9f8] hover:bg-[#775a19] px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
+                              <a
+                                href="https://app.shiprocket.in/new-orders"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors no-underline"
+                                style={{background:'#f97316'}}
                               >
-                                Generate Label
-                              </button>
+                                Open Shiprocket →
+                              </a>
                             )}
                             {isPendingTab && (
                               <Link

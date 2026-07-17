@@ -226,7 +226,35 @@ export async function dispatchFulfillment(
           };
         });
 
-    const weight = 0.4 * quantity;
+    const { supabase } = loadService();
+    // Get weight from order cart items
+    const orderData = supabase ? await supabase
+      .from('orders')
+      .select('cart_items')
+      .eq('id', orderId)
+      .maybeSingle() : null;
+
+    const cartItems = orderData?.data?.cart_items || order.cartItems || [];
+    let totalWeight = 0;
+
+    for (const item of cartItems) {
+      // Try to get weight from product
+      let weight = 300;
+      if (supabase && item.productId) {
+        const { data: product } = await supabase
+          .from('products')
+          .select('weight_grams')
+          .eq('id', item.productId)
+          .maybeSingle();
+        weight = product?.weight_grams || 300;
+      }
+      totalWeight += weight * (item.quantity || 1);
+    }
+
+    // Convert grams to kg for Shiprocket
+    const weightKg = totalWeight / 1000 || 0.3;
+
+    const weight = weightKg;
     const length = 30;
     const width = 22;
     const height = Math.max(5, 5 * quantity);

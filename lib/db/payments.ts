@@ -8,6 +8,7 @@ import { loyaltyDb } from "./loyalty";
 import { couponsDb } from "./coupons";
 import { usersDb } from "./users";
 import { settingsDb } from "./settings";
+import { dispatchFulfillment } from "./shipments";
 import { InventoryService } from "../services/inventory";
 import { OrderStatusHistory } from "../types";
 
@@ -649,6 +650,12 @@ export async function runPostPaymentSideEffects(orderId: string, razorpayPayment
     }
   } catch (e) {
     console.error("[runPostPaymentSideEffects] deductStock failed:", e);
+  }
+
+  try {
+    await dispatchFulfillment(orderId);
+  } catch (err) {
+    console.error('[payment] Shiprocket dispatch failed:', err);
   }
 
   try {

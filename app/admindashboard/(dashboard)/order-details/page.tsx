@@ -1684,24 +1684,16 @@ function OrderDetailsContent() {
                 if (orderStatus === "packed") {
                   return (
                     <div className="flex flex-col gap-3">
-                      {/* Generate Label */}
-                      <button
-                        onClick={handleGenerateLabelPacked}
-                        disabled={printingLabel}
-                        className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
+                      {/* Open Shiprocket */}
+                      <a
+                        href="https://app.shiprocket.in/new-orders"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-white no-underline"
+                        style={{background:'#f97316'}}
                       >
-                        {printingLabel ? (
-                          <>
-                            <span className="animate-spin material-symbols-outlined text-lg mb-1">progress_activity</span>
-                            <span>Generating label...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
-                            <span>Generate Label</span>
-                          </>
-                        )}
-                      </button>
+                        📦 Open in Shiprocket →
+                      </a>
 
                       {/* Cancel Order */}
                       <button

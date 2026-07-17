@@ -26,21 +26,21 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
 
   if (isHomepage) {
     return (
-      <div className="marquee-container overflow-hidden w-full bg-on-surface text-surface py-4.5 text-[11px] font-black uppercase tracking-[0.25em] relative z-20 border-y border-white/5">
+      <div className="marquee-container overflow-hidden w-full bg-[#1a1c1c] text-[#775a19] py-4 md:py-5 text-[11px] md:text-[12px] font-black uppercase tracking-[0.3em] relative z-20 border-y border-[#775a19]/30 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
         <div className="flex animate-marquee whitespace-nowrap">
           <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
             {items.map((item, idx) => (
               <React.Fragment key={idx}>
-                <span>{item}</span>
-                <span className="text-secondary-fixed-dim font-extrabold">•</span>
+                <span className="drop-shadow-[0_0_8px_rgba(119,90,25,0.4)]">{item}</span>
+                <span className="text-white/20 font-black px-4">•</span>
               </React.Fragment>
             ))}
           </div>
           <div className="flex shrink-0 items-center justify-around min-w-full gap-12 px-6">
             {items.map((item, idx) => (
               <React.Fragment key={idx}>
-                <span>{item}</span>
-                <span className="text-secondary-fixed-dim font-extrabold">•</span>
+                <span className="drop-shadow-[0_0_8px_rgba(119,90,25,0.4)]">{item}</span>
+                <span className="text-white/20 font-black px-4">•</span>
               </React.Fragment>
             ))}
           </div>
@@ -50,13 +50,13 @@ export default function AnnouncementMarquee({ marquee, isHomepage = false }: Ann
   }
 
   return (
-    <div className="marquee-container overflow-hidden w-full bg-[#1a1c1c] text-[#faf9f8] py-1.5 text-[9px] font-black uppercase tracking-[0.3em] relative z-[60] border-y border-[#7f7667]/20">
+    <div className="marquee-container overflow-hidden w-full bg-[#1a1c1c] text-[#775a19] py-2 text-[9px] font-black uppercase tracking-[0.3em] relative z-[60] border-y border-[#775a19]/30 shadow-md">
       <div className="flex animate-marquee whitespace-nowrap">
         <div className="flex shrink-0 items-center gap-12 px-6">
           {items.map((item, idx) => (
             <React.Fragment key={idx}>
-              <span>{item}</span>
-              <span className="text-[#775a19] font-black">•</span>
+              <span className="drop-shadow-[0_0_5px_rgba(119,90,25,0.4)]">{item}</span>
+              <span className="text-white/20 font-black px-4">•</span>
             </React.Fragment>
           ))}
         </div>

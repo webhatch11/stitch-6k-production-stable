@@ -338,19 +338,19 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                   let badgeElement = null;
                   if (product.isNew) {
                     badgeElement = (
-                      <span className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur-md text-[#fed488] border border-[#fed488]/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full">
+                      <span className="absolute top-3 left-3 bg-black text-[#fed488] border border-[#fed488]/50 px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] z-10 shadow-sm rounded-none">
                         New Arrival
                       </span>
                     );
                   } else if (product.stock && product.stock < 30) {
                     badgeElement = (
-                      <span className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur-md text-red-400 border border-red-400/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> Only {product.stock} Left
+                      <span className="absolute top-3 left-3 bg-red-600 text-white border border-red-400/50 px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] z-10 shadow-sm rounded-none flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-none bg-white animate-pulse"></span> Only {product.stock} Left
                       </span>
                     );
                   } else if (product.price > 8000) {
                     badgeElement = (
-                      <span className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur-md text-[#fed488] border border-[#fed488]/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 shadow-md rounded-full">
+                      <span className="absolute top-3 left-3 bg-black text-[#fed488] border border-[#fed488]/50 px-2.5 py-1 text-[7.5px] font-black uppercase tracking-[0.25em] z-10 shadow-sm rounded-none">
                         Atelier Exclusive
                       </span>
                     );
@@ -365,7 +365,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: (index % 3) * 0.08 }}
-                        className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-[0_20px_40px_rgba(119,90,25,0.06),0_0_20px_rgba(254,212,136,0.04)] hover:-translate-y-1.5 hover:border-[#fed488]/40 active:scale-[0.98] active:translate-y-0 transition-all duration-500 ease-out rounded-[1.5rem] flex flex-col justify-between"
+                        className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-[0_4px_16px_rgba(0,0,0,0.01)] hover:-translate-y-1.5 hover:border-black/10 active:scale-[0.98] active:translate-y-0 transition-all duration-500 ease-out rounded-none flex flex-col justify-between"
                       >
                         <Link
                           href={`/product/${product.slug}`}
@@ -376,7 +376,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                             overflow: 'hidden',
                             backgroundColor: '#f5f5f5'
                           }}
-                          className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem] select-none"
+                          className="block relative aspect-[3/4] overflow-hidden bg-[#F5F5F5] rounded-none select-none"
                         >
                           {/* Primary Image */}
                           <ProductImage

@@ -1,6 +1,25 @@
 import IORedis from "ioredis";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+/**
+ * Strips surrounding quotes and whitespace that Vercel's env var UI
+ * sometimes injects, e.g.  REDIS_URL="rediss://..." stored literally
+ * with the quotes, which IORedis receives as `"rediss://..."` and
+ * fails to parse (EINVAL / ENOTFOUND on port %22).
+ */
+function sanitizeRedisUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  // Remove leading/trailing whitespace then strip surrounding single or double quotes
+  const trimmed = raw.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+const REDIS_URL = sanitizeRedisUrl(process.env.REDIS_URL) || "redis://localhost:6379";
 
 let redisClient: IORedis | null = null;
 let isRedisAvailable = false;
@@ -8,32 +27,31 @@ let isRedisAvailable = false;
 // Gracefully initialize Redis client
 try {
   if (process.env.NEXT_PHASE !== "phase-production-build") {
-    if (!process.env.REDIS_URL) {
-      throw new Error("[Cache Service] FATAL: REDIS_URL environment variable is missing.");
+    if (!sanitizeRedisUrl(process.env.REDIS_URL)) {
+      console.warn("[Cache Service] REDIS_URL not set — running without Redis. In-memory fallback active.");
+    } else {
+      redisClient = new IORedis(REDIS_URL, {
+        maxRetriesPerRequest: 2,
+        connectTimeout: 2000,
+      });
+
+      redisClient.on("error", (err) => {
+        console.warn("[Cache Service] Redis connection offline:", err.message);
+        isRedisAvailable = false;
+      });
+
+      redisClient.on("connect", () => {
+        console.log("[Cache Service] Redis connection established successfully.");
+        isRedisAvailable = true;
+      });
     }
-
-    redisClient = new IORedis(REDIS_URL, {
-      maxRetriesPerRequest: 2,
-      connectTimeout: 2000,
-    });
-
-    redisClient.on("error", (err) => {
-      console.warn("[Cache Service] Redis connection offline:", err.message);
-      isRedisAvailable = false;
-    });
-
-    redisClient.on("connect", () => {
-      console.log("[Cache Service] Redis connection established successfully.");
-      isRedisAvailable = true;
-    });
   }
 } catch (e) {
-  if (process.env.NEXT_PHASE !== "phase-production-build") {
-    console.error("[Cache Service] Fatal startup error:", e);
-    throw e;
-  } else {
-    console.warn("[Cache Service] Ignoring Redis build-phase setup error:", e);
-  }
+  // Never throw during module init — a Redis misconfiguration must not crash
+  // the Next.js server or poison the module cache for downstream routes.
+  console.error("[Cache Service] Redis init error — falling back to in-memory cache:", e);
+  redisClient = null;
+  isRedisAvailable = false;
 }
 
 // Memory cache fallback for robustness/offline mode

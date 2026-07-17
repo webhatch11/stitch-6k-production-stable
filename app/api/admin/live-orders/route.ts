@@ -3,24 +3,24 @@ import { getServerUser } from "@/lib/supabase-server";
 import { supabaseService } from "@/lib/supabase-service";
 
 export async function GET(req: NextRequest) {
-  // Admin-only — check session
-  const user = await getServerUser();
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const since = req.nextUrl.searchParams.get("since");
-  if (!since) {
-    return NextResponse.json({ error: "Missing ?since= param" }, { status: 400 });
-  }
-
-  const serverTime = new Date().toISOString();
-
-  if (since === "init") {
-    return NextResponse.json({ orders: [], serverTime });
-  }
-
   try {
+    // Admin-only — check session
+    const user = await getServerUser();
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const since = req.nextUrl.searchParams.get("since");
+    if (!since) {
+      return NextResponse.json({ error: "Missing ?since= param" }, { status: 400 });
+    }
+
+    const serverTime = new Date().toISOString();
+
+    if (since === "init") {
+      return NextResponse.json({ orders: [], serverTime });
+    }
+
     if (!supabaseService) {
       // Service role key not configured — return empty gracefully
       return NextResponse.json({ orders: [], serverTime });
@@ -70,3 +70,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+

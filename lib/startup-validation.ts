@@ -1,8 +1,25 @@
 import { checkDatabase, checkRedis, checkEmail, checkShiprocket, checkStorage } from "./health";
 
+/**
+ * Hard blockers: services whose absence makes the app non-functional.
+ * - database: every user-facing page depends on it.
+ *
+ * Soft dependencies (warnings only, never fatal):
+ * - redis:      rate limiting / caching. In-memory fallbacks exist throughout.
+ * - email:      async transactional emails. Falls back to direct SMTP.
+ * - shiprocket: logistics API. Failures are caught per-request.
+ * - storage:    Cloudinary image uploads. Not required for site load.
+ *
+ * IMPORTANT: Do NOT add Redis to fatalBlockers. On Vercel the IORedis
+ * client is not available during cold starts until the TCP handshake
+ * completes. Treating it as fatal causes process.exit(1) during
+ * normal Vercel cold-start, taking down the whole deployment.
+ */
+const FATAL_SERVICES = new Set(["database"]);
+
 export async function validateServices() {
   console.log("🚀 [Startup Validation] Running external services checks...");
-  
+
   const [database, redis, email, shiprocket, storage] = await Promise.all([
     checkDatabase(),
     checkRedis(),
@@ -11,22 +28,35 @@ export async function validateServices() {
     checkStorage(),
   ]);
 
-  const failures: string[] = [];
-  if (database.status !== "healthy") failures.push(`Database: ${database.error}`);
-  if (redis.status !== "healthy") failures.push(`Redis: ${redis.error}`);
-  if (email.status !== "healthy") failures.push(`Email: ${email.error}`);
-  if (shiprocket.status !== "healthy") failures.push(`Shiprocket: ${shiprocket.error}`);
-  if (storage.status !== "healthy") failures.push(`Storage: ${storage.error}`);
+  const allResults = [database, redis, email, shiprocket, storage];
+  const fatalFailures: string[] = [];
+  const warnings: string[] = [];
 
-  if (failures.length > 0) {
-    console.error("❌ [Startup Validation] Service validation failed! Blockers detected:");
-    failures.forEach((f) => console.error(`  - ${f}`));
-    
+  for (const result of allResults) {
+    if (result.status !== "healthy") {
+      const msg = `${result.service}: ${result.error}`;
+      if (FATAL_SERVICES.has(result.service)) {
+        fatalFailures.push(msg);
+      } else {
+        warnings.push(msg);
+      }
+    }
+  }
+
+  if (warnings.length > 0) {
+    console.warn("⚠️  [Startup Validation] Non-critical service(s) degraded (app will continue):");
+    warnings.forEach((w) => console.warn(`  - ${w}`));
+  }
+
+  if (fatalFailures.length > 0) {
+    console.error("❌ [Startup Validation] FATAL service(s) unavailable:");
+    fatalFailures.forEach((f) => console.error(`  - ${f}`));
+
     if (process.env.NODE_ENV === "production") {
-      console.error("🔥 [FATAL] Terminating process due to missing critical services in production.");
+      console.error("🔥 [FATAL] Terminating process — database unavailable in production.");
       process.exit(1);
     }
   } else {
-    console.log("✅ [Startup Validation] All external services are healthy and connected!");
+    console.log("✅ [Startup Validation] All critical services are healthy!");
   }
 }

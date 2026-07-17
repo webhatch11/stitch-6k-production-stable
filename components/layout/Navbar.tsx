@@ -58,18 +58,15 @@ export default function Navbar() {
 
   // Monitor scroll height to handle dynamic navbar transitions
   useEffect(() => {
-    let ticking = false;
     const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setIsScrolled(window.scrollY > 20);
-          ticking = false;
-        });
-        ticking = true;
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
       }
     };
     handleScroll(); // Initial run
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -77,33 +74,33 @@ export default function Navbar() {
   const isGenz = pathname.startsWith("/genz");
 
   // Determine navbar styles based on page theme & scroll status
-  let headerClass = "fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ease-in-out pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-2.5 ";
+  let headerClass = "fixed top-0 left-0 right-0 z-[100] transition-all duration-500 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-2.5 ";
   let linkClass = "text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[1px] after:transition-all after:duration-300 ";
-  let logoBgClass = "w-11 h-11 rounded-none p-1.5 flex items-center justify-center border border-[#7f7667]/20 transition-all duration-300 ";
-  let iconClass = "material-symbols-outlined hover:text-[#775a19] hover-scale transition-all duration-300 ";
+  let logoBgClass = "w-11 h-11 rounded-full p-1.5 flex items-center justify-center shadow-md transition-all duration-500 ";
+  let iconClass = "material-symbols-outlined hover:text-[#fed488] hover-scale transition-all duration-300 ";
 
   if (isHome) {
     if (isScrolled) {
       headerClass += "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm";
-      linkClass += "text-on-surface/80 hover:text-on-surface after:bg-on-surface hover:after:w-full";
-      logoBgClass += "bg-white border border-[#775a19]/15 shadow-sm";
+      linkClass += "text-on-surface/60 hover:text-on-surface after:bg-on-surface hover:after:w-full";
+      logoBgClass += "bg-white border border-[#775a19]/15 shadow-[0_0_12px_rgba(119,90,25,0.08)]";
       iconClass += "text-on-surface";
     } else {
       headerClass += "bg-transparent border-transparent";
-      linkClass += "text-white/80 hover:text-white after:bg-white hover:after:w-full";
-      logoBgClass += "bg-black/45 backdrop-blur-md border border-white/20 shadow-sm";
+      linkClass += "text-white/70 hover:text-white after:bg-white hover:after:w-full";
+      logoBgClass += "bg-black/45 backdrop-blur-md border border-white/20 shadow-[0_0_12px_rgba(255,255,255,0.05)]";
       iconClass += "text-white";
     }
   } else if (isGenz) {
     headerClass += "bg-black/60 backdrop-blur-md border-b border-[#fed488]/10 shadow-sm";
-    linkClass += "text-white/80 hover:text-[#fed488] after:bg-[#fed488] hover:after:w-full";
-    logoBgClass += "bg-black border border-[#fed488]/20 shadow-sm";
+    linkClass += "text-white/70 hover:text-[#fed488] after:bg-[#fed488] hover:after:w-full";
+    logoBgClass += "bg-black border border-[#fed488]/20 shadow-[0_0_12px_rgba(254,212,136,0.1)]";
     iconClass += "text-white";
   } else {
     // Standard storefront pages
     headerClass += "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm";
-    linkClass += "text-on-surface/80 hover:text-[#775a19] after:bg-[#775a19] hover:after:w-full";
-    logoBgClass += "bg-white border border-[#775a19]/15 shadow-sm";
+    linkClass += "text-outline hover:text-primary after:bg-primary hover:after:w-full";
+    logoBgClass += "bg-white border border-[#775a19]/15 shadow-[0_0_12px_rgba(119,90,25,0.08)]";
     iconClass += "text-on-surface";
   }
 
@@ -230,12 +227,18 @@ export default function Navbar() {
                 Sign In
               </Link>
             )}
+            <Link
+              href="/admindashboard/login"
+              className={`hidden md:block ${iconClass}`}
+            >
+              admin_panel_settings
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Modern Mobile Bottom Navigation Capsule */}
-      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-black/60 backdrop-blur-md border border-white/10 rounded-none py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-black/60 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
         {/* Home */}
         <Link 
           href="/" 
@@ -437,6 +440,15 @@ export default function Navbar() {
             </Link>
           )}
         </nav>
+        <div className="absolute bottom-28 flex gap-6 border-t border-outline/10 pt-6 w-full justify-center px-10">
+          <Link
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
+            href="/admindashboard/login"
+          >
+            Admin Dashboard
+          </Link>
+        </div>
       </div>
     </>
   );

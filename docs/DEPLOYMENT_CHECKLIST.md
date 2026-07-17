@@ -24,19 +24,21 @@ ORDER BY routine_name;
 **Expected Result:** 10 rows returned.
 If any are missing, run the relevant migration file listed below to create it.
 
-## Required Migrations (run in order)
-Apply the database migrations in this exact order to build the schema, constraints, indexes, and custom RPC functions:
+## Required Database Migrations
+Database changes, schema modifications, and custom stored procedures/functions (RPCs) are managed natively via the standard Supabase CLI migrations system located in `supabase/migrations/`.
 
-1. `lib/migrations/20260619181019_initial_schema.sql`
-2. `lib/migrations/20260712_loyalty_expire_atomic.sql`
-3. `lib/migrations/20260713_order_id_sequence.sql`
-4. `lib/migrations/20260714_shipment_label_manifest.sql`
-5. `lib/migrations/20260714_product_reorder_point.sql`
-6. `lib/migrations/20260714_points_credit_status.sql`
-7. `lib/migrations/20260714_coupon_atomic_decrement.sql`
-8. `lib/migrations/20260714_fix_wallet_default.sql`
-9. `lib/migrations/20260715_order_workflow.sql`
-10. `lib/migrations/20260715_checkout_transaction.sql`
+To apply all migrations to your environment, use the standard Supabase CLI command from the repository root:
+
+```bash
+# Push migrations to the linked remote database
+supabase db push
+```
+
+If you are setting up a local development environment:
+```bash
+# Reset local database and apply all migrations and seeds
+supabase db reset
+```
 
 ## Required Environment Variables
 Configure the following keys in your production environment variables (e.g. `.env.local` or host dashboard):
@@ -109,8 +111,8 @@ Configure the following keys in your production environment variables (e.g. `.en
 ## Pre-deploy Verification
 - [ ] `npx tsc --noEmit` passes with zero errors
 - [ ] `npm run build` passes with zero errors
-- [ ] All 10 RPCs verified in Supabase
-- [ ] All 10 migration files run in order
+- [ ] All required RPCs verified in Supabase
+- [ ] Database migrations applied successfully via `supabase db push`
 - [ ] Upstash/Redis request quota limit verified and not exceeded
 - [ ] Real Shiprocket credentials set in environment variables
 - [ ] Razorpay webhook URL updated to production `/api/webhooks/razorpay` in Dashboard

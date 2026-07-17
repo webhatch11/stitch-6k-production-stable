@@ -1,0 +1,17 @@
+ALTER TABLE public.orders
+ADD COLUMN IF NOT EXISTS shiprocket_order_id TEXT DEFAULT NULL;
+
+ALTER TABLE public.orders
+ADD COLUMN IF NOT EXISTS awb_code TEXT DEFAULT NULL;
+
+ALTER TABLE public.orders
+ADD COLUMN IF NOT EXISTS courier_name TEXT DEFAULT NULL;
+
+ALTER TABLE public.orders
+ADD COLUMN IF NOT EXISTS tracking_url TEXT DEFAULT NULL;
+
+ALTER TABLE public.tracking_logs
+ADD COLUMN IF NOT EXISTS processed BOOLEAN DEFAULT false;
+
+ALTER TABLE public.tracking_logs
+ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;

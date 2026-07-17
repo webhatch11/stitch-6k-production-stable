@@ -1,4 +1,4 @@
-﻿import nodemailer from "nodemailer";
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
@@ -523,7 +523,7 @@ export async function sendOrderCancelledByAdminEmail(params: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver order cancelled email to ${params.to} via Resend. Error:`, err.message || err);
+    console.error(`[Email Error] Failed to deliver order cancelled email to ${params.to} via Brevo SMTP. Error:`, err.message || err);
   }
 }
 
@@ -599,7 +599,7 @@ export async function sendWalletCreditedEmail(params: {
       html: htmlContent,
     });
   } catch (err: any) {
-    console.error(`[Email Error] Failed to deliver wallet credit email to ${params.to} via Resend. Error:`, err.message || err);
+    console.error(`[Email Error] Failed to deliver wallet credit email to ${params.to} via Brevo SMTP. Error:`, err.message || err);
   }
 }
 

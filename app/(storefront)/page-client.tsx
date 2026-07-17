@@ -480,7 +480,6 @@ export default function HomeClient({
   const [isAutoPlay, setIsAutoPlay] = useState(true);
 
   // Best sellers auto-scroll refs
-  const reviewsScrollRef = useRef<HTMLDivElement>(null);
   const slingRef = useRef<HTMLDivElement>(null);
   const [isSlingHovered, setIsSlingHovered] = useState(false);
 
@@ -1863,68 +1862,14 @@ export default function HomeClient({
               </div>
             </motion.div>
 
-            {/* Reviews Section Header with Navigation */}
-            <div className="max-w-[1400px] mx-auto px-4 md:px-8 mb-6 flex justify-between items-end">
-              <div></div>
-              <div className="flex gap-2 hidden md:flex">
-                <button 
-                  onClick={() => {
-                    if (reviewsScrollRef.current) {
-                      reviewsScrollRef.current.scrollBy({ left: -380, behavior: 'smooth' });
-                    }
-                  }}
-                  className="w-10 h-10 border border-[#7f7667]/20 flex items-center justify-center hover:bg-[#1a1c1c] hover:text-white transition-colors group rounded-none bg-[#faf9f8]"
-                >
-                  <span className="material-symbols-outlined text-sm transition-transform group-hover:-translate-x-1">arrow_back</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    if (reviewsScrollRef.current) {
-                      reviewsScrollRef.current.scrollBy({ left: 380, behavior: 'smooth' });
-                    }
-                  }}
-                  className="w-10 h-10 border border-[#7f7667]/20 flex items-center justify-center hover:bg-[#1a1c1c] hover:text-white transition-colors group rounded-none bg-[#faf9f8]"
-                >
-                  <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-
             {/* Reviews Carousel Grid */}
-            <div 
-              ref={reviewsScrollRef}
-              className="max-w-[1400px] mx-auto overflow-x-auto scrollbar-none snap-x snap-mandatory flex gap-6 px-4 md:px-8 py-4 pb-12 cursor-grab active:cursor-grabbing"
-              onMouseDown={(e) => {
-                const slider = reviewsScrollRef.current;
-                if (!slider) return;
-                let isDown = true;
-                const startX = e.pageX - slider.offsetLeft;
-                const scrollLeft = slider.scrollLeft;
-                
-                const onMouseMove = (e: MouseEvent) => {
-                  if (!isDown) return;
-                  e.preventDefault();
-                  const x = e.pageX - slider.offsetLeft;
-                  const walk = (x - startX) * 2;
-                  slider.scrollLeft = scrollLeft - walk;
-                };
-                
-                const onMouseUp = () => {
-                  isDown = false;
-                  window.removeEventListener('mousemove', onMouseMove);
-                  window.removeEventListener('mouseup', onMouseUp);
-                };
-                
-                window.addEventListener('mousemove', onMouseMove);
-                window.addEventListener('mouseup', onMouseUp);
-              }}
-            >
+            <div className="max-w-[1400px] mx-auto overflow-x-auto scrollbar-none snap-x snap-mandatory flex gap-6 px-4 md:px-8 py-4">
               {reviews.map((rev) => (
                 <div 
                   key={rev.id} 
                   className="w-[280px] sm:w-[320px] md:w-[380px] shrink-0 snap-center"
                 >
-                  <div className="bg-[#faf9f8] p-6 md:p-8 border border-[#7f7667]/20 rounded-none flex flex-col justify-between h-full min-h-[220px] transition-all duration-300 hover:border-[#775a19]/60 hover:shadow-[0_8px_30px_rgba(119,90,25,0.08)]">
+                  <div className="bg-[#faf9f8] p-6 border border-[#7f7667]/20 rounded-none flex flex-col justify-between h-full min-h-[220px] transition-all duration-300 hover:border-[#775a19]/40">
                     <div>
                       {/* Top row: stars + verified badge */}
                       <div className="flex justify-between items-center mb-4">

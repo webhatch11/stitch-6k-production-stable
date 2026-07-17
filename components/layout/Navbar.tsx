@@ -83,10 +83,17 @@ export default function Navbar() {
   let iconClass = "material-symbols-outlined hover:text-[#775a19] hover-scale transition-all duration-300 ";
 
   if (isHome) {
-    headerClass += "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm";
-    linkClass += "text-on-surface/80 hover:text-[#775a19] after:bg-[#775a19] hover:after:w-full";
-    logoBgClass += "bg-white border border-[#775a19]/15 shadow-sm";
-    iconClass += "text-on-surface";
+    if (isScrolled) {
+      headerClass += "bg-[#faf9f8]/95 backdrop-blur-md border-b border-[#775a19]/10 shadow-sm";
+      linkClass += "text-on-surface/80 hover:text-on-surface after:bg-on-surface hover:after:w-full";
+      logoBgClass += "bg-white border border-[#775a19]/15 shadow-sm";
+      iconClass += "text-on-surface";
+    } else {
+      headerClass += "bg-transparent border-transparent";
+      linkClass += "text-white/80 hover:text-white after:bg-white hover:after:w-full";
+      logoBgClass += "bg-black/45 backdrop-blur-md border border-white/20 shadow-sm";
+      iconClass += "text-white";
+    }
   } else if (isGenz) {
     headerClass += "bg-black/60 backdrop-blur-md border-b border-[#fed488]/10 shadow-sm";
     linkClass += "text-white/80 hover:text-[#fed488] after:bg-[#fed488] hover:after:w-full";
@@ -214,7 +221,11 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className={`hidden md:block text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 border transition-all duration-300 text-on-surface border-on-surface/20 hover:border-on-surface hover:bg-on-surface/5`}
+                className={`hidden md:block text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 border transition-all duration-300 ${
+                  isHome && !isScrolled
+                    ? "text-white border-white/30 hover:border-white hover:bg-white/10"
+                    : "text-on-surface border-on-surface/20 hover:border-on-surface hover:bg-on-surface/5"
+                }`}
               >
                 Sign In
               </Link>

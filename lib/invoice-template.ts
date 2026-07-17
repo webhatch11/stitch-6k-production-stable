@@ -1,7 +1,8 @@
 export function buildInvoiceHtml(
   data: InvoiceData,
   compact: boolean = false,
-  origin: string = ""
+  origin: string = "",
+  fullDocument: boolean = false
 ): string {
 
 // State codes - complete India list
@@ -507,7 +508,21 @@ const bodyHtml = `
   </div>
 `;
 
-return `<style>${css}</style>${bodyHtml}`;
+  const template = `<style>${css}</style>${bodyHtml}`;
+  if (fullDocument) {
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.6, maximum-scale=2">
+  <style>${css}</style>
+</head>
+<body style="margin: 0; padding: 0; background: white;">
+  ${bodyHtml}
+</body>
+</html>`;
+  }
+  return template;
 }
 
 export function orderToInvoiceData(

@@ -43,14 +43,20 @@ export default function InvoiceClient({
         window.dispatchEvent(new Event("storage"));
       }
     }
-    window.print();
+    const iframe = document.querySelector("iframe");
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } else {
+      window.print();
+    }
   };
 
   const invoiceData = orderToInvoiceData(
     matchedOrder,
     matchedOrder.id.replace("6K-RPO-", "").replace("6K-WPO-", "")
   );
-  const html = buildInvoiceHtml(invoiceData, false, origin);
+  const html = buildInvoiceHtml(invoiceData, false, origin, true);
 
   return (
     <div className="bg-[#f9f9f9] min-h-screen py-12 px-6 no-print-bg">
@@ -74,25 +80,45 @@ export default function InvoiceClient({
             margin: 0 !important;
           }
         }
+        @media (max-width: 640px) {
+          .invoice-preview iframe {
+            transform: scale(0.6) !important;
+            transform-origin: top left !important;
+            width: 167% !important; /* compensate for scale */
+            height: 133vh !important;
+          }
+        }
       `}} />
 
-      <div className="fixed top-6 right-6 flex gap-4 no-print z-50">
+      <div className="fixed top-6 right-6 left-6 sm:left-auto flex flex-col sm:flex-row gap-4 no-print z-50">
         <button
           onClick={handlePrint}
-          className="bg-black text-white px-8 py-3 LoggedInAdminOnly text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer"
+          className="w-full sm:w-auto px-6 py-3 bg-black text-white rounded-full text-sm font-medium LoggedInAdminOnly hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer text-center"
         >
           Print / Download PDF
         </button>
         <button
           onClick={() => router.back()}
-          className="bg-white border border-gray-200 text-gray-500 px-6 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all cursor-pointer"
+          className="w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-gray-500 rounded-full text-sm font-medium hover:bg-gray-50 transition-all cursor-pointer text-center"
         >
           Go Back
         </button>
       </div>
 
-      <div className="invoice-preview-container max-w-[800px] mx-auto shadow-sm border border-gray-200 bg-white">
-        <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mt-20 sm:mt-0">
+        <div className="min-w-[320px] invoice-preview-container max-w-[800px] mx-auto shadow-sm border border-gray-200 bg-white invoice-preview">
+          <iframe
+            srcDoc={html}
+            className="w-full border-0"
+            style={{
+              height: "80vh",
+              minHeight: "500px",
+              transform: "scale(1)",
+              transformOrigin: "top left",
+            }}
+            title="Invoice Preview"
+          />
+        </div>
       </div>
     </div>
   );

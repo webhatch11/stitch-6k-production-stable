@@ -306,7 +306,37 @@ export async function dispatchFulfillment(
       weight,
     };
 
-    const result = await shiprocket.createAndDispatchOrder(shiprocketPayload);
+    let result = await shiprocket.createAndDispatchOrder(shiprocketPayload);
+
+    if (!result.success) {
+      const errorStr = (result.error || "").toLowerCase();
+      if (errorStr.includes("already exists") || errorStr.includes("order id")) {
+        console.log(`[Dispatch] Order ${orderId} might already exist in Shiprocket. Verifying...`);
+        const existingSR = await shiprocket.getOrderByChannelOrderId(order.id);
+        if (existingSR && existingSR.id) {
+          console.log(`[Dispatch] Recovered existing Shiprocket order: ${existingSR.id}`);
+          
+          let awbResult: { success: boolean; awbCode?: string; courierName?: string; isMock?: boolean; error?: string } = { success: false, awbCode: "", courierName: "" };
+          if (existingSR.shipments && existingSR.shipments.length > 0) {
+             const sh = existingSR.shipments[0];
+             if (sh.awb) {
+               awbResult = { success: true, awbCode: sh.awb, courierName: sh.courier || "Shiprocket Partner Courier" };
+             } else {
+               awbResult = await shiprocket.generateAWB(sh.id);
+             }
+          }
+          
+          result = {
+            success: true,
+            shiprocketOrderId: existingSR.id,
+            shipmentId: existingSR.shipments?.[0]?.id,
+            awbCode: awbResult.awbCode,
+            courierName: awbResult.courierName,
+            isMock: false
+          };
+        }
+      }
+    }
 
     if (!result.success) {
       try {

@@ -149,11 +149,10 @@ export async function GET(req: NextRequest) {
 
           // Update DB if status changed
           if (mappedStatus !== order.status) {
-            order.status = mappedStatus;
-            await db.saveOrder(order);
-            await db.addOrderStatusHistory(order.id, mappedStatus, "Shiprocket Live Tracking Query", {
-              awb: shipment.awb_code,
-              current_status: currentStatus,
+            await db.transitionOrderStatus(order.id, mappedStatus, {
+              triggerSource: "Shiprocket Live Tracking Query",
+              userOrAdmin: "system",
+              reason: `Status mapped to ${mappedStatus} from ${currentStatus}`
             });
           }
 

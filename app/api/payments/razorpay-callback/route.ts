@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
+import { claimPaymentAtomically } from "@/lib/db/payments";
+import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,14 +62,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If order is not already marked as Paid, run side-effects.
-    if (dbOrder.status !== "Paid") {
-      const claimSuccess = await db.runPostPaymentSideEffects(dbOrder.id, razorpay_payment_id);
-      if (!claimSuccess) {
-        return NextResponse.redirect(
-          new URL("/payment-failed?error=Deduction+failed", req.url),
-          303
-        );
+    // Atomic compare-and-set
+    const claimResult = await claimPaymentAtomically(dbOrder.id, razorpay_payment_id);
+    
+    if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
+      return NextResponse.redirect(
+        new URL(`/payment-failed?error=${encodeURIComponent(claimResult.message || "Failed to claim order")}`, req.url),
+        303
+      );
+    }
+
+    if (claimResult.message !== 'Order already claimed' && claimResult.message !== 'Duplicate payment ID prevented') {
+      // We won the race. Enqueue side effects worker.
+      try {
+        await paymentProcessingQueue.add("process_payment_side_effects", {
+          orderId: dbOrder.id,
+          razorpayPaymentId: razorpay_payment_id
+        }, {
+          jobId: `payment_${dbOrder.id}_${razorpay_payment_id}` // Deduplication via jobId
+        });
+        console.log(`[Callback] Enqueued payment side effects for ${dbOrder.id}`);
+      } catch (enqueueErr) {
+        console.error("[Callback] Failed to enqueue payment worker:", enqueueErr);
       }
     }
 

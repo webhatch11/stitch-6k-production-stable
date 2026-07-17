@@ -110,6 +110,7 @@ export const db = {
   getOrderByIdempotencyKey: ordersDb.getOrderByIdempotencyKey,
   getOrderByAwb: ordersDb.getOrderByAwb,
   saveOrder: ordersDb.saveOrder,
+  transitionOrderStatus: ordersDb.transitionOrderStatus,
   requestManualReturn: ordersDb.requestManualReturn,
   approveReturnPickup: ordersDb.approveReturnPickup,
   rejectReturn: ordersDb.rejectReturn,

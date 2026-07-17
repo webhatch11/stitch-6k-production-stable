@@ -102,6 +102,7 @@ export interface Order {
   idempotencyKey?: string;
   cartItems?: any[];
   paymentStatus?: string;
+  paymentProcessingState?: any;
   userId?: string;
   user_id?: string;
   address_snapshot?: any;
@@ -141,6 +142,8 @@ export interface OrderStatusHistory {
   metadata?: any;
   created_at: string;
   updated_by: string;
+  triggerSource?: string;
+  reason?: string;
 }
 
 export interface OrderNote {

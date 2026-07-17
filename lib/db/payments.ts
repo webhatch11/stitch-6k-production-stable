@@ -604,6 +604,19 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
   return true;
 }
 
+export async function claimPaymentAtomically(orderId: string, razorpayPaymentId: string): Promise<{ success: boolean; message: string; status?: string }> {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Database connection not configured.");
+  }
+  const { data, error } = await supabase.rpc('atomic_claim_payment', { p_order_id: orderId, p_payment_id: razorpayPaymentId });
+  if (error) {
+    console.error('[claimPaymentAtomically] RPC error:', error);
+    return { success: false, message: 'RPC Error' };
+  }
+  return data as { success: boolean; message: string; status?: string };
+}
+
 export async function runPostPaymentSideEffects(orderId: string, razorpayPaymentId?: string): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) return false;

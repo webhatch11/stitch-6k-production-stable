@@ -184,8 +184,12 @@ export async function POST(req: NextRequest) {
     // Update the database order
     if (newStatus !== order.status) {
       const isDeliveredNow = newStatus === "Delivered";
-      order.status = newStatus;
-      await db.saveOrder(order);
+      
+      await db.transitionOrderStatus(order.id, newStatus, {
+        triggerSource: "Shiprocket Webhook",
+        userOrAdmin: "system",
+        reason: `Status mapped to ${newStatus} from webhook`
+      });
 
       if (isDeliveredNow) {
         try {

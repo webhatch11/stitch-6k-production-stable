@@ -138,25 +138,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Update order in database/local storage
-    await db.saveOrder({ ...order, status: "Shipped", shiprocketId: result.awbCode || "" });
-
-    // Add status history entry
-    try {
-      await db.addOrderStatusHistory(
-        order.id,
-        "Shipped",
-        "Admin Portal Dispatch",
-        {
-          shiprocket_order_id: result.shiprocketOrderId,
-          shipment_id: result.shipmentId,
-          awb: result.awbCode,
-          courier: result.courierName,
-          is_mock: result.isMock
-        }
-      );
-    } catch (historyErr) {
-      console.warn("[Dispatch API] Failed to add order status history:", historyErr);
-    }
+    await db.saveOrder({ ...order, shiprocketId: result.awbCode || "" });
+    await db.transitionOrderStatus(order.id, "Shipped", {
+      triggerSource: "Admin Portal Dispatch",
+      userOrAdmin: "admin",
+      reason: `Dispatched via Shiprocket. AWB: ${result.awbCode}`,
+      metadata: {
+        shiprocket_order_id: result.shiprocketOrderId,
+        shipment_id: result.shipmentId,
+        awb: result.awbCode,
+        courier: result.courierName,
+        is_mock: result.isMock
+      }
+    });
 
     return NextResponse.json({
       success: true,

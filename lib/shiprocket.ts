@@ -195,6 +195,34 @@ export const shiprocket = {
   },
 
   /**
+   * Fetch order from Shiprocket by our custom order_id
+   */
+  async getOrderByChannelOrderId(orderId: string): Promise<any> {
+    if (isMockMode) return null;
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`https://apiv2.shiprocket.in/v1/external/orders/show?channel_order_id=${orderId}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data && data.data && data.data.id) {
+        return data.data; // shiprocket returns single object for this endpoint usually, or array. Wait, let's just return the whole data and let caller handle.
+      }
+      if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+        return data.data[0];
+      }
+      return null;
+    } catch (err) {
+      console.error("[Shiprocket SDK] getOrderByChannelOrderId error:", err);
+      return null;
+    }
+  },
+
+  /**
    * Generate AWB for an existing shipment
    */
   async generateAWB(shipmentId: number): Promise<{ success: boolean; awbCode?: string; courierName?: string; isMock: boolean; error?: string }> {

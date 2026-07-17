@@ -432,6 +432,109 @@ export async function createOrderEvent(orderId: string, event: string): Promise<
   }
 }
 
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  "Pending": ["Payment Pending", "Cancelled"],
+  "Payment Pending": ["Paid", "Cancelled", "FAILED", "Payment Review Required"],
+  "Payment Review Required": ["Paid", "Cancelled", "FAILED"],
+  "Paid": ["Accepted", "Processing", "Cancelled", "FAILED", "Refunded (Out of Stock)"],
+  "Paid via Wallet": ["Processing", "Cancelled"],
+  "paid via wallet": ["Processing", "Cancelled"],
+  "Accepted": ["Packed", "Cancelled"],
+  "Processing": ["Packed", "Shipped", "Cancelled"],
+  "Packed": ["Shipped", "Cancelled"],
+  "Waiting for Dispatch": ["Shipped", "Cancelled"],
+  "Shipped": ["Delivered", "Returned", "Return Requested", "Return in Transit", "Cancelled"],
+  "Delivered": ["Returned", "Return Requested", "Cancelled"],
+  "Return Requested": ["Return in Transit", "Return Rejected", "Returned", "Cancelled", "Return Accepted"],
+  "Return Accepted": ["Return Pickup Scheduled", "Cancelled"],
+  "Return Pickup Scheduled": ["Return QC Pending", "Cancelled"],
+  "Return QC Pending": ["Return Approved", "Return QC Failed", "Cancelled"],
+  "Return Approved": ["Returned", "Cancelled"],
+  "Return QC Failed": ["Returned", "Cancelled"],
+  "Reship Requested": ["Shipped", "Cancelled"],
+  "Return in Transit": ["Returned", "Cancelled"],
+  "Return Rejected": ["Return Requested", "Returned", "Cancelled"],
+  "Cancelled": ["Refunded"],
+  "Returned": [],
+  "FAILED": ["Paid", "Cancelled"] // For manual recovery if needed
+};
+
+export async function transitionOrderStatus(
+  orderId: string,
+  newStatus: string,
+  context: {
+    triggerSource: string;
+    userOrAdmin: string;
+    reason: string;
+    allowBypass?: boolean;
+    metadata?: any;
+  }
+): Promise<boolean> {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Database connection not configured.");
+  }
+
+  // 1. Fetch current order
+  const { data: order, error: orderErr } = await supabase
+    .from("orders")
+    .select("status, id")
+    .eq("id", orderId)
+    .single();
+
+  if (orderErr || !order) {
+    console.error(`[transitionOrderStatus] Order not found: ${orderId}`);
+    return false;
+  }
+
+  const currentStatus = order.status;
+
+  // 2. Validate transition
+  if (!context.allowBypass) {
+    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+    if (currentStatus !== newStatus && !allowed.includes(newStatus)) {
+      console.error(`[transitionOrderStatus] Invalid transition: ${currentStatus} -> ${newStatus} for order ${orderId}`);
+      throw new Error(`Invalid state transition from ${currentStatus} to ${newStatus}`);
+    }
+  }
+
+  if (currentStatus === newStatus) {
+    return true; // Already in target state
+  }
+
+  // 3. Update order
+  const { error: updateErr } = await supabase
+    .from("orders")
+    .update({ status: newStatus })
+    .eq("id", orderId);
+
+  if (updateErr) {
+    console.error(`[transitionOrderStatus] Failed to update order ${orderId}:`, updateErr);
+    return false;
+  }
+
+  // 4. Create Audit Log
+  const { error: auditErr } = await supabase
+    .from("order_status_history")
+    .insert({
+      order_id: orderId,
+      status: newStatus,
+      updated_by: context.userOrAdmin,
+      trigger_source: context.triggerSource,
+      reason: context.reason,
+      metadata: { previous_status: currentStatus, ...context.metadata }
+    });
+
+  if (auditErr) {
+    console.error(`[transitionOrderStatus] Failed to create audit log for ${orderId}:`, auditErr);
+  }
+
+  // 5. Create basic event for timeline
+  await createOrderEvent(orderId, `Status updated to ${newStatus}`);
+
+  return true;
+}
+
 export async function getOrderEvents(orderId: string): Promise<Array<{ id: string; orderId: string; event: string; created_at: string }>> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -612,5 +715,6 @@ export const ordersDb = {
   getReturnByOrderId,
   generateOrderId,
   getNextOrderNumber,
+  transitionOrderStatus,
 };
 

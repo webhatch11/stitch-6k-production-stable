@@ -25,15 +25,15 @@ export async function POST(req: NextRequest) {
 
     await db.saveOrder({
       id: orderId,
-      status: 'Delivered',
       deliveredAt: deliveredAt,
       pointsCreditScheduledAt: pointsCreditAt
     })
-
-    await db.addOrderEvent(
-      orderId,
-      'Package delivered to customer (mock/test)'
-    )
+    
+    await db.transitionOrderStatus(orderId, 'Delivered', {
+      triggerSource: "Mock Deliver Route",
+      userOrAdmin: "admin",
+      reason: "Package delivered to customer (mock/test)"
+    })
 
     return NextResponse.json({ success: true })
   } catch (err) {

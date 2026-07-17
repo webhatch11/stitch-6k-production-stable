@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
     // Mark as inactive by backdating last_seen
     // 2 minutes in past = outside active window
     await supabase
-      .from('page_views')
+      .from('visitor_sessions')
       .update({ 
         last_seen: new Date(
           Date.now() - 2 * 60 * 1000
-        ).toISOString()
+        ).toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq('session_id', sessionId)
 

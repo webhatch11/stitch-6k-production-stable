@@ -125,10 +125,16 @@ export async function bulkUpdateOrderStatusAction(
     let count = 0;
     for (const o of allOrders) {
       if (orderIds.includes(o.id)) {
-        count++;
-        o.status = newStatus;
-        await db.saveOrder(o);
-        await db.addOrderEvent(o.id, "Status changed to: " + newStatus);
+        const success = await db.transitionOrderStatus(o.id, newStatus, {
+          triggerSource: "Admin Panel - Bulk Update",
+          userOrAdmin: "admin",
+          reason: "Bulk update from admin panel",
+          allowBypass: true // Admin bulk update allowed to bypass for recovery, but logged
+        });
+        
+        if (success) {
+          count++;
+        }
 
         // Fail-safe email dispatch triggered by status transition
         if (newStatus === "Cancelled") {
@@ -859,13 +865,15 @@ export async function markOrderPackedAction(
 
     const updated = {
       ...order,
-      status: "Packed",
       packedAt: new Date().toISOString()
     };
     await db.saveOrder(updated);
 
-    await db.addOrderEvent(orderId, "Invoice printed — order packed");
-    await db.addOrderStatusHistory(orderId, "Packed", "Admin (Invoice Print)");
+    await db.transitionOrderStatus(orderId, "Packed", {
+      triggerSource: "Admin Panel - Mark Packed",
+      userOrAdmin: "admin",
+      reason: "Invoice printed — order packed"
+    });
 
     return { success: true };
   } catch (e: any) {
@@ -902,13 +910,15 @@ export async function bulkAcceptOrdersAction(
 
       const updated = {
         ...order,
-        status: "Processing",
         acceptedAt: new Date().toISOString()
       };
       await db.saveOrder(updated);
 
-      await db.addOrderEvent(orderId, "Order accepted by admin");
-      await db.addOrderStatusHistory(orderId, "Processing", "Admin (Bulk)");
+      await db.transitionOrderStatus(orderId, "Processing", {
+        triggerSource: "Admin Panel - Bulk Accept",
+        userOrAdmin: "admin",
+        reason: "Order accepted by admin"
+      });
       accepted++;
     } catch (err) {
       console.error(`Failed to bulk accept order ${orderId}:`, err);
@@ -939,12 +949,15 @@ export async function bulkMarkPackedAction(
 
       const updated = {
         ...order,
-        status: "Packed",
         packedAt: new Date().toISOString()
       };
       await db.saveOrder(updated);
-      await db.addOrderEvent(orderId, "Invoice printed — order packed");
-      await db.addOrderStatusHistory(orderId, "Packed", "Admin (Bulk Invoice Print)");
+      
+      await db.transitionOrderStatus(orderId, "Packed", {
+        triggerSource: "Admin Panel - Bulk Packed",
+        userOrAdmin: "admin",
+        reason: "Invoice printed — order packed"
+      });
       packed++;
     } catch (err) {
       console.error(`Failed to bulk mark packed ${orderId}:`, err);
@@ -1062,13 +1075,14 @@ export async function generateBulkLabelsAction(
       if (order) {
         const updatedOrder = {
           ...order,
-          status: "Shipped",
           shiprocketId: shipment.awb_code || ""
         };
         await db.saveOrder(updatedOrder);
-        await db.addOrderEvent(orderId, "Label generated, AWB: " + shipment.awb_code);
-        await db.addOrderStatusHistory(orderId, "Shipped", "Admin (Bulk Label Generation)", {
-          awb: shipment.awb_code || ""
+        
+        await db.transitionOrderStatus(orderId, "Shipped", {
+          triggerSource: "Admin Panel - Label Generation",
+          userOrAdmin: "admin",
+          reason: "Label generated, AWB: " + shipment.awb_code
         });
       }
 
@@ -1224,8 +1238,13 @@ export async function rejectReturnWithReasonAction(
 
     await db.saveOrder({
       id: orderId,
-      status: "Return Rejected",
       returnRejectReason: reason,
+    });
+    
+    await db.transitionOrderStatus(orderId, "Return Rejected", {
+      triggerSource: "Admin Panel - Reject Return",
+      userOrAdmin: "admin",
+      reason: `Return rejected: ${reason}`
     });
 
     const createdBy = user.email || "admin@the6k.com";
@@ -1293,10 +1312,13 @@ export async function assignShiprocketReturnPickupAction(
         id: orderId,
         returnAwb: pickup.awb,
         returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString(),
-        status: "Return Pickup Scheduled",
       });
-
-      await db.addOrderEvent(orderId, `Return pickup scheduled. AWB: ${pickup.awb}`);
+      
+      await db.transitionOrderStatus(orderId, "Return Pickup Scheduled", {
+        triggerSource: "Admin Panel - Return Pickup",
+        userOrAdmin: "admin",
+        reason: `Return pickup scheduled. AWB: ${pickup.awb}`
+      });
 
       const email = await getCustomerEmailForOrder(order);
       if (email) {
@@ -1329,12 +1351,11 @@ export async function markReturnReceivedAction(
   }
 
   try {
-    await db.saveOrder({
-      id: orderId,
-      status: "Return QC Pending",
+    await db.transitionOrderStatus(orderId, "Return QC Pending", {
+      triggerSource: "Admin Panel - Mark Return Received",
+      userOrAdmin: "admin",
+      reason: "Item received at warehouse. QC in progress."
     });
-
-    await db.addOrderEvent(orderId, "Item received at warehouse. QC in progress.");
     return { success: true };
   } catch (e: any) {
     console.error("[markReturnReceivedAction] Error:", e);
@@ -1355,25 +1376,27 @@ export async function processQcResultAction(
 
   try {
     if (qcPassed) {
-      await db.saveOrder({
-        id: orderId,
-        status: "Return Approved",
+      await db.transitionOrderStatus(orderId, "Return Approved", {
+        triggerSource: "Admin Panel - QC Passed",
+        userOrAdmin: "admin",
+        reason: "QC passed — refund initiated"
       });
 
       const refundRes = await processReturnRefundAction(orderId, true, reason || "Return QC Passed");
       if (!refundRes.success) {
         return { success: false, error: refundRes.error || "Failed to process refund" };
       }
-
-      await db.addOrderEvent(orderId, "QC passed — refund initiated");
     } else {
       await db.saveOrder({
         id: orderId,
-        status: "Return QC Failed",
         returnRejectReason: reason,
       });
 
-      await db.addOrderEvent(orderId, `QC failed: ${reason}`);
+      await db.transitionOrderStatus(orderId, "Return QC Failed", {
+        triggerSource: "Admin Panel - QC Failed",
+        userOrAdmin: "admin",
+        reason: `QC failed: ${reason}`
+      });
 
       const order = await db.getOrderById(orderId);
       if (order) {
@@ -1411,12 +1434,11 @@ export async function reshipReturnItemAction(
   }
 
   try {
-    await db.saveOrder({
-      id: orderId,
-      status: "Reship Requested",
+    await db.transitionOrderStatus(orderId, "Reship Requested", {
+      triggerSource: "Admin Panel - Reship Return",
+      userOrAdmin: "admin",
+      reason: "Item to be reshipped to customer"
     });
-
-    await db.addOrderEvent(orderId, "Item to be reshipped to customer");
     return { success: true };
   } catch (e: any) {
     console.error("[reshipReturnItemAction] Error:", e);
@@ -1434,12 +1456,11 @@ export async function acceptReturnRequestAction(
   }
 
   try {
-    await db.saveOrder({
-      id: orderId,
-      status: "Return Accepted",
+    await db.transitionOrderStatus(orderId, "Return Accepted", {
+      triggerSource: "Admin Panel - Accept Return",
+      userOrAdmin: "admin",
+      reason: "Return request accepted by admin"
     });
-
-    await db.addOrderEvent(orderId, "Return request accepted by admin");
     return { success: true };
   } catch (e: any) {
     console.error("[acceptReturnRequestAction] Error:", e);

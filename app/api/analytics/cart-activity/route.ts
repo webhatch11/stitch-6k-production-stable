@@ -13,12 +13,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "Missing sessionId" });
     }
 
-    await supabase.from("page_views").upsert(
+    await supabase.from("visitor_sessions").upsert(
       {
         session_id: sessionId,
-        cart_items_count: cartCount,
+        cart_count: cartCount,
         cart_value: cartValue,
         last_seen: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
       {
         onConflict: "session_id",

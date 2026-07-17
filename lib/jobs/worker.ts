@@ -40,6 +40,7 @@ console.log("[Worker] Starting Stitch 6K background job workers...");
 // Import all worker modules — each file registers its BullMQ Worker on import.
 // Workers only start because IS_WORKER=true guards in jobs-init.ts apply here.
 import "./payment-recovery";
+import "./payment-processing";
 import "./reservation-cleanup";
 import "./shipment-retry";
 import "./shipment-sync";

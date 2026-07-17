@@ -76,21 +76,12 @@ export const shipmentSyncWorker = connection
                 // If status changed, save it
                 if (mappedStatus !== order.status) {
                   console.log(`[Shipment Sync Worker] Status updated for order ${order.id}: ${order.status} -> ${mappedStatus}`);
-                  order.status = mappedStatus;
-                  await db.saveOrder(order);
-
-                  // Update order history
-                  await db.addOrderStatusHistory(
-                    order.id,
-                    mappedStatus,
-                    "Shiprocket Auto-Sync Worker",
-                    {
-                      awb: awbCode,
-                      current_status: currentStatus,
-                      etd,
-                      scans
-                    }
-                  );
+                  
+                  await db.transitionOrderStatus(order.id, mappedStatus, {
+                    triggerSource: "Shiprocket Auto-Sync Worker",
+                    userOrAdmin: "system",
+                    reason: `Shiprocket status changed to: ${currentStatus}`
+                  });
 
                   if (mappedStatus === "Delivered") {
                     try {

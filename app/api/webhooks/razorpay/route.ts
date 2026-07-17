@@ -3,6 +3,8 @@ import crypto from "crypto";
 import * as Sentry from "@sentry/nextjs";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { db } from "@/lib/db";
+import { claimPaymentAtomically } from "@/lib/db/payments";
+import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,48 +96,25 @@ export async function POST(req: NextRequest) {
           if (!dbOrder) {
             // No order found for razorpay_order_id
           } else {
-            let claimed = null;
-
-            if (dbOrder.status === "Paid") {
-              const { data: resData } = await supabase
-                .from("inventory_reservations")
-                .select("status")
-                .eq("session_id", dbOrder.idempotency_key)
-                .maybeSingle();
-
-              if (resData && resData.status !== "fulfilled") {
-                console.warn(`[Webhook] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
-                claimed = { id: dbOrder.id };
-              }
-            }
-
-            if (!claimed) {
-              const loyaltyConfig = await db.getLoyaltyConfig();
-              const { data: claimedRow, error: claimErr } = await supabase
-                .from("orders")
-                .update({
-                  status: "Paid",
-                  payment_status: "Paid",
-                  points_earned: Math.floor(dbOrder.total / 100) * loyaltyConfig.pointsPer100,
-                  razorpay_payment_id: razorpayPaymentId,
-                })
-                .eq("id", dbOrder.id)
-                .eq("status", "Payment Pending")
-                .select("id")
-                .maybeSingle();
-
-              if (claimErr) {
-                console.error("[Webhook] claim error:", claimErr);
-              } else {
-                claimed = claimedRow;
-              }
-            }
-
-            if (!claimed) {
-              // Order already claimed by another process, skipping side effects
+            const claimResult = await claimPaymentAtomically(dbOrder.id, razorpayPaymentId);
+            
+            if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
+              console.error("[Webhook] Failed to claim order:", claimResult.message);
+            } else if (claimResult.message === 'Order already claimed' || claimResult.message === 'Duplicate payment ID prevented') {
+               console.log(`[Webhook] Order ${dbOrder.id} already claimed. Skipping side effects.`);
             } else {
-              // We won the race or are recovering. Run side effects in order.
-              await db.runPostPaymentSideEffects(dbOrder.id, razorpayPaymentId);
+              // We won the race. Enqueue side effects worker.
+              try {
+                await paymentProcessingQueue.add("process_payment_side_effects", {
+                  orderId: dbOrder.id,
+                  razorpayPaymentId: razorpayPaymentId
+                }, {
+                  jobId: `payment_${dbOrder.id}_${razorpayPaymentId}` // Deduplication via jobId
+                });
+                console.log(`[Webhook] Enqueued payment side effects for ${dbOrder.id}`);
+              } catch (enqueueErr) {
+                console.error("[Webhook] Failed to enqueue payment worker:", enqueueErr);
+              }
             }
           }
         }
@@ -157,18 +136,16 @@ export async function POST(req: NextRequest) {
           if (dbOrder && dbOrder.status !== "Paid") {
             const orderId = dbOrder.id;
 
-            // Update status to FAILED
-            await db.saveOrder({
-              id: orderId,
-              status: "FAILED"
+            await db.transitionOrderStatus(orderId, "FAILED", {
+              triggerSource: "Razorpay Webhook",
+              userOrAdmin: "system",
+              reason: "Payment Failed"
             });
 
             await db.createPaymentAuditLog(orderId, "Payment Pending", "FAILED", "webhook");
-            await db.createOrderEvent(orderId, "Payment Failed");
 
             await supabase.from("orders").update({
-              payment_status: "FAILED",
-              status: "FAILED"
+              payment_status: "FAILED"
             }).eq("id", orderId);
 
             // Release reservation

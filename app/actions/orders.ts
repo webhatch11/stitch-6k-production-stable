@@ -93,10 +93,13 @@ export async function updateOrderToProcessingAction(orderId: string) {
     }
     const order = ownership.order;
     if (order && order.status === "Paid") {
-      const updated = { ...order, status: "Processing" as const };
-      await db.saveOrder(updated);
+      await db.transitionOrderStatus(orderId, "Processing", {
+        triggerSource: "User Frontend - Update to Processing",
+        userOrAdmin: "user",
+        reason: "User manually pushed to processing"
+      });
       revalidatePath("/orderhistory");
-      return { success: true, order: updated };
+      return { success: true, order: { ...order, status: "Processing" } };
     }
     return { success: false, error: "Order not found or not in Paid status" };
   } catch (error: any) {

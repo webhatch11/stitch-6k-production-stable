@@ -156,52 +156,86 @@ export async function saveProduct(product: Partial<Product>): Promise<void> {
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
-  const dbPayload = {
-    id: product.id || "ART-" + Date.now(),
-    slug: product.slug || (product.title ? product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : "untitled-product"),
-    title: product.title || "Untitled Product",
-    price: product.price || 0,
-    compare_price: product.comparePrice || 0,
-    category: product.category || "Cotton",
-    image: product.image || (product.images && product.images[0]) || "",
-    images: product.images || [product.image || ""],
-    is_new: product.isNew !== undefined ? product.isNew : true,
-    stock: product.stock || 0,
-    description: product.description || "",
-    is_atelier_exclusive: product.isAtelierExclusive || false,
-    size_stock_s: product.sizeStock?.S || 0,
-    size_stock_m: product.sizeStock?.M || 0,
-    size_stock_l: product.sizeStock?.L || 0,
-    size_stock_xl: product.sizeStock?.XL || 0,
-    size_stock_xxl: product.sizeStock?.XXL || 0,
-    base_price: product.basePrice || 0,
-    gst_rate: product.gstRate || 12,
-    discount_rate: product.discountRate || 0,
-    spec_fabric: product.specFabric || "",
-    spec_fit: product.specFit || "",
-    spec_collar: product.specCollar || "",
-    spec_sleeve: product.specSleeve || "",
-    spec_care: product.specCare || "",
-    custom_badge: product.customBadge || "",
-    featured: product.featured || false,
-    bestseller: product.bestseller || false,
-    material: product.material || "",
-    colors: product.colors || [],
-    ratings: product.ratings || 5.0,
-    display_sections: product.display_sections || [],
-    compare_at_price: product.compareAtPrice || null,
-    weight_grams: product.weightGrams || null,
-    product_status: product.productStatus || "active",
-    seo_title: product.seoTitle || null,
-    seo_description: product.seoDescription || null,
-    seo_keywords: product.seoKeywords || null,
-    reorder_point: product.reorderPoint ?? null,
-  };
+  let baseSlug = product.slug || (product.title ? product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : "untitled-product");
+  if (baseSlug.length > 150) {
+    baseSlug = baseSlug.slice(0, 150).replace(/-+$/, "");
+  }
+  let uniqueSlug = baseSlug;
+  let suffix = 2;
+  let attempts = 0;
+  let dbPayload: any;
 
-  const { error } = await supabase.from("products").upsert(dbPayload);
-  if (error) {
-    console.error("Error saving product to Supabase:", error);
-    throw error;
+  while (attempts < 5) {
+    while (true) {
+      let query = supabase.from("products").select("id").eq("slug", uniqueSlug);
+      if (product.id) {
+        query = query.neq("id", product.id);
+      }
+      const { data: existingSlug } = await query.maybeSingle();
+      if (!existingSlug) {
+        break;
+      }
+      uniqueSlug = `${baseSlug}-${suffix}`;
+      suffix++;
+    }
+
+    dbPayload = {
+      id: product.id || "ART-" + Date.now(),
+      slug: uniqueSlug,
+      title: product.title || "Untitled Product",
+      price: product.price || 0,
+      compare_price: product.comparePrice || 0,
+      category: product.category || "Cotton",
+      image: product.image || (product.images && product.images[0]) || "",
+      images: product.images || [product.image || ""],
+      is_new: product.isNew !== undefined ? product.isNew : true,
+      stock: product.stock || 0,
+      description: product.description || "",
+      is_atelier_exclusive: product.isAtelierExclusive || false,
+      size_stock_s: product.sizeStock?.S || 0,
+      size_stock_m: product.sizeStock?.M || 0,
+      size_stock_l: product.sizeStock?.L || 0,
+      size_stock_xl: product.sizeStock?.XL || 0,
+      size_stock_xxl: product.sizeStock?.XXL || 0,
+      base_price: product.basePrice || 0,
+      gst_rate: product.gstRate || 12,
+      discount_rate: product.discountRate || 0,
+      spec_fabric: product.specFabric || "",
+      spec_fit: product.specFit || "",
+      spec_collar: product.specCollar || "",
+      spec_sleeve: product.specSleeve || "",
+      spec_care: product.specCare || "",
+      custom_badge: product.customBadge || "",
+      featured: product.featured || false,
+      bestseller: product.bestseller || false,
+      material: product.material || "",
+      colors: product.colors || [],
+      ratings: product.ratings || 5.0,
+      display_sections: product.display_sections || [],
+      compare_at_price: product.compareAtPrice || null,
+      weight_grams: product.weightGrams || null,
+      product_status: product.productStatus || "active",
+      seo_title: product.seoTitle || null,
+      seo_description: product.seoDescription || null,
+      seo_keywords: product.seoKeywords || null,
+      reorder_point: product.reorderPoint ?? null,
+    };
+
+    const { error } = await supabase.from("products").upsert(dbPayload);
+    if (error) {
+      console.error("Error saving product to Supabase:", error);
+      if (error.code === "23505") {
+        if (error.message?.includes("slug") || error.details?.includes("slug") || error.message?.includes("products_slug_key")) {
+          uniqueSlug = `${baseSlug}-${suffix}`;
+          suffix++;
+          attempts++;
+          continue;
+        }
+        throw new Error("Product SKU already exists.");
+      }
+      throw error;
+    }
+    break;
   }
 
   if (product.variants && product.variants.length > 0) {
@@ -213,19 +247,53 @@ export async function saveProduct(product: Partial<Product>): Promise<void> {
     }
     const uniqueVariants = Array.from(uniqueVariantsMap.values());
 
-    const variantRows = uniqueVariants.map((v) => ({
-      product_id: productId,
-      size: v.size,
-      color: v.color,
-      sku: v.sku || `${productId}-${v.size}-${v.color.slice(0, 3).toUpperCase()}`,
-      price: v.price ?? product.basePrice ?? product.price ?? 0,
-      stock: v.stock ?? 0,
-    }));
+    const variantRows = [];
+    for (const v of uniqueVariants) {
+      const sku = v.sku || `${productId}-${v.size}-${v.color.slice(0, 3).toUpperCase()}`;
+
+      // Pre-check for duplicate SKU belonging to a different product to give a friendly error
+      const { data: otherVariant } = await supabase
+        .from("product_variants")
+        .select("id")
+        .eq("sku", sku)
+        .neq("product_id", productId)
+        .maybeSingle();
+
+      if (otherVariant) {
+        throw new Error("Variant SKU already exists.");
+      }
+
+      const { data: existingVar } = await supabase
+        .from("product_variants")
+        .select("id")
+        .eq("product_id", productId)
+        .eq("size", v.size)
+        .eq("color", v.color)
+        .maybeSingle();
+
+      const rowPayload: any = {
+        product_id: productId,
+        size: v.size,
+        color: v.color,
+        sku,
+        price: v.price ?? product.basePrice ?? product.price ?? 0,
+        stock: v.stock ?? 0,
+      };
+      if (existingVar?.id) {
+        rowPayload.id = existingVar.id;
+      }
+      variantRows.push(rowPayload);
+    }
+
     const { error: varErr } = await supabase
       .from("product_variants")
-      .upsert(variantRows, { onConflict: "product_id,size" });
+      .upsert(variantRows, { onConflict: "id" });
     if (varErr) {
       console.error("Error upserting product variants:", varErr);
+      if (varErr.code === "23505") {
+        throw new Error("Variant SKU already exists.");
+      }
+      throw varErr;
     }
   }
 

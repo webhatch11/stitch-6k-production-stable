@@ -105,7 +105,7 @@ const filterByTab = (orders: Order[], tab: string) => {
     
     case 'shipped':
       return orders.filter(o =>
-        ['shipped']
+        ['shipped', 'out for delivery']
           .includes((o.status || '').toLowerCase())
       );
     
@@ -762,7 +762,8 @@ export default function OrdersKanbanPage() {
                         </td>
                         <td className="px-8 py-6 text-gray-500 font-medium">
                           <div className="flex flex-col">
-                            <span>{(order.items || []).join(", ")}</span>`r`n                            {order.courierName && <span className="text-[9px] text-[#775a19] font-mono mt-1">Courier: {order.courierName}</span>}
+                            <span>{(order.items || []).join(", ")}</span>
+                            {order.courierName && <span className="text-[9px] text-[#775a19] font-mono mt-1">Courier: {order.courierName}</span>}
                             {(order.awbCode || order.shiprocketId) && (
                               <span className="text-[9px] text-[#775a19] font-mono mt-1">
                                 AWB: {(order.awbCode || order.shiprocketId)}

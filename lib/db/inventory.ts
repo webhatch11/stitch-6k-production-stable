@@ -126,7 +126,13 @@ export async function restoreStock(
         const size = (item.size || "M") as "S" | "M" | "L" | "XL" | "XXL";
         const color = item.color || "Default";
         const qty = item.quantity || 1;
-        await InventoryService.restoreStockAtomic(product.id, size, color, qty);
+        
+        // Construct stable unique idempotency key
+        const uniqueKey = sizeOrSessionId
+          ? `restock:order:${sizeOrSessionId}:${product.id}:${size}:${color}`
+          : `restock:manual:${product.id}:${size}:${color}:${Date.now()}`;
+
+        await InventoryService.restoreStockAtomic(product.id, size, color, qty, uniqueKey);
       }
     }
     if (isSupabaseConfigured && supabase && sizeOrSessionId) {
@@ -136,7 +142,8 @@ export async function restoreStock(
     const productId = itemsOrProductId;
     const size = (sizeOrSessionId || "M") as "S" | "M" | "L" | "XL" | "XXL";
     const qty = quantity || 1;
-    await InventoryService.restoreStockAtomic(productId, size, "Default", qty);
+    const uniqueKey = `restock:single:${productId}:${size}:Default:${Date.now()}`;
+    await InventoryService.restoreStockAtomic(productId, size, "Default", qty, uniqueKey);
   }
 }
 
@@ -156,63 +163,17 @@ export async function restockProductVariants(
   for (const { size, color, add } of addPerVariant) {
     if (add <= 0) continue;
 
-    const { data: variants, error: fetchErr } = await supabase
-      .from("product_variants")
-      .select("id")
-      .eq("product_id", productId)
-      .eq("size", size)
-      .eq("color", color);
+    const { error } = await supabase.rpc("restock_variant_stock_atomic", {
+      p_product_id: productId,
+      p_size: size,
+      p_color: color,
+      p_quantity: add,
+      p_reason: `warehouse_restock:${productId}:${size}:${color}:${Date.now()}:${Math.random().toString(36).substring(2, 7)}`
+    });
 
-    if (!fetchErr && variants && variants.length > 0) {
-      const { error } = await supabase.rpc("restore_variant_stock", {
-        p_product_id: productId,
-        p_size: size,
-        p_color: color,
-        p_quantity: add,
-      });
-      if (error) {
-        console.error("restockProductVariants error:", error);
-        return false;
-      }
-    } else {
-      const columnName = "size_stock_" + size.toLowerCase();
-      const { data: productData, error: prodFetchErr } = await supabase
-        .from("products")
-        .select(columnName)
-        .eq("id", productId)
-        .single();
-
-      if (prodFetchErr || !productData) {
-        console.error("restockProductVariants product fallback fetch error:", prodFetchErr);
-        return false;
-      }
-
-      const currentStock = (productData as any)[columnName] || 0;
-      const { error: prodUpdateErr } = await supabase
-        .from("products")
-        .update({ [columnName]: currentStock + add })
-        .eq("id", productId);
-
-      if (prodUpdateErr) {
-        console.error("restockProductVariants product fallback update error:", prodUpdateErr);
-        return false;
-      }
-
-      const { data: updatedProd } = await supabase
-        .from("products")
-        .select("size_stock_s, size_stock_m, size_stock_l, size_stock_xl, size_stock_xxl")
-        .eq("id", productId)
-        .single();
-
-      if (updatedProd) {
-        const newTotalStock =
-          (updatedProd.size_stock_s || 0) +
-          (updatedProd.size_stock_m || 0) +
-          (updatedProd.size_stock_l || 0) +
-          (updatedProd.size_stock_xl || 0) +
-          (updatedProd.size_stock_xxl || 0);
-        await supabase.from("products").update({ stock: newTotalStock }).eq("id", productId);
-      }
+    if (error) {
+      console.error("restockProductVariants error:", error);
+      return false;
     }
   }
 
@@ -233,53 +194,22 @@ export async function adjustVariantStockBySize(productId: string, size: string, 
     );
   }
 
-  const { data: variants, error: fetchErr } = await supabase
-    .from("product_variants")
-    .select("id, color, stock")
-    .eq("product_id", productId)
-    .eq("size", size);
+  const { data, error } = await supabase.rpc("adjust_variant_stock_atomic", {
+    p_product_id: productId,
+    p_size: size,
+    p_delta: delta
+  });
 
-  if (fetchErr) return false;
-
-  if (variants && variants.length > 0) {
-    const v = variants[0];
-    const newStock = Math.max(0, v.stock + delta);
-    const { error } = await supabase.from("product_variants").update({ stock: newStock }).eq("id", v.id);
-    if (error) {
-      console.error("adjustVariantStockBySize error:", error);
-      return false;
-    }
-  } else {
-    const columnName = "size_stock_" + size.toLowerCase();
-    const { data: productData, error: prodFetchErr } = await supabase
-      .from("products")
-      .select(columnName)
-      .eq("id", productId)
-      .single();
-
-    if (prodFetchErr || !productData) {
-      console.error("adjustVariantStockBySize product fallback fetch error:", prodFetchErr);
-      return false;
-    }
-
-    const currentStock = (productData as any)[columnName] || 0;
-    const newStock = Math.max(0, currentStock + delta);
-    const { error: prodUpdateErr } = await supabase
-      .from("products")
-      .update({ [columnName]: newStock })
-      .eq("id", productId);
-
-    if (prodUpdateErr) {
-      console.error("adjustVariantStockBySize product fallback update error:", prodUpdateErr);
-      return false;
-    }
+  if (error) {
+    console.error("adjustVariantStockBySize error:", error);
+    return false;
   }
 
   await syncProductTotalStock(productId);
 
   await CacheService.delPattern("products:list*");
   await CacheService.delPattern("products:slug:*");
-  return true;
+  return data === true;
 }
 
 export async function syncProductTotalStock(productId: string): Promise<boolean> {

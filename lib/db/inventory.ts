@@ -19,6 +19,9 @@ export async function verifyStock(items: any[], sessionId?: string): Promise<{ s
   }
 
   if (isSupabaseConfigured && supabase && sessionId) {
+    // Clean up any existing unfulfilled reservations for this sessionId to prevent double reservation
+    await supabase.from("inventory_reservations").delete().eq("session_id", sessionId).eq("status", "reserved");
+
     const products = await productsDb.getProducts();
     const batchItems = formatted
       .map((item) => {

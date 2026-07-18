@@ -116,12 +116,32 @@ export async function POST(req: NextRequest) {
     if (supabase) {
       const { data: existingOrder } = await supabase
         .from("orders")
-        .select("id, razorpay_order_id, total, payment_processing_state")
+        .select("id, razorpay_order_id, total, payment_processing_state, status")
         .eq("idempotency_key", payload.idempotencyKey)
         .maybeSingle();
 
       if (existingOrder) {
         const orderTraceId = (existingOrder.payment_processing_state as any)?.traceId || traceId;
+
+        // If the order has already been paid/processed, short-circuit and return success
+        const isPaidStatus = ["Paid", "Paid via Wallet", "paid via wallet", "Accepted", "Processing", "Packed", "Shipped", "Delivered"].includes(existingOrder.status);
+        if (isPaidStatus) {
+          paymentDebugLog({
+            traceId: orderTraceId,
+            functionName: "POST /api/payments/create-order",
+            orderId: existingOrder.id,
+            reason: "Existing order has already been paid/processed. Short-circuiting duplicate creation."
+          });
+          return NextResponse.json({
+            success: true,
+            orderId: existingOrder.id,
+            razorpayOrderId: existingOrder.razorpay_order_id,
+            amount: Math.round(existingOrder.total * 100),
+            currency: "INR",
+            traceId: orderTraceId,
+            checkoutState: { ...checkoutState, orderId: existingOrder.id }
+          });
+        }
 
         // BUG 2 FIX: Validate the existing Razorpay order is still open (not expired).
         // If the user dismissed the popup and retried after >14 minutes, the Razorpay order
@@ -133,7 +153,8 @@ export async function POST(req: NextRequest) {
         if (existingOrder.razorpay_order_id) {
           try {
             const rzpOrderCheck = await razorpay.orders.fetch(existingOrder.razorpay_order_id);
-            isRazorpayOrderValid = rzpOrderCheck.status === "created";
+            // An order is valid if it is created or has had attempts but not expired/paid
+            isRazorpayOrderValid = rzpOrderCheck.status === "created" || rzpOrderCheck.status === "attempted";
           } catch (_e) {
             // Fetch failed — treat as expired
             isRazorpayOrderValid = false;

@@ -217,6 +217,13 @@ export default function OrdersKanbanPage() {
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
 
+  // Manual Delivery Override Modal States
+  const [deliveryOverrideModalOpen, setDeliveryOverrideModalOpen] = useState(false);
+  const [targetOrderIdForOverride, setTargetOrderIdForOverride] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState("Webhook Failure");
+  const [customOverrideDetails, setCustomOverrideDetails] = useState("");
+  const [overrideSubmitting, setOverrideSubmitting] = useState(false);
+
   const triggerToast = (msg: string) => {
     setToastText(msg);
     setShowToast(true);
@@ -358,23 +365,8 @@ export default function OrdersKanbanPage() {
       printWindow.focus();
       
       const idsToMarkPacked = [...selectedIds];
-      let hasRun = false;
-
-      const runStatusUpdate = async () => {
-        if (hasRun) return;
-        hasRun = true;
-        await handleBulkMarkPacked(idsToMarkPacked);
-        URL.revokeObjectURL(blobUrl);
-      };
-
-      printWindow.onafterprint = runStatusUpdate;
-
-      const checkWindowClosed = setInterval(() => {
-        if (printWindow.closed) {
-          clearInterval(checkWindowClosed);
-          runStatusUpdate();
-        }
-      }, 1000);
+      await handleBulkMarkPacked(idsToMarkPacked);
+      URL.revokeObjectURL(blobUrl);
 
     } catch (err: any) {
       triggerToast(err.message || "An error occurred");
@@ -500,16 +492,22 @@ export default function OrdersKanbanPage() {
     }
   };
 
-  const handleSingleDeliverOverride = async (orderId: string) => {
-    if (submitting) return;
-    // Ask for quick reason confirmation
-    const reason = window.prompt("Reason for manual delivery override:", "Courier Confirmation");
-    if (reason === null) return; // user cancelled
-    setSubmitting(true);
+  const handleSingleDeliverOverride = (orderId: string) => {
+    setTargetOrderIdForOverride(orderId);
+    setDeliveryOverrideModalOpen(true);
+  };
+
+  const handleManualDeliveryOverrideSubmit = async () => {
+    if (!targetOrderIdForOverride || overrideSubmitting) return;
+    setOverrideSubmitting(true);
     try {
-      const res = await manualDeliveryOverrideAction(orderId, reason || "Manual Override");
+      const finalReason = overrideReason === "Other" ? (customOverrideDetails || "Manual Override") : overrideReason;
+      const res = await manualDeliveryOverrideAction(targetOrderIdForOverride, finalReason);
       if (res.success) {
         triggerToast("Order marked as Delivered manually.");
+        setDeliveryOverrideModalOpen(false);
+        setTargetOrderIdForOverride(null);
+        setCustomOverrideDetails("");
         await loadOrders();
       } else {
         triggerToast(res.error || "Failed to confirm manual delivery");
@@ -517,7 +515,7 @@ export default function OrdersKanbanPage() {
     } catch (err: any) {
       triggerToast(err.message || "An error occurred");
     } finally {
-      setSubmitting(false);
+      setOverrideSubmitting(false);
     }
   };
 
@@ -908,6 +906,76 @@ export default function OrdersKanbanPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Manual Delivery Modal */}
+      {deliveryOverrideModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-[#775a19]/25 shadow-2xl relative rounded-none text-left space-y-6">
+            <h3 className="font-headline font-black text-sm uppercase tracking-wider text-[#1a1c1c]">
+              Confirm Manual Delivery
+            </h3>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+              Use this option only when automatic Shiprocket tracking updates did not reach the platform for Order #{targetOrderIdForOverride}.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  Reason for Override
+                </label>
+                <select
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  className="w-full bg-zinc-50 border border-zinc-200 p-3 text-[10px] font-bold uppercase tracking-wider rounded-none focus:outline-none focus:border-secondary"
+                >
+                  <option value="Webhook Failure">Webhook Failure</option>
+                  <option value="Courier Confirmation">Courier Confirmation</option>
+                  <option value="Customer Confirmation">Customer Confirmation</option>
+                  <option value="Operational Correction">Operational Correction</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {overrideReason === "Other" && (
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                    Specify Custom Reason
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={customOverrideDetails}
+                    onChange={(e) => setCustomOverrideDetails(e.target.value)}
+                    placeholder="Enter details..."
+                    className="w-full bg-zinc-50 border border-zinc-200 p-3 text-[10px] font-bold rounded-none focus:outline-none focus:border-secondary"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeliveryOverrideModalOpen(false);
+                  setTargetOrderIdForOverride(null);
+                  setCustomOverrideDetails("");
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={overrideSubmitting}
+                onClick={handleManualDeliveryOverrideSubmit}
+                className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold disabled:opacity-40"
+              >
+                {overrideSubmitting ? "Processing..." : "Confirm Delivery"}
+              </button>
+            </div>
           </div>
         </div>
       )}

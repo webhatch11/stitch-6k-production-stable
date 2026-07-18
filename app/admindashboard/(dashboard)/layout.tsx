@@ -21,9 +21,29 @@ export default async function AdminLayout({
 
   const allOrders = await db.getOrders();
   const pendingCount = allOrders.filter(o => o.status === "Return Requested").length;
-  const pendingOrdersCount = allOrders.filter(
-    o => o.status === "Payment Pending" || o.status === "Paid"
-  ).length;
+
+  // Reconcile sidebar badge count: Count all active actionable orders matching
+  // (Payment Pending + Live Orders + stuck Pending queues).
+  const now = new Date();
+  const deadline = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const pendingOrdersCount = allOrders.filter(o => {
+    const s = (o.status || "").toLowerCase();
+    // Payment pending states
+    if (["payment pending", "failed", "pending"].includes(s)) return true;
+    // Paid states (any age: live or stuck pending)
+    if (["paid", "paid via wallet"].includes(s)) return true;
+    // Stuck processing states (>24h)
+    if (["processing", "packed"].includes(s)) {
+      const orderDateStr = o.created_at || o.createdAt || o.date;
+      if (orderDateStr) {
+        const orderTime = Date.parse(orderDateStr);
+        if (!isNaN(orderTime)) {
+          return new Date(orderTime) < deadline;
+        }
+      }
+    }
+    return false;
+  }).length;
 
   // Check for recent audit activity (last 24h) for the Activity Log badge
   const [recentProductAudits, recentPaymentAudits, recentShippingAudits] = await Promise.all([

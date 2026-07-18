@@ -3,6 +3,45 @@ import { persist } from "zustand/middleware";
 import { supabase } from "@/lib/supabase";
 import { syncCartAction } from "@/app/actions/cart";
 
+let debounceTimer: NodeJS.Timeout | null = null;
+
+export function debouncedSyncCart(items: CartItem[]) {
+  if (typeof window === "undefined") return;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          syncCartAction(items).catch((err) => {
+            console.error("Failed to sync DB cart:", err);
+          });
+        }
+      });
+    }
+  }, 400);
+}
+
+export function flushCartSync() {
+  if (typeof window === "undefined") return;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+    const items = useCartStore.getState().cartItems;
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          syncCartAction(items).catch((err) => {
+            console.error("Failed to flush sync cart:", err);
+          });
+        }
+      });
+    }
+  }
+}
+
 export function mergeCarts(localItems: CartItem[], dbItems: CartItem[]): CartItem[] {
   // Build a lookup map of productName -> productId to normalize missing IDs
   const nameToIdMap: Record<string, string> = {};
@@ -141,62 +180,37 @@ export const useCartStore = create<CartState>()(
           });
         }
 
-        if (supabase) {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-              syncCartAction(newItems).catch((err) => {
-                console.error("Failed to sync DB cart on add:", err);
-              });
-            }
-          });
-        }
+        debouncedSyncCart(newItems);
       },
 
       removeFromCart: (productName, size, color) => {
         const newItems = get().cartItems.filter(
           (item) =>
-            !(
-              item.productName === productName &&
-              item.size === size &&
-              (item.color || "Default") === (color || "Default")
-            )
+              !(
+                item.productName === productName &&
+                item.size === size &&
+                (item.color || "Default") === (color || "Default")
+              )
         );
 
         set({ cartItems: newItems });
         pingCartActivity(newItems);
-
-        if (supabase) {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-              syncCartAction(newItems).catch((err) => {
-                console.error("Failed to sync DB cart on remove:", err);
-              });
-            }
-          });
-        }
+        debouncedSyncCart(newItems);
       },
 
       decrementQuantity: (productName, size, color) => {
         set((state) => {
           const idx = state.cartItems.findIndex(
             (item) =>
-              item.productName === productName &&
-              item.size === size &&
-              (item.color || "Default") === (color || "Default")
+                item.productName === productName &&
+                item.size === size &&
+                (item.color || "Default") === (color || "Default")
           );
           if (idx === -1) return {};
           const newItems = [...state.cartItems];
           newItems.splice(idx, 1);
 
-          if (supabase) {
-            supabase.auth.getSession().then(({ data: { session } }) => {
-              if (session?.user) {
-                syncCartAction(newItems).catch((err) => {
-                  console.error("Failed to sync decremented cart to DB:", err);
-                });
-              }
-            });
-          }
+          debouncedSyncCart(newItems);
 
           // Trigger ping activity with updated items list
           setTimeout(() => {
@@ -211,9 +225,9 @@ export const useCartStore = create<CartState>()(
         const state = get();
         const currentQty = state.cartItems.filter(
           (item) =>
-            item.productName === productName &&
-            item.size === size &&
-            (item.color || "Default") === (color || "Default")
+              item.productName === productName &&
+              item.size === size &&
+              (item.color || "Default") === (color || "Default")
         ).length;
 
         if (currentQty >= maxStock) {
@@ -222,9 +236,9 @@ export const useCartStore = create<CartState>()(
 
         const templateItem = state.cartItems.find(
           (item) =>
-            item.productName === productName &&
-            item.size === size &&
-            (item.color || "Default") === (color || "Default")
+              item.productName === productName &&
+              item.size === size &&
+              (item.color || "Default") === (color || "Default")
         );
 
         if (!templateItem) return false;
@@ -232,20 +246,15 @@ export const useCartStore = create<CartState>()(
         const newItems = [...state.cartItems, { ...templateItem }];
         set({ cartItems: newItems });
         pingCartActivity(newItems);
-
-        if (supabase) {
-          supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-              syncCartAction(newItems).catch((err) => {
-                console.error("Failed to sync DB cart on increment:", err);
-              });
-            }
-          });
-        }
+        debouncedSyncCart(newItems);
         return true;
       },
 
       clearCart: () => {
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+          debounceTimer = null;
+        }
         set({ cartItems: [] });
         pingCartActivity([]);
       },

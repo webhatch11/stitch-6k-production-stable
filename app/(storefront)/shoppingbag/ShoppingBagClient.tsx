@@ -6,7 +6,7 @@ import Image from "next/image";
 import ProductImage from "@/components/ProductImage";
 import { useRouter } from "next/navigation";
 import { Product } from "@/lib/types";
-import { useCartStore } from "@/stores/cartStore";
+import { useCartStore, flushCartSync } from "@/stores/cartStore";
 import { trackRemoveFromCart } from "@/lib/analytics";
 
 interface GroupedCartItem {
@@ -276,7 +276,10 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                 </div>
 
                 <button
-                  onClick={() => router.push("/checkout")}
+                  onClick={() => {
+                    flushCartSync();
+                    router.push("/checkout");
+                  }}
                   className="w-full bg-on-surface text-surface py-5 font-headline font-bold text-sm uppercase tracking-[0.3em] hover:bg-on-surface/90 transition-all flex items-center justify-center gap-3 btn-active-scale"
                 >
                   Proceed to Checkout

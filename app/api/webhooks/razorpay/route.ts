@@ -225,25 +225,24 @@ export async function POST(req: NextRequest) {
             .eq("razorpay_order_id", razorpayOrderId)
             .maybeSingle();
 
-          if (dbOrder && dbOrder.status !== "Paid") {
+          const isAlreadyProcessed = ["Paid", "Paid via Wallet", "paid via wallet", "Accepted", "Processing", "Packed", "Shipped", "Delivered"].includes(dbOrder?.status || "");
+          if (dbOrder && !isAlreadyProcessed) {
             const orderId = dbOrder.id;
             const traceId = (dbOrder.payment_processing_state as any)?.traceId || "webhook-no-trace";
 
-            // BUG 1 FIX: Before marking FAILED, verify with Razorpay API that this payment
-            // is actually in a failed state (not captured). A payment.failed webhook can arrive
-            // BEFORE payment.captured when a user retries a card. If we skip this check,
-            // the webhook incorrectly marks the order FAILED right before the capture lands.
-            if (razorpayPaymentId) {
+            // BUG 1 FIX: Before marking FAILED, verify with Razorpay API that the overall order status is not paid.
+            // A payment.failed webhook can arrive BEFORE payment.captured when a user retries a card.
+            if (razorpayOrderId) {
               try {
-                const rzpPayment = await razorpay.payments.fetch(razorpayPaymentId);
-                if (rzpPayment.status === "captured") {
+                const rzpOrder = await razorpay.orders.fetch(razorpayOrderId);
+                if (rzpOrder.status === "paid") {
                   paymentDebugLog({
                     traceId,
                     functionName: "Webhook event handler: payment.failed",
                     orderId,
                     razorpayOrderId,
                     razorpayPaymentId,
-                    reason: "payment.failed webhook received but Razorpay API confirms payment is CAPTURED. Skipping FAILED transition to prevent race condition."
+                    reason: "payment.failed webhook received but Razorpay API confirms order status is PAID. Skipping FAILED transition to prevent race condition."
                   });
                   // Do NOT mark order as FAILED — the captured webhook or verify route will handle it
                   break;
@@ -255,7 +254,7 @@ export async function POST(req: NextRequest) {
                   orderId,
                   razorpayOrderId,
                   razorpayPaymentId,
-                  reason: "Could not fetch payment status from Razorpay API during payment.failed handling. Proceeding with FAILED transition.",
+                  reason: "Could not fetch order status from Razorpay API during payment.failed handling. Proceeding with FAILED transition.",
                   error: rzpFetchErr.message
                 });
               }

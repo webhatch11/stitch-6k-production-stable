@@ -30,8 +30,8 @@ BEGIN
         RETURN json_build_object('success', false, 'error', 'Order not found');
     END IF;
 
-    -- If already paid (status is Paid, Accepted, etc. - anything other than Payment Pending)
-    IF v_order.status != 'Payment Pending' THEN
+    -- If already paid (status is Paid, Accepted, etc. - anything other than Payment Pending or FAILED)
+    IF v_order.status != 'Payment Pending' AND v_order.status != 'FAILED' THEN
         RETURN json_build_object('success', true, 'message', 'Order already claimed', 'status', v_order.status);
     END IF;
 

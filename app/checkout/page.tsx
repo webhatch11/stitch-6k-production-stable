@@ -27,6 +27,7 @@ import { PaymentFailureScreen } from "@/components/checkout/PaymentFailureScreen
 import Script from "next/script";
 import { checkServiceabilityAction } from "@/app/actions/orders";
 import AnnouncementMarquee from "@/components/layout/AnnouncementMarquee";
+import { paymentDebugLog } from "@/lib/payment-debug";
 
 interface CartItem {
   productId?: string;
@@ -527,6 +528,27 @@ export default function CheckoutPage() {
           return;
         }
 
+        let clientTraceId = typeof window !== "undefined" && window.crypto?.randomUUID ? window.crypto.randomUUID() : "client-" + Math.floor(Math.random() * 100000);
+        paymentDebugLog({
+          traceId: clientTraceId,
+          functionName: "handleSubmit (Razorpay block)",
+          reason: "User clicked Pay Now, starting order creation request"
+        });
+
+        // 1. Verify Razorpay SDK loading
+        if (!(window as any).Razorpay) {
+          paymentDebugLog({
+            traceId: clientTraceId,
+            functionName: "handleSubmit (Razorpay block)",
+            reason: "Razorpay SDK not loaded on window",
+            error: "window.Razorpay is not loaded"
+          });
+          console.error("[Razorpay SDK] window.Razorpay is not loaded");
+          triggerToast("❌ Razorpay payment client is not loaded. Please wait or refresh the page.");
+          setProcessingPayment(false);
+          return;
+        }
+
         try {
           const createRes = await fetch("/api/payments/create-order", {
             method: "POST",
@@ -551,15 +573,41 @@ export default function CheckoutPage() {
           
           const createData = await createRes.json();
 
+          if (createData.traceId) {
+            clientTraceId = createData.traceId;
+          }
+
           if (!createData.success) {
+            paymentDebugLog({
+              traceId: clientTraceId,
+              functionName: "handleSubmit (Razorpay block)",
+              reason: "Order creation API returned failure",
+              error: createData.error
+            });
             console.error("[Razorpay] Order creation failed:", createData.error);
             triggerToast(`❌ Payment initialization failed: ${createData.error || "Please try again."}`);
             setProcessingPayment(false);
             return;
           }
 
+          paymentDebugLog({
+            traceId: clientTraceId,
+            functionName: "handleSubmit (Razorpay block)",
+            orderId: createData.orderId,
+            razorpayOrderId: createData.razorpayOrderId,
+            reason: "Order creation response received successfully from server"
+          });
+
           const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
           if (!key) {
+            paymentDebugLog({
+              traceId: clientTraceId,
+              functionName: "handleSubmit (Razorpay block)",
+              orderId: createData.orderId,
+              razorpayOrderId: createData.razorpayOrderId,
+              reason: "NEXT_PUBLIC_RAZORPAY_KEY_ID is missing",
+              error: "Key not configured"
+            });
             console.error('[Razorpay] NEXT_PUBLIC_RAZORPAY_KEY_ID not configured');
             triggerToast('❌ Payment system not configured. Please contact support.');
             setProcessingPayment(false);
@@ -577,6 +625,14 @@ export default function CheckoutPage() {
             callback_url: `${window.location.origin}/api/payments/razorpay-callback`,
             handler: async function (response: any) {
               setProcessingPayment(true);
+              paymentDebugLog({
+                traceId: clientTraceId,
+                functionName: "RazorpayWidget.handler",
+                orderId: createData.orderId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                reason: "Razorpay widget payment handler triggered with successful response payload"
+              });
               try {
                 const verifyRes = await fetch("/api/payments/verify", {
                   method: "POST",
@@ -595,6 +651,14 @@ export default function CheckoutPage() {
                 const verifyData = await verifyRes.json();
 
                 if (verifyData.success) {
+                    paymentDebugLog({
+                      traceId: clientTraceId,
+                      functionName: "RazorpayWidget.handler",
+                      orderId: createData.orderId,
+                      razorpayOrderId: response.razorpay_order_id,
+                      razorpayPaymentId: response.razorpay_payment_id,
+                      reason: "Payment verification API returned success, redirecting user"
+                    });
                     useCartStore.getState().clearCart();
                     clearCartAction().catch(() => {});
                     useCheckoutStore.getState().resetCheckout();
@@ -612,10 +676,28 @@ export default function CheckoutPage() {
                       router.push('/orderhistory');
                     }
                  } else {
+                   paymentDebugLog({
+                     traceId: clientTraceId,
+                     functionName: "RazorpayWidget.handler",
+                     orderId: createData.orderId,
+                     razorpayOrderId: response.razorpay_order_id,
+                     razorpayPaymentId: response.razorpay_payment_id,
+                     reason: "Payment verification API returned failure",
+                     error: verifyData.error
+                   });
                    setProcessingPayment(false);
                    router.push('/payment-failed');
                 }
-              } catch (e) {
+              } catch (e: any) {
+                 paymentDebugLog({
+                   traceId: clientTraceId,
+                   functionName: "RazorpayWidget.handler",
+                   orderId: createData.orderId,
+                   razorpayOrderId: response.razorpay_order_id,
+                   razorpayPaymentId: response.razorpay_payment_id,
+                   reason: "Verification API exception thrown",
+                   error: e.message || String(e)
+                 });
                  console.error("[Razorpay] Verification network error:", e);
                  setProcessingPayment(false);
                  router.push('/payment-failed');
@@ -631,6 +713,13 @@ export default function CheckoutPage() {
             },
             modal: {
               ondismiss: function() {
+                paymentDebugLog({
+                  traceId: clientTraceId,
+                  functionName: "RazorpayWidget.ondismiss",
+                  orderId: createData.orderId,
+                  razorpayOrderId: createData.razorpayOrderId,
+                  reason: "Razorpay checkout modal dismissed by user"
+                });
                 setProcessingPayment(false);
                 triggerToast("ℹ️ Payment canceled by user.");
               }
@@ -640,13 +729,35 @@ export default function CheckoutPage() {
           const rzp1 = new (window as any).Razorpay(options);
           
           rzp1.on('payment.failed', function (response: any){
+            paymentDebugLog({
+              traceId: clientTraceId,
+              functionName: "RazorpayWidget.on('payment.failed')",
+              orderId: createData.orderId,
+              razorpayOrderId: createData.razorpayOrderId,
+              razorpayPaymentId: response.error?.metadata?.payment_id,
+              reason: "Razorpay widget payment failed event callback",
+              error: response.error?.description || "Payment failed on widget modal"
+            });
             console.error("[Razorpay] Payment failed on modal:", response.error);
             setProcessingPayment(false);
             router.push('/payment-failed');
           });
           
+          paymentDebugLog({
+            traceId: clientTraceId,
+            functionName: "handleSubmit (Razorpay block)",
+            orderId: createData.orderId,
+            razorpayOrderId: createData.razorpayOrderId,
+            reason: "Opening Razorpay checkout widget modal"
+          });
           rzp1.open();
         } catch (error: any) {
+          paymentDebugLog({
+            traceId: clientTraceId,
+            functionName: "handleSubmit (Razorpay block)",
+            reason: "Razorpay communication/execution exception thrown",
+            error: error.message || String(error)
+          });
           console.error("[Razorpay] Communication error:", error);
           triggerToast(`❌ Failed to connect to payment server: ${error.message || "Please check connection."}`);
           setProcessingPayment(false);

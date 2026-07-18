@@ -5,6 +5,7 @@ import { supabaseService as supabase } from "@/lib/supabase-service";
 import { db } from "@/lib/db";
 import { claimPaymentAtomically } from "@/lib/db/payments";
 import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
+import { paymentDebugLog } from "@/lib/payment-debug";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +13,11 @@ export async function POST(req: NextRequest) {
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret) {
+      paymentDebugLog({
+        functionName: "POST /api/webhooks/razorpay",
+        reason: "RAZORPAY_WEBHOOK_SECRET missing in environment",
+        error: "Webhook secret not configured"
+      });
       console.error("[Webhook] RAZORPAY_WEBHOOK_SECRET is not configured. Refusing all webhooks.");
       return NextResponse.json(
         { error: "Webhook secret not configured" },
@@ -21,6 +27,11 @@ export async function POST(req: NextRequest) {
 
     const signature = req.headers.get("x-razorpay-signature");
     if (!signature) {
+      paymentDebugLog({
+        functionName: "POST /api/webhooks/razorpay",
+        reason: "Missing signature header in webhook request",
+        error: "Missing signature"
+      });
       return NextResponse.json(
         { error: "Missing signature header" },
         { status: 400 }
@@ -33,14 +44,17 @@ export async function POST(req: NextRequest) {
       .digest("hex");
 
     if (expectedSignature !== signature) {
+      paymentDebugLog({
+        functionName: "POST /api/webhooks/razorpay",
+        reason: "Webhook signature mismatch",
+        error: "Invalid signature"
+      });
       console.error("[Webhook] Signature mismatch");
       return NextResponse.json(
         { error: "Invalid signature" },
         { status: 401 }
       );
     }
-
-    // Signature valid, continue with event processing
 
     const payload = JSON.parse(rawBody);
     const eventName = payload.event;
@@ -59,7 +73,11 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (existingLog) {
-        // Event already processed, skip
+        paymentDebugLog({
+          functionName: "POST /api/webhooks/razorpay",
+          reason: `Webhook event already processed. Skipping.`,
+          metadata: { eventId, event: eventName }
+        });
         return NextResponse.json({ success: true, message: "Already processed" });
       }
 
@@ -72,7 +90,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Process the Event
+    paymentDebugLog({
+      functionName: "POST /api/webhooks/razorpay",
+      reason: `Webhook event verification successful. Event: ${eventName}`,
+      metadata: { eventId, event: eventName }
+    });
+
     const body = payload; // alias to match the prompt's snippet
 
     switch (eventName) {
@@ -83,6 +106,12 @@ export async function POST(req: NextRequest) {
         const razorpayPaymentId = paymentEntity?.id;
 
         if (!razorpayOrderId) {
+          paymentDebugLog({
+            functionName: `Webhook event handler: ${eventName}`,
+            razorpayPaymentId,
+            reason: "Missing order ID in payment entity",
+            error: "No order ID"
+          });
           return NextResponse.json({ success: true, message: "No order ID present" });
         }
 
@@ -94,10 +123,47 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (!dbOrder) {
-            // No order found for razorpay_order_id
+            paymentDebugLog({
+              functionName: `Webhook event handler: ${eventName}`,
+              razorpayOrderId,
+              razorpayPaymentId,
+              reason: "Order lookup failed. No order matched in DB.",
+              error: "Order not found"
+            });
           } else {
+            const traceId = (dbOrder.payment_processing_state as any)?.traceId || "webhook-no-trace";
+            paymentDebugLog({
+              traceId,
+              functionName: `Webhook event handler: ${eventName}`,
+              orderId: dbOrder.id,
+              razorpayOrderId,
+              razorpayPaymentId,
+              reason: `Loaded order in webhook with status: ${dbOrder.status}`
+            });
+
+            paymentDebugLog({
+              traceId,
+              functionName: `Webhook event handler: ${eventName}`,
+              orderId: dbOrder.id,
+              razorpayOrderId,
+              razorpayPaymentId,
+              reason: "Executing atomic_claim_payment database RPC lock from webhook",
+              rpc: "atomic_claim_payment"
+            });
             const claimResult = await claimPaymentAtomically(dbOrder.id, razorpayPaymentId);
             
+            paymentDebugLog({
+              traceId,
+              functionName: `Webhook event handler: ${eventName}`,
+              orderId: dbOrder.id,
+              razorpayOrderId,
+              razorpayPaymentId,
+              reason: `RPC atomic_claim_payment result in webhook: ${claimResult.message}`,
+              rpc: "atomic_claim_payment",
+              rpcResult: claimResult.success ? "success" : "failed",
+              metadata: claimResult
+            });
+
             if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
               console.error("[Webhook] Failed to claim order:", claimResult.message);
             } else if (claimResult.message === 'Order already claimed' || claimResult.message === 'Duplicate payment ID prevented') {
@@ -105,14 +171,32 @@ export async function POST(req: NextRequest) {
             } else {
               // We won the race. Enqueue side effects worker.
               try {
+                const jobId = `payment_${dbOrder.id}_${razorpayPaymentId}`;
                 await paymentProcessingQueue.add("process_payment_side_effects", {
                   orderId: dbOrder.id,
                   razorpayPaymentId: razorpayPaymentId
                 }, {
-                  jobId: `payment_${dbOrder.id}_${razorpayPaymentId}` // Deduplication via jobId
+                  jobId // Deduplication via jobId
+                });
+                paymentDebugLog({
+                  traceId,
+                  functionName: `Webhook event handler: ${eventName}`,
+                  orderId: dbOrder.id,
+                  razorpayOrderId,
+                  razorpayPaymentId,
+                  reason: `Successfully enqueued process_payment_side_effects job from webhook with jobId: ${jobId}`
                 });
                 console.log(`[Webhook] Enqueued payment side effects for ${dbOrder.id}`);
-              } catch (enqueueErr) {
+              } catch (enqueueErr: any) {
+                paymentDebugLog({
+                  traceId,
+                  functionName: `Webhook event handler: ${eventName}`,
+                  orderId: dbOrder.id,
+                  razorpayOrderId,
+                  razorpayPaymentId,
+                  reason: "Failed to enqueue payment worker to Redis/BullMQ from webhook",
+                  error: enqueueErr.message || String(enqueueErr)
+                });
                 console.error("[Webhook] Failed to enqueue payment worker:", enqueueErr);
               }
             }
@@ -123,7 +207,14 @@ export async function POST(req: NextRequest) {
       case "payment.failed": {
         const paymentEntity = body.payload?.payment?.entity;
         const razorpayOrderId = paymentEntity?.order_id;
+        const razorpayPaymentId = paymentEntity?.id;
         if (!razorpayOrderId) {
+          paymentDebugLog({
+            functionName: "Webhook event handler: payment.failed",
+            razorpayPaymentId,
+            reason: "Missing order ID in payment entity",
+            error: "No order ID"
+          });
           return NextResponse.json({ success: true, message: "No order ID present" });
         }
         if (supabase) {
@@ -135,6 +226,18 @@ export async function POST(req: NextRequest) {
 
           if (dbOrder && dbOrder.status !== "Paid") {
             const orderId = dbOrder.id;
+            const traceId = (dbOrder.payment_processing_state as any)?.traceId || "webhook-no-trace";
+
+            paymentDebugLog({
+              traceId,
+              functionName: "Webhook event handler: payment.failed",
+              orderId,
+              razorpayOrderId,
+              razorpayPaymentId,
+              oldStatus: dbOrder.status,
+              newStatus: "FAILED",
+              reason: "payment.failed event matched, changing order status to FAILED and releasing reservation"
+            });
 
             await db.transitionOrderStatus(orderId, "FAILED", {
               triggerSource: "Razorpay Webhook",

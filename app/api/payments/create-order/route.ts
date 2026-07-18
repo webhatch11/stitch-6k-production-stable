@@ -134,16 +134,29 @@ export async function POST(req: NextRequest) {
           razorpayOrderId: existingOrder.razorpay_order_id,
           amount: Math.round(existingOrder.total * 100),
           currency: "INR",
+          traceId: orderTraceId,
           checkoutState: { ...checkoutState, orderId: existingOrder.id }
         });
       }
     } }
 
     if (checkoutState.finalPayable <= 0) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        reason: "finalPayable is zero or negative",
+        error: "Total must be greater than 0 for Razorpay."
+      });
       return NextResponse.json({ success: false, error: "Total must be greater than 0 for Razorpay." }, { status: 400 });
     }
 
     if (checkoutState.finalPayable < 1) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        reason: "finalPayable is less than ₹1",
+        error: "Minimum payable amount is ₹1"
+      });
       return NextResponse.json({ 
         success: false, 
         error: "Minimum payable amount is ₹1. Please adjust your wallet or points usage." 
@@ -152,6 +165,12 @@ export async function POST(req: NextRequest) {
 
     // 3. Generate sequential order number from DB sequence
     const sequentialOrderId = await db.getNextOrderNumber();
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/create-order",
+      orderId: sequentialOrderId,
+      reason: "Generated sequential order number from sequence"
+    });
 
     // 4. Create Razorpay Order with sequential order number as receipt
     const options = {
@@ -159,14 +178,21 @@ export async function POST(req: NextRequest) {
       currency: "INR",
       receipt: sequentialOrderId,
       notes: { internal_order_id: sequentialOrderId },
-      // 14 minutes from now (in seconds, Unix timestamp)
-      // Reservation expires at 15min; Razorpay timeout 1 min earlier
       expire_by: Math.floor(Date.now() / 1000) + (14 * 60),
     };
 
     let rzpOrder;
     try {
       rzpOrder = await razorpay.orders.create(options);
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        orderId: sequentialOrderId,
+        razorpayOrderId: rzpOrder.id,
+        reason: "Razorpay order successfully created",
+        rpc: "razorpay.orders.create",
+        rpcResult: "success"
+      });
     } catch (e: any) {
       const errStr = JSON.stringify(e) || "";
       const errDesc = e?.error?.description || "";
@@ -175,7 +201,25 @@ export async function POST(req: NextRequest) {
         const fallbackOptions = { ...options };
         delete (fallbackOptions as any).expire_by;
         rzpOrder = await razorpay.orders.create(fallbackOptions);
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/create-order",
+          orderId: sequentialOrderId,
+          razorpayOrderId: rzpOrder.id,
+          reason: "Razorpay order successfully created on retry (without expire_by)",
+          rpc: "razorpay.orders.create",
+          rpcResult: "success"
+        });
       } else {
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/create-order",
+          orderId: sequentialOrderId,
+          reason: "Razorpay order creation failed",
+          rpc: "razorpay.orders.create",
+          rpcResult: "failed",
+          error: e.message || errStr
+        });
         console.error("Razorpay order creation error:", e);
         throw e;
       }
@@ -214,17 +258,28 @@ export async function POST(req: NextRequest) {
       shipping_amount: checkoutState.shippingAmount || 0,
     };
 
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/create-order",
+      orderId: sequentialOrderId,
+      razorpayOrderId: rzpOrder.id,
+      oldStatus: "N/A",
+      newStatus: "Payment Pending",
+      reason: "Attempting to save initial pending order record"
+    });
+
     await db.saveOrder(orderData);
 
     // Create order events
     await db.createOrderEvent(sequentialOrderId, "Order Created");
     await db.createOrderEvent(sequentialOrderId, "Payment Pending");
 
-    // Update with Razorpay fields
+    // Update with Razorpay fields & store traceId in payment_processing_state
     if (supabase) {
       await supabase.from("orders").update({
         razorpay_order_id: rzpOrder.id,
-        payment_status: "Payment Pending"
+        payment_status: "Payment Pending",
+        payment_processing_state: { traceId }
       }).eq("id", sequentialOrderId);
 
       await supabase.from("payments").insert({
@@ -235,6 +290,14 @@ export async function POST(req: NextRequest) {
         status: "CREATED",
         method: "razorpay"
       });
+
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        orderId: sequentialOrderId,
+        razorpayOrderId: rzpOrder.id,
+        reason: "Saved traceId in order payment_processing_state and created payment row"
+      });
     }
 
     // 6. Return to client
@@ -244,10 +307,17 @@ export async function POST(req: NextRequest) {
       razorpayOrderId: rzpOrder.id,
       amount: options.amount,
       currency: options.currency,
+      traceId,
       checkoutState: { ...checkoutState, orderId: sequentialOrderId }
     });
 
-  } catch (error: unknown) {
+  } catch (error: any) {
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/create-order",
+      reason: "Unhandled exception in create-order endpoint",
+      error: error.message || String(error)
+    });
     console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "order", route: "create-order" } });
     return NextResponse.json(

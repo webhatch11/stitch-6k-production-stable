@@ -7,6 +7,7 @@ import { supabaseService as supabase } from "@/lib/supabase-service";
 import { calculateShipping } from "@/lib/shipping";
 import { headers } from "next/headers";
 import { CacheService } from "@/lib/cache";
+import { paymentDebugLog } from "@/lib/payment-debug";
 
 interface CartItem {
   productId?: string;
@@ -365,6 +366,7 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   idempotencyKey: string;
   addressId?: string;
   userId?: string;
+  traceId?: string;
 }) {
   const {
     cart,
@@ -377,26 +379,48 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     customerName,
     idempotencyKey,
     addressId,
+    traceId = "N/A"
   } = payload;
+
+  paymentDebugLog({
+    traceId,
+    functionName: "verifyAndPrepareGatewayCheckoutAction",
+    reason: "Starting gateway checkout verification and validation"
+  });
 
   // Identity comes from the server session only. Checkout requires login.
   const user = await getServerUser();
   if (!user) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "User not authenticated",
+      error: "Unauthorized: login required for checkout."
+    });
     return { success: false, error: "Unauthorized: login required for checkout." };
   }
   if (payload.userId && payload.userId !== user.id) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Security Alert: session/user mismatch",
+      error: `payload.userId=${payload.userId} vs user.id=${user.id}`
+    });
     return { success: false, error: "Security Alert: session/user mismatch." };
   }
   const userId = user.id;
 
-  
-
   const finalWalletDeduction = walletDeduction;
   const finalPointsRedeemed = pointsRedeemed;
 
-
   // Guard 1: Cart must not be empty
   if (!payload.cart || payload.cart.length === 0) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Empty cart guard failed",
+      error: "Cart is empty."
+    });
     return { 
       success: false, 
       error: 'Cart is empty. Add items before checkout.' 
@@ -406,6 +430,12 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   // Guard 2: Cart items have valid products
   const productIds = payload.cart.map((i: any) => i.productId).filter(Boolean) as string[];
   if (productIds.length === 0) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "No valid product IDs in cart",
+      error: "No valid products in cart"
+    });
     return {
       success: false,
       error: 'No valid products in cart'
@@ -415,6 +445,12 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   // Guard 3: Verify products exist in DB
   const products = await db.getProductsByIds(productIds);
   if (products.length === 0) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Products lookup in DB returned 0 records",
+      error: "Products not found"
+    });
     return {
       success: false,
       error: 'Products not found'
@@ -428,18 +464,28 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
     if (dbProduct) {
       verifiedSubtotal += dbProduct.price * ((item as any).quantity || 1);
     } else {
+      paymentDebugLog({
+        traceId,
+        functionName: "verifyAndPrepareGatewayCheckoutAction",
+        reason: "Product lookup mismatch in DB",
+        error: `Product "${item.productName}" not found.`
+      });
       return { success: false, error: `Product "${item.productName}" not found.` };
     }
   }
 
   if (verifiedSubtotal <= 0) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "verifiedSubtotal is zero or negative",
+      error: "Order total must be greater than ₹0."
+    });
     return {
       success: false,
       error: 'Order total must be greater than ₹0.'
     };
   }
-
-
 
   const loyaltyConfig = await db.getLoyaltyConfig();
   const RUPEES_PER_POINT = loyaltyConfig.rupeesPerPoint;
@@ -447,11 +493,23 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   // 0. Resolve and snapshot delivery address (must be one of the user's saved addresses)
   if (!addressId) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "AddressId missing",
+      error: "Delivery address details are required for checkout."
+    });
     return { success: false, error: "Delivery address details are required for checkout." };
   }
   let addressSnapshot: any = null;
   const addr = await db.getAddressById(addressId, userId);
   if (!addr) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Invalid or unauthorized addressId",
+      error: "Security Alert: Invalid or unauthorized delivery address."
+    });
     return { success: false, error: "Security Alert: Invalid or unauthorized delivery address." };
   }
   let email = user.email || "";
@@ -469,6 +527,14 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
 
   // A. Verify stock first
   const stockCheck = await db.verifyStock(cart, idempotencyKey);
+  paymentDebugLog({
+    traceId,
+    functionName: "verifyAndPrepareGatewayCheckoutAction",
+    reason: "Executed db.verifyStock RPC",
+    rpc: "reserve_variant_inventory_batch_atomic",
+    rpcResult: stockCheck.success ? "success" : "failed",
+    error: stockCheck.success ? undefined : stockCheck.message
+  });
   if (!stockCheck.success) {
     return { success: false, error: stockCheck.message || "Insufficient stock." };
   }
@@ -476,6 +542,12 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   let verifiedCouponDiscount = 0;
   if (couponCode) {
     const couponRes = await db.validateCoupon(couponCode, verifiedSubtotal, userId, cart);
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: `Executed db.validateCoupon for code: ${couponCode}`,
+      metadata: { valid: couponRes.valid, error: couponRes.error }
+    });
     if (!couponRes.valid || !couponRes.coupon) {
       return { success: false, error: couponRes.error || "Invalid coupon code." };
     }
@@ -489,9 +561,21 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   const dbLoyaltyPoints = await db.getLoyaltyPoints(userId);
 
   if (finalWalletDeduction > dbWalletBalance) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Wallet deduction exceeds DB balance",
+      error: `deduction=${finalWalletDeduction} vs balance=${dbWalletBalance}`
+    });
     return { success: false, error: "Security Alert: Wallet deduction exceeds available balance." };
   }
   if (finalPointsRedeemed > dbLoyaltyPoints) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "Loyalty points redemption exceeds DB points balance",
+      error: `redemption=${finalPointsRedeemed} vs balance=${dbLoyaltyPoints}`
+    });
     return { success: false, error: "Security Alert: Loyalty points redeemed exceed available points." };
   }
 
@@ -502,6 +586,12 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
   const verifiedFinalPayable = Math.max(0, totalWithShipping - verifiedPointsDiscount - finalWalletDeduction);
 
   if (verifiedFinalPayable > 0 && verifiedFinalPayable < 1) {
+    paymentDebugLog({
+      traceId,
+      functionName: "verifyAndPrepareGatewayCheckoutAction",
+      reason: "finalPayable is less than ₹1 but greater than 0",
+      error: "Minimum payable amount is ₹1"
+    });
     return {
       success: false,
       error: "Minimum payable amount via Razorpay is ₹1. Please reduce wallet or points usage or pay the full amount via payment gateway."

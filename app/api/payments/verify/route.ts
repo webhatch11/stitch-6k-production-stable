@@ -8,6 +8,7 @@ import { razorpay } from "@/lib/razorpay";
 import { sendGA4Purchase, sendMetaPurchase } from "@/lib/server-analytics";
 import { claimPaymentAtomically } from "@/lib/db/payments";
 import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
+import { paymentDebugLog } from "@/lib/payment-debug";
 
 const verifySchema = z.object({
   razorpay_payment_id: z.string().min(1),
@@ -23,15 +24,24 @@ export async function POST(req: NextRequest) {
     const parsed = verifySchema.safeParse(body);
 
     if (!parsed.success) {
+      paymentDebugLog({
+        functionName: "POST /api/payments/verify",
+        reason: "Invalid payload parameters schema parsing failed",
+        error: parsed.error.message
+      });
       return NextResponse.json({ success: false, error: "Invalid verification payload" }, { status: 400 });
     }
 
     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    // Fetch authoritative order from DB using the Razorpay order ID supplied by
-    // the payment gateway. All side effects below use only this row — never
-    // client-supplied checkoutState — to prevent forged payload attacks.
     if (!supabase) {
+      paymentDebugLog({
+        functionName: "POST /api/payments/verify",
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Supabase client is null",
+        error: "Database unavailable"
+      });
       return NextResponse.json({ success: false, error: "Database unavailable" }, { status: 500 });
     }
 
@@ -42,11 +52,38 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (orderFetchError || !dbOrder) {
+      paymentDebugLog({
+        functionName: "POST /api/payments/verify",
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Order lookup failed by razorpay_order_id",
+        error: orderFetchError?.message || "Order not found"
+      });
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 });
     }
 
+    const traceId = (dbOrder.payment_processing_state as any)?.traceId || "verify-no-trace";
+
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/verify",
+      orderId: dbOrder.id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      reason: `Loaded authoritative order from DB with status: ${dbOrder.status}`
+    });
+
     // Defense in depth: assert the row we loaded is the one we asked for.
     if (dbOrder.razorpay_order_id !== razorpay_order_id) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Order ID assertion mismatch mismatch",
+        error: `Loaded=${dbOrder.razorpay_order_id} vs Request=${razorpay_order_id}`
+      });
       return NextResponse.json({ success: false, error: "Order ID mismatch" }, { status: 400 });
     }
 
@@ -58,6 +95,17 @@ export async function POST(req: NextRequest) {
       .digest("hex");
 
     if (generatedSignature !== razorpay_signature) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        oldStatus: dbOrder.status,
+        newStatus: "FAILED",
+        reason: "Signature mismatch check failed, changing order status to FAILED and releasing reservation"
+      });
+
       await supabase.from("payment_logs").insert({
         payment_id: null,
         previous_status: "Payment Pending",
@@ -75,6 +123,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Payment verification failed: Invalid signature" }, { status: 400 });
     }
 
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/verify",
+      orderId: dbOrder.id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      reason: "Cryptographic signature validation successful"
+    });
+
     // Verify paid amount matches expected amount
     const expectedAmount = Math.round(
       (dbOrder.gateway_paid ?? dbOrder.total) * 100
@@ -83,7 +140,16 @@ export async function POST(req: NextRequest) {
     let paymentEntity;
     try {
       paymentEntity = await razorpay.payments.fetch(razorpay_payment_id);
-    } catch (e) {
+    } catch (e: any) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Failed to fetch payment details from Razorpay gateway API",
+        error: e.message || String(e)
+      });
       console.error("[verify] failed to fetch payment details from razorpay:", e);
     }
 
@@ -91,6 +157,15 @@ export async function POST(req: NextRequest) {
         expectedAmount &&
         Number(paymentEntity.amount) < expectedAmount) {
       
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "[FRAUD ALERT] Payment amount mismatch: underpayment detected",
+        error: `paid=${paymentEntity.amount} vs expected=${expectedAmount}`
+      });
       console.error(
         '[FRAUD ALERT] Payment amount mismatch:',
         `paid=${paymentEntity.amount}`,
@@ -120,6 +195,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (paymentEntity?.amount && Number(paymentEntity.amount) > expectedAmount) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: `[Overpayment Warning] paid=${paymentEntity.amount} vs expected=${expectedAmount}`
+      });
       console.warn(
         `[Overpayment] Payment amount greater than expected:`,
         `paid=${paymentEntity.amount}`,
@@ -140,14 +223,38 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (resData && resData.status !== "fulfilled") {
-        console.warn(`[verify] Order ${dbOrder.id} is Paid but reservation status is ${resData.status}. Recovering missing side-effects...`);
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/verify",
+          orderId: dbOrder.id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          reason: `Order is already Paid but reservation status is ${resData.status}. Running recovery mode side-effects.`
+        });
         isRecoveryMode = true;
       } else {
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/verify",
+          orderId: dbOrder.id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          reason: "Order is already Paid and inventory reservation is fulfilled. Skipping all duplicate steps."
+        });
         return NextResponse.json({ success: true, message: "Order already processed", orderId: dbOrder.id });
       }
     }
 
     if (dbOrder.status === "FAILED") {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Order status is FAILED, refusing reprocessing",
+        error: "FAILED state block"
+      });
       return NextResponse.json({ success: false, error: "Order in failed state, cannot reprocess" }, { status: 400 });
     }
 
@@ -156,8 +263,29 @@ export async function POST(req: NextRequest) {
     const earned = Math.floor(earnBase / 100) * 5; 
 
     // Atomic compare-and-set
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/verify",
+      orderId: dbOrder.id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      reason: "Executing atomic_claim_payment database RPC lock",
+      rpc: "atomic_claim_payment"
+    });
     const claimResult = await claimPaymentAtomically(dbOrder.id, razorpay_payment_id);
     
+    paymentDebugLog({
+      traceId,
+      functionName: "POST /api/payments/verify",
+      orderId: dbOrder.id,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      reason: `RPC atomic_claim_payment result: ${claimResult.message}`,
+      rpc: "atomic_claim_payment",
+      rpcResult: claimResult.success ? "success" : "failed",
+      metadata: claimResult
+    });
+
     if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
       return NextResponse.json({ success: false, error: claimResult.message || "Failed to claim order" }, { status: 500 });
     }
@@ -169,19 +297,34 @@ export async function POST(req: NextRequest) {
 
     // We won the race. Enqueue side effects worker.
     try {
+      const jobId = `payment_${dbOrder.id}_${razorpay_payment_id}`;
       await paymentProcessingQueue.add("process_payment_side_effects", {
         orderId: dbOrder.id,
         razorpayPaymentId: razorpay_payment_id
       }, {
-        jobId: `payment_${dbOrder.id}_${razorpay_payment_id}` // Deduplication via jobId
+        jobId // Deduplication via jobId
+      });
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: `Successfully enqueued process_payment_side_effects job with jobId: ${jobId}`
       });
       console.log(`[verify] Enqueued payment side effects for ${dbOrder.id}`);
-    } catch (enqueueErr) {
+    } catch (enqueueErr: any) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/verify",
+        orderId: dbOrder.id,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        reason: "Failed to enqueue payment worker to Redis/BullMQ",
+        error: enqueueErr.message || String(enqueueErr)
+      });
       console.error("[verify] Failed to enqueue payment worker:", enqueueErr);
-      // Even if it fails, the recovery worker will pick it up, or it can be manually retried.
     }
-
-
 
     // Run server-side tracking in parallel (non-blocking)
     Promise.all([
@@ -207,7 +350,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Payment verified successfully", orderId: dbOrder.id });
 
-  } catch (error: unknown) {
+  } catch (error: any) {
+    paymentDebugLog({
+      functionName: "POST /api/payments/verify",
+      reason: "Unhandled exception in verify route handler",
+      error: error.message || String(error)
+    });
     console.error("[Payment Error]:", error);
     Sentry.captureException(error, { tags: { area: "payment", route: "verify" } });
     return NextResponse.json(

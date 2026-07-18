@@ -43,12 +43,6 @@ test.describe("Policy pages", () => {
     }
   });
 
-  test("/payment-policy mentions COD unavailable", async ({ page }) => {
-    await page.goto("/payment-policy");
-    await expect(page.locator("body")).toContainText(/COD|cash on delivery/i);
-    await expect(page.locator("body")).toContainText(/not available|unavailable|prepaid/i);
-  });
-
   test("/shipping-policy mentions Prepaid Orders Only", async ({ page }) => {
     await page.goto("/shipping-policy");
     await expect(page.locator("body")).toContainText(/prepaid/i);

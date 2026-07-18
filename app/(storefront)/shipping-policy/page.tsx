@@ -27,10 +27,10 @@ export default function ShippingPolicyPage() {
             All orders are processed within 2–3 business days after successful payment confirmation. Monday to Saturday only.
           </p>
         </section>
-        <section className="p-8 border border-[#e8d08a] bg-[#faf5e8]">
-          <h3 className="text-[#7a5c00] font-black text-lg mb-4">2. Prepaid Orders Only</h3>
-          <p className="text-[#7a5c00]">
-            6K Brand currently accepts Prepaid Orders only. Cash on Delivery (COD) is NOT available. Customers are requested to complete payment online during checkout before their orders are processed and shipped.
+        <section className="bg-surface-container-low p-8 border border-outline-variant/10">
+          <h3 className="text-on-surface font-black text-lg mb-4">2. Prepaid Orders Only</h3>
+          <p>
+            6K Brand accepts Prepaid Orders only. Customers are requested to complete payment online during checkout before their orders are processed and shipped.
           </p>
         </section>
         <section className="bg-surface-container-low p-8 border border-outline-variant/10">

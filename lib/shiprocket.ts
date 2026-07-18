@@ -115,7 +115,7 @@ export interface ShiprocketOrderPayload {
     units: number;
     selling_price: number;
   }>;
-  payment_method: "Prepaid" | "COD";
+  payment_method: "Prepaid";
   sub_total: number;
   length: number;
   width: number;
@@ -474,8 +474,7 @@ export const shiprocket = {
   async checkPincodeServiceability(
     pickupPincode: string,
     deliveryPincode: string,
-    weight: number,
-    cod: 0 | 1
+    weight: number
   ): Promise<{
     serviceable: boolean;
     couriers: Array<{
@@ -500,7 +499,7 @@ export const shiprocket = {
     }
     try {
       const token = await getAuthToken();
-      const url = `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=${pickupPincode}&delivery_postcode=${deliveryPincode}&weight=${weight}&cod=${cod}`;
+      const url = `https://apiv2.shiprocket.in/v1/external/courier/serviceability/?pickup_postcode=${pickupPincode}&delivery_postcode=${deliveryPincode}&weight=${weight}&cod=0`;
       const res = await fetch(url, {
         method: "GET",
         headers: {

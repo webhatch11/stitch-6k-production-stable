@@ -294,8 +294,9 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     const netRevenueReport = await db.getNetRevenueReport(startOfMonth, endOfMonth);
 
     let paymentsBreakdown = [
-      { name: "Razorpay (Online)", value: 85 },
-      { name: "Cash on Delivery", value: 13 },
+      { name: "Razorpay Only", value: 70 },
+      { name: "Wallet Only", value: 15 },
+      { name: "Wallet + Razorpay", value: 15 },
     ];
 
     if (isSupabaseConfigured && supabase) {
@@ -307,18 +308,22 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
 
       if (!error && orders) {
         const valid = orders.filter(o => o.status !== "Cancelled" && o.status !== "Expired");
-        let codCount = 0;
-        let onlineCount = 0;
+        let walletOnly = 0;
+        let razorpayOnly = 0;
+        let combined = 0;
         for (const o of valid) {
-          if (o.gateway_paid > 0) {
-            onlineCount++;
-          } else {
-            codCount++;
+          if (o.gateway_paid > 0 && o.wallet_paid > 0) {
+            combined++;
+          } else if (o.gateway_paid > 0) {
+            razorpayOnly++;
+          } else if (o.wallet_paid > 0) {
+            walletOnly++;
           }
         }
         paymentsBreakdown = [
-          { name: "Razorpay (Online)", value: onlineCount },
-          { name: "Cash on Delivery", value: codCount },
+          { name: "Razorpay Only", value: razorpayOnly },
+          { name: "Wallet Only", value: walletOnly },
+          { name: "Wallet + Razorpay", value: combined },
         ];
       }
     }

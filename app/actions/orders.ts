@@ -119,7 +119,7 @@ export async function checkServiceabilityAction(
   try {
     const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || "620018";
     const { shiprocket } = await import("@/lib/shiprocket");
-    const res = await shiprocket.checkPincodeServiceability(pickupPincode, deliveryPincode, 0.5, 0);
+    const res = await shiprocket.checkPincodeServiceability(pickupPincode, deliveryPincode, 0.5);
     return {
       success: true,
       serviceable: res.serviceable,

@@ -28,10 +28,10 @@ export default function TermsPage() {
           </p>
         </section>
 
-        <section className="p-8 border border-[#e8d08a] bg-[#faf5e8]">
-          <h3 className="text-[#7a5c00] font-black text-lg mb-4">2. Payment Policy &amp; No Cash on Delivery (COD)</h3>
-          <p className="text-[#7a5c00]">
-            We currently accept UPI, Credit Cards, Debit Cards, Net Banking, and Wallets. Cash on Delivery (COD) is not available. All transactions must be completed securely online during checkout before orders are confirmed, processed, and shipped.
+        <section className="bg-surface-container-low p-8 border border-outline-variant/10">
+          <h3 className="text-on-surface font-black text-lg mb-4">2. Payment Policy</h3>
+          <p>
+            We accept UPI, Credit Cards, Debit Cards, Net Banking, and Wallets. All transactions must be completed securely online during checkout before orders are confirmed, processed, and shipped.
           </p>
         </section>
 

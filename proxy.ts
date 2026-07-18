@@ -179,9 +179,9 @@ async function handleProxy(request: NextRequest) {
   }
 
   const isMetricsRoute = path === "/api/metrics";
-  const isSubsystemHealthRoute = path.startsWith("/api/health/") && path !== "/api/health";
+  const isHealthRoute = path.startsWith("/api/health");
 
-  if (isMetricsRoute || isSubsystemHealthRoute) {
+  if (isMetricsRoute || isHealthRoute) {
     // 1. Check Bearer token using timing-safe comparison
     const adminSecret = process.env.ADMIN_SECRET;
     const authHeader = request.headers.get("authorization");

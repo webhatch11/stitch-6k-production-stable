@@ -4,12 +4,19 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Order } from "@/lib/types";
 import { getOrdersAction } from "@/app/actions/admin-reads";
+import {
+  classifyOrderForInvoice,
+  isBillableOrder,
+  isReturnedInvoice,
+  isCancelledInvoice,
+  type InvoiceTab,
+} from "@/lib/invoice-status";
 
 export default function InvoicesLedgerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [currentTab, setCurrentTab] = useState<"billed" | "returned" | "cancelled">("billed");
+  const [currentTab, setCurrentTab] = useState<InvoiceTab>("billed");
 
-  // Analytics Metrics
+  // Analytics Metrics — only count invoice-eligible orders
   const [billedRevenue, setBilledRevenue] = useState(0);
   const [billedCount, setBilledCount] = useState(0);
   const [refundedValue, setRefundedValue] = useState(0);
@@ -50,17 +57,19 @@ export default function InvoicesLedgerPage() {
     let cancelledCt = 0;
 
     ordersList.forEach((o) => {
-      const s = o.status.toLowerCase();
-      if (s === "returned") {
-        refundedSum += o.total;
-        refundedCt++;
-      } else if (s === "cancelled") {
-        cancelledSum += o.total;
-        cancelledCt++;
-      } else {
+      const tab = classifyOrderForInvoice(o.status);
+      if (tab === "billed") {
         billedSum += o.total;
         billedCt++;
+      } else if (tab === "returned") {
+        refundedSum += o.total;
+        refundedCt++;
+      } else if (tab === "cancelled") {
+        cancelledSum += o.total;
+        cancelledCt++;
       }
+      // tab === "none" → Payment Pending / FAILED / Payment Review Required
+      // — deliberately excluded from all metrics
     });
 
     setBilledRevenue(billedSum);
@@ -70,6 +79,11 @@ export default function InvoicesLedgerPage() {
     setCancelledValue(cancelledSum);
     setCancelledCount(cancelledCt);
   };
+
+  /** Filter orders for the active tab using the shared classifier. */
+  const filteredOrders = orders.filter(
+    (o) => classifyOrderForInvoice(o.status) === currentTab
+  );
 
   return (
     <div className="p-8 lg:p-16">
@@ -82,7 +96,7 @@ export default function InvoicesLedgerPage() {
           </nav>
           <h2 className="text-5xl font-headline font-black tracking-tighter text-[#0a0a0a] uppercase leading-none">Invoices</h2>
           <p className="text-xs text-gray-500 mt-4 font-bold uppercase tracking-widest italic opacity-70">
-            A comprehensive record of all customer order invoices.
+            A comprehensive record of all completed customer order invoices.
           </p>
         </div>
         <div className="flex gap-4">
@@ -95,7 +109,7 @@ export default function InvoicesLedgerPage() {
         </div>
       </header>
 
-      {/* Statistics board panels */}
+      {/* Statistics board panels — Payment Pending orders excluded from all metrics */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div className="bg-white p-8 border border-gray-200 shadow-sm relative overflow-hidden group">
           <p className="text-[10px] font-black uppercase tracking-[.25em] text-gray-500 mb-4">Billed Revenue</p>
@@ -149,12 +163,7 @@ export default function InvoicesLedgerPage() {
             ))}
           </div>
           <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 italic opacity-85">
-            Showing {orders.filter((o) => {
-              const s = o.status.toLowerCase();
-              if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
-              if (currentTab === "returned") return s === "returned";
-              return s === "cancelled";
-            }).length} invoices
+            Showing {filteredOrders.length} invoices
           </p>
         </div>
 
@@ -165,64 +174,58 @@ export default function InvoicesLedgerPage() {
                 <th className="px-8 py-6 font-black">Invoice ID</th>
                 <th className="px-8 py-6 font-black">Generation Date</th>
                 <th className="px-8 py-6 font-black">Entity / Customer</th>
+                <th className="px-8 py-6 font-black">Status</th>
                 <th className="px-8 py-6 font-black">Total Amount</th>
                 <th className="px-8 py-6 text-right font-black">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-xs">
-              {orders.filter((o) => {
-                const s = o.status.toLowerCase();
-                if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
-                if (currentTab === "returned") return s === "returned";
-                return s === "cancelled";
-              }).length === 0 ? (
+              {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
-                    No {currentTab} invoices generated in database registry.
+                  <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold uppercase tracking-widest text-gray-400 opacity-40">
+                    No {currentTab} invoices in the registry.
                   </td>
                 </tr>
               ) : (
-                orders
-                  .filter((o) => {
-                    const s = o.status.toLowerCase();
-                    if (currentTab === "billed") return s !== "returned" && s !== "cancelled";
-                    if (currentTab === "returned") return s === "returned";
-                    return s === "cancelled";
-                  })
-                  .map((order) => (
-                    <tr key={order.id} className="hover:bg-[#f9fafb] transition-colors border-b border-gray-100">
-                      <td className="px-8 py-8 text-sm font-black font-headline text-primary">
-                        #INV-{order.id}
-                      </td>
-                      <td className="px-8 py-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                        {order.date}
-                      </td>
-                      <td className="px-8 py-8">
-                        <span className="text-[11px] font-black uppercase tracking-tight">{order.customer}</span>
-                      </td>
-                      <td className="px-8 py-8 text-sm font-black font-headline text-primary">
-                        ₹{order.total.toLocaleString("en-IN")}.00
-                        {order.status === "Returned" && (
-                          <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-red-50 text-red-600 px-2.5 py-0.5 border border-red-200/50">
-                            Refunded
-                          </span>
-                        )}
-                        {order.status === "Cancelled" && (
-                          <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 px-2.5 py-0.5 border border-gray-200/50">
-                            Cancelled
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-8 py-8 text-right">
-                        <Link
-                          href={`/invoice?orderId=${order.id}`}
-                          className="inline-block bg-primary text-white px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] hover:bg-secondary transition-colors rounded-none"
-                        >
-                          View Invoice
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
+                filteredOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-[#f9fafb] transition-colors border-b border-gray-100">
+                    <td className="px-8 py-8 text-sm font-black font-headline text-primary">
+                      #INV-{order.id}
+                    </td>
+                    <td className="px-8 py-8 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                      {order.date}
+                    </td>
+                    <td className="px-8 py-8">
+                      <span className="text-[11px] font-black uppercase tracking-tight">{order.customer}</span>
+                    </td>
+                    <td className="px-8 py-8">
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 border border-gray-200 text-gray-600">
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-8 py-8 text-sm font-black font-headline text-primary">
+                      ₹{order.total.toLocaleString("en-IN")}.00
+                      {order.status === "Returned" && (
+                        <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-red-50 text-red-600 px-2.5 py-0.5 border border-red-200/50">
+                          Refunded
+                        </span>
+                      )}
+                      {isCancelledInvoice(order.status) && (
+                        <span className="ml-2 inline-block text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-500 px-2.5 py-0.5 border border-gray-200/50">
+                          Cancelled
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-8 py-8 text-right">
+                      <Link
+                        href={`/invoice?orderId=${order.id}`}
+                        className="inline-block bg-primary text-white px-6 py-2.5 text-[9px] font-black uppercase tracking-[0.15em] hover:bg-secondary transition-colors rounded-none"
+                      >
+                        View Invoice
+                      </Link>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

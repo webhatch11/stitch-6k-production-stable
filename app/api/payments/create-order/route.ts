@@ -123,6 +123,33 @@ export async function POST(req: NextRequest) {
       if (existingOrder) {
         const orderTraceId = (existingOrder.payment_processing_state as any)?.traceId || traceId;
 
+        // ── P1 Edge Case Fix ─────────────────────────────────────────────────
+        // If the recovery worker has already swept this order (Cancelled / EXPIRED),
+        // we must NOT attempt to revive it. The client must generate a fresh
+        // idempotency key and restart the checkout session from scratch.
+        // This covers the race: customer waits >15 min → recovery cancels order
+        // → customer clicks "Pay Again" with the same (stale) idempotency key.
+        const isExpiredSession =
+          existingOrder.status === "Cancelled" ||
+          (existingOrder.payment_processing_state as any)?.payment_status === "EXPIRED";
+
+        if (isExpiredSession) {
+          paymentDebugLog({
+            traceId: orderTraceId,
+            functionName: "POST /api/payments/create-order",
+            orderId: existingOrder.id,
+            oldStatus: existingOrder.status,
+            reason: "Existing order is Cancelled or EXPIRED (swept by recovery worker). Signalling client to generate a fresh session.",
+          });
+          return NextResponse.json({
+            success: false,
+            code: "SESSION_EXPIRED",
+            error: "Your previous payment session has expired. Please try again.",
+            traceId: orderTraceId,
+          }, { status: 410 }); // 410 Gone — the session is definitively dead
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // If the order has already been paid/processed, short-circuit and return success
         const isPaidStatus = ["Paid", "Paid via Wallet", "paid via wallet", "Accepted", "Processing", "Packed", "Shipped", "Delivered"].includes(existingOrder.status);
         if (isPaidStatus) {

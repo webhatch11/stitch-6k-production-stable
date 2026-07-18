@@ -578,16 +578,78 @@ export default function CheckoutPage() {
           }
 
           if (!createData.success) {
-            paymentDebugLog({
-              traceId: clientTraceId,
-              functionName: "handleSubmit (Razorpay block)",
-              reason: "Order creation API returned failure",
-              error: createData.error
-            });
-            console.error("[Razorpay] Order creation failed:", createData.error);
-            triggerToast(`❌ Payment initialization failed: ${createData.error || "Please try again."}`);
-            setProcessingPayment(false);
-            return;
+            // ── P1 Edge Case Fix ─────────────────────────────────────────────
+            // The recovery worker swept the previous Payment Pending order (> 15 min).
+            // The server signals SESSION_EXPIRED (HTTP 410). We rotate the idempotency
+            // key in store and re-submit once automatically — no user action needed.
+            if (createData.code === "SESSION_EXPIRED") {
+              paymentDebugLog({
+                traceId: clientTraceId,
+                functionName: "handleSubmit (Razorpay block) — SESSION_EXPIRED handler",
+                reason: "Previous payment session expired (order was swept by recovery worker). Rotating idempotency key and retrying."
+              });
+
+              // Generate a fresh idempotency key and persist it in the checkout store
+              const freshKey = typeof window !== "undefined" && window.crypto?.randomUUID
+                ? window.crypto.randomUUID()
+                : "ORD-" + Math.floor(Math.random() * 900000 + 100000);
+              setIdempotencyKey(freshKey);
+
+              triggerToast("Your previous session expired. Starting a fresh payment session...");
+
+              // Retry once with the new key — no recursion, just a direct re-request
+              const retryRes = await fetch("/api/payments/create-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  cart,
+                  couponCode: appliedCouponCode,
+                  walletDeduction: userId ? walletDeduction : 0,
+                  pointsRedeemed: userId ? pointsRedeemed : 0,
+                  loyaltyDiscount: userId ? loyaltyDiscount : 0,
+                  baseTotal,
+                  netTotal,
+                  customerName,
+                  idempotencyKey: freshKey,   // fresh key — new order, new reservation
+                  addressId: selectedAddress?.id,
+                  userId,
+                  utm_source,
+                  utm_medium,
+                  utm_campaign,
+                })
+              });
+              const retryData = await retryRes.json();
+              if (retryData.traceId) clientTraceId = retryData.traceId;
+
+              if (!retryData.success) {
+                paymentDebugLog({
+                  traceId: clientTraceId,
+                  functionName: "handleSubmit (Razorpay block) — SESSION_EXPIRED retry",
+                  reason: "Retry after session rotation also failed",
+                  error: retryData.error
+                });
+                console.error("[Razorpay] Session rotation retry failed:", retryData.error);
+                triggerToast(`❌ Payment initialization failed: ${retryData.error || "Please try again."}`);
+                setProcessingPayment(false);
+                return;
+              }
+
+              // Reassign createData to the successful retry response so the widget opens normally
+              Object.assign(createData, retryData);
+            } else {
+              // Generic failure path (unchanged)
+              paymentDebugLog({
+                traceId: clientTraceId,
+                functionName: "handleSubmit (Razorpay block)",
+                reason: "Order creation API returned failure",
+                error: createData.error
+              });
+              console.error("[Razorpay] Order creation failed:", createData.error);
+              triggerToast(`❌ Payment initialization failed: ${createData.error || "Please try again."}`);
+              setProcessingPayment(false);
+              return;
+            }
+            // ─────────────────────────────────────────────────────────────────
           }
 
           paymentDebugLog({

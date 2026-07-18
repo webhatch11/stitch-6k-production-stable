@@ -425,6 +425,11 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS size TEXT;
 ALTER TABLE public.inventory_reservations ADD COLUMN IF NOT EXISTS color TEXT;
 
+-- Enforce database-level uniqueness to guarantee only one active reservation per session/variant
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_reservations_active_unique 
+ON public.inventory_reservations (session_id, product_id, COALESCE(size, ''), COALESCE(color, '')) 
+WHERE (status = 'reserved');
+
 -- 18. Phase 3 Updates: Razorpay Integration Tables
 
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT;
@@ -594,10 +599,13 @@ BEGIN
             CONTINUE;
         END IF;
 
-        -- Get active reservations
+        -- Get active reservations, excluding the user's current session's reservation
         SELECT COALESCE(SUM(quantity), 0) INTO v_active_reservations
         FROM inventory_reservations
-        WHERE product_id = v_product_id AND size = v_size AND color = v_color AND status = 'reserved' AND expires_at > NOW();
+        WHERE product_id = v_product_id AND size = v_size AND color = v_color 
+          AND status = 'reserved' 
+          AND expires_at > NOW() 
+          AND session_id != p_session;
 
         v_available_stock := COALESCE(v_variant.stock, 0) - v_active_reservations;
 
@@ -611,10 +619,22 @@ BEGIN
         RETURN json_build_object('success', false, 'errors', v_errors);
     END IF;
 
-    -- Insert reservations if all checks pass
+    -- Upsert/insert reservations if all checks pass
     FOR item IN SELECT * FROM temp_items LOOP
-        INSERT INTO inventory_reservations (product_id, size, color, quantity, expires_at, session_id)
-        VALUES (item.product_id, item.size, item.color, item.quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
+        UPDATE inventory_reservations
+        SET quantity = item.quantity,
+            expires_at = NOW() + (p_expires_mins || ' minutes')::interval
+        WHERE session_id = p_session 
+          AND product_id = item.product_id 
+          AND size = item.size 
+          AND color = item.color 
+          AND status = 'reserved' 
+          AND expires_at > NOW();
+
+        IF NOT FOUND THEN
+            INSERT INTO inventory_reservations (product_id, size, color, quantity, expires_at, session_id)
+            VALUES (item.product_id, item.size, item.color, item.quantity, NOW() + (p_expires_mins || ' minutes')::interval, p_session);
+        END IF;
     END LOOP;
 
     RETURN json_build_object('success', true);

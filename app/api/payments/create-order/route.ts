@@ -358,13 +358,34 @@ export async function POST(req: NextRequest) {
 
     // Update with Razorpay fields & store traceId in payment_processing_state
     if (supabase) {
-      await supabase.from("orders").update({
+      // Step A: Update the critical fields (razorpay_order_id & payment_status) which are guaranteed to exist in schema cache
+      const { error: criticalUpdateError } = await supabase.from("orders").update({
         razorpay_order_id: rzpOrder.id,
-        payment_status: "Payment Pending",
+        payment_status: "Payment Pending"
+      }).eq("id", sequentialOrderId);
+
+      if (criticalUpdateError) {
+        console.error("[create-order] Failed to update order with razorpay_order_id:", criticalUpdateError);
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/create-order",
+          orderId: sequentialOrderId,
+          razorpayOrderId: rzpOrder.id,
+          reason: "Failed to update order with razorpay_order_id in Supabase",
+          error: criticalUpdateError.message
+        });
+      }
+
+      // Step B: Attempt to update payment_processing_state separately so it does not block the checkout flow if schema cache is stale
+      const { error: stateUpdateError } = await supabase.from("orders").update({
         payment_processing_state: { traceId }
       }).eq("id", sequentialOrderId);
 
-      await supabase.from("payments").insert({
+      if (stateUpdateError) {
+        console.warn("[create-order] Non-critical warning: Failed to save payment_processing_state (schema cache might be out of sync):", stateUpdateError.message);
+      }
+
+      const { error: paymentInsertError } = await supabase.from("payments").insert({
         order_id: sequentialOrderId,
         razorpay_order_id: rzpOrder.id,
         amount: checkoutState.finalPayable,
@@ -372,6 +393,10 @@ export async function POST(req: NextRequest) {
         status: "CREATED",
         method: "razorpay"
       });
+
+      if (paymentInsertError) {
+        console.error("[create-order] Failed to insert payment:", paymentInsertError);
+      }
 
       paymentDebugLog({
         traceId,

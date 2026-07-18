@@ -1497,6 +1497,15 @@ function AddProductContent() {
           </div>
         </div>
       )}
+
+      {/* Toast Notification Banner */}
+      {showToast && (
+        <div className="fixed bottom-8 right-8 z-[2100] max-w-sm w-full bg-[#1a1c1c] text-[#faf9f8] border border-[#775a19]/50 shadow-2xl p-4 rounded-none transition-all duration-300">
+          <div className="flex items-center space-x-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{toastText}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

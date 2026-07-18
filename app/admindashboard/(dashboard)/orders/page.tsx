@@ -12,7 +12,10 @@ import {
   bulkMarkPackedAction,
   generateBulkLabelsAction,
   printManifestAction,
-  generateBulkInvoicePdfAction
+  generateBulkInvoicePdfAction,
+  manualDeliveryOverrideAction,
+  manualReturnArrivedOverrideAction,
+  bulkUpdateOrderStatusAction
 } from "@/app/actions/admin-orders";
 import { buildInvoiceHtml, orderToInvoiceData } from "@/lib/invoice-template";
 
@@ -479,19 +482,40 @@ export default function OrdersKanbanPage() {
     }
   };
 
-  const handleSingleGenerateLabel = async (orderId: string) => {
+  const handleSingleShipOverride = async (orderId: string) => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const res = await generateBulkLabelsAction([orderId]);
-      if (res.success && res.results && res.results[0].success) {
-        triggerToast("Label generated successfully. Status: Shipped.");
+      const res = await bulkUpdateOrderStatusAction([orderId], "Shipped");
+      if (res.success) {
+        triggerToast("Order marked as Shipped manually.");
         await loadOrders();
       } else {
-        triggerToast(res.results?.[0]?.error || "Failed to generate label");
+        triggerToast(res.error || "Failed to update status");
       }
     } catch (err: any) {
-      triggerToast(err.message || "Label generation failed");
+      triggerToast(err.message || "An error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSingleDeliverOverride = async (orderId: string) => {
+    if (submitting) return;
+    // Ask for quick reason confirmation
+    const reason = window.prompt("Reason for manual delivery override:", "Courier Confirmation");
+    if (reason === null) return; // user cancelled
+    setSubmitting(true);
+    try {
+      const res = await manualDeliveryOverrideAction(orderId, reason || "Manual Override");
+      if (res.success) {
+        triggerToast("Order marked as Delivered manually.");
+        await loadOrders();
+      } else {
+        triggerToast(res.error || "Failed to confirm manual delivery");
+      }
+    } catch (err: any) {
+      triggerToast(err.message || "An error occurred");
     } finally {
       setSubmitting(false);
     }
@@ -775,15 +799,31 @@ export default function OrdersKanbanPage() {
                               </button>
                             )}
                             {activeTab === 'packed' && (
-                              <a
-                                href="https://app.shiprocket.in/new-orders"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors no-underline"
-                                style={{background:'#f97316'}}
+                              <>
+                                <a
+                                  href="https://app.shiprocket.in/new-orders"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest text-white transition-colors no-underline"
+                                  style={{background:'#f97316'}}
+                                >
+                                  Open Shiprocket
+                                </a>
+                                <button
+                                  onClick={() => handleSingleShipOverride(order.id)}
+                                  className="bg-zinc-800 text-white hover:bg-zinc-700 px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
+                                >
+                                  Mark Shipped
+                                </button>
+                              </>
+                            )}
+                            {activeTab === 'shipped' && (
+                              <button
+                                onClick={() => handleSingleDeliverOverride(order.id)}
+                                className="bg-secondary text-white hover:bg-primary px-3 py-1.5 rounded-none text-[10px] font-black uppercase tracking-widest cursor-pointer transition-colors border-none"
                               >
-                                Open Shiprocket →
-                              </a>
+                                Mark Delivered
+                              </button>
                             )}
                             {isPendingTab && (
                               <Link

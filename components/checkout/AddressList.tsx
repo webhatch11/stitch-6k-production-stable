@@ -275,6 +275,8 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
 
   // Synchronization effect to ensure selectedAddress and selectedAddressId stay in sync
   useEffect(() => {
+    if (loading) return; // Do not run synchronization while addresses are loading from DB
+
     if (addresses.length > 0) {
       if (selectedAddressId) {
         const matchingAddress = addresses.find((a) => a.id === selectedAddressId);
@@ -297,7 +299,7 @@ export function AddressList({ userId, onAddressSelected, onAddressCountChange }:
         if (onAddressSelectedRef.current) onAddressSelectedRef.current(null);
       }
     }
-  }, [selectedAddressId, selectedAddress, addresses, setAddressId, determineSelection]);
+  }, [selectedAddressId, selectedAddress, addresses, loading, setAddressId, determineSelection]);
 
   // Auto-scroll to selected card
   useEffect(() => {

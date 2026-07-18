@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import "./shipment-sync";
 
 export async function initJobs() {
   // ── Guard 1: Never run workers inside Vercel serverless functions ──────────

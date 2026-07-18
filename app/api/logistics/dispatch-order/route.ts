@@ -138,7 +138,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Update order in database/local storage
-    await db.saveOrder({ ...order, shiprocketId: result.awbCode || "" });
+    await db.saveOrder({
+      id: order.id,
+      shiprocketId: result.awbCode || "",
+      awbCode: result.awbCode || "",
+      courierName: result.courierName || "Shiprocket Express",
+      trackingUrl: result.awbCode ? `https://shiprocket.co/tracking/${result.awbCode}` : null
+    });
     await db.transitionOrderStatus(order.id, "Shipped", {
       triggerSource: "Admin Portal Dispatch",
       userOrAdmin: "admin",

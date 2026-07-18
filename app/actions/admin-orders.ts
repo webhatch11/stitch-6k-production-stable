@@ -68,54 +68,20 @@ export async function bulkUpdateOrderStatusAction(
   }
 
   try {
-    // STEP 1: State-machine transition validation & Payment guard on bulkUpdateOrderStatusAction
-    const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-      "Payment Pending": ["Paid", "Cancelled", "Payment Review Required"],
-      "Payment Review Required": ["Paid", "Cancelled"],
-      "Paid": ["Processing", "Cancelled"],
-      "Paid via Wallet": ["Processing", "Cancelled"],
-      "paid via wallet": ["Processing", "Cancelled"],
-      "Processing": ["Packed", "Shipped", "Cancelled"],
-      "Packed": ["Shipped", "Cancelled"],
-      "Waiting for Dispatch": ["Shipped", "Cancelled"],
-      "Shipped": ["Delivered", "Cancelled"],
-      "Delivered": ["Return Requested", "Returned", "Cancelled"],
-      "Return Requested": ["Return in Transit", "Return Rejected", "Cancelled"],
-      "Return in Transit": ["Returned", "Cancelled"],
-      "Cancelled": [],
-      "Returned": [],
-      "Return Rejected": []
-    };
-
     for (const oId of orderIds) {
       const order = await db.getOrderById(oId);
       if (!order) throw new Error(`Order ${oId} not found`);
 
-      const currentStatus = order.status || "Payment Pending";
-      if (currentStatus !== newStatus) {
-        const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
-        if (!allowed.includes(newStatus)) {
-          console.warn(`[admin] Invalid transition attempted: #${oId} from "${currentStatus}" to "${newStatus}"`);
-        }
-      }
-      
-      const isPaidViaGateway = 
-        order.paymentStatus?.toLowerCase() === 'paid';
+      // Payment Confirmation Guard
+      const isPaidViaGateway = order.paymentStatus?.toLowerCase() === 'paid';
+      const isPaidViaWallet = (order.walletPaid ?? 0) > 0 && (order.gatewayPaid ?? 0) === 0;
+      const isSplitPayment = (order.walletPaid ?? 0) > 0 && (order.gatewayPaid ?? 0) > 0;
+      const isPaymentConfirmed = isPaidViaGateway || isPaidViaWallet || isSplitPayment;
 
-      const isPaidViaWallet = 
-        (order.walletPaid ?? 0) > 0 && 
-        (order.gatewayPaid ?? 0) === 0;
-
-      const isSplitPayment = 
-        (order.walletPaid ?? 0) > 0 && 
-        (order.gatewayPaid ?? 0) > 0;
-
-      const isPaymentConfirmed = 
-        isPaidViaGateway || isPaidViaWallet || isSplitPayment;
-
-      if (!isPaymentConfirmed) {
+      // Allow cancelling a pending payment
+      if (newStatus !== "Cancelled" && !isPaymentConfirmed) {
         throw new Error(
-          'Cannot process order. Payment not confirmed. ' +
+          `Cannot process order #${oId}. Payment not confirmed. ` +
           'Verify payment status before proceeding.'
         );
       }
@@ -125,15 +91,18 @@ export async function bulkUpdateOrderStatusAction(
     let count = 0;
     for (const o of allOrders) {
       if (orderIds.includes(o.id)) {
+        // Enforce state transition checks (allowBypass: false)
         const success = await db.transitionOrderStatus(o.id, newStatus, {
           triggerSource: "Admin Panel - Bulk Update",
           userOrAdmin: "admin",
           reason: "Bulk update from admin panel",
-          allowBypass: true // Admin bulk update allowed to bypass for recovery, but logged
+          allowBypass: false
         });
         
         if (success) {
           count++;
+        } else {
+          throw new Error(`State machine rejected status transition to "${newStatus}" for Order #${o.id}`);
         }
 
         // Fail-safe email dispatch triggered by status transition

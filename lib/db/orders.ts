@@ -437,15 +437,17 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Pending": ["Payment Pending", "Cancelled"],
   "Payment Pending": ["Paid", "Cancelled", "FAILED", "Payment Review Required"],
   "Payment Review Required": ["Paid", "Cancelled", "FAILED"],
-  "Paid": ["Accepted", "Processing", "Cancelled", "FAILED", "Refunded (Out of Stock)"],
+  "Paid": ["Processing", "Cancelled", "FAILED", "Refunded (Out of Stock)"],
   "Paid via Wallet": ["Processing", "Cancelled"],
   "paid via wallet": ["Processing", "Cancelled"],
   "Accepted": ["Packed", "Cancelled"],
   "Processing": ["Packed", "Shipped", "Cancelled"],
   "Packed": ["Shipped", "Cancelled"],
   "Waiting for Dispatch": ["Shipped", "Cancelled"],
-  "Shipped": ["Delivered", "Returned", "Return Requested", "Return in Transit", "Cancelled"],
-  "Delivered": ["Returned", "Return Requested", "Cancelled"],
+  "Shipped": ["Delivered", "Returned", "Return Requested", "Return in Transit", "Cancelled", "Out for Delivery"],
+  "Out for Delivery": ["Delivered", "Returned", "Cancelled"],
+  "Delivered": ["Completed", "Returned", "Return Requested", "Cancelled"],
+  "Completed": [],
   "Return Requested": ["Return in Transit", "Return Rejected", "Returned", "Cancelled", "Return Accepted"],
   "Return Accepted": ["Return Pickup Scheduled", "Cancelled"],
   "Return Pickup Scheduled": ["Return QC Pending", "Cancelled"],
@@ -456,8 +458,8 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Return in Transit": ["Returned", "Cancelled"],
   "Return Rejected": ["Return Requested", "Returned", "Cancelled"],
   "Cancelled": ["Refunded"],
-  "Returned": [],
-  "FAILED": ["Paid", "Cancelled"] // For manual recovery if needed
+  "Returned": ["Completed"],
+  "FAILED": ["Paid", "Cancelled"]
 };
 
 export async function transitionOrderStatus(
@@ -540,9 +542,23 @@ export async function transitionOrderStatus(
   }
 
   // 3. Update order
+  const updatePayload: any = { status: newStatus };
+  
+  if (newStatus === "Processing") {
+    updatePayload.accepted_at = new Date().toISOString();
+  } else if (newStatus === "Packed") {
+    updatePayload.packed_at = new Date().toISOString();
+  } else if (newStatus === "Delivered" || newStatus === "Completed" || newStatus === "Returned") {
+    updatePayload.completed_at = new Date().toISOString();
+    if (newStatus === "Delivered") {
+      updatePayload.delivered_at = new Date().toISOString();
+      updatePayload.points_credit_scheduled_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+  }
+
   const { error: updateErr } = await supabase
     .from("orders")
-    .update({ status: newStatus })
+    .update(updatePayload)
     .eq("id", orderId);
 
   if (updateErr) {

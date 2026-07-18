@@ -1,0 +1,78 @@
+name: Deploy Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-validation:
+    name: Deployment Readiness Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.NEXT_PUBLIC_RAZORPAY_KEY_ID }}
+      RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+    steps:
+      # ─── Checkout ───────────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ─── Node setup ─────────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ─── Step 1: TypeScript compilation ─────────────────────────────────────
+      - name: Step 1 — TypeScript compilation check
+        run: npx tsc --noEmit
+        id: typecheck
+
+      # ─── Step 2: Schema Validation ──────────────────────────────────────────
+      # Run BEFORE building/deploying app code.
+      # Fails fast if PostgREST schema cache is out of sync with the database.
+      # This prevents the PGRST204 class of bugs where newly migrated columns
+      # cause silent write failures in payment-critical paths.
+      - name: Step 2 — Database schema cache validation
+        run: npx tsx scripts/validate-schema.ts
+        id: schema-validation
+
+      # ─── Step 3: Application build ──────────────────────────────────────────
+      - name: Step 3 — Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # ─── Step 4: Install Playwright browsers ────────────────────────────────
+      - name: Step 4 — Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # ─── Step 5: E2E smoke tests ─────────────────────────────────────────────
+      # Runs against the Chromium browser only (fastest, most reliable in CI).
+      # Tests cover: address validation, coupon application, checkout totals,
+      # Razorpay modal initialization, and order history appearance.
+      - name: Step 5 — E2E smoke tests (checkout pipeline)
+        run: npx playwright test e2e/test-checkout.spec.ts --project=chromium --reporter=list
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
+
+      # ─── Upload artifacts on failure ────────────────────────────────────────
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -38,8 +38,34 @@ export async function checkDatabase(): Promise<HealthResponse> {
     if (!isSupabaseConfigured || !supabase) {
       throw new Error("Supabase is not configured");
     }
-    const { error } = await supabase.from("profiles").select("id").limit(1);
-    if (error) throw error;
+    const { error: profileError } = await supabase.from("profiles").select("id").limit(1);
+    if (profileError) throw profileError;
+
+    // Schema Validation Check: Ensure PostgREST cache has updated and recognizes all payment-critical columns
+    const criticalColumns = [
+      "id",
+      "customer",
+      "date",
+      "total",
+      "status",
+      "original_total",
+      "wallet_paid",
+      "gateway_paid",
+      "points_redeemed",
+      "points_discount",
+      "idempotency_key",
+      "payment_status",
+      "razorpay_order_id",
+      "razorpay_payment_id",
+      "payment_processing_state"
+    ];
+    const { error: schemaError } = await supabase.from("orders").select(criticalColumns.join(",")).limit(1);
+    if (schemaError) {
+      if (schemaError.code === "PGRST204" || schemaError.message?.includes("column")) {
+        throw new Error(`Supabase schema cache out of sync (PGRST204): Critical columns validation failed: ${schemaError.message}`);
+      }
+      throw schemaError;
+    }
     
     const latencyMs = Date.now() - start;
     globalCache.database = new Date().toISOString();

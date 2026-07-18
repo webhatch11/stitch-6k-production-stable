@@ -308,7 +308,8 @@ export const InventoryService = {
     productId: string,
     size: "S" | "M" | "L" | "XL" | "XXL",
     color: string,
-    quantity: number
+    quantity: number,
+    reason: string = "Order cancelled restoration"
   ): Promise<void> {
     const { supabase, isSupabaseConfigured } = loadService();
     if (!isSupabaseConfigured || !supabase) {
@@ -320,11 +321,12 @@ export const InventoryService = {
       );
     }
 
-    const { error } = await supabase.rpc("restore_variant_stock", {
+    const { error } = await supabase.rpc("restock_variant_stock_atomic", {
       p_product_id: productId,
       p_size: size,
       p_color: color,
       p_quantity: quantity,
+      p_reason: reason,
     });
 
     if (error) {
@@ -339,17 +341,28 @@ export const InventoryService = {
         .maybeSingle();
 
       if (vData) {
-        await supabase
-          .from("product_variants")
-          .update({ stock: vData.stock + quantity })
-          .eq("id", vData.id);
-        
-        await supabase.from("inventory_audit_logs").insert({
-          variant_id: vData.id,
-          quantity_changed: quantity,
-          type: "restoration",
-          reason: "Order cancelled restoration (fallback)",
-        });
+        // Enforce basic idempotency fallback check
+        const { data: existingAudit } = await supabase
+          .from("inventory_audit_logs")
+          .select("id")
+          .eq("variant_id", vData.id)
+          .eq("type", "restoration")
+          .eq("reason", reason)
+          .maybeSingle();
+
+        if (!existingAudit) {
+          await supabase
+            .from("product_variants")
+            .update({ stock: vData.stock + quantity })
+            .eq("id", vData.id);
+          
+          await supabase.from("inventory_audit_logs").insert({
+            variant_id: vData.id,
+            quantity_changed: quantity,
+            type: "restoration",
+            reason: reason,
+          });
+        }
       }
     }
   },

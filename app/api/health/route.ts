@@ -32,13 +32,12 @@ export async function GET(request: Request) {
   const access = await verifyAdminAccess(request);
   
   if (!access.authorized) {
-    return NextResponse.json(
-      {
-        status: overallHealthy ? "healthy" : "unhealthy",
-        timestamp: new Date().toISOString(),
-      },
-      { status: overallHealthy ? 200 : 503 }
-    );
+    const { getServerUser } = await import("@/lib/supabase-server");
+    const user = await getServerUser().catch(() => null);
+    if (user && user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
   return NextResponse.json(

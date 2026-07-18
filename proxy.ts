@@ -173,6 +173,79 @@ async function handleProxy(request: NextRequest) {
     }
   }
 
+  const isMetricsRoute = path === "/api/metrics";
+  const isSubsystemHealthRoute = path.startsWith("/api/health/") && path !== "/api/health";
+
+  if (isMetricsRoute || isSubsystemHealthRoute) {
+    // 1. Check Bearer token using timing-safe comparison
+    const adminSecret = process.env.ADMIN_SECRET;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader && adminSecret) {
+      const token = authHeader.replace(/^bearer\s+/i, "").trim();
+      if (token.length === adminSecret.length) {
+        let match = 0;
+        for (let i = 0; i < token.length; i++) {
+          match |= token.charCodeAt(i) ^ adminSecret.charCodeAt(i);
+        }
+        if (match === 0) {
+          return NextResponse.next();
+        }
+      }
+    }
+
+    // 2. Check Supabase session
+    if (isSupabaseConfigured) {
+      let response = NextResponse.next({
+        request: {
+          headers: request.headers,
+        },
+      });
+
+      const supabaseClient = createServerClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll().map(({ name, value }) => ({ name, value }));
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+              response = NextResponse.next({
+                request,
+              });
+              cookiesToSet.forEach(({ name, value, options }) =>
+                response.cookies.set(name, value, options)
+              );
+            },
+          },
+        }
+      );
+
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabaseClient
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (profile && profile.role === "admin") {
+            return response;
+          }
+        }
+      } catch (err) {
+        console.error("[Middleware Auth Check Error]:", err);
+      }
+    }
+
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   // If path is not a protected route, continue immediately
   if (!isAdminRoute && !isProfileRoute && !isCheckoutRoute && !isOrderHistoryRoute) {
     return NextResponse.next();

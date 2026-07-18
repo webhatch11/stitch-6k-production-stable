@@ -122,17 +122,77 @@ export async function POST(req: NextRequest) {
 
       if (existingOrder) {
         const orderTraceId = (existingOrder.payment_processing_state as any)?.traceId || traceId;
-        paymentDebugLog({
-          traceId: orderTraceId,
-          functionName: "POST /api/payments/create-order",
-          orderId: existingOrder.id,
-          razorpayOrderId: existingOrder.razorpay_order_id,
-          reason: "Order already exists for idempotency key. Returning existing data.",
-        });
+
+        // BUG 2 FIX: Validate the existing Razorpay order is still open (not expired).
+        // If the user dismissed the popup and retried after >14 minutes, the Razorpay order
+        // has expired. Returning its ID to the widget causes a silent failure.
+        // In that case: create a fresh Razorpay order and update the pending DB record.
+        let activeRazorpayOrderId = existingOrder.razorpay_order_id;
+        let isRazorpayOrderValid = false;
+
+        if (existingOrder.razorpay_order_id) {
+          try {
+            const rzpOrderCheck = await razorpay.orders.fetch(existingOrder.razorpay_order_id);
+            isRazorpayOrderValid = rzpOrderCheck.status === "created";
+          } catch (_e) {
+            // Fetch failed — treat as expired
+            isRazorpayOrderValid = false;
+          }
+        }
+
+        if (!isRazorpayOrderValid) {
+          // Create a replacement Razorpay order
+          paymentDebugLog({
+            traceId: orderTraceId,
+            functionName: "POST /api/payments/create-order",
+            orderId: existingOrder.id,
+            razorpayOrderId: existingOrder.razorpay_order_id,
+            reason: "Existing Razorpay order is expired or invalid. Creating a fresh Razorpay order for retry.",
+          });
+          const replacementOptions = {
+            amount: Math.round(checkoutState.finalPayable * 100),
+            currency: "INR",
+            receipt: existingOrder.id,
+            notes: { internal_order_id: existingOrder.id },
+          };
+          try {
+            const freshRzpOrder = await razorpay.orders.create(replacementOptions);
+            activeRazorpayOrderId = freshRzpOrder.id;
+            // Update the DB so the order points to the fresh Razorpay order
+            await supabase.from("orders").update({
+              razorpay_order_id: freshRzpOrder.id,
+            }).eq("id", existingOrder.id);
+            paymentDebugLog({
+              traceId: orderTraceId,
+              functionName: "POST /api/payments/create-order",
+              orderId: existingOrder.id,
+              razorpayOrderId: freshRzpOrder.id,
+              reason: "Fresh Razorpay order created for retry. DB record updated.",
+            });
+          } catch (freshOrderErr: any) {
+            paymentDebugLog({
+              traceId: orderTraceId,
+              functionName: "POST /api/payments/create-order",
+              orderId: existingOrder.id,
+              reason: "Failed to create fresh Razorpay order for retry.",
+              error: freshOrderErr.message,
+            });
+            // Fall back to returning the existing (expired) order — the widget will error gracefully
+          }
+        } else {
+          paymentDebugLog({
+            traceId: orderTraceId,
+            functionName: "POST /api/payments/create-order",
+            orderId: existingOrder.id,
+            razorpayOrderId: existingOrder.razorpay_order_id,
+            reason: "Existing Razorpay order is still valid. Returning for retry.",
+          });
+        }
+
         return NextResponse.json({
           success: true,
           orderId: existingOrder.id,
-          razorpayOrderId: existingOrder.razorpay_order_id,
+          razorpayOrderId: activeRazorpayOrderId,
           amount: Math.round(existingOrder.total * 100),
           currency: "INR",
           traceId: orderTraceId,

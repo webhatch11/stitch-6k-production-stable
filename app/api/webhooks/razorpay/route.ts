@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { claimPaymentAtomically } from "@/lib/db/payments";
 import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
 import { paymentDebugLog } from "@/lib/payment-debug";
+import { razorpay } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
   try {
@@ -228,6 +229,38 @@ export async function POST(req: NextRequest) {
             const orderId = dbOrder.id;
             const traceId = (dbOrder.payment_processing_state as any)?.traceId || "webhook-no-trace";
 
+            // BUG 1 FIX: Before marking FAILED, verify with Razorpay API that this payment
+            // is actually in a failed state (not captured). A payment.failed webhook can arrive
+            // BEFORE payment.captured when a user retries a card. If we skip this check,
+            // the webhook incorrectly marks the order FAILED right before the capture lands.
+            if (razorpayPaymentId) {
+              try {
+                const rzpPayment = await razorpay.payments.fetch(razorpayPaymentId);
+                if (rzpPayment.status === "captured") {
+                  paymentDebugLog({
+                    traceId,
+                    functionName: "Webhook event handler: payment.failed",
+                    orderId,
+                    razorpayOrderId,
+                    razorpayPaymentId,
+                    reason: "payment.failed webhook received but Razorpay API confirms payment is CAPTURED. Skipping FAILED transition to prevent race condition."
+                  });
+                  // Do NOT mark order as FAILED — the captured webhook or verify route will handle it
+                  break;
+                }
+              } catch (rzpFetchErr: any) {
+                paymentDebugLog({
+                  traceId,
+                  functionName: "Webhook event handler: payment.failed",
+                  orderId,
+                  razorpayOrderId,
+                  razorpayPaymentId,
+                  reason: "Could not fetch payment status from Razorpay API during payment.failed handling. Proceeding with FAILED transition.",
+                  error: rzpFetchErr.message
+                });
+              }
+            }
+
             paymentDebugLog({
               traceId,
               functionName: "Webhook event handler: payment.failed",
@@ -236,7 +269,7 @@ export async function POST(req: NextRequest) {
               razorpayPaymentId,
               oldStatus: dbOrder.status,
               newStatus: "FAILED",
-              reason: "payment.failed event matched, changing order status to FAILED and releasing reservation"
+              reason: "payment.failed event confirmed, changing order status to FAILED and releasing reservation"
             });
 
             await db.transitionOrderStatus(orderId, "FAILED", {

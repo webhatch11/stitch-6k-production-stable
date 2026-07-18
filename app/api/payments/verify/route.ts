@@ -245,17 +245,54 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // BUG 1 FIX: When the order status is FAILED, do not immediately reject.
+    // A payment.failed webhook from a previous declined attempt may have arrived BEFORE
+    // the payment.captured event, incorrectly marking the order FAILED. If the signature
+    // we just validated is correct and Razorpay confirms the payment is captured,
+    // we reset the order to "Payment Pending" so atomic_claim_payment can process it.
     if (dbOrder.status === "FAILED") {
-      paymentDebugLog({
-        traceId,
-        functionName: "POST /api/payments/verify",
-        orderId: dbOrder.id,
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
-        reason: "Order status is FAILED, refusing reprocessing",
-        error: "FAILED state block"
-      });
-      return NextResponse.json({ success: false, error: "Order in failed state, cannot reprocess" }, { status: 400 });
+      let paymentStatusFromRzp = paymentEntity?.status as string | undefined;
+
+      // If we didn't fetch the payment entity yet (e.g. fetch threw above), try again now
+      if (!paymentStatusFromRzp) {
+        try {
+          const rzpPaymentCheck = await razorpay.payments.fetch(razorpay_payment_id);
+          paymentStatusFromRzp = rzpPaymentCheck.status as string;
+        } catch (_e) {
+          // Cannot determine — safe to reject
+        }
+      }
+
+      if (paymentStatusFromRzp === "captured") {
+        // Payment was genuinely captured. The order was prematurely marked FAILED
+        // by a racing webhook. Reset to Payment Pending so the claim proceeds.
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/verify",
+          orderId: dbOrder.id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          oldStatus: "FAILED",
+          newStatus: "Payment Pending",
+          reason: "Order was prematurely FAILED by a racing payment.failed webhook. Razorpay confirms payment is CAPTURED. Resetting to Payment Pending to allow claim."
+        });
+        await supabase.from("orders").update({
+          status: "Payment Pending",
+          payment_status: "Payment Pending"
+        }).eq("id", dbOrder.id);
+        // Allow execution to fall through to atomic_claim_payment below
+      } else {
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/verify",
+          orderId: dbOrder.id,
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          reason: "Order status is FAILED and Razorpay does not confirm capture. Refusing reprocessing.",
+          error: "FAILED state block"
+        });
+        return NextResponse.json({ success: false, error: "Order in failed state, cannot reprocess" }, { status: 400 });
+      }
     }
 
     // Earned points calculated for reference

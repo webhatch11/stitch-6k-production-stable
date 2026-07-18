@@ -28,8 +28,9 @@ const createOrderSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  let traceId = "create-order-unset";
   try {
-    const traceId = crypto.randomUUID();
+    traceId = crypto.randomUUID();
     const user = await getServerUser();
     if (!user) {
       paymentDebugLog({
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
           checkoutState: { ...checkoutState, orderId: existingOrder.id }
         });
       }
-    } }
+    }
 
     if (checkoutState.finalPayable <= 0) {
       paymentDebugLog({

@@ -4,6 +4,13 @@ import { NextResponse, type NextRequest } from "next/server";
 // Warm V8 process in-memory rate limiting fallback cache
 const rateLimitCache = new Map<string, number[]>();
 
+const RATE_LIMIT_CONFIG: Record<string, { limit: number; windowMs: number }> = {
+  "/api/payments/create-order": { limit: 5, windowMs: 60 * 1000 },
+  "/api/payments/verify": { limit: 10, windowMs: 60 * 1000 },
+  "/login": { limit: 15, windowMs: 60 * 1000 },
+  "/admindashboard/login": { limit: 15, windowMs: 60 * 1000 },
+};
+
 async function checkRateLimit(ip: string, path: string, limit: number, windowMs: number): Promise<{ success: boolean }> {
   const key = `ratelimit:${path}:${ip}`;
   const now = Date.now();
@@ -147,15 +154,13 @@ async function handleProxy(request: NextRequest) {
     }
   }
 
-  // 1. Rate Limiting Check for high-risk routes
-  if (path === "/api/payments/create-order" || path === "/api/payments/verify" || path === "/login") {
-    const limit = path === "/login" ? 15 : path === "/api/payments/verify" ? 10 : 5;
-    const windowMs = 60 * 1000;
-    
-    const rateLimitRes = await checkRateLimit(ip, path, limit, windowMs);
+  // 1. Rate Limiting Check for configured routes
+  const routeRateLimit = RATE_LIMIT_CONFIG[path];
+  if (routeRateLimit) {
+    const rateLimitRes = await checkRateLimit(ip, path, routeRateLimit.limit, routeRateLimit.windowMs);
     
     if (!rateLimitRes.success) {
-      console.error(`[RATE LIMIT EXCEEDED] IP ${ip} exceeded rate limit on "${path}". Limit: ${limit}/min.`);
+      console.error(`[RATE LIMIT EXCEEDED] IP ${ip} exceeded rate limit on "${path}". Limit: ${routeRateLimit.limit}/${routeRateLimit.windowMs / 1000}s.`);
       return new NextResponse(
         JSON.stringify({
           success: false,

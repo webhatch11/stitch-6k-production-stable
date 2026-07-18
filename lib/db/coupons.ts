@@ -172,8 +172,8 @@ export async function validateCoupon(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("coupon_code", code.trim().toUpperCase())
-      // Allowlist: only count confirmed paid orders, NOT Payment Pending / FAILED / Cancelled
-      .in("status", ["Paid", "Accepted", "Shipped", "Out for Delivery", "Delivered"]);
+      // Blocklist: exclude unpaid, failed, cancelled, and returned/refunded states
+      .filter("status", "not.in", '("Pending","pending","Payment Pending","payment pending","FAILED","Failed","failed","Cancelled","cancelled","Payment Review Required","payment review required","Returned","returned","Refunded","refunded","Refunded (Out of Stock)")');
 
     if (countError) {
       console.error("Error checking user coupon usage:", countError);

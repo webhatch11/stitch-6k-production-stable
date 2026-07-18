@@ -45,7 +45,6 @@ export default function SettingsDashboardPage() {
   const [bizFacebook, setBizFacebook] = useState("");
 
   // States for Flags Settings
-  const [flagCodEnabled, setFlagCodEnabled] = useState(true);
   const [flagReturnsDays, setFlagReturnsDays] = useState(7);
 
   // States for Marquee Settings
@@ -177,7 +176,6 @@ export default function SettingsDashboardPage() {
       }
 
       if (flagsRes.success && flagsRes.value) {
-        setFlagCodEnabled(flagsRes.value.cod_enabled ?? true);
         setFlagReturnsDays(flagsRes.value.returns_window_days ?? 7);
       }
 
@@ -280,7 +278,6 @@ export default function SettingsDashboardPage() {
   const handleSaveFlags = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
-      cod_enabled: flagCodEnabled,
       returns_window_days: flagReturnsDays,
     };
     const res = await saveFlagsAction(payload);
@@ -866,18 +863,6 @@ export default function SettingsDashboardPage() {
               Feature Flags & Policy Rules
             </span>
             <form onSubmit={handleSaveFlags} className="space-y-6">
-              <div className="flex items-center gap-3">
-                <input
-                  id="cod-flag"
-                  type="checkbox"
-                  checked={flagCodEnabled}
-                  onChange={(e) => setFlagCodEnabled(e.target.checked)}
-                  className="w-4 h-4 border-gray-300 text-primary focus:ring-primary rounded cursor-pointer"
-                />
-                <label htmlFor="cod-flag" className="text-xs font-bold uppercase tracking-widest text-[#0a0a0a] cursor-pointer select-none">
-                  Enable Cash on Delivery (COD) globally at checkout
-                </label>
-              </div>
 
               <div className="space-y-2 max-w-xs">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">

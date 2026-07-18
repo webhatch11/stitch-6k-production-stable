@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import ProductImage from "@/components/ProductImage";
 import {
   processWalletPointsCheckoutAction,
-  processCodCheckoutAction,
   getLoyaltyAndWalletAction,
   validateCouponAction,
   verifyStockAction,
@@ -56,12 +55,7 @@ export default function CheckoutPage() {
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [paymentFailureError, setPaymentFailureError] = useState("");
   const [addressCount, setAddressCount] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
-  const [codAllowed, setCodAllowed] = useState(true);
-  const [codReason, setCodReason] = useState("");
-  const [globalCodEnabled, setGlobalCodEnabled] = useState(() => {
-    return typeof window === "undefined" ? ((globalThis as any).codEnabled ?? true) : true;
-  });
+  const [paymentMethod, setPaymentMethod] = useState<"online">("online");
   const [shippingRules, setShippingRules] = useState<any>(null);
   const [marquee, setMarquee] = useState<any>(null);
   const [serviceability, setServiceability] = useState<{
@@ -72,15 +66,9 @@ export default function CheckoutPage() {
   } | null>(null);
   const [checkingServiceability, setCheckingServiceability] = useState(false);
 
-  // Load global COD flag and shipping rules on mount
+  // Load shipping rules and marquee on mount
   useEffect(() => {
     import("@/app/actions/admin-settings").then(({ getSettingAction }) => {
-      getSettingAction("flags").then((res) => {
-        if (res.success && res.value) {
-          const enabled = res.value.cod_enabled ?? true;
-          setGlobalCodEnabled(enabled);
-        }
-      });
       getSettingAction("shipping_rules").then((res) => {
         if (res.success && res.value) {
           setShippingRules(res.value);
@@ -374,39 +362,7 @@ export default function CheckoutPage() {
   const isUnserviceable = serviceability !== null && !serviceability.serviceable;
   const isStep1Disabled = currentStep === 1 && (!selectedAddress || isUnserviceable || checkingServiceability);
 
-  // Evaluate COD Eligibility dynamically
-  useEffect(() => {
-    if (isHydrated) {
-      if (!globalCodEnabled) {
-        setCodAllowed(false);
-        setCodReason("Cash on Delivery is currently disabled.");
-        if (paymentMethod === "cod") {
-          setPaymentMethod("online");
-        }
-        return;
-      }
-      if (selectedAddress) {
-        import("@/lib/codRules").then(({ evaluateCodRules }) => {
-          const res = evaluateCodRules({
-            pincode: selectedAddress.postal_code,
-            orderTotal: finalPayable,
-            customerEmail: user?.email || undefined
-          });
-          setCodAllowed(res.allowed);
-          setCodReason(res.reason || "");
-          if (!res.allowed && paymentMethod === "cod") {
-            setPaymentMethod("online");
-          }
-        });
-      } else {
-        setCodAllowed(false);
-        setCodReason("Please select a delivery address.");
-        if (paymentMethod === "cod") {
-          setPaymentMethod("online");
-        }
-      }
-    }
-  }, [isHydrated, selectedAddress, finalPayable, user, paymentMethod, globalCodEnabled]);
+
 
   // Coupon Code Validation
   const handleApplyCoupon = async () => {
@@ -484,7 +440,7 @@ export default function CheckoutPage() {
       }
       
       // Track add_payment_info here!
-      const finalPaymentMethod = finalPayable === 0 ? "Wallet/Points" : (paymentMethod === "cod" ? "COD" : "Razorpay");
+      const finalPaymentMethod = finalPayable === 0 ? "Wallet/Points" : "Razorpay";
       trackAddPaymentInfo(finalPaymentMethod, finalPayable, cart);
       
       const customerName = selectedAddress.name || "Guest";
@@ -558,57 +514,7 @@ export default function CheckoutPage() {
           triggerToast('Checkout failed. Please try again.');
           setProcessingPayment(false);
         }
-      } else if (paymentMethod === "cod") {
-        // Cash on Delivery Placement
-        setProcessingPayment(true);
-        try {
-          const res = await processCodCheckoutAction({
-            cart,
-            couponCode: appliedCouponCode,
-            walletDeduction: userId ? walletDeduction : 0,
-            pointsRedeemed: userId ? pointsRedeemed : 0,
-            loyaltyDiscount: userId ? loyaltyDiscount : 0,
-            baseTotal,
-            netTotal,
-            customerName,
-            idempotencyKey,
-            addressId: selectedAddress?.id,
-            userId,
-            pincode: selectedAddress?.postal_code || "",
-            utm_source,
-            utm_medium,
-            utm_campaign,
-          });
 
-          if (!res.success) {
-            triggerToast(res.error || "Failed to place COD order.");
-            setProcessingPayment(false);
-            return;
-          }
-
-          if (res.walletBalance !== undefined) {
-            localStorage.setItem("wallet_balance", res.walletBalance.toString());
-          }
-          if (res.loyaltyPoints !== undefined) {
-            localStorage.setItem("loyalty_points", res.loyaltyPoints.toString());
-          }
-
-
-
-          useCartStore.getState().clearCart();
-          clearCartAction().catch(() => {});
-          useCheckoutStore.getState().resetCheckout();
-          triggerToast("✓ COD Order placed successfully!");
-          setProcessingPayment(false);
-          setTimeout(() => {
-            router.push(`/orderconfirmed?orderId=${res.orderId || res.order?.id}`);
-          }, 1000);
-
-        } catch (err: any) {
-          console.error("COD place order exception:", err);
-          triggerToast("❌ Error occurred while placing COD order.");
-          setProcessingPayment(false);
-        }
       } else {
         // Forward to Razorpay API
         setProcessingPayment(true);
@@ -754,7 +660,7 @@ export default function CheckoutPage() {
     if (currentStep === 1) return "Proceed to Perks & Wallet";
     if (currentStep === 2) return "Proceed to Final Review";
     if (finalPayable === 0) return "Pay via Wallet & Points";
-    return paymentMethod === "cod" ? "Place COD Order" : "Confirm & Complete Payment";
+    return "Confirm & Complete Payment";
   };
 
   // Luxury Brand Shimmer Skeleton Loading
@@ -1090,50 +996,14 @@ export default function CheckoutPage() {
                   <div className="bg-white/40 border border-white/20 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm relative space-y-4">
                     <h4 className="text-[10px] font-black tracking-widest uppercase text-secondary">Select Payment Option</h4>
                     
-                    {/* COD Notice Banner */}
-                    {!codAllowed && (
-                      <div className="bg-[#faf5e8] border border-[#e8d08a] p-4 text-[10px] uppercase tracking-wider font-semibold text-[#7a5c00] leading-relaxed">
-                        Prepaid Orders Only — Cash on Delivery (COD) is not available. All payments are securely processed through Razorpay, and orders are shipped via trusted courier partners powered by Shiprocket after successful payment confirmation.
-                      </div>
-                    )}
-
                     <div className="flex flex-col gap-4">
                       {/* Online Payment Option */}
-                      <label className={`flex items-center gap-3 cursor-pointer border p-4 transition-all ${paymentMethod === "online" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="online"
-                          checked={paymentMethod === "online"}
-                          onChange={() => setPaymentMethod("online")}
-                          className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
-                        />
+                      <label className="flex items-center gap-3 border p-4 transition-all border-secondary bg-secondary/5">
                         <div className="flex flex-col text-left">
                           <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Online Payment (UPI, Cards, NetBanking)</span>
                           <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">Pay via Razorpay Secure Gateway (Recommended)</span>
                         </div>
                       </label>
-
-                      {/* Cash on Delivery Option */}
-                      {globalCodEnabled && (
-                        <label className={`flex items-center gap-3 border p-4 transition-all ${!codAllowed ? "opacity-50 cursor-not-allowed bg-neutral-100/10" : "cursor-pointer"} ${paymentMethod === "cod" ? "border-secondary bg-secondary/5" : "border-outline-variant/20 bg-transparent"}`}>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            value="cod"
-                            disabled={!codAllowed}
-                            checked={paymentMethod === "cod"}
-                            onChange={() => setPaymentMethod("cod")}
-                            className="text-secondary border-outline-variant/40 focus:ring-0 focus:ring-offset-0 rounded-none bg-transparent"
-                          />
-                          <div className="flex flex-col text-left">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-on-surface">Cash on Delivery (COD)</span>
-                            <span className="text-[11px] text-outline uppercase tracking-wider font-semibold mt-0.5">
-                              {codAllowed ? "Pay cash at your doorstep" : `COD Unavailable: ${codReason}`}
-                            </span>
-                          </div>
-                        </label>
-                      )}
                     </div>
                   </div>
 

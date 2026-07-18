@@ -876,7 +876,7 @@ export default function AdminDashboardClient({
                               ? "Card/Gateway"
                               : hasWallet
                               ? "Wallet"
-                              : "COD/Other"}
+                              : "Other"}
                           </span>
                         </div>
                       </td>

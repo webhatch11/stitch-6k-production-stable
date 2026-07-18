@@ -68,9 +68,8 @@ test.describe("Checkout — authenticated", () => {
     await expect(page.getByText(/applied|discount|invalid|expired/i).first()).toBeVisible();
   });
 
-  test("step 3: final verification shows total and COD notice", async ({ page }) => {
+  test("step 3: final verification shows total", async ({ page }) => {
     await expect(page.getByText(/total/i).first()).toBeVisible();
-    await expect(page.getByText(/COD|cash on delivery/i).first()).toBeVisible();
   });
 
   test("payment initialization succeeds (Razorpay modal opens)", async ({ page }) => {

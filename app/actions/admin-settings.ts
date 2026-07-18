@@ -35,7 +35,6 @@ const businessSchema = z.object({
 });
 
 const flagsSchema = z.object({
-  cod_enabled: z.boolean(),
   returns_window_days: z.number().int().min(0).max(60),
 });
 

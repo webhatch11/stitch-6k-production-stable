@@ -8,9 +8,6 @@ export async function getSetting(key: string): Promise<any> {
   const cacheKey = `settings:${key}`;
   const cached = await CacheService.get<any>(cacheKey);
   if (cached) {
-    if (key === "flags") {
-      (globalThis as any).codEnabled = cached.cod_enabled;
-    }
     return cached;
   }
   
@@ -28,9 +25,6 @@ export async function getSetting(key: string): Promise<any> {
     .maybeSingle();
   
   if (error || !data) return null;
-  if (key === "flags" && data.value) {
-    (globalThis as any).codEnabled = data.value.cod_enabled;
-  }
   await CacheService.set(cacheKey, data.value, 600);
   return data.value;
 }
@@ -78,9 +72,6 @@ export async function saveSetting(key: string, value: any): Promise<boolean> {
     .from("site_settings")
     .upsert({ key, value, updated_at: new Date().toISOString() });
   if (error) return false;
-  if (key === "flags" && value) {
-    (globalThis as any).codEnabled = value.cod_enabled;
-  }
   await CacheService.del(`settings:${key}`);
   return true;
 }

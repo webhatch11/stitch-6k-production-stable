@@ -1456,57 +1456,101 @@ export async function addOrderEventAction(
   }
 }
 
-export async function mockShipOrderAction(
-  orderId: string
+export async function manualDeliveryOverrideAction(
+  orderId: string,
+  reason: string
 ): Promise<{ success: boolean; error?: string }> {
+  let adminUser;
   try {
-    await requireAdmin();
+    adminUser = await requireAdmin();
   } catch {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error: "Unauthorized. Admin privileges required." };
   }
 
+  if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
+  if (!reason?.trim()) return { success: false, error: "Reason for manual override is required" };
+
   try {
-    const result = await bulkUpdateOrderStatusAction([orderId], 'Shipped');
-    if (result.success) {
-      await db.saveOrder({
-        id: orderId,
-        shiprocketId: 'MOCK-AWB-' + Date.now()
-      });
-      await db.addOrderEvent(
-        orderId,
-        'Order shipped (mock/test)'
-      );
+    const order = await db.getOrderById(orderId);
+    if (!order) return { success: false, error: "Order not found" };
+
+    if (order.status !== "Shipped" && order.status !== "Out for Delivery") {
+      return { success: false, error: "Delivery override is only permitted for Shipped or Out for Delivery orders." };
+    }
+
+    const success = await db.transitionOrderStatus(orderId, "Delivered", {
+      triggerSource: "Manual Admin Override",
+      userOrAdmin: "admin",
+      reason: `Manual delivery override: ${reason.trim()} (Confirmed by ${adminUser.email || "admin"})`,
+      metadata: {
+        admin_email: adminUser.email,
+        override_reason: reason.trim()
+      }
+    });
+
+    if (success) {
+      // Trigger confirmation email
+      try {
+        const { sendOrderDeliveredEmail } = await import("@/lib/email");
+        const returnDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
+          day: '2-digit', month: 'short', year: 'numeric'
+        });
+        const email = order.address_snapshot?.email;
+        if (email) {
+          await sendOrderDeliveredEmail({
+            to: email,
+            customerName: order.address_snapshot?.name || order.customer || 'Customer',
+            orderId: order.id,
+            items: (order.cartItems || []).map((item: any) => ({
+              name: item.productName || item.name,
+              quantity: item.quantity || 1
+            })),
+            total: order.total,
+            deliveredAt: new Date().toLocaleDateString('en-IN', {
+              day: '2-digit', month: 'short', year: 'numeric'
+            }),
+            returnDeadline
+          });
+        }
+      } catch (emailErr) {
+        console.error("[Manual Delivery Action] Delivery confirmation email failed:", emailErr);
+      }
       return { success: true };
     }
-    return result;
+
+    return { success: false, error: "Failed to transition order status." };
   } catch (err: any) {
-    console.error("[mockShipOrderAction] Error:", err);
-    return { success: false, error: err.message || "Failed to mark shipped" };
+    console.error("[manualDeliveryOverrideAction] Error:", err);
+    return { success: false, error: err.message || "Failed to confirm manual delivery" };
   }
 }
 
-export async function mockReturnArrivedAction(
+export async function manualReturnArrivedOverrideAction(
   orderId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdmin();
   } catch {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error: "Unauthorized. Admin privileges required." };
   }
 
   try {
-    const result = await bulkUpdateOrderStatusAction([orderId], 'Return in Transit');
-    if (result.success) {
+    const success = await db.transitionOrderStatus(orderId, 'Return in Transit', {
+      triggerSource: "Warehouse Manual Override",
+      userOrAdmin: "admin",
+      reason: "Package returned to warehouse (manual confirmation)"
+    });
+    if (success) {
       await db.addOrderEvent(
         orderId,
-        'Return item arrived at warehouse (mock/test)'
+        'Return item arrived at warehouse'
       );
       return { success: true };
     }
-    return result;
+    return { success: false, error: "Transition rejected by state machine" };
   } catch (err: any) {
-    console.error("[mockReturnArrivedAction] Error:", err);
-    return { success: false, error: err.message || "Failed to mark return arrived" };
+    console.error("[manualReturnArrivedOverrideAction] Error:", err);
+    return { success: false, error: err.message || "Failed to mark return as arrived" };
   }
 }
 

@@ -24,6 +24,8 @@ import {
   acceptOrderAction,
   markOrderPackedAction,
   printManifestAction,
+  manualDeliveryOverrideAction,
+  manualReturnArrivedOverrideAction,
 } from "@/app/actions/admin-orders";
 
 const ORDER_STEPS = [
@@ -59,9 +61,10 @@ function OrderDetailsContent() {
   const [verifyingRefund, setVerifyingRefund] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [printingLabel, setPrintingLabel] = useState(false);
-  const [manifestDownloadUrl, setManifestDownloadUrl] = useState<string | null>(null);
-  const [shipment, setShipment] = useState<any>(null);
-  const [mockLoading, setMockLoading] = useState(false);
+  const [deliveryOverrideModalOpen, setDeliveryOverrideModalOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("Webhook Failure");
+  const [customOverrideDetails, setCustomOverrideDetails] = useState("");
+  const [overrideSubmitting, setOverrideSubmitting] = useState(false);
 
   const handleAcceptOrder = async () => {
     if (!order) return;
@@ -246,67 +249,47 @@ function OrderDetailsContent() {
     }
   };
 
-  const handleMockDeliver = async () => {
-    if (!order?.id) return;
-    setMockLoading(true);
+  const [manifestDownloadUrl, setManifestDownloadUrl] = useState<string | null>(null);
+  const [shipment, setShipment] = useState<any>(null);
+
+  const handleManualDeliveryOverrideSubmit = async () => {
+    if (!order?.id || overrideSubmitting) return;
+    setOverrideSubmitting(true);
     try {
-      const res = await fetch('/api/admin/mock-deliver', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id })
-      });
-      const data = await res.json();
-      if (data.success) {
-        triggerToast('✅ Order marked as delivered');
-        setTimeout(() => router.refresh(), 500);
+      const finalReason = overrideReason === "Other" ? (customOverrideDetails || "Manual Override") : overrideReason;
+      const res = await manualDeliveryOverrideAction(order.id, finalReason);
+      if (res.success) {
+        triggerToast('✅ Delivery manually confirmed');
+        setDeliveryOverrideModalOpen(false);
+        setCustomOverrideDetails("");
+        setTimeout(() => window.location.reload(), 500);
       } else {
-        triggerToast('Failed: ' + (data.error || 'Unknown error'));
+        triggerToast('Failed: ' + (res.error || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Mock deliver error:', err);
+      console.error('Manual deliver error:', err);
       triggerToast('Failed to mark delivered');
     } finally {
-      setMockLoading(false);
+      setOverrideSubmitting(false);
     }
   };
 
-  const handleMockShip = async () => {
-    if (!order?.id) return;
-    setMockLoading(true);
+  const handleManualReturnArrivedSubmit = async () => {
+    if (!order?.id || overrideSubmitting) return;
+    setOverrideSubmitting(true);
     try {
-      const { mockShipOrderAction } = await import('@/app/actions/admin-orders');
-      const result = await mockShipOrderAction(order.id);
-      if (result.success) {
-        triggerToast('✅ Order marked as shipped');
-        setTimeout(() => router.refresh(), 500);
+      const res = await manualReturnArrivedOverrideAction(order.id);
+      if (res.success) {
+        triggerToast('✅ Return marked as received at warehouse');
+        setTimeout(() => window.location.reload(), 500);
       } else {
-        triggerToast('Failed: ' + (result.error || 'Unknown'));
+        triggerToast('Failed: ' + (res.error || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Mock ship error:', err);
-      triggerToast('Failed to mark shipped');
-    } finally {
-      setMockLoading(false);
-    }
-  };
-
-  const handleMockReturnArrived = async () => {
-    if (!order?.id) return;
-    setMockLoading(true);
-    try {
-      const { mockReturnArrivedAction } = await import('@/app/actions/admin-orders');
-      const result = await mockReturnArrivedAction(order.id);
-      if (result.success) {
-        triggerToast('✅ Return marked as arrived');
-        setTimeout(() => router.refresh(), 500);
-      } else {
-        triggerToast('Failed: ' + (result.error || 'Unknown'));
-      }
-    } catch (err) {
-      console.error('Mock return error:', err);
+      console.error('Manual return error:', err);
       triggerToast('Failed to update return status');
     } finally {
-      setMockLoading(false);
+      setOverrideSubmitting(false);
     }
   };
 
@@ -1836,52 +1819,30 @@ function OrderDetailsContent() {
               </div>
             )}
 
-            {process.env.NEXT_PUBLIC_ENABLE_MOCK_SHIPPING === 'true' && (
-              <div className="mt-4 pt-4 border-t border-dashed border-zinc-800">
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-3 font-black">
-                  ⚠️ Mock / Testing Only
-                </p>
-                <div className="space-y-2">
-                
-                  {/* Show for Shipped orders */}
-                  {order.status?.toLowerCase() === 'shipped' && (
-                    <button
-                      type="button"
-                      disabled={mockLoading}
-                      onClick={handleMockDeliver}
-                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-green-500 bg-green-500/10 text-green-400 hover:bg-green-500/20 cursor-pointer rounded-none disabled:opacity-40"
-                    >
-                      {mockLoading ? "Processing..." : "🚚 Mock: Mark as Delivered"}
-                    </button>
-                  )}
-                  
-                  {/* Show for Delivered orders */}
-                  {order.status?.toLowerCase() === 'delivered' && (
-                    <button
-                      type="button"
-                      disabled={mockLoading}
-                      onClick={handleMockReturnArrived}
-                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-amber-500 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 cursor-pointer rounded-none disabled:opacity-40"
-                    >
-                      {mockLoading ? "Processing..." : "📦 Mock: Mark Return Arrived"}
-                    </button>
-                  )}
+            <div className="mt-4 pt-4 border-t border-zinc-800 space-y-2">
+              {/* Manual Delivery override button - shown for Shipped orders */}
+              {order.status?.toLowerCase() === 'shipped' && (
+                <button
+                  type="button"
+                  onClick={() => setDeliveryOverrideModalOpen(true)}
+                  className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-secondary bg-secondary/15 text-secondary hover:bg-secondary/25 cursor-pointer rounded-none transition-colors"
+                >
+                  🚚 Confirm Delivery (Override)
+                </button>
+              )}
 
-                  {/* Show for Processing/Packed/Shipped */}
-                  {['processing', 'packed', 'shipped'].includes(order.status?.toLowerCase() || '') && (
-                    <button
-                      type="button"
-                      disabled={mockLoading}
-                      onClick={handleMockShip}
-                      className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-dashed border-blue-500 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 cursor-pointer rounded-none disabled:opacity-40"
-                    >
-                      {mockLoading ? "Processing..." : "✈️ Mock: Mark as Shipped (skip label)"}
-                    </button>
-                  )}
-                  
-                </div>
-              </div>
-            )}
+              {/* Warehouse return arrived button - shown for return-related orders where status is Delivered or Return Requested */}
+              {(order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'return requested') && (
+                <button
+                  type="button"
+                  disabled={overrideSubmitting}
+                  onClick={handleManualReturnArrivedSubmit}
+                  className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-zinc-700 bg-zinc-850 hover:bg-zinc-800 text-white cursor-pointer rounded-none disabled:opacity-40 transition-colors"
+                >
+                  {overrideSubmitting ? "Updating..." : "📦 Mark Return Received at Warehouse"}
+                </button>
+              )}
+            </div>
 
             <div className="mt-6 pt-4 border-t border-gray-200/10">
               <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider leading-relaxed">
@@ -1985,6 +1946,75 @@ function OrderDetailsContent() {
                 className="flex-1 bg-primary text-white py-4 text-[10px] font-black tracking-[0.2em] uppercase hover:bg-secondary transition-colors rounded-none cursor-pointer border-none disabled:opacity-50"
               >
                 {refundLoading ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Manual Delivery Modal */}
+      {deliveryOverrideModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-[#775a19]/25 shadow-2xl relative rounded-none text-left space-y-6">
+            <h3 className="font-headline font-black text-sm uppercase tracking-wider text-[#1a1c1c]">
+              Confirm Manual Delivery
+            </h3>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold leading-relaxed">
+              Use this option only when automatic Shiprocket tracking updates did not reach the platform.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  Reason for Override
+                </label>
+                <select
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  className="w-full bg-zinc-50 border border-zinc-200 p-3 text-[10px] font-bold uppercase tracking-wider rounded-none focus:outline-none focus:border-secondary"
+                >
+                  <option value="Webhook Failure">Webhook Failure</option>
+                  <option value="Courier Confirmation">Courier Confirmation</option>
+                  <option value="Customer Confirmation">Customer Confirmation</option>
+                  <option value="Operational Correction">Operational Correction</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {overrideReason === "Other" && (
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                    Specify Custom Reason
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={customOverrideDetails}
+                    onChange={(e) => setCustomOverrideDetails(e.target.value)}
+                    placeholder="Enter details..."
+                    className="w-full bg-zinc-50 border border-zinc-200 p-3 text-[10px] font-bold rounded-none focus:outline-none focus:border-secondary"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeliveryOverrideModalOpen(false);
+                  setCustomOverrideDetails("");
+                }}
+                className="flex-1 px-4 py-3 bg-white border border-gray-200 text-gray-500 hover:text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={overrideSubmitting}
+                onClick={handleManualDeliveryOverrideSubmit}
+                className="flex-1 bg-secondary text-white hover:bg-primary text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer rounded-none border-none font-bold disabled:opacity-40"
+              >
+                {overrideSubmitting ? "Processing..." : "Confirm Delivery"}
               </button>
             </div>
           </div>

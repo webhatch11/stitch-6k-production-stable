@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://lh3.googleusercontent.com https://*.razorpay.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://*.upstash.io https://*.razorpay.com https://api.razorpay.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://api.cloudinary.com https://res.cloudinary.com https://upload-widget.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com",
+      "connect-src 'self' https://*.supabase.co https://*.upstash.io https://*.razorpay.com https://api.razorpay.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://api.cloudinary.com https://res.cloudinary.com https://upload-widget.cloudinary.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com https://*.datah04.com https://capig.datah04.com",
       "frame-src 'self' https://*.razorpay.com https://api.razorpay.com https://upload-widget.cloudinary.com https://widget.cloudinary.com",
       "object-src 'none'",
       "base-uri 'self'",

@@ -141,28 +141,34 @@ export async function getPendingPointsAction() {
   try {
     const user = await getServerUser();
     if (!user) {
-      return { success: false, error: "Unauthorized", pendingPoints: 0 };
+      return { success: false, error: "Unauthorized", pendingPoints: 0, pendingDetails: [] };
     }
     const { supabaseService: supabase } = await import("@/lib/supabase-service");
     if (!supabase) {
-      return { success: false, error: "Database not configured", pendingPoints: 0 };
+      return { success: false, error: "Database not configured", pendingPoints: 0, pendingDetails: [] };
     }
     const { data, error } = await supabase
       .from("orders")
-      .select("points_earned")
+      .select("id, points_earned, points_credit_scheduled_at")
       .eq("user_id", user.id)
       .eq("points_credit_status", "pending");
 
     if (error) {
       console.error("[getPendingPointsAction] Error querying pending points:", error);
-      return { success: false, error: error.message, pendingPoints: 0 };
+      return { success: false, error: error.message, pendingPoints: 0, pendingDetails: [] };
     }
 
     const totalPending = (data || []).reduce((sum, order) => sum + (order.points_earned || 0), 0);
-    return { success: true, pendingPoints: totalPending };
+    const details = (data || []).map((o) => ({
+      id: o.id,
+      points: o.points_earned || 0,
+      availableOn: o.points_credit_scheduled_at || null,
+    }));
+
+    return { success: true, pendingPoints: totalPending, pendingDetails: details };
   } catch (error: any) {
     console.error("[getPendingPointsAction] Exception:", error);
-    return { success: false, error: error.message, pendingPoints: 0 };
+    return { success: false, error: error.message, pendingPoints: 0, pendingDetails: [] };
   }
 }
 

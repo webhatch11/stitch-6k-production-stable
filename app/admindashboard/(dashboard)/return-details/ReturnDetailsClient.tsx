@@ -597,8 +597,42 @@ export default function ReturnDetailsClient({
                   📋 Copy AWB Code
                 </button>
               )}
+
+              {/* Part 5: Admin Loyalty audit details */}
+              <div className="pt-4 border-t border-dashed border-gray-200 space-y-2">
+                <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Loyalty Status Audit</span>
+                <div className="text-[11px] font-medium text-gray-700 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Points At Stake</span>
+                    <span className="font-bold text-black">{order.pointsEarned || 0} PTS</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Current Credit Status</span>
+                    <span className="font-bold uppercase text-[#BA7517]">{(order as any).pointsCreditStatus || "pending"}</span>
+                  </div>
+                  {(order as any).pointsCreditScheduledAt && (
+                    <div className="flex justify-between">
+                      <span>Expected Credit Date</span>
+                      <span className="font-mono">{new Date((order as any).pointsCreditScheduledAt).toLocaleDateString("en-IN")}</span>
+                    </div>
+                  )}
+                  {(order as any).creditedAt && (
+                    <div className="flex justify-between">
+                      <span>Credited Date</span>
+                      <span className="font-mono">{new Date((order as any).creditedAt).toLocaleDateString("en-IN")}</span>
+                    </div>
+                  )}
+                  {((order as any).pointsCreditStatus === "cancelled" || orderStatusLower === "return approved" || orderStatusLower === "returned") && (
+                    <div className="flex justify-between text-red-600">
+                      <span>Reversal / Cancellation</span>
+                      <span>Approved Return Reversal</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
+
 
           {/* Card 3: Actions (status-based) */}
           <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">

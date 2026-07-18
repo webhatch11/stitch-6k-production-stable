@@ -415,6 +415,35 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                 }
                               })()}
 
+                              {/* Part 4: Dynamic Loyalty status rendering */}
+                              {order.pointsEarned !== undefined && order.pointsEarned > 0 && (() => {
+                                const ptsStatus = (order as any).pointsCreditStatus || "pending";
+                                const scheduledDate = (order as any).pointsCreditScheduledAt ? new Date((order as any).pointsCreditScheduledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "soon";
+                                const creditedDate = (order as any).creditedAt ? new Date((order as any).creditedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+                                
+                                if (ptsStatus === "pending") {
+                                  return (
+                                    <div className="mt-2 text-[9px] text-orange-700 font-bold uppercase tracking-widest bg-orange-500/5 p-2 border border-orange-500/10">
+                                      Pending Loyalty Reward: +{order.pointsEarned} Points (Available on {scheduledDate})
+                                    </div>
+                                  );
+                                } else if (ptsStatus === "credited") {
+                                  return (
+                                    <div className="mt-2 text-[9px] text-green-700 font-bold uppercase tracking-widest bg-green-500/5 p-2 border border-green-500/10">
+                                      Loyalty Reward Credited: +{order.pointsEarned} Points {creditedDate ? `on ${creditedDate}` : ""}
+                                    </div>
+                                  );
+                                } else if (ptsStatus === "cancelled") {
+                                  return (
+                                    <div className="mt-2 text-[9px] text-red-700 font-bold uppercase tracking-widest bg-red-500/5 p-2 border border-red-500/10">
+                                      Loyalty Reward Cancelled (Reason: Approved Return / Cancelled Order)
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+
+
                               {/* Returns timeline */}
                               {["Return Requested", "Return in Transit", "Returned", "Return Rejected"].includes(order.status) && (
                                 <div className="mt-4 border border-[#e5e5e5]/60 p-4 bg-gray-50/50 space-y-4 rounded-none text-left">

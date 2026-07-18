@@ -55,6 +55,7 @@ export default function MyProfileClient({
   const [loyaltyPoints, setLoyaltyPoints] = useState(initialLoyaltyPoints);
   const [loyaltyTxs, setLoyaltyTxs] = useState<LoyaltyTransaction[]>(initialLoyaltyTxs);
   const [pendingPoints, setPendingPoints] = useState(0);
+  const [pendingDetails, setPendingDetails] = useState<Array<{ id: string; points: number; availableOn: string | null }>>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>(initialRecentOrders);
   const [allOrders, setAllOrders] = useState<Order[]>(initialAllOrders);
 
@@ -242,6 +243,9 @@ export default function MyProfileClient({
       const res = await getPendingPointsAction();
       if (res.success && res.pendingPoints !== undefined) {
         setPendingPoints(res.pendingPoints);
+        if ((res as any).pendingDetails) {
+          setPendingDetails((res as any).pendingDetails);
+        }
       }
     };
     fetchPending();
@@ -870,11 +874,42 @@ export default function MyProfileClient({
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">
                       Redemption value: ₹{(loyaltyPoints * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </p>
-                    {pendingPoints > 0 && (
-                      <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest animate-pulse">
-                        {pendingPoints} points pending — will be credited after your return window closes
-                      </p>
-                    )}
+                    <div className="pt-4 border-t border-outline-variant/10 space-y-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-outline uppercase tracking-widest mb-1">Available Points</p>
+                        <p className="text-xs font-semibold text-neutral-800 uppercase tracking-wide">
+                          Points you can redeem immediately: <span className="font-bold text-secondary">{loyaltyPoints.toLocaleString()} PTS</span>
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-bold text-outline uppercase tracking-widest mb-1">Pending Points Hold</p>
+                        {pendingPoints > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide animate-pulse">
+                              Total Pending: +{pendingPoints} PTS (Waiting for return window to expire)
+                            </p>
+                            <div className="bg-orange-500/5 border border-orange-500/10 p-3 space-y-2 mt-2">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-500 border-b border-neutral-200/50 pb-1">Pending Breakdown</p>
+                              {pendingDetails.map((item, idx) => {
+                                const availDate = item.availableOn ? new Date(item.availableOn).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "N/A";
+                                return (
+                                  <div key={idx} className="flex justify-between items-center text-[10px] font-semibold text-neutral-700 uppercase tracking-wide">
+                                    <span>Order #{item.id}</span>
+                                    <span>+{item.points} pts (Available on {availDate})</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs font-semibold text-neutral-500 italic uppercase tracking-wider">
+                            No pending loyalty rewards.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
                     {/* 30-day expiry warning */}
                     {(() => {
                       const soonExpiring = loyaltyTxs

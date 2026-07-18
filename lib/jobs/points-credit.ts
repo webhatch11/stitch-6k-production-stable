@@ -89,10 +89,13 @@ export async function pointsCreditProcessor(job: any) {
         order.user_id
       );
 
-      // Update status to credited
+      // Update status to credited and record timestamp
       await supabase
         .from("orders")
-        .update({ points_credit_status: "credited" })
+        .update({ 
+          points_credit_status: "credited",
+          credited_at: new Date().toISOString()
+        })
         .eq("id", order.id);
 
       successCount++;

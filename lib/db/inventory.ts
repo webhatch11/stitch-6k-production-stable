@@ -3,6 +3,7 @@ import { loadService } from "./client-raw";
 import { CacheService } from "../cache";
 import { InventoryService } from "../services/inventory";
 import { productsDb } from "./products";
+import { paymentDebugLog } from "../payment-debug";
 
 export async function verifyStock(items: any[], sessionId?: string): Promise<{ success: boolean; message?: string }> {
   const { supabase, isSupabaseConfigured } = loadService();
@@ -331,6 +332,22 @@ export async function syncProductTotalStock(productId: string): Promise<boolean>
 export async function releaseReservation(sessionId: string): Promise<void> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (isSupabaseConfigured && supabase) {
+    const { data: dbOrder } = await supabase
+      .from("orders")
+      .select("id, status, payment_processing_state")
+      .eq("idempotency_key", sessionId)
+      .maybeSingle();
+
+    const traceId = (dbOrder?.payment_processing_state as any)?.traceId || sessionId;
+
+    paymentDebugLog({
+      traceId,
+      functionName: "releaseReservation",
+      orderId: dbOrder?.id || undefined,
+      reason: `Releasing inventory stock reservation for sessionId: ${sessionId}`,
+      metadata: { orderStatus: dbOrder?.status }
+    });
+
     await supabase.from("inventory_reservations").update({ status: "RELEASED" }).eq("session_id", sessionId);
   }
 }

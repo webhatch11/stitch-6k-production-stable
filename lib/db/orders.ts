@@ -3,6 +3,7 @@ import { loadService } from "./client-raw";
 import { CacheService } from "../cache";
 import { mapDbOrderToOrder } from "./utils";
 import { Order, OrderStatusHistory, OrderNote, OrderEvent } from "../types";
+import { paymentDebugLog } from "../payment-debug";
 
 export async function getOrders(userId?: string): Promise<Order[]> {
   const { supabase, isSupabaseConfigured } = loadService();
@@ -475,30 +476,66 @@ export async function transitionOrderStatus(
     throw new Error("Database connection not configured.");
   }
 
-  // 1. Fetch current order
+  // 1. Fetch current order with payment_processing_state, razorpay_order_id, razorpay_payment_id
   const { data: order, error: orderErr } = await supabase
     .from("orders")
-    .select("status, id")
+    .select("status, id, payment_processing_state, razorpay_order_id, razorpay_payment_id")
     .eq("id", orderId)
     .single();
 
   if (orderErr || !order) {
+    paymentDebugLog({
+      functionName: "transitionOrderStatus",
+      orderId,
+      newStatus,
+      reason: "Order lookup failed inside transitionOrderStatus",
+      error: orderErr?.message || "Order not found"
+    });
     console.error(`[transitionOrderStatus] Order not found: ${orderId}`);
     return false;
   }
 
   const currentStatus = order.status;
+  const traceId = (order.payment_processing_state as any)?.traceId || "transition-no-trace";
+
+  paymentDebugLog({
+    traceId,
+    functionName: "transitionOrderStatus",
+    orderId,
+    razorpayOrderId: order.razorpay_order_id || undefined,
+    razorpayPaymentId: order.razorpay_payment_id || undefined,
+    oldStatus: currentStatus,
+    newStatus,
+    reason: `Initiating status transition check. Triggered by ${context.userOrAdmin} via ${context.triggerSource} for reason: ${context.reason}`
+  });
 
   // 2. Validate transition
   if (!context.allowBypass) {
     const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
     if (currentStatus !== newStatus && !allowed.includes(newStatus)) {
+      paymentDebugLog({
+        traceId,
+        functionName: "transitionOrderStatus",
+        orderId,
+        oldStatus: currentStatus,
+        newStatus,
+        reason: "Invalid status transition path blocked",
+        error: `Invalid transition path: ${currentStatus} -> ${newStatus}`
+      });
       console.error(`[transitionOrderStatus] Invalid transition: ${currentStatus} -> ${newStatus} for order ${orderId}`);
       throw new Error(`Invalid state transition from ${currentStatus} to ${newStatus}`);
     }
   }
 
   if (currentStatus === newStatus) {
+    paymentDebugLog({
+      traceId,
+      functionName: "transitionOrderStatus",
+      orderId,
+      oldStatus: currentStatus,
+      newStatus,
+      reason: "Status unchanged, target state is already current state"
+    });
     return true; // Already in target state
   }
 
@@ -509,6 +546,15 @@ export async function transitionOrderStatus(
     .eq("id", orderId);
 
   if (updateErr) {
+    paymentDebugLog({
+      traceId,
+      functionName: "transitionOrderStatus",
+      orderId,
+      oldStatus: currentStatus,
+      newStatus,
+      reason: "Failed to update order status in database",
+      error: updateErr.message
+    });
     console.error(`[transitionOrderStatus] Failed to update order ${orderId}:`, updateErr);
     return false;
   }
@@ -528,6 +574,15 @@ export async function transitionOrderStatus(
   if (auditErr) {
     console.error(`[transitionOrderStatus] Failed to create audit log for ${orderId}:`, auditErr);
   }
+
+  paymentDebugLog({
+    traceId,
+    functionName: "transitionOrderStatus",
+    orderId,
+    oldStatus: currentStatus,
+    newStatus,
+    reason: "Order status successfully transitioned"
+  });
 
   // 5. Create basic event for timeline
   await createOrderEvent(orderId, `Status updated to ${newStatus}`);

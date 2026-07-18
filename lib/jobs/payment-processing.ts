@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import * as Sentry from "@sentry/nextjs";
+import { paymentDebugLog } from "../payment-debug";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
@@ -32,47 +33,146 @@ export const paymentProcessingWorker = new Worker(
     if (!order) throw new Error(`Order ${orderId} not found`);
 
     let processingState = order.paymentProcessingState || {};
+    const traceId = (processingState as any).traceId || "worker-no-trace";
+
+    paymentDebugLog({
+      traceId,
+      functionName: "paymentProcessingWorker",
+      orderId,
+      razorpayPaymentId,
+      jobId: job.id,
+      jobName: job.name,
+      attemptsMade: job.attemptsMade,
+      reason: `BullMQ worker picked up job. Current state: ${JSON.stringify(processingState)}`
+    });
 
     // Step 1: Inventory Deduction
     if (!processingState.inventory) {
-      console.log(`[Payment Processing Worker] Deducting inventory for ${orderId}`);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Executing stock deduction for items"
+      });
       const deductSuccess = await db.deductStock(order.cartItems || [], order.idempotencyKey || orderId);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `db.deductStock outcome: ${deductSuccess ? "success" : "failed"}`,
+        rpc: "deduct_variant_stock",
+        rpcResult: deductSuccess ? "success" : "failed"
+      });
       if (!deductSuccess) {
         throw new Error("Inventory deduction failed");
       }
       processingState.inventory = true;
       await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
+    } else {
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Inventory step already completed. Skipping."
+      });
     }
 
     // Step 2: Coupon Usage
     if (!processingState.coupon && order.couponCode) {
-      console.log(`[Payment Processing Worker] Incrementing coupon usage for ${orderId}`);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `Incrementing coupon usage for: ${order.couponCode}`
+      });
       await db.incrementCouponUsage(order.couponCode);
       processingState.coupon = true;
       await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
+    } else if (order.couponCode) {
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Coupon step already completed. Skipping."
+      });
     }
 
     // Step 3: Wallet Debit
     if (!processingState.wallet && order.walletPaid > 0) {
-      console.log(`[Payment Processing Worker] Debiting wallet for ${orderId}`);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `Debiting user wallet: ${order.walletPaid}`
+      });
       const walletRes = await db.applyWalletDebit(order.walletPaid, order.id, order.userId || order.user_id!);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `applyWalletDebit outcome: ${walletRes.success ? "success" : "failed"}`,
+        metadata: walletRes
+      });
       if (!walletRes.success) throw new Error(`Wallet debit failed: ${walletRes.error}`);
       processingState.wallet = true;
       await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
+    } else if (order.walletPaid > 0) {
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Wallet debit step already completed. Skipping."
+      });
     }
 
     // Step 4: Loyalty Points Debit
     if (!processingState.loyalty && order.pointsRedeemed > 0) {
-      console.log(`[Payment Processing Worker] Debiting loyalty points for ${orderId}`);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `Debiting user loyalty points: ${order.pointsRedeemed}`
+      });
       const loyaltyRes = await db.applyLoyaltyDebit(order.pointsRedeemed, order.id, order.userId || order.user_id!);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: `applyLoyaltyDebit outcome: ${loyaltyRes.success ? "success" : "failed"}`,
+        metadata: loyaltyRes
+      });
       if (!loyaltyRes.success) throw new Error(`Loyalty debit failed: ${loyaltyRes.error}`);
       processingState.loyalty = true;
       await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
+    } else if (order.pointsRedeemed > 0) {
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Loyalty points step already completed. Skipping."
+      });
     }
 
     // Step 5: Email Notification
     if (!processingState.email) {
-      console.log(`[Payment Processing Worker] Sending confirmation email for ${orderId}`);
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Resolving customer email and sending confirmation"
+      });
       
       let customerEmail = order.address_snapshot?.email || "";
       if (!customerEmail && (order.userId || order.user_id)) {
@@ -117,8 +217,23 @@ export const paymentProcessingWorker = new Worker(
       
       processingState.email = true;
       await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
+    } else {
+      paymentDebugLog({
+        traceId,
+        functionName: "paymentProcessingWorker",
+        orderId,
+        razorpayPaymentId,
+        reason: "Email step already completed. Skipping."
+      });
     }
     
+    paymentDebugLog({
+      traceId,
+      functionName: "paymentProcessingWorker",
+      orderId,
+      razorpayPaymentId,
+      reason: "Successfully finished all side-effects for order"
+    });
     console.log(`[Payment Processing Worker] Successfully completed all side effects for ${orderId}`);
   },
   { connection: connection as any }

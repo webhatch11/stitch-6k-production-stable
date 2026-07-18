@@ -171,7 +171,7 @@ export async function initJobs() {
     );
     console.log("[Jobs Init] ✓ Scheduled product-cleanup sweep job (every 24h)");
 
-    // 6. Points Credit — every 6 hours sweep to credit pending loyalty points
+    // 6. Points Credit — daily sweep around 2:00 AM to credit pending loyalty points
     const pointsCreditQueue = new Queue("points-credit", { connection: connection as any });
     const pointsCreditRepeatables = await pointsCreditQueue.getRepeatableJobs();
     for (const job of pointsCreditRepeatables) {
@@ -181,7 +181,7 @@ export async function initJobs() {
       "credit_pending_points",
       {},
       {
-        repeat: { every: 21600000 }, // 6 hours
+        repeat: { pattern: "0 2 * * *" }, // daily at 2:00 AM
         attempts: 3,
         backoff: {
           type: 'exponential',
@@ -191,7 +191,7 @@ export async function initJobs() {
         removeOnFail: 50
       }
     );
-    console.log("[Jobs Init] ✓ Scheduled points-credit sweep job (every 6h)");
+    console.log("[Jobs Init] ✓ Scheduled points-credit sweep job (daily at 2:00 AM)");
 
     // Close the temporary scheduling connection (workers use their own connections)
     await connection.quit();

@@ -800,11 +800,6 @@ export async function acceptOrderAction(
       return { success: false, error: res.error || "Failed to update status" };
     }
 
-    await db.saveOrder({
-      id: orderId,
-      acceptedAt: new Date().toISOString()
-    });
-
     await db.addOrderEvent(orderId, "Order accepted by admin");
     return { success: true };
   } catch (e: any) {
@@ -831,12 +826,6 @@ export async function markOrderPackedAction(
     if ((order.status || "").toLowerCase() !== "processing") {
       return { success: false, error: "Only Processing orders can be marked as packed" };
     }
-
-    const updated = {
-      ...order,
-      packedAt: new Date().toISOString()
-    };
-    await db.saveOrder(updated);
 
     await db.transitionOrderStatus(orderId, "Packed", {
       triggerSource: "Admin Panel - Mark Packed",
@@ -877,18 +866,16 @@ export async function bulkAcceptOrdersAction(
         continue;
       }
 
-      const updated = {
-        ...order,
-        acceptedAt: new Date().toISOString()
-      };
-      await db.saveOrder(updated);
-
-      await db.transitionOrderStatus(orderId, "Processing", {
+      const success = await db.transitionOrderStatus(orderId, "Processing", {
         triggerSource: "Admin Panel - Bulk Accept",
         userOrAdmin: "admin",
         reason: "Order accepted by admin"
       });
-      accepted++;
+      if (success) {
+        accepted++;
+      } else {
+        failed++;
+      }
     } catch (err) {
       console.error(`Failed to bulk accept order ${orderId}:`, err);
       failed++;
@@ -916,18 +903,14 @@ export async function bulkMarkPackedAction(
         continue;
       }
 
-      const updated = {
-        ...order,
-        packedAt: new Date().toISOString()
-      };
-      await db.saveOrder(updated);
-      
-      await db.transitionOrderStatus(orderId, "Packed", {
+      const success = await db.transitionOrderStatus(orderId, "Packed", {
         triggerSource: "Admin Panel - Bulk Packed",
         userOrAdmin: "admin",
         reason: "Invoice printed — order packed"
       });
-      packed++;
+      if (success) {
+        packed++;
+      }
     } catch (err) {
       console.error(`Failed to bulk mark packed ${orderId}:`, err);
     }
@@ -1040,19 +1023,20 @@ export async function generateBulkLabelsAction(
           .eq("order_id", orderId);
       }
 
-      const order = await db.getOrderById(orderId);
-      if (order) {
-        const updatedOrder = {
-          ...order,
-          shiprocketId: shipment.awb_code || ""
-        };
-        await db.saveOrder(updatedOrder);
-        
-        await db.transitionOrderStatus(orderId, "Shipped", {
-          triggerSource: "Admin Panel - Label Generation",
-          userOrAdmin: "admin",
-          reason: "Label generated, AWB: " + shipment.awb_code
-        });
+      const success = await db.transitionOrderStatus(orderId, "Shipped", {
+        triggerSource: "Admin Panel - Label Generation",
+        userOrAdmin: "admin",
+        reason: "Label generated, AWB: " + shipment.awb_code
+      });
+      if (success) {
+        const order = await db.getOrderById(orderId);
+        if (order) {
+          const updatedOrder = {
+            ...order,
+            shiprocketId: shipment.awb_code || ""
+          };
+          await db.saveOrder(updatedOrder);
+        }
       }
 
       results.push({
@@ -1200,39 +1184,41 @@ export async function rejectReturnWithReasonAction(
   }
 
   try {
-    const order = await db.getOrderById(orderId);
-    if (!order) {
-      return { success: false, error: "Order not found" };
-    }
-
-    await db.saveOrder({
-      id: orderId,
-      returnRejectReason: reason,
-    });
-    
-    await db.transitionOrderStatus(orderId, "Return Rejected", {
+    const success = await db.transitionOrderStatus(orderId, "Return Rejected", {
       triggerSource: "Admin Panel - Reject Return",
       userOrAdmin: "admin",
       reason: `Return rejected: ${reason}`
     });
 
-    const createdBy = user.email || "admin@the6k.com";
-    await db.addOrderNote(orderId, `Return request rejected. Reason: ${reason}`, createdBy);
-
-    const email = await getCustomerEmailForOrder(order);
-    if (email) {
-      const { sendReturnDeclinedEmail } = await import("@/lib/email");
-      await sendReturnDeclinedEmail({
+    if (success) {
+      await db.saveOrder({
         id: orderId,
-        customerName: order.customer || "Valued Customer",
-        customerEmail: email,
-        reason: reason,
+        returnRejectReason: reason,
       });
+
+      const createdBy = user.email || "admin@the6k.com";
+      await db.addOrderNote(orderId, `Return request rejected. Reason: ${reason}`, createdBy);
+
+      const order = await db.getOrderById(orderId);
+      if (order) {
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendReturnDeclinedEmail } = await import("@/lib/email");
+          await sendReturnDeclinedEmail({
+            id: orderId,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            reason: reason,
+          });
+        }
+      }
+
+      await db.addOrderEvent(orderId, `Return rejected: ${reason}`);
+
+      return { success: true };
+    } else {
+      return { success: false, error: "Failed to transition order status" };
     }
-
-    await db.addOrderEvent(orderId, `Return rejected: ${reason}`);
-
-    return { success: true };
   } catch (e: any) {
     console.error("[rejectReturnWithReasonAction] Error:", e);
     return { success: false, error: e.message || "Failed to reject return" };
@@ -1277,30 +1263,34 @@ export async function assignShiprocketReturnPickupAction(
     const pickup = await shiprocket.createReversePickup(orderId, customerAddress, items);
 
     if (pickup.success && pickup.awb) {
-      await db.saveOrder({
-        id: orderId,
-        returnAwb: pickup.awb,
-        returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString(),
-      });
-      
-      await db.transitionOrderStatus(orderId, "Return Pickup Scheduled", {
+      const success = await db.transitionOrderStatus(orderId, "Return Pickup Scheduled", {
         triggerSource: "Admin Panel - Return Pickup",
         userOrAdmin: "admin",
         reason: `Return pickup scheduled. AWB: ${pickup.awb}`
       });
 
-      const email = await getCustomerEmailForOrder(order);
-      if (email) {
-        const { sendReturnPickupAssignedEmail } = await import("@/lib/email");
-        await sendReturnPickupAssignedEmail({
+      if (success) {
+        await db.saveOrder({
           id: orderId,
-          customerName: order.customer || "Valued Customer",
-          customerEmail: email,
-          awb: pickup.awb,
+          returnAwb: pickup.awb,
+          returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString(),
         });
-      }
 
-      return { success: true, awb: pickup.awb };
+        const email = await getCustomerEmailForOrder(order);
+        if (email) {
+          const { sendReturnPickupAssignedEmail } = await import("@/lib/email");
+          await sendReturnPickupAssignedEmail({
+            id: orderId,
+            customerName: order.customer || "Valued Customer",
+            customerEmail: email,
+            awb: pickup.awb,
+          });
+        }
+
+        return { success: true, awb: pickup.awb };
+      } else {
+        return { success: false, error: "Failed to transition status to Return Pickup Scheduled." };
+      }
     } else {
       return { success: false, error: pickup.error || "Shiprocket reverse pickup failed." };
     }
@@ -1356,34 +1346,38 @@ export async function processQcResultAction(
         return { success: false, error: refundRes.error || "Failed to process refund" };
       }
     } else {
-      await db.saveOrder({
-        id: orderId,
-        returnRejectReason: reason,
-      });
-
-      await db.transitionOrderStatus(orderId, "Return QC Failed", {
+      const success = await db.transitionOrderStatus(orderId, "Return QC Failed", {
         triggerSource: "Admin Panel - QC Failed",
         userOrAdmin: "admin",
         reason: `QC failed: ${reason}`
       });
 
-      const order = await db.getOrderById(orderId);
-      if (order) {
-        try {
-          const { sendQcFailedEmail } = await import("@/lib/email");
-          await sendQcFailedEmail({
-            to: (order as any).addressSnapshot?.email || order.address_snapshot?.email || '',
-            customerName: (order as any).addressSnapshot?.name || order.address_snapshot?.name || order.customer || 'Customer',
-            orderId: order.id,
-            reason: reason,
-            refundOption: order.refundOption || 'bank'
-          });
-        } catch (emailErr) {
-          console.error(
-            '[processQcResultAction] QC failed email error:',
-            emailErr
-          );
+      if (success) {
+        await db.saveOrder({
+          id: orderId,
+          returnRejectReason: reason,
+        });
+
+        const order = await db.getOrderById(orderId);
+        if (order) {
+          try {
+            const { sendQcFailedEmail } = await import("@/lib/email");
+            await sendQcFailedEmail({
+              to: (order as any).addressSnapshot?.email || order.address_snapshot?.email || '',
+              customerName: (order as any).addressSnapshot?.name || order.address_snapshot?.name || order.customer || 'Customer',
+              orderId: order.id,
+              reason: reason,
+              refundOption: order.refundOption || 'bank'
+            });
+          } catch (emailErr) {
+            console.error(
+              '[processQcResultAction] QC failed email error:',
+              emailErr
+            );
+          }
         }
+      } else {
+        return { success: false, error: "Failed to transition status to Return QC Failed." };
       }
     }
     return { success: true };

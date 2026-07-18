@@ -7,6 +7,8 @@ import { z } from "zod";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { getServerUser } from "@/lib/supabase-server";
 import { CacheService } from "@/lib/cache";
+import crypto from "crypto";
+import { paymentDebugLog } from "@/lib/payment-debug";
 
 const createOrderSchema = z.object({
   cart: z.array(z.any()).min(1),
@@ -27,8 +29,15 @@ const createOrderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const traceId = crypto.randomUUID();
     const user = await getServerUser();
     if (!user) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        reason: "Unauthorized access blocked",
+        error: "Unauthorized: login required for checkout."
+      });
       return NextResponse.json({ success: false, error: "Unauthorized: login required for checkout." }, { status: 401 });
     }
     const user_id = user.id;
@@ -36,6 +45,12 @@ export async function POST(req: NextRequest) {
     const parsed = createOrderSchema.safeParse(body);
 
     if (!parsed.success) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        reason: "Payload schema validation failed",
+        error: parsed.error.message
+      });
       return NextResponse.json({ success: false, error: "Invalid payload parameters", details: parsed.error }, { status: 400 });
     }
 
@@ -50,6 +65,12 @@ export async function POST(req: NextRequest) {
       const limitKey = user_id ? `user:${user_id}:coupon` : `ip:${ip}:coupon`;
       const isAllowed = await CacheService.checkRateLimit(limitKey, 5, 60);
       if (!isAllowed) {
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/create-order",
+          reason: "Coupon verification rate limited",
+          error: "Too many coupon attempts."
+        });
         return NextResponse.json({ success: false, error: "Too many coupon attempts. Please try again in a minute." }, { status: 429 });
       }
     }
@@ -62,6 +83,12 @@ export async function POST(req: NextRequest) {
         .eq("id", user_id)
         .maybeSingle();
       if (profile?.is_blocked) {
+        paymentDebugLog({
+          traceId,
+          functionName: "POST /api/payments/create-order",
+          reason: "User account is blocked",
+          error: "Account blocked"
+        });
         return NextResponse.json(
           { success: false, error: "Account is blocked. Contact support." },
           { status: 403 }
@@ -73,9 +100,14 @@ export async function POST(req: NextRequest) {
     const verification = await verifyAndPrepareGatewayCheckoutAction(payload);
     
     if (!verification.success || !verification.checkoutState) {
+      paymentDebugLog({
+        traceId,
+        functionName: "POST /api/payments/create-order",
+        reason: "verifyAndPrepareGatewayCheckoutAction returned failure",
+        error: verification.error
+      });
       return NextResponse.json({ success: false, error: verification.error }, { status: 400 });
     }
-
 
     const { checkoutState } = verification;
 
@@ -83,11 +115,19 @@ export async function POST(req: NextRequest) {
     if (supabase) {
       const { data: existingOrder } = await supabase
         .from("orders")
-        .select("id, razorpay_order_id, total")
+        .select("id, razorpay_order_id, total, payment_processing_state")
         .eq("idempotency_key", payload.idempotencyKey)
         .maybeSingle();
 
       if (existingOrder) {
+        const orderTraceId = (existingOrder.payment_processing_state as any)?.traceId || traceId;
+        paymentDebugLog({
+          traceId: orderTraceId,
+          functionName: "POST /api/payments/create-order",
+          orderId: existingOrder.id,
+          razorpayOrderId: existingOrder.razorpay_order_id,
+          reason: "Order already exists for idempotency key. Returning existing data.",
+        });
         return NextResponse.json({
           success: true,
           orderId: existingOrder.id,
@@ -97,7 +137,7 @@ export async function POST(req: NextRequest) {
           checkoutState: { ...checkoutState, orderId: existingOrder.id }
         });
       }
-    }
+    } }
 
     if (checkoutState.finalPayable <= 0) {
       return NextResponse.json({ success: false, error: "Total must be greater than 0 for Razorpay." }, { status: 400 });

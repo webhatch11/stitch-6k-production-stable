@@ -19,9 +19,7 @@ const RETRY_DELAYS = [
   60 * 60 * 1000,  // 60 mins
 ];
 
-export const shipmentRetryWorker = new Worker(
-  "shipment-retry",
-  async (job) => {
+export async function shipmentRetryProcessor(job: any) {
     if (job.name === "retry_shipment") {
       const { orderId } = job.data;
       console.log(`[Shipment Retry Worker] Attempting shipment retry for order: ${orderId}. Attempt: ${job.attemptsMade + 1}`);
@@ -162,23 +160,30 @@ export const shipmentRetryWorker = new Worker(
         }
       }
     }
-  },
-  { connection: connection as any }
-);
+}
 
 import * as Sentry from "@sentry/nextjs";
 
-shipmentRetryWorker.on("completed", (job) => {
-  console.log(`[Shipment Retry Worker] Job ${job.id} completed successfully`);
-});
-shipmentRetryWorker.on("failed", (job, err) => {
-  console.error(`[Shipment Retry Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "shipment-retry" },
-    extra: {
-      jobId: job?.id,
-      jobName: job?.name,
-      jobData: job?.data,
-    },
+export let shipmentRetryWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  shipmentRetryWorker = new Worker(
+    "shipment-retry",
+    shipmentRetryProcessor,
+    { connection: connection as any }
+  );
+
+  shipmentRetryWorker.on("completed", (job) => {
+    console.log(`[Shipment Retry Worker] Job ${job.id} completed successfully`);
   });
-});
+  shipmentRetryWorker.on("failed", (job, err) => {
+    console.error(`[Shipment Retry Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "shipment-retry" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
+  });
+}

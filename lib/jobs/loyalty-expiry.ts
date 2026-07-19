@@ -24,9 +24,7 @@ const MAX_ITERATIONS = 100;  // hard cap: up to 20k users/run, prevents spinning
 // Shape of the loyalty_atomic_expire_user() RPC result.
 type ExpireResult = { success: boolean; deducted?: number; new_balance?: number; error?: string };
 
-export const loyaltyExpiryWorker = new Worker(
-  "loyalty-expiry",
-  async (job) => {
+export async function loyaltyExpiryProcessor(job: any) {
     if (job.name !== "expire_loyalty_points") return;
 
     if (!supabase) {
@@ -102,22 +100,29 @@ export const loyaltyExpiryWorker = new Worker(
     if (failedUsers.size > 0) {
       console.warn(`[Loyalty Expiry Worker] ${failedUsers.size} users failed and will retry next run.`);
     }
-  },
-  { connection: connection as any }
-);
+}
 
-loyaltyExpiryWorker.on("completed", (job) => {
-  console.log(`[Loyalty Expiry Worker] Job ${job.id} completed successfully`);
-});
+export let loyaltyExpiryWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  loyaltyExpiryWorker = new Worker(
+    "loyalty-expiry",
+    loyaltyExpiryProcessor,
+    { connection: connection as any }
+  );
 
-loyaltyExpiryWorker.on("failed", (job, err) => {
-  console.error(`[Loyalty Expiry Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "loyalty-expiry" },
-    extra: {
-      jobId: job?.id,
-      jobName: job?.name,
-      jobData: job?.data,
-    },
+  loyaltyExpiryWorker.on("completed", (job) => {
+    console.log(`[Loyalty Expiry Worker] Job ${job.id} completed successfully`);
   });
-});
+
+  loyaltyExpiryWorker.on("failed", (job, err) => {
+    console.error(`[Loyalty Expiry Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "loyalty-expiry" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
+  });
+}

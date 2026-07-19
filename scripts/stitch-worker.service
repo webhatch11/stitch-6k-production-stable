@@ -1,0 +1,48 @@
+# ==============================================================================
+# Stitch 6K Background Workers systemd Service
+# ==============================================================================
+# 
+# Purpose:
+#   Runs and supervises the PM2 ecosystem holding the isolated background workers
+#   for payments, emails, shipments, cleanups, and loyalty points.
+#
+# Installation Instructions:
+#   1. Copy this file to systemd configuration directory:
+#      sudo cp scripts/stitch-worker.service /etc/systemd/system/stitch-worker.service
+#
+#   2. Reload the systemd daemon:
+#      sudo systemctl daemon-reload
+#
+#   3. Enable the service to run on server boot:
+#      sudo systemctl enable stitch-worker
+#
+#   4. Start the service immediately:
+#      sudo systemctl start stitch-worker
+#
+# Monitoring Commands:
+#   - Check status:       sudo systemctl status stitch-worker
+#   - View system logs:    sudo journalctl -u stitch-worker -f
+#   - Restart service:     sudo systemctl restart stitch-worker
+#   - Stop service:        sudo systemctl stop stitch-worker
+#
+# ==============================================================================
+
+[Unit]
+Description=Stitch 6K Background Workers PM2 Supervisor
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=forking
+User=root
+WorkingDirectory=/var/www/stitch_6k_production_ready_v2
+Environment=PATH=/usr/bin:/usr/local/bin:/usr/sbin
+Environment=NODE_ENV=production
+ExecStart=/usr/local/bin/pm2 start ecosystem.config.js --env production
+ExecReload=/usr/local/bin/pm2 reload all
+ExecStop=/usr/local/bin/pm2 stop all
+PIDFile=/root/.pm2/pm2.pid
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

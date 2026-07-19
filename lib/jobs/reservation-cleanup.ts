@@ -9,9 +9,7 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
   maxRetriesPerRequest: null,
 });
 
-export const reservationCleanupWorker = new Worker(
-  "reservation-cleanup",
-  async (job) => {
+export async function reservationCleanupProcessor(job: any) {
     if (job.name === "cleanup_expired_reservations") {
       console.log("[Reservation Cleanup Worker] Scanning for expired payment-pending orders...");
       
@@ -97,21 +95,28 @@ export const reservationCleanupWorker = new Worker(
         throw err;
       }
     }
-  },
-  { connection: connection as any }
-);
+}
 
-reservationCleanupWorker.on("completed", (job) => {
-  console.log(`[Reservation Cleanup Worker] Job ${job.id} completed successfully`);
-});
-reservationCleanupWorker.on("failed", (job, err) => {
-  console.error(`[Reservation Cleanup Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "reservation-cleanup" },
-    extra: {
-      jobId: job?.id,
-      jobName: job?.name,
-      jobData: job?.data,
-    },
+export let reservationCleanupWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  reservationCleanupWorker = new Worker(
+    "reservation-cleanup",
+    reservationCleanupProcessor,
+    { connection: connection as any }
+  );
+
+  reservationCleanupWorker.on("completed", (job) => {
+    console.log(`[Reservation Cleanup Worker] Job ${job.id} completed successfully`);
   });
-});
+  reservationCleanupWorker.on("failed", (job, err) => {
+    console.error(`[Reservation Cleanup Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "reservation-cleanup" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
+  });
+}

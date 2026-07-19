@@ -12,9 +12,7 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
  * Product Permanent Deletion Cleanup Worker
  * Runs daily to find and permanently delete products that have exceeded their 7-day trash period.
  */
-export const productCleanupWorker = new Worker(
-  "product-cleanup",
-  async (job) => {
+export async function productCleanupProcessor(job: any) {
     if (job.name !== "cleanup_expired_products") return;
 
     if (!supabase) {
@@ -69,22 +67,29 @@ export const productCleanupWorker = new Worker(
     if (failCount > 0) {
       throw new Error(`Cleanup job completed with ${failCount} failures.`);
     }
-  },
-  { connection: connection as any }
-);
+}
 
-productCleanupWorker.on("completed", (job) => {
-  console.log(`[Product Cleanup Worker] Job ${job.id} completed successfully`);
-});
+export let productCleanupWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  productCleanupWorker = new Worker(
+    "product-cleanup",
+    productCleanupProcessor,
+    { connection: connection as any }
+  );
 
-productCleanupWorker.on("failed", (job, err) => {
-  console.error(`[Product Cleanup Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "product-cleanup" },
-    extra: {
-      jobId: job?.id,
-      jobName: job?.name,
-      jobData: job?.data,
-    },
+  productCleanupWorker.on("completed", (job) => {
+    console.log(`[Product Cleanup Worker] Job ${job.id} completed successfully`);
   });
-});
+
+  productCleanupWorker.on("failed", (job, err) => {
+    console.error(`[Product Cleanup Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "product-cleanup" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
+  });
+}

@@ -19,111 +19,98 @@ try {
   console.warn("[Shipment Sync Worker] Failed to connect to Redis:", e);
 }
 
-export const shipmentSyncWorker = connection
-  ? new Worker(
-      "shipment-sync",
-      async (job) => {
-        if (job.name === "sync_active_shipments") {
-          console.log("[Shipment Sync Worker] Running active shipments sync...");
+export async function shipmentSyncProcessor(job: any) {
+  if (job.name === "sync_active_shipments") {
+    console.log("[Shipment Sync Worker] Running active shipments sync...");
 
-          try {
-            // Get all orders that have a shipment tracking code and are not finalized
-            const orders = await db.getOrders();
-            const activeOrders = orders.filter(
-              (o: Order) =>
-                o.shiprocketId &&
-                o.shiprocketId.trim() !== "" &&
-                !["Delivered", "Returned", "Cancelled", "Expired"].includes(o.status)
-            );
+    try {
+      // Get all orders that have a shipment tracking code and are not finalized
+      const orders = await db.getOrders();
+      const activeOrders = orders.filter(
+        (o: Order) =>
+          o.shiprocketId &&
+          o.shiprocketId.trim() !== "" &&
+          !["Delivered", "Returned", "Cancelled", "Expired"].includes(o.status)
+      );
 
-            console.log(`[Shipment Sync Worker] Found ${activeOrders.length} active shipments to track.`);
+      console.log(`[Shipment Sync Worker] Found ${activeOrders.length} active shipments to track.`);
 
-            for (const order of activeOrders) {
+      for (const order of activeOrders) {
+        try {
+          const awbCode = order.shiprocketId!;
+          console.log(`[Shipment Sync Worker] Tracking AWB: ${awbCode} for Order: ${order.id}`);
+          
+          const trackData = await shiprocket.trackShipment(awbCode);
+          if (!trackData || !trackData.success) {
+            console.warn(`[Shipment Sync Worker] Failed to track AWB ${awbCode}:`, trackData?.error || "Unknown error");
+            continue;
+          }
+
+          const currentStatus = trackData.current_status || "";
+          const scans = trackData.scans || [];
+          const etd = trackData.etd;
+
+          // Map Shiprocket status to Stitch 6K order status
+          let mappedStatus = order.status;
+          const lowerStatus = currentStatus.toLowerCase();
+
+          if (lowerStatus.includes("delivered")) {
+            mappedStatus = "Delivered";
+          } else if (lowerStatus.includes("out for delivery") || lowerStatus.includes("out_for_delivery")) {
+            mappedStatus = "Out for Delivery";
+          } else if (lowerStatus.includes("transit") || lowerStatus.includes("shipped")) {
+            mappedStatus = "Shipped";
+          } else if (lowerStatus.includes("packed") || lowerStatus.includes("manifest")) {
+            mappedStatus = "Packed";
+          } else if (lowerStatus.includes("placed") || lowerStatus.includes("confirmed")) {
+            mappedStatus = "Order Placed";
+          } else if (lowerStatus.includes("return") || lowerStatus.includes("rto")) {
+            mappedStatus = "Returned";
+          } else if (lowerStatus.includes("cancel")) {
+            mappedStatus = "Cancelled";
+          }
+
+          // If status changed, save it
+          if (mappedStatus !== order.status) {
+            console.log(`[Shipment Sync Worker] Status updated for order ${order.id}: ${order.status} -> ${mappedStatus}`);
+            
+            await db.transitionOrderStatus(order.id, mappedStatus, {
+              triggerSource: "Shiprocket Auto-Sync Worker",
+              userOrAdmin: "system",
+              reason: `Shiprocket status changed to: ${currentStatus}`
+            });
+
+            if (mappedStatus === "Delivered") {
               try {
-                const awbCode = order.shiprocketId!;
-                console.log(`[Shipment Sync Worker] Tracking AWB: ${awbCode} for Order: ${order.id}`);
+                const { sendOrderDeliveredEmail } = await import("@/lib/email");
+                const returnDeadline = new Date(
+                  Date.now() + 7 * 24 * 60 * 60 * 1000
+                ).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short", 
+                  year: "numeric"
+                });
                 
-                const trackData = await shiprocket.trackShipment(awbCode);
-                if (!trackData || !trackData.success) {
-                  console.warn(`[Shipment Sync Worker] Failed to track AWB ${awbCode}:`, trackData?.error || "Unknown error");
-                  continue;
-                }
-
-                const currentStatus = trackData.current_status || "";
-                const scans = trackData.scans || [];
-                const etd = trackData.etd;
-
-                // Map Shiprocket status to Stitch 6K order status
-                let mappedStatus = order.status;
-                const lowerStatus = currentStatus.toLowerCase();
-
-                if (lowerStatus.includes("delivered")) {
-                  mappedStatus = "Delivered";
-                } else if (lowerStatus.includes("out for delivery") || lowerStatus.includes("out_for_delivery")) {
-                  mappedStatus = "Out for Delivery";
-                } else if (lowerStatus.includes("transit") || lowerStatus.includes("shipped")) {
-                  mappedStatus = "Shipped";
-                } else if (lowerStatus.includes("packed") || lowerStatus.includes("manifest")) {
-                  mappedStatus = "Packed";
-                } else if (lowerStatus.includes("placed") || lowerStatus.includes("confirmed")) {
-                  mappedStatus = "Order Placed";
-                } else if (lowerStatus.includes("return") || lowerStatus.includes("rto")) {
-                  mappedStatus = "Returned";
-                } else if (lowerStatus.includes("cancel")) {
-                  mappedStatus = "Cancelled";
-                }
-
-                // If status changed, save it
-                if (mappedStatus !== order.status) {
-                  console.log(`[Shipment Sync Worker] Status updated for order ${order.id}: ${order.status} -> ${mappedStatus}`);
-                  
-                  await db.transitionOrderStatus(order.id, mappedStatus, {
-                    triggerSource: "Shiprocket Auto-Sync Worker",
-                    userOrAdmin: "system",
-                    reason: `Shiprocket status changed to: ${currentStatus}`
-                  });
-
-                  if (mappedStatus === "Delivered") {
-                    try {
-                      const { sendOrderDeliveredEmail } = 
-                        await import('@/lib/email')
-                      
-                      const returnDeadline = new Date(
-                        Date.now() + 7 * 24 * 60 * 60 * 1000
-                      ).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short', 
-                        year: 'numeric'
-                      })
-                      
-                      await sendOrderDeliveredEmail({
-                        to: order.address_snapshot?.email || '',
-                        customerName: order.address_snapshot?.name 
-                          || 'Customer',
-                        orderId: order.id,
-                        items: (order.cartItems || []).map(
-                          (item: any) => ({
-                            name: item.productName || item.name,
-                            quantity: item.quantity || 1
-                          })
-                        ),
-                        total: order.total,
-                        deliveredAt: new Date().toLocaleDateString(
-                          'en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          }
-                        ),
-                        returnDeadline
-                      })
-                    } catch (emailErr) {
-                      console.error(
-                        '[shipment-sync] delivery email failed:',
-                        emailErr
-                      )
-                    }
-                  }
+                await sendOrderDeliveredEmail({
+                  to: order.address_snapshot?.email || "",
+                  customerName: order.customer,
+                  orderId: order.id,
+                  items: (order.cartItems || []).map((item: any) => ({
+                    name: item.productName || item.title || "Luxury Shirt",
+                    quantity: item.quantity || 1
+                  })),
+                  total: order.total,
+                  deliveredAt: new Date().toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric"
+                  }),
+                  returnDeadline
+                });
+              } catch (emailErr) {
+                console.error("[shipment-sync] delivery email failed:", emailErr);
+              }
+            }
                 }
 
                 // Update shipments table and events
@@ -179,19 +166,23 @@ export const shipmentSyncWorker = connection
               } catch (orderErr) {
                 console.error(`[Shipment Sync Worker] Error tracking order ${order.id}:`, orderErr);
               }
-            }
-          } catch (err) {
-            console.error("[Shipment Sync Worker] Unhandled exception in sync loop:", err);
-          }
-        }
-      },
-      { connection: connection as any }
-    )
-  : null;
+      }
+    } catch (err) {
+      console.error("[Shipment Sync Worker] Unhandled exception in sync loop:", err);
+    }
+  }
+}
 
 import * as Sentry from "@sentry/nextjs";
 
-if (shipmentSyncWorker) {
+export let shipmentSyncWorker: Worker | null = null;
+if (connection && process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  shipmentSyncWorker = new Worker(
+    "shipment-sync",
+    shipmentSyncProcessor,
+    { connection: connection as any }
+  );
+
   shipmentSyncWorker.on("completed", (job) => {
     console.log(`[Shipment Sync Worker] Job ${job.id} completed successfully`);
   });

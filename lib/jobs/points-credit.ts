@@ -116,10 +116,13 @@ export async function pointsCreditProcessor(job: any) {
   }
 }
 
-export const pointsCreditWorker = new Worker(
-  "points-credit",
-  pointsCreditProcessor,
-  { connection: connection as any }
-);
+export let pointsCreditWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  pointsCreditWorker = new Worker(
+    "points-credit",
+    pointsCreditProcessor,
+    { connection: connection as any }
+  );
+}
 
 export default pointsCreditProcessor;

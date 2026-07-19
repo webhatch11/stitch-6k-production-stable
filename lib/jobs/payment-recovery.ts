@@ -8,9 +8,7 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
   maxRetriesPerRequest: null,
 });
 
-export const paymentRecoveryWorker = new Worker(
-  "payment-recovery",
-  async (job) => {
+export async function paymentRecoveryProcessor(job: any) {
     if (job.name === "sweep_pending_payments") {
       console.log("[Payment Recovery Worker] Scanning for abandoned payments...");
       
@@ -100,23 +98,30 @@ export const paymentRecoveryWorker = new Worker(
         .eq("status", "Cancelled")
         .lt("created_at", twentyFourHoursAgo);
     }
-  },
-  { connection: connection as any }
-);
+}
 
 import * as Sentry from "@sentry/nextjs";
 
-paymentRecoveryWorker.on("completed", (job) => {
-  console.log(`[Payment Recovery Worker] Job ${job.id} completed successfully`);
-});
-paymentRecoveryWorker.on("failed", (job, err) => {
-  console.error(`[Payment Recovery Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "payment-recovery" },
-    extra: {
-      jobId: job?.id,
-      jobName: job?.name,
-      jobData: job?.data,
-    },
+export let paymentRecoveryWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  paymentRecoveryWorker = new Worker(
+    "payment-recovery",
+    paymentRecoveryProcessor,
+    { connection: connection as any }
+  );
+
+  paymentRecoveryWorker.on("completed", (job) => {
+    console.log(`[Payment Recovery Worker] Job ${job.id} completed successfully`);
   });
-});
+  paymentRecoveryWorker.on("failed", (job, err) => {
+    console.error(`[Payment Recovery Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "payment-recovery" },
+      extra: {
+        jobId: job?.id,
+        jobName: job?.name,
+        jobData: job?.data,
+      },
+    });
+  });
+}

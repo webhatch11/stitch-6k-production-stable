@@ -21,9 +21,7 @@ export const paymentProcessingQueue = new Queue("payment-processing", {
   }
 });
 
-export const paymentProcessingWorker = new Worker(
-  "payment-processing",
-  async (job) => {
+export async function paymentProcessingProcessor(job: any) {
     const { orderId, razorpayPaymentId } = job.data;
     console.log(`[Payment Processing Worker] Processing side effects for order ${orderId}`);
 
@@ -235,18 +233,25 @@ export const paymentProcessingWorker = new Worker(
       reason: "Successfully finished all side-effects for order"
     });
     console.log(`[Payment Processing Worker] Successfully completed all side effects for ${orderId}`);
-  },
-  { connection: connection as any }
-);
+}
 
-paymentProcessingWorker.on("completed", (job) => {
-  console.log(`[Payment Processing Worker] Job ${job.id} completed successfully`);
-});
+export let paymentProcessingWorker: Worker | null = null;
+if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
+  paymentProcessingWorker = new Worker(
+    "payment-processing",
+    paymentProcessingProcessor,
+    { connection: connection as any }
+  );
 
-paymentProcessingWorker.on("failed", (job, err) => {
-  console.error(`[Payment Processing Worker] Job ${job?.id} failed:`, err);
-  Sentry.captureException(err, {
-    tags: { queue: "payment-processing" },
-    extra: { jobId: job?.id, jobData: job?.data },
+  paymentProcessingWorker.on("completed", (job) => {
+    console.log(`[Payment Processing Worker] Job ${job.id} completed successfully`);
   });
-});
+
+  paymentProcessingWorker.on("failed", (job, err) => {
+    console.error(`[Payment Processing Worker] Job ${job?.id} failed:`, err);
+    Sentry.captureException(err, {
+      tags: { queue: "payment-processing" },
+      extra: { jobId: job?.id, jobData: job?.data },
+    });
+  });
+}

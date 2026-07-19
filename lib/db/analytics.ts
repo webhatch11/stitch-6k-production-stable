@@ -214,7 +214,7 @@ export async function getDashboardKPIMetrics(): Promise<{
       const { count: completedOrders } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("status", "Paid")
+        .eq("payment_status", "Paid")
         .gte("created_at", date30DaysAgo);
 
       conversionRate =
@@ -231,7 +231,7 @@ export async function getDashboardKPIMetrics(): Promise<{
       const { count: prevCompletedOrders } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("status", "Paid")
+        .eq("payment_status", "Paid")
         .gte("created_at", date60DaysAgo)
         .lt("created_at", date30DaysAgo);
 
@@ -1079,7 +1079,7 @@ export async function getSalesByCategory(days: number = 30): Promise<CategorySal
       const itemQty = Number(item.quantity || item.qty || 1);
       categoryStatsMap[category].unitsSold += itemQty;
       categoryStatsMap[category].orderIds.add(order.id);
-      categoryStatsMap[category].revenue += Number(order.total || 0);
+      categoryStatsMap[category].revenue += Number(item.price || 0) * itemQty;
     }
   }
 

@@ -154,7 +154,7 @@ export default function FinanceAnalyticsPage() {
           className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent ${
             activeTab === "general"
               ? "border-[#fed488] text-white"
-              : "border-transparent text-white/40 hover:text-white/80"
+              : "border-transparent text-zinc-400 hover:text-white/80"
           }`}
         >
           General Ledger
@@ -164,7 +164,7 @@ export default function FinanceAnalyticsPage() {
           className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent ${
             activeTab === "gst"
               ? "border-[#fed488] text-white"
-              : "border-transparent text-white/40 hover:text-white/80"
+              : "border-transparent text-zinc-400 hover:text-white/80"
           }`}
         >
           GST & Liabilities Report
@@ -181,30 +181,30 @@ export default function FinanceAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Card 1: Gross Sales */}
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Gross Sales</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Gross Sales</span>
               <span className="text-3xl font-black font-headline text-white font-mono mt-2 block">₹{summary.grossRevenue.toLocaleString()}</span>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Total revenue collected</p>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Total revenue collected</p>
             </div>
 
             {/* Card 2: GST Collected */}
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">GST Collected (5% / 12%)</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">GST Collected (5% / 12%)</span>
               <span className="text-3xl font-black font-headline text-white font-mono mt-2 block">₹{summary.gstCollected.toLocaleString()}</span>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Computed on actual product rate</p>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Computed on actual product rate</p>
             </div>
 
             {/* Card 3: Total Refunds */}
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Total Refunds</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Total Refunds</span>
               <span className="text-3xl font-black font-headline text-white font-mono mt-2 block">₹{summary.totalRefunds.toLocaleString()}</span>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Deducted from gross proceeds</p>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Deducted from gross proceeds</p>
             </div>
 
             {/* Card 4: Net Proceeds */}
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Net Proceeds</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Net Proceeds</span>
               <span className="text-3xl font-black font-headline text-white font-mono mt-2 block">₹{summary.netRevenue.toLocaleString()}</span>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Net Sales less GST & Refunds</p>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Net Sales less GST & Refunds</p>
             </div>
           </div>
 
@@ -213,7 +213,7 @@ export default function FinanceAnalyticsPage() {
             <div className="lg:col-span-2 bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">GST Liability Trends</h3>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Historical view of tax liabilities collected</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Historical view of tax liabilities collected</p>
               </div>
 
               <div className="h-64">
@@ -237,7 +237,7 @@ export default function FinanceAnalyticsPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-xs text-white/40 uppercase tracking-widest text-center py-20">No financial history logs</p>
+                  <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-20">No financial history logs</p>
                 )}
               </div>
             </div>
@@ -246,26 +246,26 @@ export default function FinanceAnalyticsPage() {
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Sales Indicators</h3>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Order metrics details</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Order metrics details</p>
               </div>
 
               <div className="space-y-6 my-auto">
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Orders Volume</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Orders Volume</span>
                   <span className="text-4xl font-black font-headline text-white mt-1 block">{summary.ordersCount}</span>
-                  <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1">Settled payments this month</p>
+                  <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Settled payments this month</p>
                 </div>
 
                 <div className="h-px bg-white/10"></div>
 
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Average Order Value (AOV)</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Average Order Value (AOV)</span>
                   <span className="text-4xl font-black font-headline text-[#fed488] mt-1 block">₹{summary.avgOrderValue.toLocaleString()}</span>
-                  <p className="text-[9px] text-white/40 uppercase tracking-widest mt-1">Average order basket size value</p>
+                  <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Average order basket size value</p>
                 </div>
               </div>
 
-              <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
+              <div className="text-[9px] text-zinc-400 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
                 * GST reports segment product levels automatically.
               </div>
             </div>
@@ -274,16 +274,16 @@ export default function FinanceAnalyticsPage() {
           {/* Tax Ledger */}
           <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
             <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">GST Tax Ledger</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Aggregate ledger of sales tax collected monthly</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Aggregate ledger of sales tax collected monthly</p>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/15">
-                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40">Tax Period</th>
-                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Gross Sales</th>
-                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">GST Collected (5% / 12%)</th>
-                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Net Sales (Excl. Tax)</th>
+                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Tax Period</th>
+                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Gross Sales</th>
+                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">GST Collected (5% / 12%)</th>
+                    <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Net Sales (Excl. Tax)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-mono">
@@ -298,7 +298,7 @@ export default function FinanceAnalyticsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-xs text-white/30 uppercase tracking-widest">
+                      <td colSpan={4} className="py-8 text-center text-xs text-zinc-400 uppercase tracking-widest">
                         No active tax histories found.
                       </td>
                     </tr>
@@ -313,47 +313,47 @@ export default function FinanceAnalyticsPage() {
           {/* Net Revenue Report Summary Cards */}
           <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
             <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Net Revenue Report Summary</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Financial performance metrics for the selected month</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Financial performance metrics for the selected month</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="bg-white/5 border border-white/10 p-6 rounded-none">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Gross Revenue</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Gross Revenue</span>
                 <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
                   ₹{netRevenueReport.grossRevenue.toLocaleString('en-IN')}
                 </span>
-                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Sum of total orders value</p>
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Sum of total orders value</p>
               </div>
               
               <div className="bg-white/5 border border-white/10 p-6 rounded-none">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Total Refunds</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Total Refunds</span>
                 <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
                   ₹{netRevenueReport.totalRefunds.toLocaleString('en-IN')}
                 </span>
-                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Deducted refund amounts</p>
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Deducted refund amounts</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 p-6 rounded-none">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Total Discounts</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Total Discounts</span>
                 <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
                   ₹{netRevenueReport.totalDiscounts.toLocaleString('en-IN')}
                 </span>
-                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Coupon & loyalty discounts</p>
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Coupon & loyalty discounts</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 p-6 rounded-none">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Wallet Revenue</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Wallet Revenue</span>
                 <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
                   ₹{netRevenueReport.walletRevenue.toLocaleString('en-IN')}
                 </span>
-                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Paid using store credits</p>
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Paid using store credits</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 p-6 rounded-none">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Gateway Revenue</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Gateway Revenue</span>
                 <span className="text-2xl font-black font-headline text-white font-mono mt-2 block">
                   ₹{netRevenueReport.gatewayRevenue.toLocaleString('en-IN')}
                 </span>
-                <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Paid online (Razorpay)</p>
+                <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1">Paid online (Razorpay)</p>
               </div>
 
               <div className="bg-white/5 border border-[#fed488]/30 p-6 rounded-none">
@@ -372,30 +372,30 @@ export default function FinanceAnalyticsPage() {
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">GST Summary Report</h3>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Tax collections computed for the selected period</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Tax collections computed for the selected period</p>
               </div>
               
               <div className="grid grid-cols-2 gap-6 mb-6">
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Taxable Value</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Taxable Value</span>
                   <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
                     ₹{gstReportRange.totalTaxableValue.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">CGST (6%)</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">CGST (6%)</span>
                   <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
                     ₹{gstReportRange.totalCGST.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">SGST (6%)</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">SGST (6%)</span>
                   <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
                     ₹{gstReportRange.totalSGST.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">IGST (12%)</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">IGST (12%)</span>
                   <span className="text-2xl font-black font-headline text-white font-mono mt-1 block">
                     ₹{gstReportRange.totalIGST.toLocaleString('en-IN')}
                   </span>
@@ -421,12 +421,12 @@ export default function FinanceAnalyticsPage() {
             <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Outstanding Liabilities</h3>
-                <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Total credit and loyalty points liabilities owed to customers</p>
+                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Total credit and loyalty points liabilities owed to customers</p>
               </div>
 
               <div className="space-y-6 my-auto">
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Wallet Credits Owed</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Wallet Credits Owed</span>
                   <span className="text-3xl font-black font-headline text-amber-600 font-mono mt-1 block">
                     ₹{liability.totalWalletLiability.toLocaleString('en-IN')}
                   </span>
@@ -435,10 +435,10 @@ export default function FinanceAnalyticsPage() {
                 <div className="h-px bg-white/10"></div>
 
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40 block">Loyalty Points Value</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block">Loyalty Points Value</span>
                   <span className="text-3xl font-black font-headline text-amber-600 font-mono mt-1 block">
                     ₹{liability.totalLoyaltyLiability.toLocaleString('en-IN')}{" "}
-                    <span className="text-xs text-white/40 font-mono">({liability.totalPoints.toLocaleString('en-IN')} pts)</span>
+                    <span className="text-xs text-zinc-400 font-mono">({liability.totalPoints.toLocaleString('en-IN')} pts)</span>
                   </span>
                 </div>
 

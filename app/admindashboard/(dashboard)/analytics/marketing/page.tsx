@@ -14,7 +14,7 @@ const roasDisplay = (roas: number): string => {
 };
 
 const roasColor = (roas: number): string => {
-  if (roas === 0) return "text-gray-400";
+  if (roas === 0) return "text-zinc-500";
   if (roas < 1) return "text-red-600";
   if (roas < 3) return "text-amber-600";
   return "text-green-600";
@@ -166,7 +166,7 @@ export default function MarketingAnalyticsPage() {
           <h1 className="font-headline text-3xl font-black uppercase tracking-tight mt-1 text-gray-900">
             Campaign &amp; Traffic Analytics
           </h1>
-          <p className="text-[11px] text-gray-400 mt-1 uppercase tracking-wider">
+          <p className="text-[11px] text-zinc-500 mt-1 uppercase tracking-wider">
             Audit customer referral channels, UTM sources, and campaigns
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function MarketingAnalyticsPage() {
           title="Industry benchmark for fashion D2C: 3-4x"
         >
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
               Google Ads ROAS
             </h3>
             <div className="mt-2">
@@ -193,19 +193,19 @@ export default function MarketingAnalyticsPage() {
                 {roasDisplay(googleRoas)}
               </p>
               {googleSpend > 0 && (
-                <p className="text-[10px] text-gray-400 font-mono mt-1">
+                <p className="text-[10px] text-zinc-500 font-mono mt-1">
                   ₹{googleSpend.toLocaleString()} spend →{" "}
                   ₹{googleRevenue.toLocaleString()} revenue
                 </p>
               )}
               {googleSpend === 0 && (
-                <p className="text-xs text-gray-400 uppercase mt-1">
+                <p className="text-xs text-zinc-500 uppercase mt-1">
                   No spend logged yet
                 </p>
               )}
             </div>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-black block">
+          <span className="text-[8px] uppercase tracking-wider text-zinc-500 font-black block">
             Benchmark: 3-4x (Hover for info)
           </span>
         </div>
@@ -216,7 +216,7 @@ export default function MarketingAnalyticsPage() {
           title="Industry benchmark for fashion D2C: 3-4x"
         >
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
               Meta Ads ROAS
             </h3>
             <div className="mt-2">
@@ -226,19 +226,19 @@ export default function MarketingAnalyticsPage() {
                 {roasDisplay(metaRoas)}
               </p>
               {metaSpend > 0 && (
-                <p className="text-[10px] text-gray-400 font-mono mt-1">
+                <p className="text-[10px] text-zinc-500 font-mono mt-1">
                   ₹{metaSpend.toLocaleString()} spend →{" "}
                   ₹{metaRevenue.toLocaleString()} revenue
                 </p>
               )}
               {metaSpend === 0 && (
-                <p className="text-xs text-gray-400 uppercase mt-1">
+                <p className="text-xs text-zinc-500 uppercase mt-1">
                   No spend logged yet
                 </p>
               )}
             </div>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-black block">
+          <span className="text-[8px] uppercase tracking-wider text-zinc-500 font-black block">
             Benchmark: 3-4x (Hover for info)
           </span>
         </div>
@@ -252,7 +252,7 @@ export default function MarketingAnalyticsPage() {
             <h3 className="text-xs font-black uppercase tracking-wider mb-1 text-gray-900">
               Traffic Referral Channels
             </h3>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-6">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-6">
               Distribution of orders placed with UTM parameters
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function MarketingAnalyticsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-xs text-gray-400 uppercase tracking-widest">
+                <p className="text-xs text-zinc-500 uppercase tracking-widest">
                   No UTM order traffic recorded
                 </p>
               )}
@@ -314,7 +314,7 @@ export default function MarketingAnalyticsPage() {
                       <span className="text-xs font-bold font-mono text-gray-900">
                         {item.value} Orders
                       </span>
-                      <span className="text-[10px] text-gray-400 font-mono ml-2">
+                      <span className="text-[10px] text-zinc-500 font-mono ml-2">
                         ({percentage}%)
                       </span>
                     </div>
@@ -331,20 +331,20 @@ export default function MarketingAnalyticsPage() {
             <h3 className="text-xs font-black uppercase tracking-wider mb-1 text-gray-900">
               Campaign Statistics
             </h3>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-6">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-6">
               Aggregate campaign conversion data
             </p>
           </div>
 
           <div className="space-y-6 my-auto">
             <div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 block">
                 Total UTM Referrals
               </span>
               <span className="text-4xl font-black font-headline text-gray-900 mt-1 block">
                 {totalUtmOrders}
               </span>
-              <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-1">
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">
                 Orders with referral variables
               </p>
             </div>
@@ -352,19 +352,19 @@ export default function MarketingAnalyticsPage() {
             <div className="h-px bg-gray-100"></div>
 
             <div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">
+              <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 block">
                 Active Campaigns
               </span>
               <span className="text-4xl font-black font-headline text-gray-900 mt-1 block">
                 {campaigns.length}
               </span>
-              <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-1">
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">
                 Registered campaign identifiers
               </p>
             </div>
           </div>
 
-          <div className="text-[9px] text-gray-400 uppercase tracking-[0.2em] mt-6 border-t border-gray-100 pt-4">
+          <div className="text-[9px] text-zinc-500 uppercase tracking-[0.2em] mt-6 border-t border-gray-100 pt-4">
             * Automatically recorded from sessionStorage captures.
           </div>
         </div>
@@ -375,7 +375,7 @@ export default function MarketingAnalyticsPage() {
         <h3 className="text-xs font-black uppercase tracking-wider mb-1 text-gray-900">
           Campaign Conversion Ledger
         </h3>
-        <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-6">
+        <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-6">
           Detailed ledger breakdown of sales segmented by campaign parameters
         </p>
 
@@ -425,7 +425,7 @@ export default function MarketingAnalyticsPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-8 text-center text-xs text-gray-400 uppercase tracking-widest"
+                    className="py-8 text-center text-xs text-zinc-500 uppercase tracking-widest"
                   >
                     No active campaign referral data captured.
                   </td>
@@ -443,7 +443,7 @@ export default function MarketingAnalyticsPage() {
             <h3 className="text-xs font-black uppercase tracking-wider mb-1 text-gray-900">
               Monthly Ad Spend &amp; ROAS Ledger
             </h3>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">
               Attributed revenue and return on ad spend per channel
             </p>
           </div>
@@ -608,7 +608,7 @@ export default function MarketingAnalyticsPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-8 text-center text-xs text-gray-400 uppercase tracking-widest"
+                    className="py-8 text-center text-xs text-zinc-500 uppercase tracking-widest"
                   >
                     No marketing ad spend logs available.
                   </td>

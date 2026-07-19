@@ -16,6 +16,9 @@ import {
 
 export default function SalesAnalyticsPage() {
   const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [useCustom, setUseCustom] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
@@ -27,14 +30,20 @@ export default function SalesAnalyticsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const res = await getSalesAnalyticsAction(days);
+      let daysQuery: number = days;
+      if (useCustom && startDate && endDate) {
+        const start = new Date(startDate);
+        const diffFromToday = Math.abs(Date.now() - start.getTime());
+        daysQuery = Math.max(days, Math.ceil(diffFromToday / (1000 * 60 * 60 * 24)));
+      }
+      const res = await getSalesAnalyticsAction(daysQuery);
       if (res.success) {
         setData(res);
       }
       setLoading(false);
     }
     load();
-  }, [days]);
+  }, [days, useCustom, startDate, endDate]);
 
   // Category revenue — uses same days window converted to ISO dates
   const [categoryData, setCategoryData] = useState<Array<{
@@ -45,16 +54,19 @@ export default function SalesAnalyticsPage() {
   }>>([]);
 
   useEffect(() => {
-    const endDate = new Date().toISOString();
-    const startDate = new Date(
-      Date.now() - days * 24 * 60 * 60 * 1000
-    ).toISOString();
-    getRevenueByCategoryAction(startDate, endDate).then((res) => {
+    const startISO = useCustom && startDate
+      ? new Date(startDate).toISOString()
+      : new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const endISO = useCustom && endDate
+      ? new Date(endDate).toISOString()
+      : new Date().toISOString();
+
+    getRevenueByCategoryAction(startISO, endISO).then((res) => {
       if (res.success && res.data) {
         setCategoryData(res.data);
       }
     });
-  }, [days]);
+  }, [days, useCustom, startDate, endDate]);
 
   const handleExportDetailedReport = () => {
     if (!data) return;
@@ -159,11 +171,28 @@ export default function SalesAnalyticsPage() {
 
   const todayKPI = data?.todaySales || {};
   const kpis = data?.kpiMetrics || {};
-  const revenueTrend = data?.revenueTrend || [];
+  const rawRevenueTrend = data?.revenueTrend || [];
   const categoryStats = data?.categoryStats || [];
   const topProducts = data?.topProducts || [];
   const repeatPurchaseStats = data?.repeatPurchaseStats || {};
   const cityOrders = data?.cityOrders || [];
+
+  const filterByDateRange = (trendData: any[]) => {
+    if (!useCustom || !startDate || !endDate) return trendData;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return trendData.filter((item: any) => {
+      const currentYear = new Date().getFullYear();
+      const parsedDate = new Date(`${item.date} ${currentYear}`);
+      parsedDate.setHours(12, 0, 0, 0);
+      return parsedDate >= start && parsedDate <= end;
+    });
+  };
+
+  const revenueTrend = filterByDateRange(rawRevenueTrend);
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-white font-body">
@@ -177,20 +206,46 @@ export default function SalesAnalyticsPage() {
 
         {/* Date Filter & Export */}
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex bg-white/5 border border-white/10 p-1">
+          <div className="flex bg-white/5 border border-white/10 p-1 flex-wrap items-center gap-2">
             {([7, 30, 90] as const).map((r) => (
               <button
                 key={r}
-                onClick={() => setDays(r)}
+                onClick={() => {
+                  setDays(r);
+                  setUseCustom(false);
+                }}
                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer border-none ${
-                  days === r
+                  !useCustom && days === r
                     ? "bg-[#fed488] text-[#0a0a0a]"
-                    : "bg-transparent text-white/60 hover:text-white"
+                    : "bg-transparent text-zinc-300 hover:text-white"
                 }`}
               >
                 {r}D
               </button>
             ))}
+            
+            <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+              <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Custom:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setUseCustom(true);
+                }}
+                className="bg-[#171717] border border-white/15 text-white text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#fed488]"
+              />
+              <span className="text-[9px] text-zinc-400">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setUseCustom(true);
+                }}
+                className="bg-[#171717] border border-white/15 text-white text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#fed488]"
+              />
+            </div>
           </div>
 
           <button
@@ -222,29 +277,29 @@ export default function SalesAnalyticsPage() {
         {/* Card 1: Today's Sales */}
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Today's Sales</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Sales</h3>
             <p className="text-2xl font-headline font-black text-white mt-2">
               ₹{(todayKPI.todaySales || 0).toLocaleString("en-IN")}
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-white/30 font-bold block">Refreshes in real-time</span>
+          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Refreshes in real-time</span>
         </div>
 
         {/* Card 2: Today's Orders */}
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Today's Orders</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Orders</h3>
             <p className="text-2xl font-headline font-black text-white mt-2">
               {todayKPI.todayOrders || 0}
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-white/30 font-bold block">Direct purchases logged</span>
+          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Direct purchases logged</span>
         </div>
 
         {/* Card 3: Conversion Rate */}
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Conversion Rate</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Conversion Rate</h3>
             <div className="flex items-baseline justify-between mt-2">
               <p className="text-2xl font-headline font-black text-white">
                 {kpis.conversionRate || 0}%
@@ -256,22 +311,22 @@ export default function SalesAnalyticsPage() {
                 } else if (diff < 0) {
                   return <span className="text-xs font-bold text-red-500">↓ -{Math.abs(diff)}%</span>;
                 }
-                return <span className="text-xs font-bold text-white/30">→ 0%</span>;
+                return <span className="text-xs font-bold text-zinc-400">→ 0%</span>;
               })()}
             </div>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-white/30 font-bold block">Checkout → Payment ({days} days)</span>
+          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Checkout → Payment ({days} days)</span>
         </div>
 
         {/* Card 4: Repeat Customers */}
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Repeat Customers</h3>
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Repeat Customers</h3>
             <p className="text-2xl font-headline font-black text-white mt-2">
               {repeatPurchaseStats?.repeatRate || 0}%
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-white/30 font-bold block">
+          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">
             {repeatPurchaseStats?.repeatCustomers || 0} of {repeatPurchaseStats?.totalCustomers || 0} returned ({days} days)
           </span>
         </div>
@@ -281,15 +336,15 @@ export default function SalesAnalyticsPage() {
       <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
         <div className="mb-6">
           <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">Revenue Trend</h3>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Aggregate daily sales value & order counts</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Aggregate daily sales value & order counts</p>
         </div>
         <div className="w-full h-80 relative">
           {mounted && revenueTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrend} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }} stroke="rgba(255,255,255,0.1)" />
-                <YAxis tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }} stroke="rgba(255,255,255,0.1)" tickFormatter={(val) => `₹${val}`} />
+                <XAxis dataKey="date" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" />
+                <YAxis tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" tickFormatter={(val) => `₹${val}`} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#171717",
@@ -305,7 +360,7 @@ export default function SalesAnalyticsPage() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center italic text-xs text-white/40">No revenue data loaded</div>
+            <div className="h-full flex items-center justify-center italic text-xs text-zinc-400">No revenue data loaded</div>
           )}
         </div>
       </div>
@@ -316,7 +371,7 @@ export default function SalesAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between h-[380px]">
           <div>
             <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Sales by Category</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Distribution of sales volume by product type</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Distribution of sales volume by product type</p>
           </div>
 
           <div className="flex-grow w-full relative h-[250px]">
@@ -324,12 +379,12 @@ export default function SalesAnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryStats} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }} stroke="rgba(255,255,255,0.1)" tickFormatter={(val) => `₹${val}`} />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" tickFormatter={(val) => `₹${val}`} />
                   <YAxis
                     dataKey="category"
                     type="category"
-                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }}
-                    stroke="rgba(255,255,255,0.1)"
+                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }}
+                    stroke="rgba(255,255,255,0.25)"
                     width={80}
                   />
                   <Tooltip
@@ -350,7 +405,7 @@ export default function SalesAnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-12">No category stats recorded</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-12">No category stats recorded</p>
             )}
           </div>
         </div>
@@ -359,7 +414,7 @@ export default function SalesAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between h-[380px]">
           <div>
             <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Products</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Best selling items ranked by total units sold</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Best selling items ranked by total units sold</p>
           </div>
 
           <div className="flex-grow w-full relative h-[250px]">
@@ -367,12 +422,12 @@ export default function SalesAnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topProducts} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }} stroke="rgba(255,255,255,0.1)" />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" />
                   <YAxis
                     dataKey="productName"
                     type="category"
-                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "rgba(255,255,255,0.4)" }}
-                    stroke="rgba(255,255,255,0.1)"
+                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }}
+                    stroke="rgba(255,255,255,0.25)"
                     width={80}
                     tickFormatter={(val) => (val.length > 12 ? val.slice(0, 12) + "..." : val)}
                   />
@@ -394,7 +449,7 @@ export default function SalesAnalyticsPage() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-12">No products sold in this period</p>
+              <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-12">No products sold in this period</p>
             )}
           </div>
         </div>
@@ -403,7 +458,7 @@ export default function SalesAnalyticsPage() {
       {/* Geographic Breakdown */}
       <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
         <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Ordering Cities</h3>
-        <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Delivery address distribution in the last 30 days</p>
+        <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Delivery address distribution in the last 30 days</p>
 
         <div className="space-y-4">
           {cityOrders && cityOrders.length > 0 ? (
@@ -431,7 +486,7 @@ export default function SalesAnalyticsPage() {
               });
             })()
           ) : (
-            <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+            <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
               No orders loaded in the last 30 days.
             </p>
           )}
@@ -443,12 +498,12 @@ export default function SalesAnalyticsPage() {
         <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">
           Revenue by Collection
         </h3>
-        <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">
+        <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">
           Sales breakdown by product display section — last {days} days
         </p>
 
         {categoryData.length === 0 ? (
-          <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+          <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
             No collection data available for this period
           </p>
         ) : (
@@ -461,7 +516,7 @@ export default function SalesAnalyticsPage() {
                       {cat.category}
                     </span>
                     <div className="flex items-center gap-5 font-mono">
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest">
+                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest">
                         {cat.orders} items
                       </span>
                       <span className="text-xs font-bold text-white">
@@ -484,7 +539,7 @@ export default function SalesAnalyticsPage() {
 
             {/* Summary footer */}
             <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-              <span className="text-[9px] text-white/40 uppercase tracking-widest font-bold">
+              <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-bold">
                 {categoryData.length} collections tracked
               </span>
               <span className="text-xs font-black font-mono text-white">

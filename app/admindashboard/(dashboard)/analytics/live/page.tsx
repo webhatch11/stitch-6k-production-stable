@@ -290,7 +290,7 @@ export default function LiveAnalyticsPage() {
 
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <span className="text-[10px] font-bold font-mono text-white/40 uppercase tracking-widest block">
+            <span className="text-[10px] font-bold font-mono text-zinc-400 uppercase tracking-widest block">
               {secondsSinceUpdate === 0 ? "Just updated" : `Last updated: ${secondsSinceUpdate}s ago`}
             </span>
             <p className="text-xs text-gray-400 mt-1">
@@ -299,7 +299,7 @@ export default function LiveAnalyticsPage() {
                 ↻ Refresh
               </button>
             </p>
-            <span className="text-[9px] text-white/20 uppercase tracking-widest block mt-0.5">Auto-refreshing every 30s</span>
+            <span className="text-[9px] text-zinc-400 uppercase tracking-widest block mt-0.5">Auto-refreshing every 30s</span>
           </div>
 
           <button
@@ -318,15 +318,15 @@ export default function LiveAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Active Online Visitors</h3>
-              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Visits in active tracking window</p>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Active Online Visitors</h3>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-0.5">Visits in active tracking window</p>
             </div>
             <span className="material-symbols-outlined text-[#fed488] text-lg bg-[#fed488]/10 p-2">public</span>
           </div>
           <div className="mt-4">
             <span className="text-5xl font-black font-headline text-white font-mono">{onlineVisitors}</span>
             <span className="text-[10px] font-black uppercase text-green-500 tracking-wider ml-3 bg-green-500/10 px-2 py-0.5 select-none">Live</span>
-            <span className="text-[10px] text-white/40 uppercase tracking-widest block mt-2">last 90 sec</span>
+            <span className="text-[10px] text-zinc-400 uppercase tracking-widest block mt-2">last 90 sec</span>
           </div>
         </div>
 
@@ -334,14 +334,14 @@ export default function LiveAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Active Shopping Carts</h3>
-              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Cart updates in last 30 minutes</p>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Active Shopping Carts</h3>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-0.5">Cart updates in last 30 minutes</p>
             </div>
             <span className="material-symbols-outlined text-[#fed488] text-lg bg-[#fed488]/10 p-2">shopping_bag</span>
           </div>
           <div className="mt-4">
             <span className="text-5xl font-black font-headline text-white font-mono">{activeCarts}</span>
-            <span className="text-[10px] font-black uppercase text-white/40 tracking-wider ml-3">Pending Checkout</span>
+            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider ml-3">Pending Checkout</span>
           </div>
         </div>
 
@@ -349,15 +349,15 @@ export default function LiveAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Today's Transactions</h3>
-              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Calculated from 12:00 AM today</p>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Transactions</h3>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-0.5">Calculated from 12:00 AM today</p>
             </div>
             <span className="material-symbols-outlined text-[#fed488] text-lg bg-[#fed488]/10 p-2">payments</span>
           </div>
           <div className="mt-4 flex items-baseline justify-between">
             <div>
               <span className="text-5xl font-black font-headline text-white font-mono">{todayOrdersCount}</span>
-              <span className="text-xs text-white/40 uppercase tracking-widest ml-2">Orders</span>
+              <span className="text-xs text-zinc-400 uppercase tracking-widest ml-2">Orders</span>
             </div>
             <div className="text-right">
               <span className={`text-lg font-black font-mono transition-colors duration-500 ${
@@ -365,7 +365,7 @@ export default function LiveAnalyticsPage() {
               }`}>
                 ₹{todayRevenue.toLocaleString()}
               </span>
-              <p className="text-[9px] text-white/20 uppercase tracking-widest">Gross Sales</p>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest">Gross Sales</p>
             </div>
           </div>
         </div>
@@ -374,8 +374,8 @@ export default function LiveAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-48">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-white/40">Pending Orders</h3>
-              <p className="text-[9px] text-white/25 uppercase tracking-widest mt-0.5">Paid today, awaiting dispatch</p>
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Pending Orders</h3>
+              <p className="text-[9px] text-zinc-400 uppercase tracking-widest mt-0.5">Paid today, awaiting dispatch</p>
             </div>
             <span className="material-symbols-outlined text-amber-400 text-lg bg-amber-400/10 p-2">pending_actions</span>
           </div>
@@ -393,7 +393,7 @@ export default function LiveAnalyticsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div>
             <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">CONVERSION FUNNEL — LAST 30 MINUTES</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Real-time visitor → order pipeline</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Real-time visitor → order pipeline</p>
           </div>
         </div>
 
@@ -482,13 +482,13 @@ export default function LiveAnalyticsPage() {
                       {pct}% of visitors
                     </span>
                   )}
-                  <span className="text-[10px] text-white/30 mt-1 uppercase tracking-wider text-center">
+                  <span className="text-[10px] text-zinc-400 mt-1 uppercase tracking-wider text-center">
                     {step.sub}
                   </span>
                 </div>
                 {/* Arrow between steps (not after last) */}
                 {!isLast && (
-                  <div className="hidden sm:flex items-center justify-center w-6 text-white/20 text-lg font-light select-none">
+                  <div className="hidden sm:flex items-center justify-center w-6 text-zinc-400 text-lg font-light select-none">
                     →
                   </div>
                 )}
@@ -500,31 +500,31 @@ export default function LiveAnalyticsPage() {
         {/* Conversion summary row */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-white/8 pt-5">
           <div className="text-center">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Visitors → Checkout</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Visitors → Checkout</p>
             <p className="text-xl font-black font-mono text-[#f472b6] mt-1">
               {funnel.visitors > 0
                 ? `${Math.round((funnel.checkoutStarted / funnel.visitors) * 100)}%`
                 : "—"}
             </p>
-            <p className="text-[10px] text-white/20 tracking-wider">Conversion Rate</p>
+            <p className="text-[10px] text-zinc-400 tracking-wider">Conversion Rate</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Checkout → Order</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Checkout → Order</p>
             <p className="text-xl font-black font-mono text-[#4ade80] mt-1">
               {funnel.checkoutStarted > 0
                 ? `${Math.min(100, Math.round((funnel.ordersToday / funnel.checkoutStarted) * 100))}%`
                 : "—"}
             </p>
-            <p className="text-[10px] text-white/20 tracking-wider">Close Rate</p>
+            <p className="text-[10px] text-zinc-400 tracking-wider">Close Rate</p>
           </div>
           <div className="text-center sm:block hidden">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">Cart Abandonment</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Cart Abandonment</p>
             <p className="text-xl font-black font-mono text-[#fb923c] mt-1">
               {funnel.activeCarts > 0
                 ? `${Math.max(0, 100 - Math.min(100, Math.round((funnel.checkoutStarted / funnel.activeCarts) * 100)))}%`
                 : "—"}
             </p>
-            <p className="text-[10px] text-white/20 tracking-wider">Did not checkout</p>
+            <p className="text-[10px] text-zinc-400 tracking-wider">Did not checkout</p>
           </div>
         </div>
       </div>
@@ -533,16 +533,16 @@ export default function LiveAnalyticsPage() {
       {recentOrders.length > 0 && (
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
           <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Recent Orders Feed</h3>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Last 5 orders placed on the storefront</p>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Last 5 orders placed on the storefront</p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40">Order ID</th>
-                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40">Customer</th>
-                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Amount</th>
-                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Time</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Order ID</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Customer</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Amount</th>
+                  <th className="pb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 text-right">Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -557,7 +557,7 @@ export default function LiveAnalyticsPage() {
                     <td className="py-3 text-xs font-bold font-mono text-white text-right">
                       ₹{Number(order.total).toLocaleString()}
                     </td>
-                    <td className="py-3 text-[10px] font-mono text-white/40 text-right uppercase tracking-widest">
+                    <td className="py-3 text-[10px] font-mono text-zinc-400 text-right uppercase tracking-widest">
                       {timeAgo(order.created_at)}
                     </td>
                   </tr>
@@ -579,7 +579,7 @@ export default function LiveAnalyticsPage() {
                 🔴 Live Dispatch Heatmap
               </span>
               <h3 className="font-headline text-lg font-black uppercase tracking-tight mt-0.5 text-white">India Delivery Map</h3>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Sourced from 100% accurate customer shipping addresses</p>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Sourced from 100% accurate customer shipping addresses</p>
             </div>
             
             <div className="w-full flex items-center justify-center my-4 overflow-hidden relative">
@@ -669,18 +669,18 @@ export default function LiveAnalyticsPage() {
                   </div>
                   <button 
                     onClick={() => setSelectedCity(null)}
-                    className="text-white/40 hover:text-white bg-transparent border-none text-xs cursor-pointer"
+                    className="text-zinc-400 hover:text-white bg-transparent border-none text-xs cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-4 border-t border-white/5 pt-2.5">
                   <div>
-                    <span className="text-[8px] text-white/40 uppercase tracking-widest block">Total Orders</span>
+                    <span className="text-[8px] text-zinc-400 uppercase tracking-widest block">Total Orders</span>
                     <span className="text-sm font-bold font-mono text-white">{selectedCity.count}</span>
                   </div>
                   <div>
-                    <span className="text-[8px] text-white/40 uppercase tracking-widest block">Sales Value</span>
+                    <span className="text-[8px] text-zinc-400 uppercase tracking-widest block">Sales Value</span>
                     <span className="text-sm font-bold font-mono text-[#fed488]">₹{selectedCity.revenue.toLocaleString()}</span>
                   </div>
                 </div>
@@ -692,7 +692,7 @@ export default function LiveAnalyticsPage() {
           <div className="lg:col-span-2 flex flex-col justify-between">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Ordering Cities</h3>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">Distribution of orders placed in last 30 days by delivery address city</p>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Distribution of orders placed in last 30 days by delivery address city</p>
 
               <div className="space-y-3 max-h-[360px] overflow-y-auto pr-2 scrollbar-thin">
                 {cityOrders.length > 0 ? (
@@ -721,14 +721,14 @@ export default function LiveAnalyticsPage() {
                     );
                   })
                 ) : (
-                  <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                  <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
                     No orders loaded in the last 30 days.
                   </p>
                 )}
               </div>
             </div>
             
-            <div className="text-[8px] text-white/30 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
+            <div className="text-[8px] text-zinc-400 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
               * Click any city bar or map pin to view order statistics
             </div>
           </div>
@@ -746,14 +746,14 @@ export default function LiveAnalyticsPage() {
               🔥 POPULAR PRODUCTS
             </span>
             <h3 className="font-headline text-lg font-black uppercase tracking-tight mt-0.5 text-white">Live Product Viewers</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mt-0.5">Top products currently being viewed by customers</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Top products currently being viewed by customers</p>
             
             <div className="mt-6 space-y-4">
               {productViewers && productViewers.length > 0 ? (
                 productViewers.map((pv: any, index: number) => (
                   <div key={pv.page} className="flex items-center justify-between border-b border-white/5 pb-3">
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-white/40 font-bold">{index + 1}.</span>
+                      <span className="font-mono text-xs text-zinc-400 font-bold">{index + 1}.</span>
                       <span className="text-xs text-white/80 font-bold uppercase tracking-wider">{pv.productName}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -763,14 +763,14 @@ export default function LiveAnalyticsPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+                <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
                   No active product page views in the last 5 minutes.
                 </p>
               )}
             </div>
           </div>
           
-          <div className="text-[8px] text-white/30 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
+          <div className="text-[8px] text-zinc-400 uppercase tracking-[0.25em] border-t border-white/5 pt-4 mt-6">
             * Aggregated dynamically over 5 minute active session windows
           </div>
         </div>
@@ -779,12 +779,12 @@ export default function LiveAnalyticsPage() {
         <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between">
           <div>
             <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Live System Events Log</h3>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest mb-6">System logs of active events and operations</p>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">System logs of active events and operations</p>
           </div>
 
           <div className="space-y-4 my-auto">
             {recentEvents.length === 0 ? (
-              <p className="text-xs text-white/40 uppercase tracking-widest text-center py-8">
+              <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
                 No recent order events recorded
               </p>
             ) : (
@@ -798,7 +798,7 @@ export default function LiveAnalyticsPage() {
                     </span>
                     <div>
                       <p className="text-xs font-bold text-white/80">{event.event}</p>
-                      <span className="text-[9px] text-white/40 uppercase tracking-widest mt-1 block">
+                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest mt-1 block">
                         #{String(event.order_id).slice(0, 8).toUpperCase()} • {timeAgo(event.created_at)}{event.total ? ` • ₹${Number(event.total).toLocaleString("en-IN")}` : ""}
                       </span>
                     </div>
@@ -808,7 +808,7 @@ export default function LiveAnalyticsPage() {
             )}
           </div>
 
-          <div className="text-[9px] text-white/40 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
+          <div className="text-[9px] text-zinc-400 uppercase tracking-[0.2em] border-t border-white/5 pt-4 mt-6">
             * Operational health check: 100% active and healthy.
           </div>
         </div>

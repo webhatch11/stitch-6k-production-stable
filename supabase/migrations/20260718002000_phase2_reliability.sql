@@ -2,6 +2,7 @@
 
 -- 1. Ensure exactly-once processing with UNIQUE constraints
 -- The razorpay_payment_id must be unique across all orders
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS unique_razorpay_payment_id;
 ALTER TABLE public.orders ADD CONSTRAINT unique_razorpay_payment_id UNIQUE (razorpay_payment_id);
 
 -- Shiprocket order ID should be unique to prevent duplicate dispatches, ignoring NULLs

@@ -318,6 +318,7 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 ALTER TABLE public.reviews 
   ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "reviews_admin_only" ON public.reviews;
 CREATE POLICY "reviews_admin_only"
   ON public.reviews FOR ALL
   TO authenticated
@@ -408,21 +409,25 @@ CREATE TABLE IF NOT EXISTS public.user_cart (
 ALTER TABLE public.user_cart 
   ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "cart_select_own" ON public.user_cart;
 CREATE POLICY "cart_select_own" 
   ON public.user_cart FOR SELECT 
   TO authenticated
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "cart_insert_own" ON public.user_cart;
 CREATE POLICY "cart_insert_own" 
   ON public.user_cart FOR INSERT 
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "cart_update_own" ON public.user_cart;
 CREATE POLICY "cart_update_own" 
   ON public.user_cart FOR UPDATE 
   TO authenticated
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "cart_delete_own" ON public.user_cart;
 CREATE POLICY "cart_delete_own" 
   ON public.user_cart FOR DELETE 
   TO authenticated
@@ -455,6 +460,7 @@ CREATE TABLE IF NOT EXISTS public.ad_spend (
 ALTER TABLE public.ad_spend 
   ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "ad_spend_admin_only" ON public.ad_spend;
 CREATE POLICY "ad_spend_admin_only"
   ON public.ad_spend FOR ALL 
   TO authenticated
@@ -478,12 +484,14 @@ CREATE TABLE IF NOT EXISTS public.page_views (
 ALTER TABLE public.page_views ENABLE ROW LEVEL SECURITY;
 
 -- Allow anonymous and authenticated inserts
+DROP POLICY IF EXISTS "page_views_insert_public" ON public.page_views;
 CREATE POLICY "page_views_insert_public"
   ON public.page_views
   FOR INSERT TO anon, authenticated
   WITH CHECK (true);
 
 -- Allow authenticated admin reads
+DROP POLICY IF EXISTS "page_views_select_admin" ON public.page_views;
 CREATE POLICY "page_views_select_admin"
   ON public.page_views
   FOR SELECT TO authenticated
@@ -518,6 +526,7 @@ CREATE TABLE IF NOT EXISTS public.order_notes (
 ALTER TABLE public.order_notes 
   ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "order_notes_admin_only" ON public.order_notes;
 CREATE POLICY "order_notes_admin_only"
   ON public.order_notes
   FOR ALL TO authenticated

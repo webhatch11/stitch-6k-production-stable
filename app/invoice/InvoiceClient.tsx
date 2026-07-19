@@ -93,13 +93,13 @@ export default function InvoiceClient({
       <div className="fixed top-6 right-6 left-6 sm:left-auto flex flex-col sm:flex-row gap-4 no-print z-50">
         <button
           onClick={handlePrint}
-          className="w-full sm:w-auto px-6 py-3 bg-black text-white rounded-full text-sm font-medium LoggedInAdminOnly hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer text-center"
+          className="w-full sm:w-auto px-6 py-3 bg-black text-white rounded-none text-[10px] font-black uppercase tracking-[0.2em] LoggedInAdminOnly hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer text-center"
         >
           Print / Download PDF
         </button>
         <button
           onClick={() => router.back()}
-          className="w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-gray-500 rounded-full text-sm font-medium hover:bg-gray-50 transition-all cursor-pointer text-center"
+          className="w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-gray-500 rounded-none text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-all cursor-pointer text-center"
         >
           Go Back
         </button>

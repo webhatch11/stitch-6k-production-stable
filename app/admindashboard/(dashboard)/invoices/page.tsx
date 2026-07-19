@@ -38,6 +38,12 @@ export default function InvoicesLedgerPage() {
 
   useEffect(() => {
     loadInvoices();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "invoice_not_ready") {
+        triggerToast("Invoice is not ready (payment not captured).");
+      }
+    }
   }, []);
 
   const loadInvoices = async () => {

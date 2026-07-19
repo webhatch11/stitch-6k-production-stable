@@ -32,7 +32,11 @@ export default function InvoiceClient({
   const [origin, setOrigin] = useState("");
 
   React.useEffect(() => {
-    setOrigin(window.location.origin);
+    if (typeof window !== "undefined") {
+      setTimeout(() => {
+        setOrigin(window.location.origin);
+      }, 0);
+    }
   }, []);
 
   const handlePrint = async () => {

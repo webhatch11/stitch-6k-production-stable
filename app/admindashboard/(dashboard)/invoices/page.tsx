@@ -6,8 +6,6 @@ import { Order } from "@/lib/types";
 import { getOrdersAction } from "@/app/actions/admin-reads";
 import {
   classifyOrderForInvoice,
-  isBillableOrder,
-  isReturnedInvoice,
   isCancelledInvoice,
   type InvoiceTab,
 } from "@/lib/invoice-status";
@@ -36,17 +34,7 @@ export default function InvoicesLedgerPage() {
     }, 3000);
   };
 
-  useEffect(() => {
-    loadInvoices();
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("error") === "invoice_not_ready") {
-        triggerToast("Invoice is not ready (payment not captured).");
-      }
-    }
-  }, []);
-
-  const loadInvoices = async () => {
+  async function loadInvoices() {
     const res = await getOrdersAction();
     if (!res.success) {
       triggerToast(res.error || "Failed to load orders");
@@ -84,7 +72,22 @@ export default function InvoicesLedgerPage() {
     setRefundedCount(refundedCt);
     setCancelledValue(cancelledSum);
     setCancelledCount(cancelledCt);
-  };
+  }
+
+  useEffect(() => {
+    setTimeout(() => {
+      loadInvoices();
+    }, 0);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "invoice_not_ready") {
+        setTimeout(() => {
+          triggerToast("Invoice is not ready (payment not captured).");
+        }, 100);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Filter orders for the active tab using the shared classifier. */
   const filteredOrders = orders.filter(

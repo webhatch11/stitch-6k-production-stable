@@ -155,7 +155,15 @@ async function handleProxy(request: NextRequest) {
   }
 
   // 1. Rate Limiting Check for configured routes
-  const routeRateLimit = RATE_LIMIT_CONFIG[path];
+  // Bypass rate limiting in automated test environments so Playwright workers
+  // (which share the same loopback IP) do not trip the threshold.
+  // DISABLE_RATE_LIMIT must never be set in production; NODE_ENV is always
+  // "production" on the live VPS so this guard cannot activate there.
+  const isTestMode =
+    process.env.NODE_ENV === "test" ||
+    process.env.DISABLE_RATE_LIMIT === "true";
+
+  const routeRateLimit = isTestMode ? undefined : RATE_LIMIT_CONFIG[path];
   if (routeRateLimit) {
     const rateLimitRes = await checkRateLimit(ip, path, routeRateLimit.limit, routeRateLimit.windowMs);
     

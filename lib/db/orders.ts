@@ -307,17 +307,14 @@ export async function requestManualReturn(
 }
 
 export async function approveReturnPickup(orderId: string): Promise<boolean> {
-  const { supabase, isSupabaseConfigured } = loadService();
-  if (!isSupabaseConfigured || !supabase) {
-    throw new Error(
-      "Database connection not configured. " +
-      "Check NEXT_PUBLIC_SUPABASE_URL and " +
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
-    );
-  }
-  const { error } = await supabase.from("orders").update({ status: "Return in Transit" }).eq("id", orderId);
-
-  return !error;
+  // Use transitionOrderStatus so that the state machine validation, audit log
+  // (order_status_history), and timeline event (order_events) are all applied
+  // consistently — a direct Supabase update bypasses all three.
+  return transitionOrderStatus(orderId, "Return in Transit", {
+    triggerSource: "Admin: Approve Return Pickup",
+    userOrAdmin: "admin",
+    reason: "Admin approved return pickup; courier notified for collection.",
+  });
 }
 
 export async function rejectReturn(orderId: string, rejectReason: string): Promise<boolean> {
@@ -451,11 +448,15 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Return Requested": ["Return in Transit", "Return Rejected", "Returned", "Cancelled", "Return Accepted"],
   "Return Accepted": ["Return Pickup Scheduled", "Cancelled"],
   "Return Pickup Scheduled": ["Return QC Pending", "Cancelled"],
-  "Return QC Pending": ["Return Approved", "Return QC Failed", "Cancelled"],
+  // FIX: Allow warehouse to mark a parcel as received (Return in Transit → Return QC Pending)
+  "Return in Transit": ["Return QC Pending", "Returned", "Cancelled"],
+  "Return QC Pending": ["Return Approved", "Return QC Failed", "Return QC Failed - Held", "Cancelled"],
   "Return Approved": ["Returned", "Cancelled"],
-  "Return QC Failed": ["Returned", "Cancelled"],
+  // FIX: Allow admin to place QC-failed items on hold before final decision
+  "Return QC Failed": ["Returned", "Return QC Failed - Held", "Cancelled"],
+  // FIX: Return QC Failed - Held is now a valid state; can be escalated or finalized
+  "Return QC Failed - Held": ["Return QC Failed", "Returned", "Cancelled"],
   "Reship Requested": ["Shipped", "Cancelled"],
-  "Return in Transit": ["Returned", "Cancelled"],
   "Return Rejected": ["Return Requested", "Returned", "Cancelled"],
   "Cancelled": ["Refunded"],
   "Returned": ["Completed"],

@@ -559,29 +559,35 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     }
   }
 
-  // Restore stock for returned items (CRITICAL FIX 1)
+  // Restore stock for returned items.
+  // Use the array overload so each item's `color` is forwarded to the atomic
+  // RPC — the single-item overload hard-codes "Default" and would miss named
+  // colour variants (e.g. "Navy", "Crimson") stored in product_variants.
   try {
-    // Restore stock for returned items
     if (order.cartItems && order.cartItems.length > 0) {
-      for (const item of order.cartItems) {
-        await inventoryDb.restoreStock(
-          item.productId,
-          item.size || item.variant,
-          item.quantity || 1
-        )
-      }
-      console.error(
-        '[processReturnRefund] Stock restored for',
+      // Map to the shape expected by the array overload:
+      //   { productName, size, color, quantity }
+      // productName is matched against the products table inside restoreStock.
+      // Fallback to product ID when productName is absent (legacy orders).
+      const itemsForRestock = order.cartItems.map((item: any) => ({
+        productName: item.productName || item.productId || "",
+        size: item.size || item.variant || "M",
+        color: item.color || "Default",
+        quantity: item.quantity || 1,
+      }));
+      // Pass orderId as the sessionId so the idempotency key is order-scoped.
+      await inventoryDb.restoreStock(itemsForRestock, orderId);
+      console.log(
+        '[processReturnRefund] Stock restored for order',
         order.id
-      )
+      );
     }
   } catch (stockErr) {
     console.error(
-      '[processReturnRefund] Stock restore failed:',
+      '[processReturnRefund] Stock restore failed (non-fatal, requires manual review):',
       stockErr
-    )
-    // Don't fail refund if stock restore fails
-    // Log for manual review
+    );
+    // Do not abort the refund if stock restore fails; log for ops review.
   }
 
   // Update order status to Returned

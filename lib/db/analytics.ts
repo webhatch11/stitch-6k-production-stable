@@ -701,8 +701,9 @@ export async function getMonthlyFinanceSummary(
 }> {
   const { supabase, isSupabaseConfigured } = loadService();
 
-  const startOfMonth = new Date(year, month - 1, 1).toISOString();
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+  const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01T00:00:00.000+05:30`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`;
 
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -729,7 +730,6 @@ export async function getMonthlyFinanceSummary(
   });
   const grossRevenue = validOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
   const totalRefunds = validOrders.reduce((sum, o) => sum + Number(o.refund_amount || 0), 0);
-  const netRevenue = grossRevenue - totalRefunds;
 
   let gstCollected = 0;
   for (const o of validOrders) {
@@ -751,6 +751,8 @@ export async function getMonthlyFinanceSummary(
     gstCollected += orderGst;
   }
 
+  const roundedGst = Math.round(gstCollected);
+  const netRevenue = grossRevenue - totalRefunds - roundedGst;
   const ordersCount = validOrders.length;
   const avgOrderValue = ordersCount > 0 ? Math.round(grossRevenue / ordersCount) : 0;
 
@@ -758,7 +760,7 @@ export async function getMonthlyFinanceSummary(
     grossRevenue,
     netRevenue,
     totalRefunds,
-    gstCollected: Math.round(gstCollected),
+    gstCollected: roundedGst,
     ordersCount,
     avgOrderValue,
   };

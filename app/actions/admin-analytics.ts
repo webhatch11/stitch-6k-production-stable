@@ -286,8 +286,9 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     const summary = await db.getMonthlyFinanceSummary(year, month);
     const gstReport = await db.getGSTReport(6);
 
-    const startOfMonth = new Date(year, month - 1, 1).toISOString();
-    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+    const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01T00:00:00.000+05:30`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`;
 
     const gstReportRange = await db.getGSTReport(startOfMonth, endOfMonth);
     const liability = await db.getLiabilityReport();

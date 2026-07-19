@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerUser } from "@/lib/supabase-server";
 import { Queue, Job } from "bullmq";
-import IORedis from "ioredis";
+import { getSharedProducerConnection } from "@/lib/jobs/connection";
 
 const queuesList = [
   "email-delivery",
@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
   
   const searchJobId = req.nextUrl.searchParams.get("searchJobId") || "";
   const searchOrderId = req.nextUrl.searchParams.get("searchOrderId") || "";
-
-  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  
+  const connection = getSharedProducerConnection();
   const result: any = {};
   
   try {
@@ -115,8 +115,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ queues: result });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
-  } finally {
-    await connection.quit();
   }
 }
 
@@ -142,7 +140,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Redis not configured" }, { status: 500 });
   }
   
-  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  const connection = getSharedProducerConnection();
   
   try {
     const q = new Queue(queueName, { connection: connection as any });
@@ -182,7 +180,5 @@ export async function POST(req: NextRequest) {
     }
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
-  } finally {
-    await connection.quit();
   }
 }

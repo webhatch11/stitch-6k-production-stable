@@ -1,23 +1,7 @@
-import { Worker, Queue } from "bullmq";
 import { shiprocket } from "@/lib/shiprocket";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { Order } from "@/lib/types";
-import IORedis from "ioredis";
-
-let connection: IORedis | null = null;
-try {
-  if (process.env.REDIS_URL) {
-    connection = new IORedis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-    });
-    connection.on("error", (err) => {
-      console.warn("[Shipment Sync Worker] Redis connection error:", err.message);
-    });
-  }
-} catch (e) {
-  console.warn("[Shipment Sync Worker] Failed to connect to Redis:", e);
-}
 
 export async function shipmentSyncProcessor(job: any) {
   if (job.name === "sync_active_shipments") {
@@ -173,28 +157,4 @@ export async function shipmentSyncProcessor(job: any) {
   }
 }
 
-import * as Sentry from "@sentry/nextjs";
 
-export let shipmentSyncWorker: Worker | null = null;
-if (connection && process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  shipmentSyncWorker = new Worker(
-    "shipment-sync",
-    shipmentSyncProcessor,
-    { connection: connection as any }
-  );
-
-  shipmentSyncWorker.on("completed", (job) => {
-    console.log(`[Shipment Sync Worker] Job ${job.id} completed successfully`);
-  });
-  shipmentSyncWorker.on("failed", (job, err) => {
-    console.error(`[Shipment Sync Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "shipment-sync" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

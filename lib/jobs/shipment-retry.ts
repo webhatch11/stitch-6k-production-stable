@@ -1,16 +1,12 @@
-import { Worker, Queue } from "bullmq";
+import { Queue } from "bullmq";
 import { db } from "../../lib/db";
 import { shiprocket } from "../../lib/shiprocket";
 import { Order } from "@/lib/types";
-import IORedis from "ioredis";
+import { getSharedProducerConnection } from "./connection";
 
 const DEFAULT_PICKUP_LOCATION = 
   process.env.SHIPROCKET_PICKUP_LOCATION || 
   "Primary Warehouse";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
 
 const RETRY_DELAYS = [
   5 * 60 * 1000,   // 5 mins
@@ -140,7 +136,7 @@ export async function shipmentRetryProcessor(job: any) {
           const nextDelay = RETRY_DELAYS[attemptsMade];
           console.log(`[Shipment Retry Worker] Scheduling next retry in ${nextDelay / (60 * 1000)} minutes.`);
 
-          const retryQueue = new Queue("shipment-retry", { connection: connection as any });
+          const retryQueue = new Queue("shipment-retry", { connection: getSharedProducerConnection() as any });
           await retryQueue.add("retry_shipment", { orderId }, { delay: nextDelay, removeOnComplete: true, removeOnFail: 50 });
           await retryQueue.close();
 
@@ -162,28 +158,4 @@ export async function shipmentRetryProcessor(job: any) {
     }
 }
 
-import * as Sentry from "@sentry/nextjs";
 
-export let shipmentRetryWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  shipmentRetryWorker = new Worker(
-    "shipment-retry",
-    shipmentRetryProcessor,
-    { connection: connection as any }
-  );
-
-  shipmentRetryWorker.on("completed", (job) => {
-    console.log(`[Shipment Retry Worker] Job ${job.id} completed successfully`);
-  });
-  shipmentRetryWorker.on("failed", (job, err) => {
-    console.error(`[Shipment Retry Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "shipment-retry" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

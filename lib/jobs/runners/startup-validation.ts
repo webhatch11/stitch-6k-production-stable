@@ -1,6 +1,7 @@
 import IORedis from "ioredis";
 import { loadService } from "../../db/client-raw";
 import { Queue } from "bullmq";
+import { getRedisConfig } from "../connection";
 
 export async function validateWorkerStartup(params: {
   workerName: string;
@@ -12,6 +13,12 @@ export async function validateWorkerStartup(params: {
 
   // 1. Validate Environment Variables
   for (const envVar of params.requiredEnvs) {
+    if (envVar === "REDIS_URL") {
+      const provider = (process.env.REDIS_PROVIDER || "selfhosted").trim().toLowerCase();
+      if (provider === "selfhosted" && process.env.REDIS_HOST) {
+        continue; // REDIS_URL is not required when discrete keys are configured
+      }
+    }
     if (!process.env[envVar]) {
       console.error(`❌ [${params.workerName}] FATAL: Environment variable "${envVar}" is not set.`);
       process.exit(1);
@@ -19,17 +26,25 @@ export async function validateWorkerStartup(params: {
   }
   console.log(`✅ [${params.workerName}] All required environment variables verified.`);
 
+  const config = getRedisConfig();
+  const createClient = (options: any) => {
+    if (typeof config === "string") {
+      return new IORedis(config, options);
+    }
+    return new IORedis({ ...config, ...options });
+  };
+
   // 2. Validate Redis Connectivity
   let redisClient: IORedis | null = null;
   try {
-    redisClient = new IORedis(params.redisUrl, {
+    redisClient = createClient({
       connectTimeout: 3000,
       maxRetriesPerRequest: 1,
     });
     await redisClient.ping();
     console.log(`✅ [${params.workerName}] Redis connectivity verified.`);
   } catch (err: any) {
-    console.error(`❌ [${params.workerName}] FATAL: Redis is unreachable at "${params.redisUrl}". Error: ${err.message}`);
+    console.error(`❌ [${params.workerName}] FATAL: Redis connection check failed. Error: ${err.message}`);
     process.exit(1);
   } finally {
     if (redisClient) {
@@ -56,7 +71,7 @@ export async function validateWorkerStartup(params: {
   // 4. Validate Queue Registration
   let testConnection: IORedis | null = null;
   try {
-    testConnection = new IORedis(params.redisUrl, {
+    testConnection = createClient({
       maxRetriesPerRequest: null,
     });
     for (const queueName of params.queues) {

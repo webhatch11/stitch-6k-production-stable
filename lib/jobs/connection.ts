@@ -1,7 +1,5 @@
 import IORedis from "ioredis";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-
 // Global interface to track metrics inside the application process
 interface ConnectionMetrics {
   activeCount: number;
@@ -26,16 +24,66 @@ if (!globalRef.redisRegistry) {
 const registry = globalRef.redisRegistry;
 
 /**
+ * Resolves Redis connection options based on REDIS_PROVIDER and environment configuration.
+ * Validates values and supports discrete configurations (Host/Port/User/Pass) as well as URLs.
+ */
+export function getRedisConfig(): string | { host: string; port: number; username?: string; password?: string } {
+  const rawProvider = process.env.REDIS_PROVIDER || "selfhosted";
+  const provider = rawProvider.trim().toLowerCase();
+
+  switch (provider) {
+    case "selfhosted": {
+      // Prioritize discrete keys
+      if (process.env.REDIS_HOST) {
+        return {
+          host: process.env.REDIS_HOST,
+          port: parseInt(process.env.REDIS_PORT || "6379", 10),
+          username: process.env.REDIS_USERNAME || undefined,
+          password: process.env.REDIS_PASSWORD || undefined,
+        };
+      }
+      // Fallback to URL-based configurations
+      const url = process.env.REDIS_URL_SELF || process.env.REDIS_URL || "redis://localhost:6379";
+      return url;
+    }
+
+    case "upstash": {
+      const url = process.env.REDIS_URL_UPSTASH || process.env.REDIS_URL || "redis://localhost:6379";
+      return url;
+    }
+
+    default:
+      throw new Error(`Unknown REDIS_PROVIDER: "${rawProvider}". Allowed values are: "selfhosted", "upstash"`);
+  }
+}
+
+/**
+ * Helper to construct an IORedis client from a connection config string or options object.
+ */
+function createRedisClient(config: string | { host: string; port: number; username?: string; password?: string }, options: any): IORedis {
+  if (typeof config === "string") {
+    return new IORedis(config, options);
+  }
+  return new IORedis({
+    ...config,
+    ...options
+  });
+}
+
+/**
  * Lazily retrieves the shared producer connection.
  * Used by rate limiters, caching layers, and queue producers.
  */
 export function getSharedProducerConnection(): IORedis {
   if (!registry.sharedProducer) {
-    registry.sharedProducer = new IORedis(REDIS_URL, {
+    const config = getRedisConfig();
+    const options = {
       maxRetriesPerRequest: null,
       connectTimeout: 5000,
       reconnectOnError: () => true,
-    });
+    };
+
+    registry.sharedProducer = createRedisClient(config, options);
 
     const key = "shared_producer";
     registry.reconnectCounts.set(key, 0);
@@ -70,11 +118,14 @@ export function createWorkerConnection(workerName: string): IORedis {
     registry.workerConnections.delete(workerName);
   }
 
-  const client = new IORedis(REDIS_URL, {
+  const config = getRedisConfig();
+  const options = {
     maxRetriesPerRequest: null,
     connectTimeout: 5000,
     reconnectOnError: () => true,
-  });
+  };
+
+  const client = createRedisClient(config, options);
 
   const key = `worker_${workerName}`;
   registry.reconnectCounts.set(key, 0);

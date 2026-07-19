@@ -1,12 +1,6 @@
-import { Worker } from "bullmq";
 import { supabaseService as supabase } from "../../lib/supabase-service";
 import { db } from "../db";
-import IORedis from "ioredis";
 import * as Sentry from "@sentry/nextjs";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
 
 /**
  * Product Permanent Deletion Cleanup Worker
@@ -69,27 +63,4 @@ export async function productCleanupProcessor(job: any) {
     }
 }
 
-export let productCleanupWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  productCleanupWorker = new Worker(
-    "product-cleanup",
-    productCleanupProcessor,
-    { connection: connection as any }
-  );
 
-  productCleanupWorker.on("completed", (job) => {
-    console.log(`[Product Cleanup Worker] Job ${job.id} completed successfully`);
-  });
-
-  productCleanupWorker.on("failed", (job, err) => {
-    console.error(`[Product Cleanup Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "product-cleanup" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

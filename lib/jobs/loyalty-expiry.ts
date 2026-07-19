@@ -1,11 +1,5 @@
-import { Worker } from "bullmq";
 import { supabaseService as supabase } from "../../lib/supabase-service";
-import IORedis from "ioredis";
 import * as Sentry from "@sentry/nextjs";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
 
 /**
  * Loyalty Points Expiry Worker
@@ -102,27 +96,4 @@ export async function loyaltyExpiryProcessor(job: any) {
     }
 }
 
-export let loyaltyExpiryWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  loyaltyExpiryWorker = new Worker(
-    "loyalty-expiry",
-    loyaltyExpiryProcessor,
-    { connection: connection as any }
-  );
 
-  loyaltyExpiryWorker.on("completed", (job) => {
-    console.log(`[Loyalty Expiry Worker] Job ${job.id} completed successfully`);
-  });
-
-  loyaltyExpiryWorker.on("failed", (job, err) => {
-    console.error(`[Loyalty Expiry Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "loyalty-expiry" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

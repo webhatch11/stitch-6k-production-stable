@@ -11,22 +11,9 @@
  */
 
 import "./env";
+import { getSharedProducerConnection } from "./connection";
 
-import IORedis from "ioredis";
-
-const REDIS_URL = process.env.REDIS_URL;
-if (!REDIS_URL) {
-  console.error("[Worker] FATAL: REDIS_URL environment variable is not set.");
-  process.exit(1);
-}
-
-// Shared Redis connection for the worker process.
-// maxRetriesPerRequest: null is REQUIRED for BullMQ workers.
-export const workerConnection = new IORedis(REDIS_URL, {
-  maxRetriesPerRequest: null,
-  connectTimeout: 5000,
-  enableReadyCheck: false,
-});
+export const workerConnection = getSharedProducerConnection();
 
 workerConnection.on("connect", () => {
   console.log("[Worker] Redis connected.");

@@ -1,5 +1,4 @@
-import { Queue, Worker } from "bullmq";
-import IORedis from "ioredis";
+import { Queue } from "bullmq";
 import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import * as Sentry from "@sentry/nextjs";
@@ -234,23 +233,4 @@ export async function paymentProcessingProcessor(job: any) {
     console.log(`[Payment Processing Worker] Successfully completed all side effects for ${orderId}`);
 }
 
-export let paymentProcessingWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  paymentProcessingWorker = new Worker(
-    "payment-processing",
-    paymentProcessingProcessor,
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
-  );
 
-  paymentProcessingWorker.on("completed", (job) => {
-    console.log(`[Payment Processing Worker] Job ${job.id} completed successfully`);
-  });
-
-  paymentProcessingWorker.on("failed", (job, err) => {
-    console.error(`[Payment Processing Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "payment-processing" },
-      extra: { jobId: job?.id, jobData: job?.data },
-    });
-  });
-}

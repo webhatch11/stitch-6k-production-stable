@@ -1,12 +1,6 @@
-import { Worker } from "bullmq";
 import { razorpay } from "@/lib/razorpay";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import { db } from "@/lib/db";
-import IORedis from "ioredis";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
 
 export async function paymentRecoveryProcessor(job: any) {
     if (job.name === "sweep_pending_payments") {
@@ -100,28 +94,4 @@ export async function paymentRecoveryProcessor(job: any) {
     }
 }
 
-import * as Sentry from "@sentry/nextjs";
 
-export let paymentRecoveryWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  paymentRecoveryWorker = new Worker(
-    "payment-recovery",
-    paymentRecoveryProcessor,
-    { connection: connection as any }
-  );
-
-  paymentRecoveryWorker.on("completed", (job) => {
-    console.log(`[Payment Recovery Worker] Job ${job.id} completed successfully`);
-  });
-  paymentRecoveryWorker.on("failed", (job, err) => {
-    console.error(`[Payment Recovery Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "payment-recovery" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

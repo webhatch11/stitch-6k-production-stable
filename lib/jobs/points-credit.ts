@@ -1,12 +1,6 @@
-import { Worker } from "bullmq";
 import { supabaseService as supabase } from "../../lib/supabase-service";
 import { db } from "../db";
-import IORedis from "ioredis";
 import * as Sentry from "@sentry/nextjs";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-});
 
 export async function pointsCreditProcessor(job: any) {
   if (job.name !== "credit_pending_points") return;
@@ -114,15 +108,6 @@ export async function pointsCreditProcessor(job: any) {
   if (failCount > 0) {
     throw new Error(`Points credit job completed with ${failCount} failures.`);
   }
-}
-
-export let pointsCreditWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  pointsCreditWorker = new Worker(
-    "points-credit",
-    pointsCreditProcessor,
-    { connection: connection as any }
-  );
 }
 
 export default pointsCreditProcessor;

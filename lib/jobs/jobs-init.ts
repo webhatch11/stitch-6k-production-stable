@@ -1,6 +1,6 @@
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
 import "./shipment-sync";
+import { getSharedProducerConnection } from "./connection";
 
 export async function initJobs() {
   // ── Guard 1: Never run workers inside Vercel serverless functions ──────────
@@ -24,23 +24,10 @@ export async function initJobs() {
     return;
   }
 
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    console.warn("⚠️ REDIS_URL not configured. Background jobs are disabled.");
-    return;
-  }
-
   console.log("[Jobs Init] ℹ️ Initializing BullMQ background jobs...");
 
   try {
-    const connection = new IORedis(redisUrl, {
-      maxRetriesPerRequest: null,
-      connectTimeout: 5000,
-    });
-
-    connection.on("error", (err) => {
-      console.warn("[Jobs Init] Redis connection warning:", err.message);
-    });
+    const connection = getSharedProducerConnection();
 
     // 1. Initialize Shipment Sync repeatable job
     const shipmentQueue = new Queue("shipment-sync", { connection: connection as any });
@@ -194,8 +181,7 @@ export async function initJobs() {
     );
     console.log("[Jobs Init] ✓ Scheduled points-credit sweep job (daily at 2:00 AM)");
 
-    // Close the temporary scheduling connection (workers use their own connections)
-    await connection.quit();
+
 
   } catch (err: any) {
     console.warn("[Jobs Init] Failed to schedule background jobs due to Redis connection issue:", err.message);

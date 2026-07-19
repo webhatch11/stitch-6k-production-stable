@@ -1,13 +1,6 @@
-import { Worker } from "bullmq";
 import { supabaseService as supabase } from "../../lib/supabase-service";
-import IORedis from "ioredis";
 import * as Sentry from "@sentry/nextjs";
 import { transporter, FROM_EMAIL } from "../email";
-
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-  tls: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
-});
 
 export async function emailDeliveryProcessor(job: any) {
     const { logId, recipient, subject, html } = job.data;
@@ -77,27 +70,4 @@ export async function emailDeliveryProcessor(job: any) {
     }
 }
 
-export let emailDeliveryWorker: Worker | null = null;
-if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
-  emailDeliveryWorker = new Worker(
-    "email-delivery",
-    emailDeliveryProcessor,
-    { connection: connection as any }
-  );
 
-  emailDeliveryWorker.on("completed", (job) => {
-    console.log(`[Email Delivery Worker] Job ${job.id} completed successfully`);
-  });
-
-  emailDeliveryWorker.on("failed", (job, err) => {
-    console.error(`[Email Delivery Worker] Job ${job?.id} failed:`, err);
-    Sentry.captureException(err, {
-      tags: { queue: "email-delivery" },
-      extra: {
-        jobId: job?.id,
-        jobName: job?.name,
-        jobData: job?.data,
-      },
-    });
-  });
-}

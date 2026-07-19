@@ -134,6 +134,7 @@ export const db = {
   cancelOrderAndRefund: paymentsDb.cancelOrderAndRefund,
   processReturnRefund: paymentsDb.processReturnRefund,
   runPostPaymentSideEffects: paymentsDb.runPostPaymentSideEffects,
+  confirmOrderAndProcessPaymentsAtomic: paymentsDb.confirmOrderAndProcessPaymentsAtomic,
 
   // --- Analytics ---
   getTodaySalesKPI: analyticsDb.getTodaySalesKPI,

@@ -180,6 +180,28 @@ export async function initJobs() {
       }
     );
     console.log("[Jobs Init] ✓ Scheduled points-credit sweep job (daily at 2:00 AM)");
+    
+    // 7. Outbox Processing fallbacks — run every 10 seconds
+    const outboxQueue = new Queue("outbox-processing", { connection: connection as any });
+    const outboxRepeatables = await outboxQueue.getRepeatableJobs();
+    for (const job of outboxRepeatables) {
+      await outboxQueue.removeRepeatableByKey(job.key);
+    }
+    await outboxQueue.add(
+      "sweep_outbox_events",
+      {},
+      {
+        repeat: { every: 10000 }, // 10 seconds
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
+      }
+    );
+    console.log("[Jobs Init] ✓ Scheduled outbox-processing sweeper job (every 10s)");
 
 
 

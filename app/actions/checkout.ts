@@ -8,6 +8,7 @@ import { calculateShipping } from "@/lib/shipping";
 import { headers } from "next/headers";
 import { CacheService } from "@/lib/cache";
 import { paymentDebugLog } from "@/lib/payment-debug";
+import { processOutbox } from "@/lib/jobs/outbox";
 
 interface CartItem {
   productId?: string;
@@ -188,58 +189,13 @@ export async function processWalletPointsCheckoutAction(payload: {
     };
   }
 
-  // D. Deduct inventory stock server-side
-  const stockOk = await db.deductStock(cart, idempotencyKey);
-  if (!stockOk) {
-    return { success: false, error: "Deduct stock failed. One or more items in your cart became unavailable. Please reload the page." };
-  }
-
-  // E. Debit balances server-side with rollback support
-  if (walletDeduction > 0) {
-    const res = await db.applyWalletDebit(walletDeduction, idempotencyKey, userId);
-    if (!res.success) {
-      await db.restoreStock(cart, idempotencyKey);
-      return { success: false, error: res.error || "Failed to deduct wallet balance." };
-    }
-  }
-
-  if (pointsRedeemed > 0) {
-    const res = await db.applyLoyaltyDebit(pointsRedeemed, idempotencyKey, userId);
-    if (!res.success) {
-      if (walletDeduction > 0) {
-        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey, userId);
-      }
-      await db.restoreStock(cart, idempotencyKey);
-      return { success: false, error: res.error || "Failed to redeem loyalty points." };
-    }
-  }
-
-  // Increment coupon usage
-  if (couponCode) {
-    const ok = await db.incrementCouponUsage(couponCode);
-    if (!ok) {
-      if (pointsRedeemed > 0) {
-        await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey, userId);
-      }
-      if (walletDeduction > 0) {
-        await db.applyWalletCredit(walletDeduction, `Rollback for failed checkout #${idempotencyKey}`, idempotencyKey, userId);
-      }
-      await db.restoreStock(cart, idempotencyKey);
-      return { success: false, error: "Failed to apply coupon usage count." };
-    }
-  }
-
-  // ONLY AFTER ALL GUARDS PASS — generate the sequence ID once.
-  // saveOrder() calls generateOrderId internally when id doesn't start with '6K-'.
-  // By pre-generating orderId here and using it in saveOrder, we prevent double consumption.
+  // D. Generate sequential order ID and save pending order
   const orderId = await db.generateOrderId('wallet');
 
-  // F. Save Order server-side
   const orderData = {
     id: orderId,
     idempotencyKey: idempotencyKey,
     customer: customerName,
-
     date: new Date().toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -257,8 +213,8 @@ export async function processWalletPointsCheckoutAction(payload: {
     pointsRedeemed: pointsRedeemed,
     pointsDiscount: verifiedPointsDiscount,
     pointsEarned: Math.floor(verifiedNetTotal / 100) * POINTS_PER_100, // Business rule: ₹100 spent = 5 points
-    status: "Paid via Wallet",
-    paymentStatus: "Paid",
+    status: "Payment Pending",
+    paymentStatus: "Payment Pending",
     items: cart.map((item) => item.productName),
     cartItems: cart.map(item => ({
       productId: item.productId,
@@ -279,77 +235,51 @@ export async function processWalletPointsCheckoutAction(payload: {
     pointsCreditScheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
   };
 
-
   let savedOrder;
   try {
     savedOrder = await db.saveOrder(orderData);
   } catch (err) {
-    console.error('[checkout.ts]:', err);
-    if (supabase) {
-      await supabase.rpc('atomic_checkout_rollback', {
-        p_order_id: orderId,
-        p_user_id: userId,
-        p_wallet_amount: walletDeduction,
-        p_coupon_code: couponCode || ''
-      });
-    }
-    if (pointsRedeemed > 0) {
-      await db.applyLoyaltyCredit(pointsRedeemed, `Rollback for failed order save #${idempotencyKey}`, idempotencyKey, userId);
-    }
-    await db.restoreStock(cart, idempotencyKey);
+    console.error('[checkout.ts] Failed to save pending order:', err);
     return { success: false, error: "Failed to record checkout order in database." };
   }
 
-  // BUG FIX 1 & 4 — Dispatch fulfillment, create events, and send confirmation email
-  try {
-    await db.createOrderEvent(savedOrder.id, "Order Placed");
-    await db.createOrderEvent(savedOrder.id, "Order placed via wallet");
-  } catch (eventErr) {
-    console.error('[processWalletPointsCheckoutAction] Order event creation failed:', eventErr);
+  // E. Execute Transactional Payment RPC
+  const earnedPoints = Math.floor(verifiedNetTotal / 100) * POINTS_PER_100;
+  const transactionRes = await db.confirmOrderAndProcessPaymentsAtomic({
+    orderId: savedOrder.id,
+    paymentId: "wallet-" + savedOrder.id,
+    walletDeduction: walletDeduction,
+    pointsRedeemed: pointsRedeemed,
+    couponCode: couponCode || "",
+    earnedPoints: earnedPoints,
+    method: "wallet"
+  });
+
+  if (!transactionRes.success) {
+    console.error('[checkout.ts] Wallet transaction failed:', transactionRes.error);
+    if (supabase) {
+      await supabase.from("orders").update({
+        status: "FAILED",
+        payment_status: "FAILED"
+      }).eq("id", savedOrder.id);
+    }
+    return { success: false, error: transactionRes.error || "Payment transaction failed." };
   }
 
-  // NOTE: Shiprocket dispatch is intentionally NOT called here.
-  // Wallet orders follow the same Kanban admin flow as Razorpay orders:
-  // Live Orders (accept) → Processing (print invoice) → Packed (generate label) → Shipped
-  // dispatchFulfillment() is triggered by generateShipmentLabelAction when admin generates the label.
+  // F. Trigger Async Outbox fast path
+  processOutbox().catch(err => {
+    console.error("[checkout.ts] Failed to process outbox in fast-path:", err);
+  });
 
-  try {
-    const { sendOrderConfirmationEmail } = await import('@/lib/email');
-    const customerEmail = user.email || "";
-    const addressStr = addressSnapshot
-      ? [addressSnapshot.name, addressSnapshot.phone, addressSnapshot.address_line_1, addressSnapshot.address_line_2, `${addressSnapshot.city} - ${addressSnapshot.postal_code}`, addressSnapshot.state, addressSnapshot.country]
-          .filter(Boolean)
-          .join(", ")
-      : "No address details available";
-
-    await sendOrderConfirmationEmail({
-      id: savedOrder.id,
-      customerName: addressSnapshot?.name || user.email || 'Customer',
-      customerEmail: customerEmail,
-      items: cart.map(item => ({
-        productName: item.productName,
-        size: item.size || "Free Size",
-        quantity: (item as any).quantity || 1,
-        price: Number(item.price || 0)
-      })),
-      total: Number(verifiedNetTotal + shippingAmount),
-      address: addressStr,
-      couponCode: couponCode || null,
-      couponDiscount: Number(verifiedCouponDiscount || 0)
-    });
-  } catch (emailError) {
-    console.error(
-      '[processWalletPointsCheckoutAction] ' +
-      'Confirmation email failed:', emailError
-    );
-  }
+  // Fetch updated order record for client response
+  const finalOrder = await db.getOrderById(savedOrder.id);
 
   return {
     success: true,
     orderId: savedOrder.id,
-    order: savedOrder,
+    order: finalOrder || savedOrder,
     walletBalance: dbWalletBalance - walletDeduction,
-    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + Math.floor(verifiedNetTotal / 100) * POINTS_PER_100,
+    loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + earnedPoints,
   };
 }
 

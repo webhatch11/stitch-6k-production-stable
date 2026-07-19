@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { claimPaymentAtomically } from "@/lib/db/payments";
 import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
 import { paymentDebugLog } from "@/lib/payment-debug";
+import { processOutbox } from "@/lib/jobs/outbox";
 import { razorpay } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
@@ -142,64 +143,49 @@ export async function POST(req: NextRequest) {
               reason: `Loaded order in webhook with status: ${dbOrder.status}`
             });
 
+            // Execute Transactional Payment RPC
+            const earnBase = Math.max(0, (dbOrder.original_total || 0) - (dbOrder.coupon_discount || 0));
+            const earned = Math.floor(earnBase / 100) * 5; 
+
             paymentDebugLog({
               traceId,
               functionName: `Webhook event handler: ${eventName}`,
               orderId: dbOrder.id,
               razorpayOrderId,
               razorpayPaymentId,
-              reason: "Executing atomic_claim_payment database RPC lock from webhook",
-              rpc: "atomic_claim_payment"
+              reason: "Executing confirmOrderAndProcessPaymentsAtomic transaction RPC from webhook",
+              rpc: "confirm_order_and_process_payments_atomic"
             });
-            const claimResult = await claimPaymentAtomically(dbOrder.id, razorpayPaymentId);
-            
-            paymentDebugLog({
-              traceId,
-              functionName: `Webhook event handler: ${eventName}`,
+            const transactionRes = await db.confirmOrderAndProcessPaymentsAtomic({
               orderId: dbOrder.id,
-              razorpayOrderId,
-              razorpayPaymentId,
-              reason: `RPC atomic_claim_payment result in webhook: ${claimResult.message}`,
-              rpc: "atomic_claim_payment",
-              rpcResult: claimResult.success ? "success" : "failed",
-              metadata: claimResult
+              paymentId: razorpayPaymentId,
+              walletDeduction: dbOrder.wallet_paid || 0,
+              pointsRedeemed: dbOrder.points_redeemed || 0,
+              couponCode: dbOrder.coupon_code || "",
+              earnedPoints: earned,
+              method: "razorpay"
             });
 
-            if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
-              console.error("[Webhook] Failed to claim order:", claimResult.message);
-            } else if (claimResult.message === 'Order already claimed' || claimResult.message === 'Duplicate payment ID prevented') {
-               console.log(`[Webhook] Order ${dbOrder.id} already claimed. Skipping side effects.`);
-            } else {
-              // We won the race. Enqueue side effects worker.
-              try {
-                const jobId = `payment_${dbOrder.id}_${razorpayPaymentId}`;
-                await paymentProcessingQueue.add("process_payment_side_effects", {
-                  orderId: dbOrder.id,
-                  razorpayPaymentId: razorpayPaymentId
-                }, {
-                  jobId // Deduplication via jobId
-                });
-                paymentDebugLog({
-                  traceId,
-                  functionName: `Webhook event handler: ${eventName}`,
-                  orderId: dbOrder.id,
-                  razorpayOrderId,
-                  razorpayPaymentId,
-                  reason: `Successfully enqueued process_payment_side_effects job from webhook with jobId: ${jobId}`
-                });
-                console.log(`[Webhook] Enqueued payment side effects for ${dbOrder.id}`);
-              } catch (enqueueErr: any) {
-                paymentDebugLog({
-                  traceId,
-                  functionName: `Webhook event handler: ${eventName}`,
-                  orderId: dbOrder.id,
-                  razorpayOrderId,
-                  razorpayPaymentId,
-                  reason: "Failed to enqueue payment worker to Redis/BullMQ from webhook",
-                  error: enqueueErr.message || String(enqueueErr)
-                });
-                console.error("[Webhook] Failed to enqueue payment worker:", enqueueErr);
+            paymentDebugLog({
+              traceId,
+              functionName: `Webhook event handler: ${eventName}`,
+              orderId: dbOrder.id,
+              razorpayOrderId,
+              razorpayPaymentId,
+              reason: `RPC confirm_order_and_process_payments_atomic result: ${transactionRes.success ? "success" : "failed"}`,
+              rpc: "confirm_order_and_process_payments_atomic",
+              metadata: transactionRes
+            });
+
+            if (!transactionRes.success) {
+              if (!transactionRes.error?.includes("already processed")) {
+                console.error("[Webhook] Failed to confirm order via transaction RPC:", transactionRes.error);
               }
+            } else {
+              // Trigger Outbox processing fast-path asynchronously
+              processOutbox().catch(err => {
+                console.error("[Webhook] Failed to process outbox in fast-path:", err);
+              });
             }
           }
         }

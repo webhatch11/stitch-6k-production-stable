@@ -5,6 +5,7 @@ import { supabaseService as supabase } from "@/lib/supabase-service";
 import { claimPaymentAtomically } from "@/lib/db/payments";
 import { paymentProcessingQueue } from "@/lib/jobs/payment-processing";
 import { paymentDebugLog } from "@/lib/payment-debug";
+import { processOutbox } from "@/lib/jobs/outbox";
 
 export async function POST(req: NextRequest) {
   let traceId = "callback-no-trace";
@@ -113,68 +114,52 @@ export async function POST(req: NextRequest) {
       reason: "Cryptographic signature validation successful in callback redirect"
     });
 
-    // Atomic compare-and-set
+    // Execute Transactional Payment RPC
+    const earnBase = Math.max(0, (dbOrder.original_total || 0) - (dbOrder.coupon_discount || 0));
+    const earned = Math.floor(earnBase / 100) * 5; 
+
     paymentDebugLog({
       traceId,
       functionName: "POST /api/payments/razorpay-callback",
       orderId: dbOrder.id,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
-      reason: "Executing atomic_claim_payment database RPC lock",
-      rpc: "atomic_claim_payment"
+      reason: "Executing confirmOrderAndProcessPaymentsAtomic transaction RPC",
+      rpc: "confirm_order_and_process_payments_atomic"
     });
-    const claimResult = await claimPaymentAtomically(dbOrder.id, razorpay_payment_id);
-    
+    const transactionRes = await db.confirmOrderAndProcessPaymentsAtomic({
+      orderId: dbOrder.id,
+      paymentId: razorpay_payment_id,
+      walletDeduction: dbOrder.wallet_paid || 0,
+      pointsRedeemed: dbOrder.points_redeemed || 0,
+      couponCode: dbOrder.coupon_code || "",
+      earnedPoints: earned,
+      method: "razorpay"
+    });
+
     paymentDebugLog({
       traceId,
       functionName: "POST /api/payments/razorpay-callback",
       orderId: dbOrder.id,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
-      reason: `RPC atomic_claim_payment result: ${claimResult.message}`,
-      rpc: "atomic_claim_payment",
-      rpcResult: claimResult.success ? "success" : "failed",
-      metadata: claimResult
+      reason: `RPC confirm_order_and_process_payments_atomic result: ${transactionRes.success ? "success" : "failed"}`,
+      rpc: "confirm_order_and_process_payments_atomic",
+      metadata: transactionRes
     });
 
-    if (!claimResult.success && claimResult.message !== 'Duplicate payment ID prevented') {
-      return NextResponse.redirect(
-        new URL(`/payment-failed?error=${encodeURIComponent(claimResult.message || "Failed to claim order")}`, req.url),
-        303
-      );
-    }
-
-    if (claimResult.message !== 'Order already claimed' && claimResult.message !== 'Duplicate payment ID prevented') {
-      // We won the race. Enqueue side effects worker.
-      try {
-        const jobId = `payment_${dbOrder.id}_${razorpay_payment_id}`;
-        await paymentProcessingQueue.add("process_payment_side_effects", {
-          orderId: dbOrder.id,
-          razorpayPaymentId: razorpay_payment_id
-        }, {
-          jobId // Deduplication via jobId
-        });
-        paymentDebugLog({
-          traceId,
-          functionName: "POST /api/payments/razorpay-callback",
-          orderId: dbOrder.id,
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          reason: `Successfully enqueued process_payment_side_effects job with jobId: ${jobId}`
-        });
-        console.log(`[Callback] Enqueued payment side effects for ${dbOrder.id}`);
-      } catch (enqueueErr: any) {
-        paymentDebugLog({
-          traceId,
-          functionName: "POST /api/payments/razorpay-callback",
-          orderId: dbOrder.id,
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          reason: "Failed to enqueue payment worker to Redis/BullMQ",
-          error: enqueueErr.message || String(enqueueErr)
-        });
-        console.error("[Callback] Failed to enqueue payment worker:", enqueueErr);
+    if (!transactionRes.success) {
+      if (!transactionRes.error?.includes("already processed")) {
+        return NextResponse.redirect(
+          new URL(`/payment-failed?error=${encodeURIComponent(transactionRes.error || "Failed to claim order")}`, req.url),
+          303
+        );
       }
+    } else {
+      // Trigger Outbox processing fast-path asynchronously
+      processOutbox().catch(err => {
+        console.error("[Callback] Failed to process outbox in fast-path:", err);
+      });
     }
 
     // Success! Redirect to confirmation page with the correct database order UUID

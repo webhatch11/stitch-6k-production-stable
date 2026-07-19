@@ -617,6 +617,38 @@ export async function claimPaymentAtomically(orderId: string, razorpayPaymentId:
   return data as { success: boolean; message: string; status?: string };
 }
 
+export async function confirmOrderAndProcessPaymentsAtomic(params: {
+  orderId: string;
+  paymentId: string;
+  walletDeduction: number;
+  pointsRedeemed: number;
+  couponCode: string;
+  earnedPoints: number;
+  method: "razorpay" | "wallet";
+}): Promise<{ success: boolean; error?: string }> {
+  const { supabase, isSupabaseConfigured } = loadService();
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error("Database connection not configured.");
+  }
+
+  const { data, error } = await supabase.rpc("confirm_order_and_process_payments_atomic", {
+    p_order_id: params.orderId,
+    p_payment_id: params.paymentId,
+    p_wallet_deduction: params.walletDeduction,
+    p_points_redeemed: params.pointsRedeemed,
+    p_coupon_code: params.couponCode || "",
+    p_earned_points: params.earnedPoints,
+    p_method: params.method
+  });
+
+  if (error) {
+    console.error("[confirmOrderAndProcessPaymentsAtomic] RPC error:", error);
+    return { success: false, error: error.message };
+  }
+
+  return data as { success: boolean; error?: string };
+}
+
 export async function runPostPaymentSideEffects(orderId: string, razorpayPaymentId?: string): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) return false;
@@ -624,7 +656,7 @@ export async function runPostPaymentSideEffects(orderId: string, razorpayPayment
   const dbOrder = await ordersDb.getOrderById(orderId);
   if (!dbOrder) return false;
 
-  if (dbOrder.paymentStatus?.toLowerCase() === "paid" || dbOrder.status?.toLowerCase() === "paid") {
+  if (dbOrder.paymentStatus?.toLowerCase() === "paid" || dbOrder.status?.toLowerCase() === "paid" || dbOrder.status?.toLowerCase() === "paid via wallet") {
     console.log(`[runPostPaymentSideEffects] Order ${orderId} is already processed as Paid. Skipping duplicate side effects.`);
     return true;
   }
@@ -632,228 +664,17 @@ export async function runPostPaymentSideEffects(orderId: string, razorpayPayment
   const loyaltyConfig = await settingsDb.getLoyaltyConfig();
   const earned = Math.floor(dbOrder.total / 100) * loyaltyConfig.pointsPer100;
 
-  const updatePayload: any = {
-    status: "Paid",
-    payment_status: "Paid",
-    points_earned: earned,
-  };
-  if (razorpayPaymentId) {
-    updatePayload.razorpay_payment_id = razorpayPaymentId;
-  }
+  const res = await confirmOrderAndProcessPaymentsAtomic({
+    orderId,
+    paymentId: razorpayPaymentId || "manual",
+    walletDeduction: dbOrder.walletPaid || 0,
+    pointsRedeemed: dbOrder.pointsRedeemed || 0,
+    couponCode: dbOrder.couponCode || "",
+    earnedPoints: earned,
+    method: razorpayPaymentId ? "razorpay" : "wallet"
+  });
 
-  const { error: updateErr } = await supabase.from("orders").update(updatePayload).eq("id", orderId);
-
-  if (updateErr) {
-    console.error("[runPostPaymentSideEffects] status update failed:", updateErr);
-    return false;
-  }
-
-  let deductSuccess = false;
-  try {
-    const { data: currentRes } = await supabase
-      .from("inventory_reservations")
-      .select("status")
-      .eq("session_id", dbOrder.idempotencyKey || orderId)
-      .maybeSingle();
-
-    if (currentRes?.status === "fulfilled") {
-      deductSuccess = true;
-    } else {
-      deductSuccess = await inventoryDb.deductStock(dbOrder.cartItems || [], dbOrder.idempotencyKey || orderId);
-    }
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] deductStock failed:", e);
-  }
-
-  if (!deductSuccess) {
-    console.error("[runPostPaymentSideEffects] Inventory deduction failed. Auto-refunding...");
-    if (razorpayPaymentId) {
-      try {
-        const { razorpay } = await import("@/lib/razorpay");
-        const refundAmt = Math.round(dbOrder.gatewayPaid * 100);
-        await razorpay.payments.refund(razorpayPaymentId, {
-          amount: refundAmt,
-          notes: { reason: "Inventory unavailable after payment (webhook)" }
-        });
-        await supabase.from("orders").update({
-          status: "Refunded (Out of Stock)",
-          refund_status: "initiated",
-          refund_reason: "Inventory deduction failed post-payment",
-        }).eq("id", orderId);
-      } catch (refundErr: any) {
-        console.error("[runPostPaymentSideEffects] auto-refund failed:", refundErr.message);
-        await supabase.from("orders").update({
-          status: "Payment Review Required",
-          payment_status: "Payment Review Required",
-          refund_status: "failed",
-          refund_reason: "Auto-refund failed: " + refundErr.message
-        }).eq("id", orderId);
-        await ordersDb.addOrderStatusHistory(orderId, "Payment Review Required", "System Webhook (Stock fail & refund fail)");
-      }
-    } else {
-      await supabase.from("orders").update({
-        status: "Payment Review Required",
-        payment_status: "Payment Review Required",
-        refund_reason: "Inventory deduction failed, no razorpay payment ID to refund"
-      }).eq("id", orderId);
-    }
-    return false;
-  }
-
-  try {
-    if (dbOrder.couponCode) {
-      await couponsDb.incrementCouponUsage(dbOrder.couponCode);
-      await CacheService.del("settings:coupons");
-      await CacheService.delPattern("analytics:coupons:*");
-    }
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] incrementCouponUsage failed:", e);
-  }
-
-  let hasDebitError = false;
-  let debitErrorMessage = "";
-
-  if (dbOrder.walletPaid && dbOrder.walletPaid > 0) {
-    try {
-      const walletRes = await usersDb.applyWalletDebit(dbOrder.walletPaid, dbOrder.id, dbOrder.userId || dbOrder.user_id);
-      if (!walletRes.success) {
-        hasDebitError = true;
-        debitErrorMessage = walletRes.error || "Insufficient wallet balance";
-      }
-    } catch (e: any) {
-      console.error("[runPostPaymentSideEffects] applyWalletDebit failed:", e);
-      hasDebitError = true;
-      debitErrorMessage = e.message || "Wallet debit failed";
-    }
-  }
-
-  if (dbOrder.pointsRedeemed && dbOrder.pointsRedeemed > 0 && !hasDebitError) {
-    try {
-      const loyaltyRes = await loyaltyDb.applyLoyaltyDebit(dbOrder.pointsRedeemed, dbOrder.id, dbOrder.userId || dbOrder.user_id);
-      if (!loyaltyRes.success) {
-        hasDebitError = true;
-        debitErrorMessage = loyaltyRes.error || "Insufficient loyalty points";
-      }
-    } catch (e: any) {
-      console.error("[runPostPaymentSideEffects] applyLoyaltyDebit failed:", e);
-      hasDebitError = true;
-      debitErrorMessage = e.message || "Loyalty points debit failed";
-    }
-  }
-
-  if (hasDebitError) {
-    console.warn(`[runPostPaymentSideEffects] Post-payment debit failed for order ${dbOrder.id}: ${debitErrorMessage}. Transitioning to Payment Review Required.`);
-    await supabase.from("orders").update({
-      status: "Payment Review Required",
-      payment_status: "Payment Review Required",
-    }).eq("id", dbOrder.id);
-    await ordersDb.addOrderStatusHistory(dbOrder.id, "Payment Review Required", "System Webhook (Debit fail: " + debitErrorMessage + ")");
-    return false;
-  }
-
-  try {
-    await supabase
-      .from("orders")
-      .update({
-        points_credit_status: "pending",
-        points_credit_scheduled_at: null,
-      })
-      .eq("id", dbOrder.id);
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] Failed to schedule points credit:", e);
-  }
-
-  try {
-    const { data: payment } = await supabase
-      .from("payments")
-      .select("id")
-      .eq("order_id", dbOrder.id)
-      .maybeSingle();
-
-    if (payment) {
-      await supabase.from("payments").update({ status: "CAPTURED" }).eq("id", payment.id);
-      await supabase.from("payment_logs").insert({
-        payment_id: payment.id,
-        previous_status: "CREATED",
-        new_status: "CAPTURED",
-        metadata: { source: "verification", razorpay_payment_id: dbOrder.razorpay_payment_id },
-      });
-    }
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] payments update failed:", e);
-  }
-
-  try {
-    await createPaymentAuditLog(dbOrder.id, "Payment Pending", "Paid", "verification");
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] createPaymentAuditLog failed:", e);
-  }
-
-  try {
-    await ordersDb.createOrderEvent(dbOrder.id, "Payment Successful");
-    await ordersDb.addOrderStatusHistory(dbOrder.idempotencyKey || orderId, "Paid", "System (Post Payment)", {
-      status_changed_to: "Paid",
-    });
-  } catch (e) {
-    console.error("[runPostPaymentSideEffects] createOrderEvent/history failed:", e);
-  }
-
-  try {
-    let customerEmail = dbOrder.address_snapshot?.email || "";
-    if (!customerEmail && (dbOrder.userId || dbOrder.user_id) && supabase) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", dbOrder.userId || dbOrder.user_id)
-        .maybeSingle();
-      if (profile?.email) {
-        customerEmail = profile.email;
-      }
-    }
-
-    if (customerEmail) {
-      const { sendOrderConfirmationEmail } = await import("../email");
-
-      const rawItems = dbOrder.cartItems || [];
-      const groupedMap = new Map<string, { productName: string; size: string; quantity: number; price: number }>();
-      for (const item of rawItems) {
-        const key = `${item.productName || item.title || "Product"}-${item.size || "Free Size"}`;
-        if (groupedMap.has(key)) {
-          groupedMap.get(key)!.quantity += 1;
-        } else {
-          groupedMap.set(key, {
-            productName: item.productName || item.title || "Product",
-            size: item.size || "Free Size",
-            quantity: 1,
-            price: Number(item.price || 0),
-          });
-        }
-      }
-      const groupedItems = Array.from(groupedMap.values());
-
-      const addr = dbOrder.address_snapshot;
-      const addressStr = addr
-        ? [addr.name, addr.phone, addr.address_line_1, addr.address_line_2, `${addr.city} - ${addr.postal_code}`, addr.state, addr.country]
-            .filter(Boolean)
-            .join(", ")
-        : "No address details available";
-
-      await sendOrderConfirmationEmail({
-        id: dbOrder.id,
-        customerName: dbOrder.customer || "Valued Customer",
-        customerEmail,
-        items: groupedItems,
-        total: Number(dbOrder.total || 0),
-        address: addressStr,
-        couponCode: dbOrder.couponCode || null,
-        couponDiscount: Number(dbOrder.couponDiscount || 0),
-      });
-    }
-  } catch (emailError) {
-    console.error("[Email] Order confirmation email failed:", emailError);
-  }
-
-  return true;
+  return res.success;
 }
 
 export const paymentsDb = {
@@ -866,4 +687,5 @@ export const paymentsDb = {
   cancelOrderAndRefund,
   processReturnRefund,
   runPostPaymentSideEffects,
+  confirmOrderAndProcessPaymentsAtomic,
 };

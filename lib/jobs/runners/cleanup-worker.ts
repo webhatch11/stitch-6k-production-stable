@@ -6,6 +6,7 @@ import { Worker } from "bullmq";
 import { reservationCleanupProcessor } from "../reservation-cleanup";
 import { productCleanupProcessor } from "../product-cleanup";
 import { paymentRecoveryProcessor } from "../payment-recovery";
+import { processOutbox } from "../outbox";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
 import { startHeartbeat } from "./heartbeat";
@@ -154,6 +155,46 @@ async function main() {
     }
   };
 
+  const wrappedOutboxProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "cleanup",
+      queue: "outbox-processing",
+      jobId: job.id,
+      event: "job_started",
+      message: "Starting transactional outbox sweep"
+    });
+
+    try {
+      const res = await processOutbox();
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "cleanup",
+        queue: "outbox-processing",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: "Successfully executed transactional outbox sweep"
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "cleanup",
+        queue: "outbox-processing",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: "Failed transactional outbox sweep"
+      });
+      throw err;
+    }
+  };
+
   const reservationWorker = new Worker("reservation-cleanup", wrappedReservationProcessor, {
     connection: connection as any,
     concurrency: 1,
@@ -165,6 +206,11 @@ async function main() {
   });
 
   const recoveryWorker = new Worker("payment-recovery", wrappedRecoveryProcessor, {
+    connection: connection as any,
+    concurrency: 1,
+  });
+
+  const outboxWorker = new Worker("outbox-processing", wrappedOutboxProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
@@ -190,11 +236,18 @@ async function main() {
     });
   });
 
-  registerGracefulShutdown([reservationWorker, productWorker, recoveryWorker], connection);
+  outboxWorker.on("failed", (job, err) => {
+    Sentry.captureException(err, {
+      tags: { queue: "outbox-processing" },
+      extra: { jobId: job?.id, jobData: job?.data },
+    });
+  });
+
+  registerGracefulShutdown([reservationWorker, productWorker, recoveryWorker, outboxWorker], connection);
   workerLog({
     worker: "cleanup",
     event: "info",
-    message: "Cleanup Worker is active and listening for jobs on reservation, product, and recovery queues."
+    message: "Cleanup Worker is active and listening for jobs on reservation, product, recovery, and outbox queues."
   });
 }
 

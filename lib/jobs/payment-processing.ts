@@ -42,123 +42,16 @@ export async function paymentProcessingProcessor(job: any) {
       reason: `BullMQ worker picked up job. Current state: ${JSON.stringify(processingState)}`
     });
 
-    // Step 1: Inventory Deduction
-    if (!processingState.inventory) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: "Executing stock deduction for items"
-      });
-      const deductSuccess = await db.deductStock(order.cartItems || [], order.idempotencyKey || orderId);
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `db.deductStock outcome: ${deductSuccess ? "success" : "failed"}`,
-        rpc: "deduct_variant_stock",
-        rpcResult: deductSuccess ? "success" : "failed"
-      });
-      if (!deductSuccess) {
-        throw new Error("Inventory deduction failed");
-      }
-      processingState.inventory = true;
-      await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
-    } else {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: "Inventory step already completed. Skipping."
-      });
-    }
-
-    // Step 2: Coupon Usage
-    if (!processingState.coupon && order.couponCode) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `Incrementing coupon usage for: ${order.couponCode}`
-      });
-      await db.incrementCouponUsage(order.couponCode);
-      processingState.coupon = true;
-      await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
-    } else if (order.couponCode) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: "Coupon step already completed. Skipping."
-      });
-    }
-
-    // Step 3: Wallet Debit
-    if (!processingState.wallet && order.walletPaid > 0) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `Debiting user wallet: ${order.walletPaid}`
-      });
-      const walletRes = await db.applyWalletDebit(order.walletPaid, order.id, order.userId || order.user_id!);
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `applyWalletDebit outcome: ${walletRes.success ? "success" : "failed"}`,
-        metadata: walletRes
-      });
-      if (!walletRes.success) throw new Error(`Wallet debit failed: ${walletRes.error}`);
-      processingState.wallet = true;
-      await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
-    } else if (order.walletPaid > 0) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: "Wallet debit step already completed. Skipping."
-      });
-    }
-
-    // Step 4: Loyalty Points Debit
-    if (!processingState.loyalty && order.pointsRedeemed > 0) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `Debiting user loyalty points: ${order.pointsRedeemed}`
-      });
-      const loyaltyRes = await db.applyLoyaltyDebit(order.pointsRedeemed, order.id, order.userId || order.user_id!);
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: `applyLoyaltyDebit outcome: ${loyaltyRes.success ? "success" : "failed"}`,
-        metadata: loyaltyRes
-      });
-      if (!loyaltyRes.success) throw new Error(`Loyalty debit failed: ${loyaltyRes.error}`);
-      processingState.loyalty = true;
-      await supabase.from("orders").update({ payment_processing_state: processingState }).eq("id", orderId);
-    } else if (order.pointsRedeemed > 0) {
-      paymentDebugLog({
-        traceId,
-        functionName: "paymentProcessingWorker",
-        orderId,
-        razorpayPaymentId,
-        reason: "Loyalty points step already completed. Skipping."
-      });
-    }
+    // Financial and inventory operations (Stock deduction, coupon, wallet, loyalty debits)
+    // are now processed atomically within the SQL transaction immediately after verification.
+    // The worker is responsible only for asynchronous tasks (e.g. email notification).
+    paymentDebugLog({
+      traceId,
+      functionName: "paymentProcessingWorker",
+      orderId,
+      razorpayPaymentId,
+      reason: "Skipping transactional financial/inventory steps (delegated to atomic transactional RPC)."
+    });
 
     // Step 5: Email Notification
     if (!processingState.email) {

@@ -49,6 +49,7 @@ export async function getQueueMetrics(): Promise<any> {
     "loyalty-expiry",
     "product-cleanup",
     "points-credit",
+    "outbox-processing",
   ];
   
   const results: Record<string, any> = {};
@@ -184,6 +185,36 @@ export async function getCommerceMetrics(): Promise<any> {
       (queueMetrics["payment-processing"]?.counts?.waiting || 0) + 
       (queueMetrics["payment-processing"]?.counts?.active || 0);
 
+    // Fetch outbox metrics from DB
+    const { count: pendingOutboxCount } = await supabase
+      .from("outbox_events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "PENDING");
+
+    const { count: processingOutboxCount } = await supabase
+      .from("outbox_events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "PROCESSING");
+
+    const { count: failedOutboxCount } = await supabase
+      .from("outbox_events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "FAILED");
+
+    // Fetch oldest pending outbox event age
+    const { data: oldestEvent } = await supabase
+      .from("outbox_events")
+      .select("created_at")
+      .eq("status", "PENDING")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    let oldestPendingAgeSec = 0;
+    if (oldestEvent?.created_at) {
+      oldestPendingAgeSec = Math.round((Date.now() - new Date(oldestEvent.created_at).getTime()) / 1000);
+    }
+
     return {
       paymentSuccessRate: parseFloat(successRate.toFixed(2)),
       paymentFailureRate: parseFloat(failureRate.toFixed(2)),
@@ -191,11 +222,22 @@ export async function getCommerceMetrics(): Promise<any> {
         email: emailBacklog,
         shiprocket: shiprocketBacklog,
         payment: paymentBacklog,
+      },
+      outbox: {
+        pendingCount: pendingOutboxCount || 0,
+        processingCount: processingOutboxCount || 0,
+        failedCount: failedOutboxCount || 0,
+        oldestPendingAgeSec: oldestPendingAgeSec
       }
     };
   } catch (err) {
     console.error("[metrics] Commerce metrics error:", err);
-    return { paymentSuccessRate: 0, paymentFailureRate: 0, backlogs: { email: 0, shiprocket: 0, payment: 0 } };
+    return { 
+      paymentSuccessRate: 0, 
+      paymentFailureRate: 0, 
+      backlogs: { email: 0, shiprocket: 0, payment: 0 },
+      outbox: { pendingCount: 0, processingCount: 0, failedCount: 0, oldestPendingAgeSec: 0 }
+    };
   }
 }
 

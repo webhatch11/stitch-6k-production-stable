@@ -7,6 +7,8 @@ import IORedis from "ioredis";
 import { emailDeliveryProcessor } from "../email-delivery";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
+import { startHeartbeat } from "./heartbeat";
+import { workerLog } from "./logger";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -21,18 +23,61 @@ async function main() {
 
   const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-  console.log("[Email Worker] Initializing Worker...");
-  const worker = new Worker("email-delivery", emailDeliveryProcessor, {
+  workerLog({
+    worker: "email",
+    event: "startup",
+    message: "Email Worker starting up..."
+  });
+
+  // Start periodic heartbeat
+  await startHeartbeat(connection, "email");
+
+  const wrappedProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "email",
+      queue: "email-delivery",
+      jobId: job.id,
+      event: "job_started",
+      message: `Starting email delivery to ${job.data?.recipient}`
+    });
+
+    try {
+      const res = await emailDeliveryProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "email",
+        queue: "email-delivery",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: `Successfully delivered email to ${job.data?.recipient}`
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "email",
+        queue: "email-delivery",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: `Failed email delivery to ${job.data?.recipient}`
+      });
+      throw err;
+    }
+  };
+
+  const worker = new Worker("email-delivery", wrappedProcessor, {
     connection: connection as any,
     concurrency: 5, // Emails can be parallelized safely
   });
 
-  worker.on("completed", (job) => {
-    console.log(`[Email Worker] Job ${job.id} completed successfully`);
-  });
-
   worker.on("failed", (job, err) => {
-    console.error(`[Email Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "email-delivery" },
       extra: { jobId: job?.id, jobData: job?.data },
@@ -40,10 +85,20 @@ async function main() {
   });
 
   registerGracefulShutdown(worker, connection);
-  console.log("[Email Worker] Active and listening for jobs.");
+  workerLog({
+    worker: "email",
+    event: "info",
+    message: "Email Worker is active and listening for jobs."
+  });
 }
 
 main().catch((err) => {
-  console.error("[Email Worker] Fatal startup crash:", err);
+  workerLog({
+    level: "error",
+    worker: "email",
+    event: "error",
+    error: err.message || String(err),
+    message: "Fatal startup crash in Email Worker"
+  });
   process.exit(1);
 });

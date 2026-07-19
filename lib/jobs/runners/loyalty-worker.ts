@@ -8,6 +8,8 @@ import { loyaltyExpiryProcessor } from "../loyalty-expiry";
 import { pointsCreditProcessor } from "../points-credit";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
+import { startHeartbeat } from "./heartbeat";
+import { workerLog } from "./logger";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -22,34 +24,113 @@ async function main() {
 
   const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-  console.log("[Loyalty Worker] Initializing Workers...");
-  
-  const expiryWorker = new Worker("loyalty-expiry", loyaltyExpiryProcessor, {
+  workerLog({
+    worker: "loyalty",
+    event: "startup",
+    message: "Loyalty Worker starting up..."
+  });
+
+  // Start periodic heartbeat
+  await startHeartbeat(connection, "loyalty");
+
+  const wrappedExpiryProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "loyalty",
+      queue: "loyalty-expiry",
+      jobId: job.id,
+      event: "job_started",
+      message: "Starting daily loyalty points expiration sweep"
+    });
+
+    try {
+      const res = await loyaltyExpiryProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "loyalty",
+        queue: "loyalty-expiry",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: "Successfully expired outstanding loyalty points"
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "loyalty",
+        queue: "loyalty-expiry",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: "Failed daily loyalty points expiration sweep"
+      });
+      throw err;
+    }
+  };
+
+  const wrappedCreditProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "loyalty",
+      queue: "points-credit",
+      jobId: job.id,
+      event: "job_started",
+      message: "Starting loyalty points credit sweep"
+    });
+
+    try {
+      const res = await pointsCreditProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "loyalty",
+        queue: "points-credit",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: "Successfully credited loyalty points to user profiles"
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "loyalty",
+        queue: "points-credit",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: "Failed loyalty points credit sweep"
+      });
+      throw err;
+    }
+  };
+
+  const expiryWorker = new Worker("loyalty-expiry", wrappedExpiryProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
 
-  const creditWorker = new Worker("points-credit", pointsCreditProcessor, {
+  const creditWorker = new Worker("points-credit", wrappedCreditProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
 
-  expiryWorker.on("completed", (job) => {
-    console.log(`[Loyalty Expiry Worker] Job ${job.id} completed successfully`);
-  });
   expiryWorker.on("failed", (job, err) => {
-    console.error(`[Loyalty Expiry Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "loyalty-expiry" },
       extra: { jobId: job?.id, jobData: job?.data },
     });
   });
 
-  creditWorker.on("completed", (job) => {
-    console.log(`[Points Credit Worker] Job ${job.id} completed successfully`);
-  });
   creditWorker.on("failed", (job, err) => {
-    console.error(`[Points Credit Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "points-credit" },
       extra: { jobId: job?.id, jobData: job?.data },
@@ -57,10 +138,20 @@ async function main() {
   });
 
   registerGracefulShutdown([expiryWorker, creditWorker], connection);
-  console.log("[Loyalty Worker] Active and listening for jobs on loyalty-expiry and points-credit queues.");
+  workerLog({
+    worker: "loyalty",
+    event: "info",
+    message: "Loyalty Worker is active and listening for jobs on loyalty-expiry and points-credit queues."
+  });
 }
 
 main().catch((err) => {
-  console.error("[Loyalty Worker] Fatal startup crash:", err);
+  workerLog({
+    level: "error",
+    worker: "loyalty",
+    event: "error",
+    error: err.message || String(err),
+    message: "Fatal startup crash in Loyalty Worker"
+  });
   process.exit(1);
 });

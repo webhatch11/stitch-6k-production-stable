@@ -8,6 +8,8 @@ import { shipmentSyncProcessor } from "../shipment-sync";
 import { shipmentRetryProcessor } from "../shipment-retry";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
+import { startHeartbeat } from "./heartbeat";
+import { workerLog } from "./logger";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -22,34 +24,113 @@ async function main() {
 
   const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-  console.log("[Shipment Worker] Initializing Workers...");
-  
-  const syncWorker = new Worker("shipment-sync", shipmentSyncProcessor, {
+  workerLog({
+    worker: "shipment",
+    event: "startup",
+    message: "Shipment Worker starting up..."
+  });
+
+  // Start periodic heartbeat
+  await startHeartbeat(connection, "shipment");
+
+  const wrappedSyncProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "shipment",
+      queue: "shipment-sync",
+      jobId: job.id,
+      event: "job_started",
+      message: "Starting shipment synchronization sweep"
+    });
+
+    try {
+      const res = await shipmentSyncProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "shipment",
+        queue: "shipment-sync",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: "Successfully synchronized active shipments with Shiprocket"
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "shipment",
+        queue: "shipment-sync",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: "Failed shipment synchronization sweep"
+      });
+      throw err;
+    }
+  };
+
+  const wrappedRetryProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "shipment",
+      queue: "shipment-retry",
+      jobId: job.id,
+      event: "job_started",
+      message: `Starting shipment dispatch retry for order ${job.data?.orderId}`
+    });
+
+    try {
+      const res = await shipmentRetryProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "shipment",
+        queue: "shipment-retry",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: `Successfully retried shipment dispatch for order ${job.data?.orderId}`
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "shipment",
+        queue: "shipment-retry",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: `Failed shipment dispatch retry for order ${job.data?.orderId}`
+      });
+      throw err;
+    }
+  };
+
+  const syncWorker = new Worker("shipment-sync", wrappedSyncProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
 
-  const retryWorker = new Worker("shipment-retry", shipmentRetryProcessor, {
+  const retryWorker = new Worker("shipment-retry", wrappedRetryProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
 
-  syncWorker.on("completed", (job) => {
-    console.log(`[Shipment Sync Worker] Job ${job.id} completed successfully`);
-  });
   syncWorker.on("failed", (job, err) => {
-    console.error(`[Shipment Sync Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "shipment-sync" },
       extra: { jobId: job?.id, jobData: job?.data },
     });
   });
 
-  retryWorker.on("completed", (job) => {
-    console.log(`[Shipment Retry Worker] Job ${job.id} completed successfully`);
-  });
   retryWorker.on("failed", (job, err) => {
-    console.error(`[Shipment Retry Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "shipment-retry" },
       extra: { jobId: job?.id, jobData: job?.data },
@@ -57,10 +138,20 @@ async function main() {
   });
 
   registerGracefulShutdown([syncWorker, retryWorker], connection);
-  console.log("[Shipment Worker] Active and listening for jobs on both sync and retry queues.");
+  workerLog({
+    worker: "shipment",
+    event: "info",
+    message: "Shipment Worker is active and listening for jobs on sync and retry queues."
+  });
 }
 
 main().catch((err) => {
-  console.error("[Shipment Worker] Fatal startup crash:", err);
+  workerLog({
+    level: "error",
+    worker: "shipment",
+    event: "error",
+    error: err.message || String(err),
+    message: "Fatal startup crash in Shipment Worker"
+  });
   process.exit(1);
 });

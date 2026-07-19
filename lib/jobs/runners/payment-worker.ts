@@ -7,6 +7,8 @@ import IORedis from "ioredis";
 import { paymentProcessingProcessor } from "../payment-processing";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
+import { startHeartbeat } from "./heartbeat";
+import { workerLog } from "./logger";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -21,18 +23,61 @@ async function main() {
 
   const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-  console.log("[Payment Worker] Initializing Worker...");
-  const worker = new Worker("payment-processing", paymentProcessingProcessor, {
+  workerLog({
+    worker: "payment",
+    event: "startup",
+    message: "Payment Worker starting up..."
+  });
+
+  // Start periodic heartbeat
+  await startHeartbeat(connection, "payment");
+
+  const wrappedProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "payment",
+      queue: "payment-processing",
+      jobId: job.id,
+      event: "job_started",
+      message: `Starting payment processing for order ${job.data?.orderId}`
+    });
+
+    try {
+      const res = await paymentProcessingProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "payment",
+        queue: "payment-processing",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: `Successfully processed payment side effects for order ${job.data?.orderId}`
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "payment",
+        queue: "payment-processing",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: `Failed to process payment side effects for order ${job.data?.orderId}`
+      });
+      throw err;
+    }
+  };
+
+  const worker = new Worker("payment-processing", wrappedProcessor, {
     connection: connection as any,
     concurrency: 1, // Concurrency 1 ensures strict sequence
   });
 
-  worker.on("completed", (job) => {
-    console.log(`[Payment Worker] Job ${job.id} completed successfully`);
-  });
-
   worker.on("failed", (job, err) => {
-    console.error(`[Payment Worker] Job ${job?.id} failed:`, err);
     Sentry.captureException(err, {
       tags: { queue: "payment-processing" },
       extra: { jobId: job?.id, jobData: job?.data },
@@ -40,10 +85,20 @@ async function main() {
   });
 
   registerGracefulShutdown(worker, connection);
-  console.log("[Payment Worker] Active and listening for jobs.");
+  workerLog({
+    worker: "payment",
+    event: "info",
+    message: "Payment Worker is active and listening for jobs."
+  });
 }
 
 main().catch((err) => {
-  console.error("[Payment Worker] Fatal startup crash:", err);
+  workerLog({
+    level: "error",
+    worker: "payment",
+    event: "error",
+    error: err.message || String(err),
+    message: "Fatal startup crash in Payment Worker"
+  });
   process.exit(1);
 });

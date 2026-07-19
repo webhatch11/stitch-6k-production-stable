@@ -4,12 +4,11 @@ import { db } from "@/lib/db";
 import { supabaseService as supabase } from "@/lib/supabase-service";
 import * as Sentry from "@sentry/nextjs";
 import { paymentDebugLog } from "../payment-debug";
+import { getSharedProducerConnection } from "./connection";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
-const connection = new IORedis(REDIS_URL, {
-  maxRetriesPerRequest: null,
-});
+const connection = getSharedProducerConnection();
 
 export const paymentProcessingQueue = new Queue("payment-processing", {
   connection: connection as any,
@@ -240,7 +239,7 @@ if (process.env.IS_WORKER === "true" && !process.env.IS_ISOLATED_RUNNER) {
   paymentProcessingWorker = new Worker(
     "payment-processing",
     paymentProcessingProcessor,
-    { connection: connection as any }
+    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
   );
 
   paymentProcessingWorker.on("completed", (job) => {

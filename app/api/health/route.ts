@@ -10,6 +10,7 @@ import {
 import { verifyAdminAccess } from "@/lib/admin-auth";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import { getConnectionMetrics } from "@/lib/jobs/connection";
 import os from "os";
 import fs from "fs/promises";
 
@@ -270,6 +271,7 @@ export async function GET(request: Request) {
       redis: {
         status: redis.status,
         latencyMs: redis.latencyMs,
+        metrics: getConnectionMetrics(),
       },
       email: {
         status: email.status,

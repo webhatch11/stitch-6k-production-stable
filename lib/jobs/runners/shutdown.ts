@@ -1,7 +1,8 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
+import { closeAllRedisConnections } from "../connection";
 
-export function registerGracefulShutdown(workers: Worker | Worker[], connection: IORedis): void {
+export function registerGracefulShutdown(workers: Worker | Worker[], connection?: IORedis): void {
   const workerList = Array.isArray(workers) ? workers : [workers];
 
   const handler = async (signal: string) => {
@@ -16,12 +17,12 @@ export function registerGracefulShutdown(workers: Worker | Worker[], connection:
       console.error("[Shutdown] Error closing workers:", err.message || err);
     }
 
-    // 2. Safely close the shared Redis connection
+    // 2. Safely close all registered Redis connections managed globally
     try {
-      await connection.quit();
-      console.log("[Shutdown] Redis connection closed successfully.");
+      await closeAllRedisConnections();
+      console.log("[Shutdown] All Redis connections closed successfully.");
     } catch (err: any) {
-      console.error("[Shutdown] Error closing Redis connection:", err.message || err);
+      console.error("[Shutdown] Error closing Redis connections:", err.message || err);
     }
 
     console.log("[Shutdown] Graceful shutdown finished. Exiting process.");

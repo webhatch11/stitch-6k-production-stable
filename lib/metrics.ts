@@ -1,6 +1,7 @@
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
 import { loadService } from "./db/client-raw";
+import { getSharedProducerConnection } from "./jobs/connection";
 
 const globalMetrics = (globalThis as any).metricsRegistry || {
   cacheHits: 0,
@@ -28,6 +29,7 @@ export function recordApiLatency(route: string, durationMs: number) {
     globalMetrics.latencies[route].shift();
   }
 
+
   globalMetrics.requestCounts[route] = (globalMetrics.requestCounts[route] || 0) + 1;
   globalMetrics.slowestEndpoints[route] = Math.max(globalMetrics.slowestEndpoints[route] || 0, durationMs);
 }
@@ -36,7 +38,7 @@ export async function getQueueMetrics(): Promise<any> {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) return {};
   
-  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  const connection = getSharedProducerConnection();
   const queues = [
     "email-delivery",
     "shipment-retry",
@@ -80,8 +82,6 @@ export async function getQueueMetrics(): Promise<any> {
     }
   } catch (err) {
     console.error("[metrics] Error fetching queue metrics:", err);
-  } finally {
-    await connection.quit();
   }
   
   return results;

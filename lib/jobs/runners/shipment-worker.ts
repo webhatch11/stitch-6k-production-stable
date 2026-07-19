@@ -3,13 +3,13 @@ process.env.IS_WORKER = "true";
 
 import "../env";
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
 import { shipmentSyncProcessor } from "../shipment-sync";
 import { shipmentRetryProcessor } from "../shipment-retry";
 import { validateWorkerStartup } from "./startup-validation";
 import { registerGracefulShutdown } from "./shutdown";
 import { startHeartbeat } from "./heartbeat";
 import { workerLog } from "./logger";
+import { createWorkerConnection } from "../connection";
 import * as Sentry from "@sentry/nextjs";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
@@ -22,7 +22,7 @@ async function main() {
     redisUrl: REDIS_URL,
   });
 
-  const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+  const connection = createWorkerConnection("shipment");
 
   workerLog({
     worker: "shipment",

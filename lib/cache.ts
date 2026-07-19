@@ -1,14 +1,8 @@
 import IORedis from "ioredis";
+import { getSharedProducerConnection } from "./jobs/connection";
 
-/**
- * Strips surrounding quotes and whitespace that Vercel's env var UI
- * sometimes injects, e.g.  REDIS_URL="rediss://..." stored literally
- * with the quotes, which IORedis receives as `"rediss://..."` and
- * fails to parse (EINVAL / ENOTFOUND on port %22).
- */
 function sanitizeRedisUrl(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
-  // Remove leading/trailing whitespace then strip surrounding single or double quotes
   const trimmed = raw.trim();
   if (
     (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
@@ -19,39 +13,17 @@ function sanitizeRedisUrl(raw: string | undefined): string | undefined {
   return trimmed;
 }
 
-const REDIS_URL = sanitizeRedisUrl(process.env.REDIS_URL) || "redis://localhost:6379";
-
-let redisClient: IORedis | null = null;
-let isRedisAvailable = false;
-
-// Gracefully initialize Redis client
-try {
-  if (process.env.NEXT_PHASE !== "phase-production-build") {
-    if (!sanitizeRedisUrl(process.env.REDIS_URL)) {
-      console.warn("[Cache Service] REDIS_URL not set — running without Redis. In-memory fallback active.");
-    } else {
-      redisClient = new IORedis(REDIS_URL, {
-        maxRetriesPerRequest: 2,
-        connectTimeout: 2000,
-      });
-
-      redisClient.on("error", (err) => {
-        console.warn("[Cache Service] Redis connection offline:", err.message);
-        isRedisAvailable = false;
-      });
-
-      redisClient.on("connect", () => {
-        console.log("[Cache Service] Redis connection established successfully.");
-        isRedisAvailable = true;
-      });
-    }
+function getRedis() {
+  if (process.env.DISABLE_REDIS_CACHE === "true" || process.env.NEXT_PHASE === "phase-production-build") {
+    return { client: null, isAvailable: false };
   }
-} catch (e) {
-  // Never throw during module init — a Redis misconfiguration must not crash
-  // the Next.js server or poison the module cache for downstream routes.
-  console.error("[Cache Service] Redis init error — falling back to in-memory cache:", e);
-  redisClient = null;
-  isRedisAvailable = false;
+  try {
+    const client = getSharedProducerConnection();
+    const isAvailable = client.status === "ready" || client.status === "connecting";
+    return { client, isAvailable };
+  } catch {
+    return { client: null, isAvailable: false };
+  }
 }
 
 // Memory cache fallback for robustness/offline mode
@@ -79,9 +51,10 @@ export const CacheService = {
     }
 
     // 2. Try Redis if available
-    if (redisClient && isRedisAvailable) {
+    const { client, isAvailable } = getRedis();
+    if (client && isAvailable) {
       try {
-        const val = await redisClient.get(key);
+        const val = await client.get(key);
         if (val) {
           return JSON.parse(val) as T;
         }
@@ -107,9 +80,10 @@ export const CacheService = {
     memoryCache.set(key, { value, expiresAt });
 
     // Save to Redis
-    if (redisClient && isRedisAvailable) {
+    const { client, isAvailable } = getRedis();
+    if (client && isAvailable) {
       try {
-        await redisClient.set(key, JSON.stringify(value), "EX", ttlSecs);
+        await client.set(key, JSON.stringify(value), "EX", ttlSecs);
         
         // Track keys via Redis Sets for optimized pattern invalidation (avoiding keys/scan spikes)
         let tagSet: string | null = null;
@@ -118,10 +92,11 @@ export const CacheService = {
         } else if (key.startsWith("products:list")) {
           tagSet = "tag:products:list";
         }
+
         if (tagSet) {
-          await redisClient.sadd(tagSet, key);
+          await client.sadd(tagSet, key);
           // Set tag set TTL to match or exceed the key TTL to prevent stale sets
-          await redisClient.expire(tagSet, ttlSecs + 3600);
+          await client.expire(tagSet, ttlSecs + 3600);
         }
       } catch (err: any) {
         console.warn(`[Cache Service] Redis SET failed for key "${key}":`, err.message);
@@ -139,9 +114,10 @@ export const CacheService = {
       return;
     }
 
-    if (redisClient && isRedisAvailable) {
+    const { client, isAvailable } = getRedis();
+    if (client && isAvailable) {
       try {
-        await redisClient.del(key);
+        await client.del(key);
       } catch (err: any) {
         console.warn(`[Cache Service] Redis DEL failed for key "${key}":`, err.message);
       }
@@ -164,7 +140,8 @@ export const CacheService = {
       return;
     }
 
-    if (redisClient && isRedisAvailable) {
+    const { client, isAvailable } = getRedis();
+    if (client && isAvailable) {
       try {
         // Tag set check based on pattern wildcard
         let tagSet: string | null = null;
@@ -175,23 +152,23 @@ export const CacheService = {
         }
 
         if (tagSet) {
-          const keys = await redisClient.smembers(tagSet);
+          const keys = await client.smembers(tagSet);
           if (keys && keys.length > 0) {
-            await redisClient.del(...keys);
-            await redisClient.del(tagSet);
+            await client.del(...keys);
+            await client.del(tagSet);
           }
         } else {
           // Fallback for generic patterns: use SCAN instead of blocking KEYS call
           const keys: string[] = [];
           let cursor = "0";
           do {
-            const reply = await redisClient.scan(cursor, "MATCH", pattern, "COUNT", 100);
+            const reply = await client.scan(cursor, "MATCH", pattern, "COUNT", 100);
             cursor = reply[0];
             keys.push(...reply[1]);
           } while (cursor !== "0");
 
           if (keys.length > 0) {
-            await redisClient.del(...keys);
+            await client.del(...keys);
           }
         }
       } catch (err: any) {
@@ -207,9 +184,10 @@ export const CacheService = {
     if (process.env.DISABLE_REDIS_CACHE === "true") {
       return false;
     }
-    if (!redisClient) return false;
+    const { client } = getRedis();
+    if (!client) return false;
     try {
-      const ping = await redisClient.ping();
+      const ping = await client.ping();
       return ping === "PONG";
     } catch (e) {
       return false;
@@ -224,12 +202,13 @@ export const CacheService = {
     if (process.env.DISABLE_REDIS_CACHE === "true") {
       return true; // Pass-through when Redis is disabled
     }
-    if (redisClient && isRedisAvailable) {
+    const { client, isAvailable } = getRedis();
+    if (client && isAvailable) {
       const key = `ratelimit:${identifier}`;
       try {
-        const count = await redisClient.incr(key);
+        const count = await client.incr(key);
         if (count === 1) {
-          await redisClient.expire(key, windowSecs);
+          await client.expire(key, windowSecs);
         }
         return count <= limit;
       } catch (err: any) {

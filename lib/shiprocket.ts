@@ -1,18 +1,16 @@
 import IORedis from "ioredis";
+import { getSharedProducerConnection } from "./jobs/connection";
 
-// Global connection cache for Redis
-let redis: IORedis | null = null;
-try {
-  if (process.env.REDIS_URL && process.env.NEXT_PHASE !== "phase-production-build") {
-    redis = new IORedis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
-    });
-    redis.on("error", (err) => {
-      console.warn("[Shiprocket SDK] Redis connection error, falling back to memory cache:", err.message);
-    });
+function getRedis(): IORedis | null {
+  if (process.env.NEXT_PHASE === "phase-production-build" || !process.env.REDIS_URL) {
+    return null;
   }
-} catch (e) {
-  console.warn("[Shiprocket SDK] Failed to initialize Redis:", e);
+  try {
+    const client = getSharedProducerConnection();
+    return (client.status === "ready" || client.status === "connecting") ? client : null;
+  } catch {
+    return null;
+  }
 }
 
 // In-memory fallback cache
@@ -33,6 +31,8 @@ async function getAuthToken(): Promise<string> {
 
   const cacheKey = "shiprocket:auth_token";
   const nowSecs = Math.floor(Date.now() / 1000);
+
+  const redis = getRedis();
 
   // Try Redis first
   if (redis) {

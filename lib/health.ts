@@ -1,4 +1,5 @@
 import { loadService } from "./db/client-raw";
+import { getSharedProducerConnection } from "./jobs/connection";
 import IORedis from "ioredis";
 
 export interface HealthResponse {
@@ -97,14 +98,8 @@ export async function checkDatabase(): Promise<HealthResponse> {
 
 export async function checkRedis(): Promise<HealthResponse> {
   const start = Date.now();
-  let connection: IORedis | null = null;
   try {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisUrl) throw new Error("REDIS_URL not configured");
-    connection = new IORedis(redisUrl, {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 2000,
-    });
+    const connection = getSharedProducerConnection();
     const pong = await connection.ping();
     if (pong !== "PONG") throw new Error("Redis ping response invalid");
     
@@ -133,10 +128,6 @@ export async function checkRedis(): Promise<HealthResponse> {
       lastSuccessfulConnection: globalCache.redis,
       error: err.message || "Redis connection error",
     };
-  } finally {
-    if (connection) {
-      await connection.quit().catch(() => {});
-    }
   }
 }
 

@@ -1,14 +1,12 @@
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
 import { supabaseService as supabase } from "./supabase-service";
 import { transporter, FROM_EMAIL } from "./email";
+import { getSharedProducerConnection } from "./jobs/connection";
 
 // Initialize BullMQ Queue
 let emailQueue: Queue | null = null;
 if (process.env.REDIS_URL) {
-  const connection = new IORedis(process.env.REDIS_URL, {
-    maxRetriesPerRequest: null,
-  });
+  const connection = getSharedProducerConnection();
   emailQueue = new Queue("email-delivery", { connection: connection as any });
 }
 

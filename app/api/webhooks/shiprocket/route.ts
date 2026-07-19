@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
 
     const { sendAdminAlert } = await import("@/lib/email");
     
+    const isReversePickup = order.returnAwb === awb;
+
     const SHIPROCKET_STATUS_MAP: Record<string, {
       orderStatus: string;
       eventMsg: string;
@@ -95,11 +97,30 @@ export async function POST(req: NextRequest) {
       'return pickup failed': { orderStatus: 'Returned', eventMsg: 'Return pickup attempt failed. Customer was unavailable.', sendEmail: 'return_pickup_failed' }
     };
 
+    const REVERSE_STATUS_MAP: Record<string, {
+      orderStatus: string;
+      eventMsg: string;
+      sendEmail?: string;
+    }> = {
+      'pickup scheduled': { orderStatus: 'Return Pickup Scheduled', eventMsg: 'Return pickup scheduled at customer address.' },
+      'pickup generated': { orderStatus: 'Return Pickup Scheduled', eventMsg: 'Return pickup scheduled at customer address.' },
+      'picked up': { orderStatus: 'Return in Transit', eventMsg: 'Package picked up by courier (Return)' },
+      'shipment picked': { orderStatus: 'Return in Transit', eventMsg: 'Package picked up by courier (Return)' },
+      'in transit': { orderStatus: 'Return in Transit', eventMsg: 'Return package in transit to warehouse' },
+      'delivered': { orderStatus: 'Return QC Pending', eventMsg: 'Return package received at warehouse. QC pending.' },
+      'returned': { orderStatus: 'Return QC Pending', eventMsg: 'Return package received at warehouse. QC pending.' },
+      'pickup error': { orderStatus: 'Return Accepted', eventMsg: 'Return pickup failed. Rescheduling required.', sendEmail: 'return_pickup_failed' },
+      'pickup exception': { orderStatus: 'Return Accepted', eventMsg: 'Return pickup failed. Rescheduling required.', sendEmail: 'return_pickup_failed' },
+      'return pickup scheduled': { orderStatus: 'Return Pickup Scheduled', eventMsg: 'Return pickup scheduled.' },
+      'return pickup failed': { orderStatus: 'Return Accepted', eventMsg: 'Return pickup attempt failed.', sendEmail: 'return_pickup_failed' }
+    };
+
     let eventMsg = "";
     const snap = typeof order.address_snapshot === "string" ? JSON.parse(order.address_snapshot) : order.address_snapshot;
     const addrStr = snap ? `${snap.address_line_1 || ""}, ${snap.city || ""}, ${snap.state || ""} - ${snap.postal_code || ""}` : "Not Available";
 
-    const matchedStatus = Object.entries(SHIPROCKET_STATUS_MAP).find(([key]) => lowerStatus.includes(key));
+    const statusMap = isReversePickup ? REVERSE_STATUS_MAP : SHIPROCKET_STATUS_MAP;
+    const matchedStatus = Object.entries(statusMap).find(([key]) => lowerStatus.includes(key));
     if (matchedStatus) {
       const [, config] = matchedStatus;
       newStatus = config.orderStatus;

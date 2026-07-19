@@ -559,12 +559,12 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     }
   }
 
-  // Restore stock for returned items.
+  // Restore stock for returned items only if quality check passed.
   // Use the array overload so each item's `color` is forwarded to the atomic
   // RPC — the single-item overload hard-codes "Default" and would miss named
   // colour variants (e.g. "Navy", "Crimson") stored in product_variants.
   try {
-    if (order.cartItems && order.cartItems.length > 0) {
+    if (qualityCheckPassed && order.cartItems && order.cartItems.length > 0) {
       // Map to the shape expected by the array overload:
       //   { productName, size, color, quantity }
       // productName is matched against the products table inside restoreStock.

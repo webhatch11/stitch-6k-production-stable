@@ -1468,17 +1468,34 @@ export async function manualDeliveryOverrideAction(
     const order = await db.getOrderById(orderId);
     if (!order) return { success: false, error: "Order not found" };
 
-    if (order.status !== "Shipped" && order.status !== "Out for Delivery") {
-      return { success: false, error: "Delivery override is only permitted for Shipped or Out for Delivery orders." };
+    // Widen the eligibility check: Shiprocket webhooks can fail at any point
+    // after packing, so the order may be stuck in Packed, Shipped, or Out for
+    // Delivery. Blocking the admin override to only "Shipped" prevents recovery
+    // from webhook failures that occur before the shipped webhook fires.
+    const OVERRIDABLE_STATUSES = [
+      "Packed",
+      "Shipped",
+      "Out for Delivery",
+      "Waiting for Dispatch",
+    ];
+    if (!OVERRIDABLE_STATUSES.includes(order.status)) {
+      return {
+        success: false,
+        error: `Manual delivery override is only permitted for in-transit orders. Current status: "${order.status}"`,
+      };
     }
 
+    // allowBypass: true — this is an admin emergency override, intentionally
+    // skipping the state machine so stuck orders can always be recovered.
     const success = await db.transitionOrderStatus(orderId, "Delivered", {
       triggerSource: "Manual Admin Override",
       userOrAdmin: "admin",
       reason: `Manual delivery override: ${reason.trim()} (Confirmed by ${adminUser.email || "admin"})`,
+      allowBypass: true,
       metadata: {
         admin_email: adminUser.email,
-        override_reason: reason.trim()
+        override_reason: reason.trim(),
+        previous_status: order.status,
       }
     });
 

@@ -259,7 +259,7 @@ function OrderDetailsContent() {
       const finalReason = overrideReason === "Other" ? (customOverrideDetails || "Manual Override") : overrideReason;
       const res = await manualDeliveryOverrideAction(order.id, finalReason);
       if (res.success) {
-        triggerToast('✅ Delivery manually confirmed');
+        triggerToast('Delivery manually confirmed');
         setDeliveryOverrideModalOpen(false);
         setCustomOverrideDetails("");
         setTimeout(() => window.location.reload(), 500);
@@ -280,7 +280,7 @@ function OrderDetailsContent() {
     try {
       const res = await manualReturnArrivedOverrideAction(order.id);
       if (res.success) {
-        triggerToast('✅ Return marked as received at warehouse');
+        triggerToast('Return marked as received at warehouse');
         setTimeout(() => window.location.reload(), 500);
       } else {
         triggerToast('Failed: ' + (res.error || 'Unknown error'));
@@ -1505,12 +1505,12 @@ function OrderDetailsContent() {
                       <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider" style={{ color: "var(--text-warning)" }}>
                         <span>
                           {order.refundOption === "wallet" || order.refund_status === "wallet_only"
-                            ? "🗂️ Wallet refund issued"
+                            ? "Wallet refund issued"
                             : order.refund_status === "credited" || order.refund_status === "processed"
-                              ? "✅ Bank refund credited"
+                              ? "Bank refund credited"
                               : order.refund_status === "initiated" || order.refund_status === "processing"
-                                ? "🏦 Bank refund initiated"
-                                : "💳 Refund processed"}
+                                ? "Bank refund initiated"
+                                : "Refund processed"}
                         </span>
                       </div>
                       <p className="mt-1" style={{ color: "var(--text-warning)" }}>
@@ -1597,7 +1597,7 @@ function OrderDetailsContent() {
                         {verifyingPayment ? "Verifying..." : "Verify payment"}
                       </button>
                       <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 border border-amber-500/20 p-3 rounded-[6px]">
-                        ⚠️ Order cannot be processed until payment is confirmed
+                        Order cannot be processed until payment is confirmed
                       </div>
                     </div>
                   );
@@ -1675,7 +1675,7 @@ function OrderDetailsContent() {
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-white no-underline"
                         style={{background:'#f97316'}}
                       >
-                        📦 Open in Shiprocket →
+                        Open in Shiprocket →
                       </a>
 
                       {/* Cancel Order */}
@@ -1820,14 +1820,14 @@ function OrderDetailsContent() {
             )}
 
             <div className="mt-4 pt-4 border-t border-zinc-800 space-y-2">
-              {/* Manual Delivery override button - shown for Shipped orders */}
-              {order.status?.toLowerCase() === 'shipped' && (
+              {/* Manual Delivery override button - shown for Shipped/Packed/Out for Delivery/Waiting for Dispatch orders */}
+              {['packed', 'shipped', 'out for delivery', 'waiting for dispatch'].includes(order.status?.toLowerCase() || '') && (
                 <button
                   type="button"
                   onClick={() => setDeliveryOverrideModalOpen(true)}
                   className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-secondary bg-secondary/15 text-secondary hover:bg-secondary/25 cursor-pointer rounded-none transition-colors"
                 >
-                  🚚 Confirm Delivery (Override)
+                  Confirm Delivery (Override)
                 </button>
               )}
 
@@ -1839,14 +1839,14 @@ function OrderDetailsContent() {
                   onClick={handleManualReturnArrivedSubmit}
                   className="w-full py-3 px-4 text-[10px] font-black uppercase tracking-widest border border-zinc-700 bg-zinc-850 hover:bg-zinc-800 text-white cursor-pointer rounded-none disabled:opacity-40 transition-colors"
                 >
-                  {overrideSubmitting ? "Updating..." : "📦 Mark Return Received at Warehouse"}
+                  {overrideSubmitting ? "Updating..." : "Mark Return Received at Warehouse"}
                 </button>
               )}
             </div>
 
             <div className="mt-6 pt-4 border-t border-gray-200/10">
               <p className="text-[9px] text-gray-500 font-semibold uppercase tracking-wider leading-relaxed">
-                ⚠️ Shipping sync updates inventory. Cancellation voids payment and releases stock.
+                Shipping sync updates inventory. Cancellation voids payment and releases stock.
               </p>
             </div>
           </div>

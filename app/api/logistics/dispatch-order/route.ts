@@ -85,19 +85,32 @@ export async function POST(req: NextRequest) {
     };
 
     // 5. Build Shiprocket order items payload
-    // Items in the order are saved as string titles like "Luxury Black Shirt" or JSON
-    const quantity = order.items.length || 1;
-    const orderItems = order.items.map((itemStr: any, idx: number) => {
-      // items can be simple strings or objects. We handle both.
-      const name = typeof itemStr === "string" ? itemStr : (itemStr.productName || itemStr.title || "Luxury Atelier Shirt");
-      const sku = `SKU-${name.toUpperCase().substring(0, 5).replace(/\s+/g, "")}-${idx}`;
-      return {
-        name,
-        sku,
-        units: 1,
-        selling_price: Math.round(order.total / quantity),
-      };
-    });
+    const useCartItems = Array.isArray(order.cartItems) && order.cartItems.length > 0;
+    const quantity = useCartItems
+      ? order.cartItems!.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0)
+      : (order.items.length || 1);
+
+    const orderItems = useCartItems
+      ? order.cartItems!.map((item: any, idx: number) => {
+          const name = item.productName || item.title || "Luxury Atelier Shirt";
+          const sku = item.productId ? `SKU-${item.productId}-${item.size || "M"}-${item.color || "Default"}` : `SKU-${name.toUpperCase().substring(0, 5).replace(/\s+/g, "")}-${idx}`;
+          return {
+            name,
+            sku,
+            units: item.quantity || 1,
+            selling_price: Number(item.price || Math.round(order.total / quantity)),
+          };
+        })
+      : order.items.map((itemStr: any, idx: number) => {
+          const name = typeof itemStr === "string" ? itemStr : (itemStr.productName || itemStr.title || "Luxury Atelier Shirt");
+          const sku = `SKU-${name.toUpperCase().substring(0, 5).replace(/\s+/g, "")}-${idx}`;
+          return {
+            name,
+            sku,
+            units: 1,
+            selling_price: Math.round(order.total / quantity),
+          };
+        });
 
     // 6. Calculate shipment dimensions
     // 0.4 kg per shirt, box length 30cm, width 22cm, height 5cm per shirt

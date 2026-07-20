@@ -21,8 +21,7 @@ export async function shipmentRetryProcessor(job: any) {
       console.log(`[Shipment Retry Worker] Attempting shipment retry for order: ${orderId}. Attempt: ${job.attemptsMade + 1}`);
 
       try {
-        const orders = await db.getOrders();
-        const order = orders.find((o: Order) => o.id === orderId);
+        const order = await db.getOrderById(orderId);
         if (!order) {
           console.error(`[Shipment Retry Worker] Order ${orderId} not found.`);
           return;

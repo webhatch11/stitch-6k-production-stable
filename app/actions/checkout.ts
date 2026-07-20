@@ -177,77 +177,84 @@ export async function processWalletPointsCheckoutAction(payload: {
     return { success: false, error: "Security Alert: Final payable is not zero for wallet checkout." };
   }
 
-  // C. Check Idempotency Key (prevent duplicate orders)
+  // C. Check Idempotency Key (reuse pending order or short-circuit if already paid)
   const existingOrder = await db.getOrderByIdempotencyKey(idempotencyKey);
+  let targetOrderId: string;
+
   if (existingOrder) {
-    return { 
-      success: true, 
-      orderId: existingOrder.id, 
-      order: existingOrder,
-      alreadyExists: true,
-      message: "Order already processed."
+    const isAlreadyPaid = ["Paid", "Paid via Wallet", "paid via wallet", "Accepted", "Processing", "Packed", "Shipped", "Delivered"].includes(existingOrder.status);
+    if (isAlreadyPaid) {
+      return { 
+        success: true, 
+        orderId: existingOrder.id, 
+        order: existingOrder,
+        alreadyExists: true,
+        message: "Order already processed."
+      };
+    }
+    // Existing order is in 'Payment Pending' state (from previous Razorpay attempt)
+    // Reuse existing order ID to complete payment via Wallet!
+    targetOrderId = existingOrder.id;
+  } else {
+    // D. Generate sequential order ID and save pending order
+    targetOrderId = await db.generateOrderId('wallet');
+
+    const orderData = {
+      id: targetOrderId,
+      idempotencyKey: idempotencyKey,
+      customer: customerName,
+      date: new Date().toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+      }),
+      total: totalWithShipping,
+      shippingAmount: shippingAmount,
+      shipping_amount: shippingAmount,
+      originalTotal: verifiedSubtotal,
+      couponDiscount: verifiedCouponDiscount,
+      couponCode: couponCode,
+      walletPaid: walletDeduction,
+      gatewayPaid: 0,
+      pointsRedeemed: pointsRedeemed,
+      pointsDiscount: verifiedPointsDiscount,
+      pointsEarned: Math.floor(verifiedNetTotal / 100) * POINTS_PER_100, // Business rule: ₹100 spent = 5 points
+      status: "Payment Pending",
+      paymentStatus: "Payment Pending",
+      items: cart.map((item) => item.productName),
+      cartItems: cart.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        price: item.price,
+        size: item.size,
+        color: item.color,
+        quantity: (item as any).quantity || 1,
+        image: item.image || (item as any).images?.[0] || ''
+      })),
+      address_snapshot: addressSnapshot,
+      userId: user_id,
+      user_id: user_id,
+      utm_source: utm_source || undefined,
+      utm_medium: utm_medium || undefined,
+      utm_campaign: utm_campaign || undefined,
+      pointsCreditStatus: 'pending' as const,
+      pointsCreditScheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     };
+
+    try {
+      await db.saveOrder(orderData);
+    } catch (err) {
+      console.error('[checkout.ts] Failed to save pending order:', err);
+      return { success: false, error: "Failed to record checkout order in database." };
+    }
   }
 
-  // D. Generate sequential order ID and save pending order
-  const orderId = await db.generateOrderId('wallet');
-
-  const orderData = {
-    id: orderId,
-    idempotencyKey: idempotencyKey,
-    customer: customerName,
-    date: new Date().toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "Asia/Kolkata",
-    }),
-    total: totalWithShipping,
-    shippingAmount: shippingAmount,
-    shipping_amount: shippingAmount,
-    originalTotal: verifiedSubtotal,
-    couponDiscount: verifiedCouponDiscount,
-    couponCode: couponCode,
-    walletPaid: walletDeduction,
-    gatewayPaid: 0,
-    pointsRedeemed: pointsRedeemed,
-    pointsDiscount: verifiedPointsDiscount,
-    pointsEarned: Math.floor(verifiedNetTotal / 100) * POINTS_PER_100, // Business rule: ₹100 spent = 5 points
-    status: "Payment Pending",
-    paymentStatus: "Payment Pending",
-    items: cart.map((item) => item.productName),
-    cartItems: cart.map(item => ({
-      productId: item.productId,
-      productName: item.productName,
-      price: item.price,
-      size: item.size,
-      color: item.color,
-      quantity: (item as any).quantity || 1,
-      image: item.image || (item as any).images?.[0] || ''
-    })),
-    address_snapshot: addressSnapshot,
-    userId: user_id,
-    user_id: user_id,
-    utm_source: utm_source || undefined,
-    utm_medium: utm_medium || undefined,
-    utm_campaign: utm_campaign || undefined,
-    pointsCreditStatus: 'pending' as const,
-    pointsCreditScheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  };
-
-  let savedOrder;
-  try {
-    savedOrder = await db.saveOrder(orderData);
-  } catch (err) {
-    console.error('[checkout.ts] Failed to save pending order:', err);
-    return { success: false, error: "Failed to record checkout order in database." };
-  }
-
-  // E. Execute Transactional Payment RPC
+  // E. Execute Transactional Payment RPC on targetOrderId
   const earnedPoints = Math.floor(verifiedNetTotal / 100) * POINTS_PER_100;
   const transactionRes = await db.confirmOrderAndProcessPaymentsAtomic({
-    orderId: savedOrder.id,
-    paymentId: "wallet-" + savedOrder.id,
+    orderId: targetOrderId,
+    paymentId: "wallet-" + targetOrderId,
     walletDeduction: walletDeduction,
     pointsRedeemed: pointsRedeemed,
     couponCode: couponCode || "",
@@ -261,7 +268,7 @@ export async function processWalletPointsCheckoutAction(payload: {
       await supabase.from("orders").update({
         status: "FAILED",
         payment_status: "FAILED"
-      }).eq("id", savedOrder.id);
+      }).eq("id", targetOrderId);
     }
     return { success: false, error: transactionRes.error || "Payment transaction failed." };
   }
@@ -272,12 +279,12 @@ export async function processWalletPointsCheckoutAction(payload: {
   });
 
   // Fetch updated order record for client response
-  const finalOrder = await db.getOrderById(savedOrder.id);
+  const finalOrder = await db.getOrderById(targetOrderId);
 
   return {
     success: true,
-    orderId: savedOrder.id,
-    order: finalOrder || savedOrder,
+    orderId: targetOrderId,
+    order: finalOrder || { id: targetOrderId },
     walletBalance: dbWalletBalance - walletDeduction,
     loyaltyPoints: dbLoyaltyPoints - pointsRedeemed + earnedPoints,
   };

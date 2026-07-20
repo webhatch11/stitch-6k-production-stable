@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/stores/cartStore";
 import { useRecentStore } from "@/stores/recentStore";
+import { useWishlistStore } from "@/stores/wishlistStore";
 import { trackViewProduct, trackAddToCart } from "@/lib/analytics";
 import { LOW_STOCK_THRESHOLD, LOW_STOCK_SIZE_THRESHOLD, URGENT_STOCK_THRESHOLD } from "@/lib/inventory-config";
 
@@ -20,6 +21,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const addToCartStore = useCartStore((state) => state.addToCart);
   const addProductToRecent = useRecentStore((state) => state.addProductToRecent);
   const recentItems = useRecentStore((state) => state.recentItems);
+  const wishlistStore = useWishlistStore();
+  const isInWishlist = wishlistStore.isInWishlist(product.id);
 
   const [animateCart, setAnimateCart] = useState(false);
 
@@ -536,12 +539,35 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             {/* Main Action Buttons */}
             <div className="flex flex-col space-y-4">
               {isProductOutOfStock ? (
-                <button
-                  disabled
-                  className="w-full py-5 bg-outline-variant/25 text-outline cursor-not-allowed font-black uppercase tracking-[0.2em] text-xs"
-                >
-                  Sold Out
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    disabled
+                    className="flex-1 py-5 bg-outline-variant/25 text-outline cursor-not-allowed font-black uppercase tracking-[0.2em] text-xs"
+                  >
+                    Sold Out
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (isInWishlist) {
+                        wishlistStore.removeFromWishlist(product.id);
+                        triggerToast("Removed from wishlist");
+                      } else {
+                        wishlistStore.addToWishlist(product);
+                        triggerToast("Added to wishlist");
+                      }
+                    }}
+                    aria-label="Wishlist toggle"
+                    className={`px-5 py-5 border transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                      isInWishlist
+                        ? "border-red-600 bg-red-600/10 text-red-600"
+                        : "border-outline-variant/40 text-on-surface hover:border-on-surface hover:bg-on-surface/5"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: isInWishlist ? "'FILL' 1" : "'FILL' 0" }}>
+                      {isInWishlist ? "favorite" : "favorite_border"}
+                    </span>
+                  </button>
+                </div>
               ) : (
                 <>
                   <button
@@ -550,12 +576,35 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   >
                     Buy Now
                   </button>
-                  <button
-                    onClick={() => addToCart(false)}
-                    className="w-full py-5 border border-on-surface text-on-surface font-black uppercase tracking-[0.2em] text-xs hover:bg-on-surface hover:text-surface transition-all duration-300 btn-active-scale cursor-pointer"
-                  >
-                    Add to Cart
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => addToCart(false)}
+                      className="flex-1 py-5 border border-on-surface text-on-surface font-black uppercase tracking-[0.2em] text-xs hover:bg-on-surface hover:text-surface transition-all duration-300 btn-active-scale cursor-pointer"
+                    >
+                      Add to Cart
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (isInWishlist) {
+                          wishlistStore.removeFromWishlist(product.id);
+                          triggerToast("Removed from wishlist");
+                        } else {
+                          wishlistStore.addToWishlist(product);
+                          triggerToast("Added to wishlist");
+                        }
+                      }}
+                      aria-label="Wishlist toggle"
+                      className={`px-5 py-5 border transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                        isInWishlist
+                          ? "border-red-600 bg-red-600/10 text-red-600"
+                          : "border-on-surface text-on-surface hover:bg-on-surface/5"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: isInWishlist ? "'FILL' 1" : "'FILL' 0" }}>
+                        {isInWishlist ? "favorite" : "favorite_border"}
+                      </span>
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -748,21 +797,33 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 <span className="text-[9px] font-black uppercase tracking-[0.3em] text-secondary">Your History</span>
                 <h2 className="text-3xl font-black font-headline tracking-tighter uppercase mt-2">Recently Viewed</h2>
               </div>
-              <div className="flex gap-2">
-                <span className="text-xs font-bold text-outline uppercase tracking-widest">History</span>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => useRecentStore.getState().clearRecent()}
+                  className="text-[9px] font-black uppercase tracking-widest text-outline hover:text-black transition-colors border-none bg-transparent cursor-pointer"
+                >
+                  Clear History
+                </button>
               </div>
             </div>
             <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-neutral-200">
               {recentItems
                 .filter((item: Product) => item.id !== product.id)
-                .slice(0, 5)
+                .slice(0, 8)
                 .map((rec: Product) => {
                   const primaryImg = rec.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800";
                   const secondaryImg = rec.images && rec.images.length > 1 ? rec.images[1] : primaryImg;
+                  const totalRecStock = rec.sizeStock ? Object.values(rec.sizeStock).reduce((sum, val) => sum + (val || 0), 0) : 0;
+                  const isRecOutOfStock = totalRecStock <= 0;
 
                   return (
-                    <div key={rec.id} className="min-w-[200px] md:min-w-[240px] flex-shrink-0 group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between">
+                    <div key={rec.id} className="min-w-[200px] md:min-w-[240px] flex-shrink-0 group border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-xl hover:border-secondary/20 transition-all duration-500 flex flex-col justify-between relative">
                       <Link href={`/product/${rec.slug}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10">
+                        {isRecOutOfStock && (
+                          <span className="absolute top-2 left-2 z-20 bg-black/85 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border border-white/20">
+                            SOLD OUT
+                          </span>
+                        )}
                         <div className="absolute inset-0">
                           <ProductImage
                             className="object-cover transition-all duration-[1000ms] group-hover:scale-105"

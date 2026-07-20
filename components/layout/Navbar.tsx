@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
+import { useWishlistStore } from "@/stores/wishlistStore";
 import { createBrowserClient } from "@supabase/ssr";
 import { User } from "@supabase/supabase-js";
 
@@ -18,6 +19,8 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const cartItems = useCartStore((state) => state.cartItems);
   const cartCount = cartItems.length;
+  const wishlistItems = useWishlistStore((state) => state.wishlistItems);
+  const wishlistCount = wishlistItems.length;
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -168,8 +171,21 @@ export default function Navbar() {
           {/* Right actions */}
           <div className="flex items-center gap-5 z-10">
             <Link
+              href="/myprofile?tab=wishlist"
+              className={`${iconClass} relative`}
+              title="My Wishlist"
+            >
+              favorite
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border bg-red-600 text-white border-surface">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+            <Link
               href="/shoppingbag"
               className={`${iconClass} relative`}
+              title="Shopping Bag"
             >
               shopping_bag
               {cartCount > 0 && (
@@ -261,6 +277,23 @@ export default function Navbar() {
           <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">storefront</span>
           <span className="text-[8px] font-bold uppercase tracking-wider">Shop</span>
           <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/shopallshirts") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+        </Link>
+
+        {/* Wishlist */}
+        <Link 
+          href="/myprofile?tab=wishlist" 
+          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
+            pathname.includes("wishlist") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">favorite</span>
+          {wishlistCount > 0 && (
+            <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e]">
+              {wishlistCount}
+            </span>
+          )}
+          <span className="text-[8px] font-bold uppercase tracking-wider">Saved</span>
+          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${pathname.includes("wishlist") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
         </Link>
 
         {/* Bag */}

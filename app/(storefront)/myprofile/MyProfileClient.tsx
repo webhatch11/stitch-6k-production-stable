@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/addresses";
 import { getPendingPointsAction } from "@/app/actions/orders";
 import { useWishlistStore } from "@/stores/wishlistStore";
+import { useCartStore } from "@/stores/cartStore";
 import ProductImage from "@/components/ProductImage";
 
 interface MyProfileClientProps {
@@ -48,6 +49,16 @@ export default function MyProfileClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const wishlistStore = useWishlistStore();
   const wishlistItems = wishlistStore.wishlistItems;
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "wishlist" || tab === "loyalty" || tab === "returns" || tab === "profile") {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
 
   // States
   const [walletBalance, setWalletBalance] = useState(initialWalletBalance);
@@ -1038,71 +1049,119 @@ export default function MyProfileClient({
               </div>
 
               {wishlistItems.length === 0 && (
-                <div className="text-center py-12 px-6">
-                  <div className="text-5xl mb-4">🤍</div>
-                  <h3 className="font-bold text-gray-900 mb-2">
-                    Your wishlist is empty
+                <div className="text-center py-16 px-6 border border-dashed border-outline-variant/30 bg-surface-container-lowest/30">
+                  <div className="text-4xl mb-4">🖤</div>
+                  <h3 className="font-headline font-black uppercase text-sm text-gray-900 mb-2 tracking-wider">
+                    Your Wishlist is Empty
                   </h3>
-                  <p className="text-gray-500 text-sm mb-6">
-                    Save items you love and find them here
+                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-6">
+                    Save items you love to access them anytime
                   </p>
-                  <a href="/shopallshirts"
-                    className="inline-block bg-black text-white 
-                      px-8 py-3 rounded-full text-sm font-medium">
-                    Shop Now
-                  </a>
+                  <Link
+                    href="/shopallshirts"
+                    className="inline-block bg-[#1a1c1c] hover:bg-[#775a19] text-white px-8 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-colors"
+                  >
+                    Explore Shop
+                  </Link>
                 </div>
               )}
 
               {wishlistItems.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  {wishlistItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group relative border border-outline-variant/10 p-2 bg-surface-container-lowest hover:shadow-[0_20px_40px_rgba(119,90,25,0.06)] transition-all duration-500 rounded-[1.5rem] flex flex-col justify-between"
-                    >
-                      <div className="relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-[1.2rem]">
-                        <Link href={`/product/${item.slug}`} className="block w-full h-full relative">
-                          <ProductImage
-                            src={item.image}
-                            alt={item.title}
-                            fill
-                            className="object-cover transition-transform duration-[1.2s] group-hover:scale-105"
-                            sizes="(max-width: 768px) 50vw, 30vw"
-                          />
-                        </Link>
-                        {/* Remove button */}
-                        <button
-                          onClick={() => {
-                            wishlistStore.removeFromWishlist(item.id);
-                            useToastStore.getState().addToast("✓ Removed from wishlist");
-                          }}
-                          aria-label="Remove from wishlist"
-                          className="absolute top-2 right-2 bg-black/75 backdrop-blur-md p-1.5 rounded-full border border-white/10 text-white z-20 hover:text-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-sm font-black">close</span>
-                        </button>
-                      </div>
-                      <div className="pt-4 px-2 pb-2">
-                        <div className="flex justify-between items-start gap-3">
-                          <div className="space-y-1">
-                            <Link
-                              href={`/product/${item.slug}`}
-                              className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer block"
-                            >
-                              {item.title}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {wishlistItems.map((item) => {
+                    const totalStock = item.sizeStock
+                      ? Object.values(item.sizeStock).reduce((sum, val) => sum + (val || 0), 0)
+                      : 0;
+                    const isItemOutOfStock = totalStock <= 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="group relative border border-outline-variant/20 p-3 bg-white hover:shadow-xl hover:border-secondary/40 transition-all duration-300 rounded-none flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="relative aspect-[3/4] overflow-hidden bg-surface-container border border-outline-variant/10 rounded-none">
+                            {isItemOutOfStock && (
+                              <span className="absolute top-2 left-2 z-20 bg-black text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border border-white/20">
+                                SOLD OUT
+                              </span>
+                            )}
+                            <Link href={`/product/${item.slug}`} className="block w-full h-full relative">
+                              <ProductImage
+                                src={item.image}
+                                alt={item.title}
+                                fill
+                                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                              />
                             </Link>
-                            <p className="text-[11px] text-outline uppercase tracking-[0.2em] font-semibold">
-                              {item.category}
-                            </p>
+                            {/* Remove button */}
+                            <button
+                              onClick={() => {
+                                wishlistStore.removeFromWishlist(item.id);
+                                useToastStore.getState().addToast("✓ Removed from wishlist");
+                              }}
+                              aria-label="Remove from wishlist"
+                              className="absolute top-2 right-2 bg-black/80 p-2 rounded-none border border-white/20 text-white z-20 hover:bg-red-600 transition-all cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-xs font-black">close</span>
+                            </button>
                           </div>
-                          <p className="font-headline font-black text-secondary text-xs shrink-0">
-                            ₹{item.price.toLocaleString("en-IN")}
-                          </p>
+                          <div className="pt-4 px-1 pb-2">
+                            <div className="flex justify-between items-start gap-3">
+                              <div className="space-y-1">
+                                <Link
+                                  href={`/product/${item.slug}`}
+                                  className="text-[10px] font-black uppercase tracking-[0.15em] text-on-surface group-hover:text-secondary transition-colors leading-tight cursor-pointer block"
+                                >
+                                  {item.title}
+                                </Link>
+                                <p className="text-[9px] text-outline uppercase tracking-[0.2em] font-semibold">
+                                  {item.category || "Signature Series"}
+                                </p>
+                              </div>
+                              <p className="font-headline font-black text-secondary text-xs shrink-0">
+                                ₹{item.price.toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-outline-variant/10">
+                          {isItemOutOfStock ? (
+                            <button
+                              disabled
+                              className="w-full py-3 bg-outline-variant/20 text-outline text-[9px] font-black uppercase tracking-[0.2em] cursor-not-allowed border-none"
+                            >
+                              Sold Out
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                const sizes: ("S" | "M" | "L" | "XL" | "XXL")[] = ["S", "M", "L", "XL", "XXL"];
+                                const availableSize = sizes.find(
+                                  (sz) => item.sizeStock && (item.sizeStock[sz] || 0) > 0
+                                ) || "M";
+
+                                useCartStore.getState().addToCart({
+                                  productId: item.id,
+                                  productName: item.title,
+                                  price: item.price,
+                                  size: availableSize,
+                                  image: item.image,
+                                  color: item.colors?.[0] || "Default",
+                                }, 1);
+                                useToastStore.getState().addToast(`✓ Added ${item.title} (${availableSize}) to Bag`);
+                              }}
+                              className="w-full py-3 bg-[#1a1c1c] text-white hover:bg-[#775a19] text-[9px] font-black uppercase tracking-[0.2em] transition-colors cursor-pointer border-none"
+                            >
+                              + Add to Bag
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

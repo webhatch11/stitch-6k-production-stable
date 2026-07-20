@@ -1537,27 +1537,26 @@ function OrderDetailsContent() {
                 if (orderStatus === "shipped") {
                   return (
                     <div className="flex flex-col gap-3">
-                      {/* Print Manifest */}
-                      <button
-                        onClick={handlePrintManifestSingle}
-                        className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
-                      >
-                        <span className="material-symbols-outlined text-lg mb-1">assignment</span>
-                        <span>Print Manifest</span>
-                      </button>
-
-                      {/* Reprint Label */}
-                      <button
-                        onClick={handlePrintShippingLabel}
-                        disabled={printingLabel}
-                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer"
+                      {/* Print Invoice */}
+                      <Link
+                        href={`/invoice?orderId=${order.id}`}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all text-[11px] font-bold uppercase tracking-wider text-center rounded-none"
                       >
                         <span className="material-symbols-outlined text-lg mb-1">print</span>
-                        <span>Reprint Label</span>
-                      </button>
+                        <span>Print Invoice</span>
+                      </Link>
 
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center bg-zinc-900/50 p-3 rounded-[6px] border border-zinc-800/30">
-                        Delivery status updates automatically via Shiprocket tracking
+                      {/* Track Shipment */}
+                      <Link
+                        href={`/ordertracking?orderId=${order.id}`}
+                        className="w-full flex flex-col items-center justify-center p-4 bg-secondary text-black hover:bg-secondary/90 transition-all text-[11px] font-black uppercase tracking-widest text-center cursor-pointer border-none rounded-none"
+                      >
+                        <span className="material-symbols-outlined text-lg mb-1">local_shipping</span>
+                        <span>Track Shipment</span>
+                      </Link>
+
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400 text-center bg-blue-500/10 p-3 rounded-none border border-blue-500/20">
+                        Order Shipped via Shiprocket • Status Updates Automatically
                       </div>
                     </div>
                   );

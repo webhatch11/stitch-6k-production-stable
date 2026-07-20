@@ -294,6 +294,11 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     const liability = await db.getLiabilityReport();
     const netRevenueReport = await db.getNetRevenueReport(startOfMonth, endOfMonth);
 
+    let paymentsBreakdown: any[] = [
+      { name: "Razorpay Only", value: 70 },
+      { name: "Wallet Only", value: 15 },
+      { name: "Wallet + Razorpay", value: 15 },
+    ];
     let paymentLogs: any[] = [];
     let refundLogs: any[] = [];
 

@@ -202,16 +202,16 @@ export default function FinanceAnalyticsPage() {
   const refundLogs = data?.refundLogs || [];
 
   return (
-    <div className="p-8 lg:p-16 min-h-screen bg-[#fafafa] text-[#1a1c1c] font-body">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-gray-200 pb-6">
+    <div className="p-8 lg:p-16 min-h-screen bg-[#faf9f8] text-[#1a1c1c] font-body">
+      {/* Page Header — Atelier Noir Editorial Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-[#1a1c1c]/10 pb-6">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#775a19]">Tax & Accounting</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19]">Atelier Noir Financial Intelligence</span>
           <h1 className="font-headline text-4xl lg:text-5xl font-black uppercase tracking-tighter text-[#1a1c1c] leading-none mt-2">
             GST & Finance Dashboard
           </h1>
-          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-2">
-            Review payments, refunds, tax liabilities, net proceeds, and collect audits
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.15em] mt-2">
+            Comprehensive revenue tracking, tax compliance, payments ledger, and refund reporting
           </p>
         </div>
 
@@ -220,7 +220,7 @@ export default function FinanceAnalyticsPage() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="bg-white text-xs font-bold uppercase tracking-wider text-[#1a1c1c] border border-gray-200 px-4 py-2.5 outline-none rounded-none cursor-pointer shadow-sm focus:border-[#775a19]"
+            className="bg-white text-[10px] font-black uppercase tracking-[0.2em] text-[#1a1c1c] border border-[#1a1c1c]/15 px-4 py-3 outline-none rounded-none cursor-pointer focus:border-[#775a19]"
           >
             <option value={1}>January</option>
             <option value={2}>February</option>
@@ -238,47 +238,54 @@ export default function FinanceAnalyticsPage() {
         </div>
       </div>
 
-      {/* 4 Dedicated Agreement Tabs Navigation */}
-      <div className="flex border-b border-gray-200 mb-8 overflow-x-auto">
+      {/* 4 Dedicated Agreement Tabs Navigation — Atelier Noir Clean Line Icons */}
+      <div className="flex border-b border-[#1a1c1c]/10 mb-8 overflow-x-auto">
         <button
           onClick={() => setActiveTab("payments")}
-          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap ${
+          className={`flex items-center gap-2 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap rounded-none ${
             activeTab === "payments"
               ? "border-[#775a19] text-[#775a19]"
               : "border-transparent text-gray-400 hover:text-[#1a1c1c]"
           }`}
         >
-          💳 Payments Report
+          <span className="material-symbols-outlined text-sm">payments</span>
+          <span>Payments Report</span>
         </button>
+
         <button
           onClick={() => setActiveTab("refunds")}
-          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap ${
+          className={`flex items-center gap-2 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap rounded-none ${
             activeTab === "refunds"
               ? "border-[#775a19] text-[#775a19]"
               : "border-transparent text-gray-400 hover:text-[#1a1c1c]"
           }`}
         >
-          💸 Refund Report
+          <span className="material-symbols-outlined text-sm">receipt_long</span>
+          <span>Refund Report</span>
         </button>
+
         <button
           onClick={() => setActiveTab("gst")}
-          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap ${
+          className={`flex items-center gap-2 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap rounded-none ${
             activeTab === "gst"
               ? "border-[#775a19] text-[#775a19]"
               : "border-transparent text-gray-400 hover:text-[#1a1c1c]"
           }`}
         >
-          📑 Tax (GST) Report
+          <span className="material-symbols-outlined text-sm">account_balance</span>
+          <span>Tax (GST) Report</span>
         </button>
+
         <button
           onClick={() => setActiveTab("revenue")}
-          className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap ${
+          className={`flex items-center gap-2 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all cursor-pointer bg-transparent whitespace-nowrap rounded-none ${
             activeTab === "revenue"
               ? "border-[#775a19] text-[#775a19]"
               : "border-transparent text-gray-400 hover:text-[#1a1c1c]"
           }`}
         >
-          📈 Revenue & Summary
+          <span className="material-symbols-outlined text-sm">query_stats</span>
+          <span>Revenue & Summary</span>
         </button>
       </div>
 
@@ -293,38 +300,38 @@ export default function FinanceAnalyticsPage() {
             <div className="space-y-8">
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">PAYMENTS REPORT — SELECTED MONTH</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19]">PAYMENTS REPORT — SELECTED MONTH</h3>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Gateway vs Wallet transactions audit</p>
                 </div>
                 <button
                   onClick={handleExportPaymentsCSV}
-                  className="px-5 py-2.5 bg-[#775a19] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#5f4713] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">download</span>
                   <span>Export Payments CSV</span>
                 </button>
               </div>
 
-              {/* Payments Summary Cards */}
+              {/* Payments Summary Cards — Brutalist High Contrast Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Gateway Revenue (Razorpay)</span>
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Gateway Revenue (Razorpay)</span>
                   <span className="text-3xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                     {formatCurrency(netRevenueReport.gatewayRevenue)}
                   </span>
                   <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Online gateway payments</p>
                 </div>
 
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Wallet Revenue</span>
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Wallet Revenue</span>
                   <span className="text-3xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                     {formatCurrency(netRevenueReport.walletRevenue)}
                   </span>
                   <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Store credit payments</p>
                 </div>
 
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-[#775a19] block">Total Settled Volume</span>
+                <div className="bg-white border border-[#775a19]/30 p-6 rounded-none">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#775a19] block">Total Settled Volume</span>
                   <span className="text-3xl font-black font-headline text-[#775a19] font-mono mt-2 block">
                     {formatCurrency(netRevenueReport.grossRevenue)}
                   </span>
@@ -333,35 +340,35 @@ export default function FinanceAnalyticsPage() {
               </div>
 
               {/* Payments Log Table */}
-              <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-4">Payment Transaction Logs</h4>
+              <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-6">Payment Transaction Logs</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400">Order ID</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400">Customer</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Gateway Paid</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Wallet Paid</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Total Paid</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Razorpay ID</th>
+                      <tr className="border-b border-[#1a1c1c]/10">
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Order ID</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Customer</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Gateway Paid</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Wallet Paid</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Total Paid</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Razorpay ID</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-mono">
                       {paymentLogs.length > 0 ? (
                         paymentLogs.map((row: any) => (
                           <tr key={row.orderId} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-3.5 text-xs font-black text-[#775a19] uppercase tracking-wider">{row.orderId}</td>
-                            <td className="py-3.5 text-xs text-[#1a1c1c] font-sans font-bold">{row.customer}</td>
-                            <td className="py-3.5 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.gatewayPaid)}</td>
-                            <td className="py-3.5 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.walletPaid)}</td>
-                            <td className="py-3.5 text-xs font-bold text-[#1a1c1c] text-right">{formatCurrency(row.total)}</td>
-                            <td className="py-3.5 text-xs text-gray-400 text-right">{row.paymentId}</td>
+                            <td className="py-4 text-xs font-black text-[#775a19] uppercase tracking-wider">{row.orderId}</td>
+                            <td className="py-4 text-xs text-[#1a1c1c] font-sans font-bold">{row.customer}</td>
+                            <td className="py-4 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.gatewayPaid)}</td>
+                            <td className="py-4 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.walletPaid)}</td>
+                            <td className="py-4 text-xs font-bold text-[#1a1c1c] text-right">{formatCurrency(row.total)}</td>
+                            <td className="py-4 text-xs text-gray-400 text-right">{row.paymentId}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={6} className="py-8 text-center text-xs text-gray-400 uppercase tracking-widest font-sans">
+                          <td colSpan={6} className="py-8 text-center text-xs text-gray-400 uppercase tracking-[0.2em] font-sans">
                             No payment transactions logged for this period.
                           </td>
                         </tr>
@@ -378,12 +385,12 @@ export default function FinanceAnalyticsPage() {
             <div className="space-y-8">
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">REFUND REPORT — SELECTED MONTH</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19]">REFUND REPORT — SELECTED MONTH</h3>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Processed customer refunds & return payouts audit</p>
                 </div>
                 <button
                   onClick={handleExportRefundsCSV}
-                  className="px-5 py-2.5 bg-[#775a19] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#5f4713] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">download</span>
                   <span>Export Refunds CSV</span>
@@ -392,16 +399,16 @@ export default function FinanceAnalyticsPage() {
 
               {/* Refund Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Total Refunded Amount</span>
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Total Refunded Amount</span>
                   <span className="text-3xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                     {formatCurrency(summary.totalRefunds)}
                   </span>
                   <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Deducted from gross proceeds</p>
                 </div>
 
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Processed Refund Orders</span>
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Processed Refund Orders</span>
                   <span className="text-3xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                     {refundLogs.length}
                   </span>
@@ -410,33 +417,33 @@ export default function FinanceAnalyticsPage() {
               </div>
 
               {/* Refund Logs Table */}
-              <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-4">Refund Transaction Logs</h4>
+              <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-6">Refund Transaction Logs</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400">Order ID</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400">Customer</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Refund Amount</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Status</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Reason</th>
+                      <tr className="border-b border-[#1a1c1c]/10">
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Order ID</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Customer</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Refund Amount</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Status</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Reason</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-mono">
                       {refundLogs.length > 0 ? (
                         refundLogs.map((row: any) => (
                           <tr key={row.orderId} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-3.5 text-xs font-black text-[#775a19] uppercase tracking-wider">{row.orderId}</td>
-                            <td className="py-3.5 text-xs text-[#1a1c1c] font-sans font-bold">{row.customer}</td>
-                            <td className="py-3.5 text-xs font-bold text-red-600 text-right">{formatCurrency(row.refundAmount)}</td>
-                            <td className="py-3.5 text-xs text-[#775a19] text-right font-sans font-bold uppercase">{row.refundStatus}</td>
-                            <td className="py-3.5 text-xs text-gray-500 text-right font-sans">{row.refundReason}</td>
+                            <td className="py-4 text-xs font-black text-[#775a19] uppercase tracking-wider">{row.orderId}</td>
+                            <td className="py-4 text-xs text-[#1a1c1c] font-sans font-bold">{row.customer}</td>
+                            <td className="py-4 text-xs font-bold text-red-600 text-right">{formatCurrency(row.refundAmount)}</td>
+                            <td className="py-4 text-xs text-[#775a19] text-right font-sans font-bold uppercase">{row.refundStatus}</td>
+                            <td className="py-4 text-xs text-gray-500 text-right font-sans">{row.refundReason}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-xs text-gray-400 uppercase tracking-widest font-sans">
+                          <td colSpan={5} className="py-8 text-center text-xs text-gray-400 uppercase tracking-[0.2em] font-sans">
                             No refund transactions recorded for this period.
                           </td>
                         </tr>
@@ -453,12 +460,12 @@ export default function FinanceAnalyticsPage() {
             <div className="space-y-8">
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">TAX REPORT — MULTI-TIER GST SLABS</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19]">TAX REPORT — MULTI-TIER GST SLABS</h3>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Exact GST rate calculation (5%, 12%, 18%) from product catalog</p>
                 </div>
                 <button
                   onClick={exportGSTReport}
-                  className="px-5 py-2.5 bg-[#775a19] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#5f4713] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">download</span>
                   <span>Export GST Excel Workbook</span>
@@ -468,10 +475,10 @@ export default function FinanceAnalyticsPage() {
               {/* Multi-Tier GST Rate Slab Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 5% GST Slab */}
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">5% GST Rate Slab</span>
-                    <span className="text-[9px] font-bold bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Apparel ≤ ₹1,000</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Apparel ≤ ₹1,000</span>
                   </div>
                   <div className="space-y-2 font-mono">
                     <div className="flex justify-between text-xs">
@@ -486,10 +493,10 @@ export default function FinanceAnalyticsPage() {
                 </div>
 
                 {/* 12% GST Slab */}
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">12% GST Rate Slab</span>
-                    <span className="text-[9px] font-bold bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Apparel &gt; ₹1,000</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Apparel &gt; ₹1,000</span>
                   </div>
                   <div className="space-y-2 font-mono">
                     <div className="flex justify-between text-xs">
@@ -504,10 +511,10 @@ export default function FinanceAnalyticsPage() {
                 </div>
 
                 {/* 18% GST Slab */}
-                <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm">
-                  <div className="flex justify-between items-center mb-3">
+                <div className="bg-white border border-[#1a1c1c]/10 p-6 rounded-none">
+                  <div className="flex justify-between items-center mb-4">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">18% GST Rate Slab</span>
-                    <span className="text-[9px] font-bold bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Accessories / Premium</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-[#775a19]/10 text-[#775a19] px-2 py-0.5 border border-[#775a19]/20">Accessories / Premium</span>
                   </div>
                   <div className="space-y-2 font-mono">
                     <div className="flex justify-between text-xs">
@@ -525,9 +532,9 @@ export default function FinanceAnalyticsPage() {
               {/* Combined GST Breakdown & Liability Trend */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* GST Liability Trend Chart */}
-                <div className="lg:col-span-2 bg-white border border-gray-200 p-8 rounded-none shadow-sm flex flex-col justify-between">
+                <div className="lg:col-span-2 bg-white border border-[#1a1c1c]/10 p-8 rounded-none flex flex-col justify-between">
                   <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">GST Liability Trends</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-1">GST Liability Trends</h3>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Historical monthly view of tax liabilities collected</p>
                   </div>
 
@@ -559,9 +566,9 @@ export default function FinanceAnalyticsPage() {
                 </div>
 
                 {/* CGST, SGST, IGST Summary Card */}
-                <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm flex flex-col justify-between">
+                <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none flex flex-col justify-between">
                   <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">Tax Split Breakdown</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-1">Tax Split Breakdown</h3>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Intrastate vs Interstate tax allocation</p>
                   </div>
 
@@ -591,31 +598,31 @@ export default function FinanceAnalyticsPage() {
               </div>
 
               {/* Tax Ledger Table */}
-              <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-4">GST Monthly Ledger Table</h4>
+              <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-6">GST Monthly Ledger Table</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400">Tax Period</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Gross Sales</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">GST Collected</th>
-                        <th className="pb-3 text-[9px] font-black uppercase tracking-widest text-gray-400 text-right">Net Sales (Excl. Tax)</th>
+                      <tr className="border-b border-[#1a1c1c]/10">
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Tax Period</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Gross Sales</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">GST Collected</th>
+                        <th className="pb-4 text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Net Sales (Excl. Tax)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-mono">
                       {gstReport.length > 0 ? (
                         gstReport.map((row: any) => (
                           <tr key={row.monthName} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-3.5 text-xs font-black text-[#1a1c1c] uppercase tracking-wider">{row.monthName}</td>
-                            <td className="py-3.5 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.grossSales)}</td>
-                            <td className="py-3.5 text-xs text-[#775a19] font-bold text-right">{formatCurrency(row.gstCollected)}</td>
-                            <td className="py-3.5 text-xs text-gray-500 text-right">{formatCurrency(row.netSales)}</td>
+                            <td className="py-4 text-xs font-black text-[#1a1c1c] uppercase tracking-wider">{row.monthName}</td>
+                            <td className="py-4 text-xs text-[#1a1c1c] text-right">{formatCurrency(row.grossSales)}</td>
+                            <td className="py-4 text-xs text-[#775a19] font-bold text-right">{formatCurrency(row.gstCollected)}</td>
+                            <td className="py-4 text-xs text-gray-500 text-right">{formatCurrency(row.netSales)}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="py-8 text-center text-xs text-gray-400 uppercase tracking-widest font-sans">
+                          <td colSpan={4} className="py-8 text-center text-xs text-gray-400 uppercase tracking-[0.2em] font-sans">
                             No active tax histories found.
                           </td>
                         </tr>
@@ -632,12 +639,12 @@ export default function FinanceAnalyticsPage() {
             <div className="space-y-8">
               <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">EXECUTIVE FINANCIAL SUMMARY</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19]">EXECUTIVE FINANCIAL SUMMARY</h3>
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Overall monthly financial performance audit</p>
                 </div>
                 <button
                   onClick={handleExportRevenueCSV}
-                  className="px-5 py-2.5 bg-[#775a19] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#5f4713] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[14px]">download</span>
                   <span>Export Financial Summary CSV</span>
@@ -645,43 +652,43 @@ export default function FinanceAnalyticsPage() {
               </div>
 
               {/* Net Revenue Summary Grid */}
-              <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-4">Net Revenue Report</h4>
+              <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-6">Net Revenue Report</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Gross Revenue</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Gross Revenue</span>
                     <span className="text-2xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.grossRevenue)}
                     </span>
                     <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Sum of total order proceeds</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Total Refunds</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Total Refunds</span>
                     <span className="text-2xl font-black font-headline text-red-600 font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.totalRefunds)}
                     </span>
                     <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Deducted refund amounts</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Total Discounts</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Total Discounts</span>
                     <span className="text-2xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.totalDiscounts)}
                     </span>
                     <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Coupons & loyalty discounts</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Wallet Revenue</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Wallet Revenue</span>
                     <span className="text-2xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.walletRevenue)}
                     </span>
                     <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Paid using store credits</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Gateway Revenue</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Gateway Revenue</span>
                     <span className="text-2xl font-black font-headline text-[#1a1c1c] font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.gatewayRevenue)}
                     </span>
@@ -689,7 +696,7 @@ export default function FinanceAnalyticsPage() {
                   </div>
 
                   <div className="bg-gray-50 border border-[#775a19]/40 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[#775a19] block">Net Revenue</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#775a19] block">Net Revenue</span>
                     <span className="text-2xl font-black font-headline text-[#775a19] font-mono mt-2 block">
                       {formatCurrency(netRevenueReport.netRevenue)}
                     </span>
@@ -699,19 +706,19 @@ export default function FinanceAnalyticsPage() {
               </div>
 
               {/* Customer Liabilities */}
-              <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-4">Customer Outstanding Liabilities</h4>
+              <div className="bg-white border border-[#1a1c1c]/10 p-8 rounded-none">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#775a19] mb-6">Customer Outstanding Liabilities</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Wallet Credits Owed</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Wallet Credits Owed</span>
                     <span className="text-2xl font-black font-headline text-amber-700 font-mono mt-2 block">
                       {formatCurrency(liability.totalWalletLiability)}
                     </span>
                     <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1 font-bold">Outstanding wallet credits</p>
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Loyalty Points Liability</span>
+                  <div className="bg-gray-50 border border-[#1a1c1c]/10 p-6 rounded-none">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block">Loyalty Points Liability</span>
                     <span className="text-2xl font-black font-headline text-amber-700 font-mono mt-2 block">
                       {formatCurrency(liability.totalLoyaltyLiability)}
                     </span>
@@ -721,7 +728,7 @@ export default function FinanceAnalyticsPage() {
                   </div>
 
                   <div className="bg-gray-50 border border-red-200 p-6 rounded-none">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-red-600 block">Total Customer Liability</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-red-600 block">Total Customer Liability</span>
                     <span className="text-2xl font-black font-headline text-red-600 font-mono mt-2 block">
                       {formatCurrency(liability.totalLiability)}
                     </span>

@@ -421,98 +421,143 @@ export default function ReturnDetailsClient({
                 Financial & Tax Audit Breakdown
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                {/* 1. Refund Calculation */}
-                <div className="space-y-4">
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
-                    1. Refund Calculation
-                  </h4>
-                  <div className="space-y-2 text-xs font-semibold text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Line Price Subtotal:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0).toLocaleString("en-IN")}.00
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-red-600">
-                      <span>Pro-Rata Coupon Share:</span>
-                      <span>
-                        -₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.couponShare || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-red-600">
-                      <span>Pro-Rata Points Share:</span>
-                      <span>
-                        -₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.pointsShare || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-black uppercase tracking-wider">
-                      <span>Net Refund Value:</span>
-                      <span>
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.refundAmount || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              {(() => {
+                const originalSubtotal = order.originalTotal || order.total || 1;
+                const couponDiscount = order.couponDiscount || 0;
+                const pointsDiscount = order.pointsDiscount || 0;
+                const shippingAmount = order.shippingAmount || 0;
 
-                {/* 2. Payment Method Split */}
-                <div className="space-y-4 md:pl-8">
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
-                    2. Payment Method Split
-                  </h4>
-                  <div className="space-y-2 text-xs font-semibold text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Wallet Refund:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.walletRefund || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Gateway/Bank Refund:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gatewayRefund || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-100 pt-2 flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                      <span>Shipping Fee (Non-Ref):</span>
-                      <span>₹{(order.shippingAmount || 0).toLocaleString("en-IN")}.00</span>
-                    </div>
-                  </div>
-                </div>
+                // Enrich items on the fly to support legacy returns that don't have these snapshot fields saved
+                const enrichedItems = order.returnedItems.map((item: any) => {
+                  const itemQty = Number(item.quantity || 1);
+                  const itemPrice = Number(item.price || 0);
+                  const itemLineTotal = itemPrice * itemQty;
+                  const weightRatio = itemLineTotal / originalSubtotal;
 
-                {/* 3. Included GST Breakdown */}
-                <div className="space-y-4 md:pl-8">
-                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
-                    3. Included GST Breakdown
-                  </h4>
-                  <div className="space-y-2 text-xs font-semibold text-gray-600">
-                    <div className="flex justify-between">
-                      <span>Taxable Net Value:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.taxableAmount || 0), 0).toLocaleString("en-IN")}
-                      </span>
+                  const couponShare = item.couponShare !== undefined ? item.couponShare : Math.round(couponDiscount * weightRatio * 100) / 100;
+                  const pointsShare = item.pointsShare !== undefined ? item.pointsShare : Math.round(pointsDiscount * weightRatio * 100) / 100;
+                  const refundAmount = item.refundAmount !== undefined ? item.refundAmount : Math.max(0, itemLineTotal - couponShare - pointsShare);
+
+                  // GST Rate (5% for SHIRT-0022/garments <= 1000, 12% others)
+                  const gstRate = item.gstRate !== undefined ? item.gstRate : (itemLineTotal <= 1000 ? 5 : 12);
+                  const gstFraction = gstRate / 100;
+
+                  const taxableAmount = item.taxableAmount !== undefined ? item.taxableAmount : Math.round((refundAmount / (1 + gstFraction)) * 100) / 100;
+                  const gstAmount = item.gstAmount !== undefined ? item.gstAmount : Math.round((refundAmount - taxableAmount) * 100) / 100;
+                  const cgst = item.cgst !== undefined ? item.cgst : Math.round((gstAmount / 2) * 100) / 100;
+                  const sgst = item.sgst !== undefined ? item.sgst : Math.round((gstAmount - cgst) * 100) / 100;
+
+                  return {
+                    ...item,
+                    couponShare,
+                    pointsShare,
+                    refundAmount,
+                    taxableAmount,
+                    gstAmount,
+                    cgst,
+                    sgst,
+                    gstRate
+                  };
+                });
+
+                const totalSubtotal = enrichedItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+                const totalCouponShare = enrichedItems.reduce((acc: number, item: any) => acc + (item.couponShare || 0), 0);
+                const totalPointsShare = enrichedItems.reduce((acc: number, item: any) => acc + (item.pointsShare || 0), 0);
+                const totalRefundAmount = enrichedItems.reduce((acc: number, item: any) => acc + (item.refundAmount || 0), 0);
+                const totalWalletRefund = enrichedItems.reduce((acc: number, item: any) => acc + (item.walletRefund || 0), 0);
+                const totalGatewayRefund = enrichedItems.reduce((acc: number, item: any) => acc + (item.gatewayRefund || 0), 0);
+                const totalTaxableAmount = enrichedItems.reduce((acc: number, item: any) => acc + (item.taxableAmount || 0), 0);
+                const totalCgst = enrichedItems.reduce((acc: number, item: any) => acc + (item.cgst || 0), 0);
+                const totalSgst = enrichedItems.reduce((acc: number, item: any) => acc + (item.sgst || 0), 0);
+                const totalGstRefunded = enrichedItems.reduce((acc: number, item: any) => acc + (item.gstAmount || 0), 0);
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                    {/* 1. Refund Calculation */}
+                    <div className="space-y-4">
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                        1. Refund Calculation
+                      </h4>
+                      <div className="space-y-2 text-xs font-semibold text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Line Price Subtotal:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalSubtotal.toLocaleString("en-IN")}.00
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-red-600">
+                          <span>Pro-Rata Coupon Share:</span>
+                          <span>-₹{totalCouponShare.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="flex justify-between text-red-600">
+                          <span>Pro-Rata Points Share:</span>
+                          <span>-₹{totalPointsShare.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-black uppercase tracking-wider">
+                          <span>Net Refund Value:</span>
+                          <span>₹{totalRefundAmount.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>CGST portion:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.cgst || 0), 0).toLocaleString("en-IN")}
-                      </span>
+
+                    {/* 2. Payment Method Split */}
+                    <div className="space-y-4 md:pl-8">
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                        2. Payment Method Split
+                      </h4>
+                      <div className="space-y-2 text-xs font-semibold text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Wallet Refund:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalWalletRefund.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Gateway/Bank Refund:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalGatewayRefund.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="border-t border-gray-150 pt-2 flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                          <span>Shipping Fee (Non-Ref):</span>
+                          <span>₹{shippingAmount.toLocaleString("en-IN")}.00</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>SGST portion:</span>
-                      <span className="text-black font-bold">
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.sgst || 0), 0).toLocaleString("en-IN")}
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-[#775a19] uppercase tracking-wider">
-                      <span>Total GST Refunded:</span>
-                      <span>
-                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gstAmount || 0), 0).toLocaleString("en-IN")}
-                      </span>
+
+                    {/* 3. Included GST Breakdown */}
+                    <div className="space-y-4 md:pl-8">
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                        3. Included GST Breakdown
+                      </h4>
+                      <div className="space-y-2 text-xs font-semibold text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Taxable Net Value:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalTaxableAmount.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>CGST portion:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalCgst.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>SGST portion:</span>
+                          <span className="text-black font-bold">
+                            ₹{totalSgst.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-[#775a19] uppercase tracking-wider">
+                          <span>Total GST Refunded:</span>
+                          <span>₹{totalGstRefunded.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           )}
 

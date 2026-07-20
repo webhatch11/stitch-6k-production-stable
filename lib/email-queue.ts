@@ -18,6 +18,11 @@ export async function queueEmailHelper(params: {
   variables: any;
   deduplicationKey: string;
 }): Promise<void> {
+  // Email processing disabled per operational settings
+  if (process.env.ENABLE_EMAIL !== "true") {
+    return;
+  }
+
   if (!emailQueue || !supabase) {
     console.warn("[Email Subsystem] Redis or Supabase not configured — fallback to synchronous SMTP send");
     try {

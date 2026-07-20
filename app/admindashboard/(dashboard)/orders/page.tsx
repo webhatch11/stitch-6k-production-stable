@@ -67,16 +67,21 @@ const tabs = [
 const parseOrderDate = (o: any): Date => {
   const orderDateStr = o.created_at || o.createdAt || o.date;
   if (!orderDateStr) return new Date();
+  if (typeof orderDateStr === "number") return new Date(orderDateStr);
   let orderTime = Date.parse(orderDateStr);
-  if (isNaN(orderTime)) {
+  if (!isNaN(orderTime)) return new Date(orderTime);
+  if (typeof orderDateStr === "string") {
     const parts = orderDateStr.split("/");
     if (parts.length === 3) {
-      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-    } else {
-      return new Date();
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
     }
   }
-  return new Date(orderTime);
+  return new Date();
 };
 
 const filterByTab = (orders: Order[], tab: string) => {

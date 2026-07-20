@@ -26,6 +26,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedReturnItems, setSelectedReturnItems] = useState<string[]>([]);
 
   // Toast Alerts
   const [toastText, setToastText] = useState("");
@@ -120,12 +121,13 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   };
 
   const isEligibleForReturn = (order: Order): boolean => {
-    if (order.status !== "Delivered") return false;
-    const deliveredAtStr = order.deliveredAt || (order as any).delivered_at;
-    if (!deliveredAtStr) {
-      return true;
-    }
-    const deliveredAt = new Date(deliveredAtStr);
+    const statusLower = (order.status || "").toLowerCase();
+    if (statusLower !== "delivered") return false;
+
+    const deliveredDateStr = (order as any).delivered_at || order.deliveredAt || order.date;
+    if (!deliveredDateStr) return true;
+
+    const deliveredAt = getOrderDate(deliveredDateStr);
     const today = new Date();
     deliveredAt.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
@@ -136,14 +138,26 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
 
   const handleOpenReturnModal = (orderId: string) => {
     setSelectedOrderId(orderId);
-    setReturnReason("Size does not fit");
+    setReturnReason("Wrong size");
     setReturnDetails("");
-    // Smart-default: if the order had any gateway payment, default to "bank";
-    // wallet-only orders default to "wallet" so refund goes back to wallet.
     const orderForModal = orders.find((o) => o.id === orderId);
     setRefundOption(
       orderForModal && orderForModal.gatewayPaid > 0 ? "bank" : "wallet"
     );
+
+    // Auto-populate item selection list for the modal
+    if (orderForModal) {
+      const cartItems = orderForModal.cartItems || (orderForModal as any)?.cart_items || [];
+      const stringItems = orderForModal.items || [];
+      if (cartItems.length > 0) {
+        const itemIds = cartItems.map((item: any, idx: number) => item.orderItemId || item.productId || `${orderId}-item-${idx}`);
+        setSelectedReturnItems(itemIds);
+      } else {
+        const itemIds = stringItems.map((_: string, idx: number) => `${orderId}-item-${idx}`);
+        setSelectedReturnItems(itemIds);
+      }
+    }
+
     setUploadedImageName("");
     setReturnModalOpen(true);
   };
@@ -153,6 +167,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     setSelectedOrderId(null);
     setUploadedImageUrl("");
     setUploadedImageName("");
+    setSelectedReturnItems([]);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,13 +206,18 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
 
   const handleSubmitReturnRequest = async () => {
     if (!selectedOrderId) return;
+    if (selectedReturnItems.length === 0) {
+      triggerToast("Please select at least one item to return");
+      return;
+    }
 
     const payload = {
       reason: returnReason,
       details: returnDetails,
       image: uploadedImageName || "No image provided",
       refundOption: refundOption,
-      imageUrl: uploadedImageUrl || undefined
+      imageUrl: uploadedImageUrl || undefined,
+      selectedItems: selectedReturnItems
     };
 
     const res = await requestManualReturnAction(selectedOrderId, payload);
@@ -823,6 +843,71 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
             </p>
 
             <div className="space-y-6 mb-8">
+              {/* Select Items to Return */}
+              <div>
+                <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">
+                  Select Item(s) to Return *
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-outline-variant/20 p-3 bg-stone-50">
+                  {(() => {
+                    const modalOrder = orders.find((o) => o.id === selectedOrderId);
+                    const cartItems = modalOrder?.cartItems || (modalOrder as any)?.cart_items || [];
+                    const stringItems = modalOrder?.items || [];
+
+                    if (cartItems.length > 0) {
+                      return cartItems.map((item: any, idx: number) => {
+                        const itemId = item.orderItemId || item.productId || `${selectedOrderId}-item-${idx}`;
+                        const isChecked = selectedReturnItems.includes(itemId);
+                        return (
+                          <label key={itemId} className="flex items-center gap-3 p-2 hover:bg-black/5 cursor-pointer border-b border-outline-variant/10 last:border-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedReturnItems((prev: string[]) => [...prev, itemId]);
+                                } else {
+                                  setSelectedReturnItems((prev: string[]) => prev.filter((id: string) => id !== itemId));
+                                }
+                              }}
+                              className="text-secondary border-outline-variant/40 focus:ring-0 rounded-none"
+                            />
+                            <div className="flex-1 text-xs">
+                              <span className="font-bold text-on-surface uppercase tracking-wider">{item.productName || item.title || item.name}</span>
+                              <div className="text-[10px] text-outline font-semibold">
+                                Size: {item.size || "M"} | Qty: {item.quantity || 1} | Price: ₹{item.price}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      });
+                    }
+
+                    return stringItems.map((itemName: string, idx: number) => {
+                      const itemId = `${selectedOrderId}-item-${idx}`;
+                      const isChecked = selectedReturnItems.includes(itemId);
+                      return (
+                        <label key={itemId} className="flex items-center gap-3 p-2 hover:bg-black/5 cursor-pointer border-b border-outline-variant/10 last:border-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedReturnItems((prev: string[]) => [...prev, itemId]);
+                              } else {
+                                setSelectedReturnItems((prev: string[]) => prev.filter((id: string) => id !== itemId));
+                              }
+                            }}
+                            className="text-secondary border-outline-variant/40 focus:ring-0 rounded-none"
+                          />
+                          <span className="text-xs font-bold text-on-surface uppercase tracking-wider">{itemName}</span>
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
               {/* Product Image Upload */}
               <div>
                 <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Product Image *</label>

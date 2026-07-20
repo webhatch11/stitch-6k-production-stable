@@ -429,6 +429,18 @@ export async function createOrderEvent(orderId: string, event: string): Promise<
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
+
+  const { data: orderData } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderData && ["Cancelled", "Returned", "Completed"].includes(orderData.status) && !event.toLowerCase().includes("cancelled") && !event.toLowerCase().includes("returned") && !event.toLowerCase().includes("refund")) {
+    console.warn(`[createOrderEvent] Suppressing event '${event}' for order ${orderId} in terminal status '${orderData.status}'`);
+    return;
+  }
+
   const { error } = await supabase.from("order_events").insert({
     order_id: orderId,
     event,

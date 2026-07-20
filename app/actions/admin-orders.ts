@@ -396,7 +396,7 @@ export async function processReturnRefundAction(
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
     
-    const refStatus = (order.refundStatus || "").toLowerCase();
+    const refStatus = (order.refundStatus || (order as any).refund_status || "").toLowerCase();
     if (order.status === "Returned" || ["pending", "initiated", "success", "wallet_only", "processed", "completed"].includes(refStatus)) {
       return { success: false, error: "Refund has already been processed or is currently in progress." };
     }

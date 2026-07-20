@@ -62,8 +62,10 @@ export function calculateProRataItemRefund(
   const walletShare = Math.min(netRefundAmount, maxWalletShare);
   const gatewayShare = Math.round(Math.min(netRefundAmount - walletShare, Number(order.gateway_paid || 0)) * 100) / 100;
 
-  // 18% GST Divisor Accounting
-  const taxableAmount = Math.round((netRefundAmount / 1.18) * 100) / 100;
+  // Indian Apparel GST Tax Slab: 5% if item subtotal <= ₹1000, 12% if item subtotal > ₹1000
+  const gstRate = returnedSubtotal <= 1000 ? 0.05 : 0.12;
+  const gstDivisor = 1 + gstRate;
+  const taxableAmount = Math.round((netRefundAmount / gstDivisor) * 100) / 100;
   const gstAmount = Math.round((netRefundAmount - taxableAmount) * 100) / 100;
 
   return {

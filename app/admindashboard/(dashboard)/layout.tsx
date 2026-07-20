@@ -20,29 +20,28 @@ export default async function AdminLayout({
   }
 
   const allOrders = await db.getOrders();
-  const pendingCount = allOrders.filter(o => o.status === "Return Requested").length;
+  const pendingCount = allOrders.filter(o => (o.status || "").toLowerCase() === "return requested").length;
 
-  // Reconcile sidebar badge count: Count all active actionable orders matching
-  // (Payment Pending + Live Orders + stuck Pending queues).
+  // Reconcile sidebar badge count: Count only live orders (Paid/Paid via Wallet and created in last 24 hours).
   const now = new Date();
   const deadline = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const pendingOrdersCount = allOrders.filter(o => {
     const s = (o.status || "").toLowerCase();
-    // Payment pending states
-    if (["payment pending", "failed", "pending"].includes(s)) return true;
-    // Paid states (any age: live or stuck pending)
-    if (["paid", "paid via wallet"].includes(s)) return true;
-    // Stuck processing states (>24h)
-    if (["processing", "packed"].includes(s)) {
-      const orderDateStr = o.created_at || o.createdAt || o.date;
-      if (orderDateStr) {
-        const orderTime = Date.parse(orderDateStr);
-        if (!isNaN(orderTime)) {
-          return new Date(orderTime) < deadline;
-        }
+    if (!["paid", "paid via wallet"].includes(s)) return false;
+
+    // Parse order date using robust parsing logic identical to orders page
+    const orderDateStr = o.created_at || o.createdAt || o.date;
+    if (!orderDateStr) return true;
+
+    let orderTime = Date.parse(orderDateStr);
+    if (isNaN(orderTime)) {
+      const parts = orderDateStr.split("/");
+      if (parts.length === 3) {
+        return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) >= deadline;
       }
+      return true;
     }
-    return false;
+    return new Date(orderTime) >= deadline;
   }).length;
 
   // Check for recent audit activity (last 24h) for the Activity Log badge

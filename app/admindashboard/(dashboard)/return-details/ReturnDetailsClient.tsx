@@ -10,6 +10,7 @@ import {
   assignShiprocketReturnPickupAction,
   markReturnReceivedAction,
   processQcResultAction,
+  processReturnRefundAction,
   reshipReturnItemAction,
   verifyRefundAction,
   addOrderNoteAction,
@@ -108,7 +109,10 @@ export default function ReturnDetailsClient({
     handleAction(() => markReturnReceivedAction(order.id), "Item marked as received.");
 
   const handleQcResult = (passed: boolean, reason: string) =>
-    handleAction(() => processQcResultAction(order.id, passed, reason), passed ? "QC Passed & Refund Initiated." : "QC Failed & Customer Notified.");
+    handleAction(() => processQcResultAction(order.id, passed, reason), passed ? "QC Passed & Return Approved." : "QC Failed & Customer Notified.");
+
+  const handleIssueRefund = () =>
+    handleAction(() => processReturnRefundAction(order.id, true, "Return approved by admin"), "Refund successfully processed.");
 
   const handleReship = () =>
     handleAction(() => reshipReturnItemAction(order.id), "Reship request registered.");
@@ -368,38 +372,45 @@ export default function ReturnDetailsClient({
           </div>
 
           {/* Card 3: Items Being Returned */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Items Being Returned
             </h3>
             <div className="divide-y divide-gray-150">
-              {order.cartItems && order.cartItems.length > 0 ? (
-                order.cartItems.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-                    <div className="flex items-center gap-4">
-                      <div className="size-14 bg-zinc-900 border border-zinc-800 p-1 rounded-md flex items-center justify-center overflow-hidden shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200"}
-                          className="w-full h-full object-cover rounded-sm"
-                          alt={item.productName || item.title || "Returned item"}
-                        />
+              {(() => {
+                const displayItems = (order.returnedItems && order.returnedItems.length > 0) ? order.returnedItems : (order.cartItems || []);
+                if (displayItems.length > 0) {
+                  return displayItems.map((item: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-4">
+                        <div className="size-14 bg-zinc-900 border border-zinc-800 p-1 rounded-none flex items-center justify-center overflow-hidden shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=200"}
+                            className="w-full h-full object-cover rounded-none"
+                            alt={item.productName || item.title || "Returned item"}
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-900">{item.productName || item.title || item.name}</span>
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-0.5">
+                            SKU: {item.productId || item.id || "N/A"} - Size: {item.size || "M"} - Qty: {item.quantity || 1}
+                          </span>
+                          {item.refundAmount !== undefined && (
+                            <span className="text-[9px] text-[#775a19] font-black uppercase tracking-[0.2em] mt-0.5">
+                              Calculated Refund: ₹{item.refundAmount.toLocaleString("en-IN")}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-900">{item.productName || item.title}</span>
-                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">
-                          SKU: {item.productId || item.id || "N/A"} - Size: {item.size || "M"} - Qty: {item.quantity || 1}
-                        </span>
-                      </div>
+                      <span className="text-xs font-bold text-gray-900">
+                        ₹{((item.price || 0) * (item.quantity || 1)).toLocaleString("en-IN")}.00
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-gray-900">
-                      ₹{((item.price || 0) * (item.quantity || 1)).toLocaleString("en-IN")}.00
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-sm text-gray-400 italic">No return items found.</div>
-              )}
+                  ));
+                }
+                return <div className="text-sm text-gray-400 italic">No return items found.</div>;
+              })()}
             </div>
           </div>
 
@@ -689,9 +700,9 @@ export default function ReturnDetailsClient({
               </div>
             )}
 
-            {/* STATUS: Refunded / Refund Initiated / Return Approved */}
-            {(orderStatusLower === "returned" || orderStatusLower === "return approved" || orderStatusLower === "refund initiated") && (
-              <div className="bg-green-50 border border-green-150 rounded-xl p-4 font-medium text-xs">
+            {/* STATUS: Refunded / Refund Initiated */}
+            {(orderStatusLower === "returned" || orderStatusLower === "refund initiated") && (
+              <div className="bg-green-50 border border-green-150 rounded-none p-4 font-medium text-xs">
                 <p className="text-green-800 font-bold mb-2 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
                   Refund Processed
@@ -705,11 +716,35 @@ export default function ReturnDetailsClient({
                   <button
                     onClick={handleVerifyRefund}
                     disabled={verifyingRefund}
-                    className="mt-4 w-full bg-white text-green-700 border border-green-200 hover:bg-green-100/30 py-2 rounded-lg text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                    className="mt-4 w-full bg-white text-green-700 border border-green-200 hover:bg-green-100/30 py-2 rounded-none text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
                   >
                     {verifyingRefund ? "Verifying..." : "Verify Refund Status"}
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* STATUS: Return Approved (QC Passed, Pending Refund Execution) */}
+            {orderStatusLower === "return approved" && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-none p-4 text-xs text-amber-800 font-medium">
+                  <p className="font-bold uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
+                    QC Verified & Approved
+                  </p>
+                  <p className="mt-1">Quality check passed. The refund is now pending authorization.</p>
+                  <div className="mt-3 pt-3 border-t border-amber-200/50 font-semibold space-y-1">
+                    <div>Calculated Refund: ₹{(order.refund_amount !== undefined && order.refund_amount !== null ? order.refund_amount : order.total).toLocaleString("en-IN")}.00</div>
+                    <div>Method: {order.refundOption === "wallet" ? "Store Wallet" : "Original payment source"}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleIssueRefund}
+                  disabled={isSubmitting}
+                  className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-4 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50"
+                >
+                  💰 Issue Refund
+                </button>
               </div>
             )}
 

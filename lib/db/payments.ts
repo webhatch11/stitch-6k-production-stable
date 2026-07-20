@@ -514,18 +514,42 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
   }
 
   const order = mapDbOrderToOrder(orderData);
-  const walletPaid = order.walletPaid || 0;
-  const gatewayPaid = order.gatewayPaid || 0;
-  const totalRefundAmount = walletPaid + gatewayPaid;
+  const returnedItemsList = order.returnedItems || [];
+  
+  let totalRefundAmount = 0;
+  let walletRefundAmount = 0;
+  let gatewayRefundAmount = 0;
+  let pointsToReverse = 0;
+  let pointsToRestore = 0;
+
+  if (returnedItemsList.length > 0) {
+    for (const item of returnedItemsList) {
+      totalRefundAmount += Number(item.refundAmount || 0);
+      walletRefundAmount += Number(item.walletRefund || 0);
+      gatewayRefundAmount += Number(item.gatewayRefund || 0);
+      pointsToReverse += Number(item.pointsToReverse || 0);
+      pointsToRestore += Number(item.pointsToRestore || 0);
+    }
+  } else {
+    // Legacy support: refund the entire order
+    const walletPaid = order.walletPaid || 0;
+    const gatewayPaid = order.gatewayPaid || 0;
+    totalRefundAmount = walletPaid + gatewayPaid;
+    walletRefundAmount = walletPaid;
+    gatewayRefundAmount = gatewayPaid;
+    pointsToReverse = order.pointsEarned || 0;
+    pointsToRestore = order.pointsRedeemed || 0;
+  }
+  
   const refundReason = reason || "Return approved by admin";
 
   // FIX 3: Reversing loyalty points on return
   try {
     // 1. Reverse earned points (points customer earned from this order)
     // Note: applyLoyaltyDebit takes 3 parameters: points, orderId, userId
-    if (order.pointsEarned && order.pointsEarned > 0 && order.userId) {
+    if (pointsToReverse > 0 && order.userId) {
       await loyaltyDb.applyLoyaltyDebit(
-        order.pointsEarned,
+        pointsToReverse,
         orderId,
         order.userId
       );
@@ -533,20 +557,24 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
 
     // 2. Restore redeemed points (points customer SPENT at checkout)
     // Note: applyLoyaltyCredit takes 4 parameters: points, description, orderId, userId
-    if (order.pointsRedeemed && order.pointsRedeemed > 0 && order.userId) {
+    if (pointsToRestore > 0 && order.userId) {
       await loyaltyDb.applyLoyaltyCredit(
-        order.pointsRedeemed,
+        pointsToRestore,
         `Redeemed points restored — Order #${orderId}`,
         orderId,
         order.userId
       );
     }
 
-    // 3. Cancel pending points credit
-    await supabase
-      .from('orders')
-      .update({ points_credit_status: 'cancelled' })
-      .eq('id', orderId);
+    // 3. Cancel pending points credit if refunding entire order
+    const originalWallet = order.walletPaid || 0;
+    const originalGateway = order.gatewayPaid || 0;
+    if (returnedItemsList.length === 0 || totalRefundAmount >= (originalWallet + originalGateway)) {
+      await supabase
+        .from('orders')
+        .update({ points_credit_status: 'cancelled' })
+        .eq('id', orderId);
+    }
   } catch (loyaltyErr) {
     console.error('[processReturnRefund] loyalty reversal failed:', loyaltyErr);
   }
@@ -583,9 +611,9 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
   } else {
     if (qualityCheckPassed) {
       // Refund wallet portion back to wallet
-      if (walletPaid > 0 && order.userId) {
+      if (walletRefundAmount > 0 && order.userId) {
         const creditResult = await usersDb.applyWalletCredit(
-          walletPaid,
+          walletRefundAmount,
           `Refund for return — Order #${orderId}`,
           orderId,
           order.userId
@@ -597,11 +625,11 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       }
 
       // Refund Razorpay portion back to bank
-      if (gatewayPaid > 0 && order.razorpayPaymentId) {
+      if (gatewayRefundAmount > 0 && order.razorpayPaymentId) {
         try {
           const { razorpay } = require("../razorpay") as typeof import("../razorpay");
           const razorpayRefund = await razorpay.payments.refund(order.razorpayPaymentId, {
-            amount: Math.round(gatewayPaid * 100), // paise
+            amount: Math.round(gatewayRefundAmount * 100), // paise
             notes: {
               orderId: orderId,
               reason: 'Return approved'
@@ -631,12 +659,12 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       }
 
       // If wallet-only order
-      if (walletPaid > 0 && gatewayPaid === 0) {
+      if (walletRefundAmount > 0 && gatewayRefundAmount === 0) {
         await supabase
           .from('orders')
           .update({
             refund_status: 'wallet_only',
-            refund_amount: walletPaid,
+            refund_amount: walletRefundAmount,
             refunded_at: new Date().toISOString()
           })
           .eq('id', orderId);
@@ -645,34 +673,28 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
   }
 
   // Restore stock for returned items only if quality check passed.
-  // Use the array overload so each item's `color` is forwarded to the atomic
-  // RPC — the single-item overload hard-codes "Default" and would miss named
-  // colour variants (e.g. "Navy", "Crimson") stored in product_variants.
   try {
-    if (qualityCheckPassed && order.cartItems && order.cartItems.length > 0) {
-      // Map to the shape expected by the array overload:
-      //   { productName, size, color, quantity }
-      // productName is matched against the products table inside restoreStock.
-      // Fallback to product ID when productName is absent (legacy orders).
-      const itemsForRestock = order.cartItems.map((item: any) => ({
-        productName: item.productName || item.productId || "",
-        size: item.size || item.variant || "M",
-        color: item.color || "Default",
-        quantity: item.quantity || 1,
-      }));
-      // Pass orderId as the sessionId so the idempotency key is order-scoped.
-      await inventoryDb.restoreStock(itemsForRestock, orderId);
-      console.log(
-        '[processReturnRefund] Stock restored for order',
-        order.id
-      );
+    if (qualityCheckPassed) {
+      const restockItems = returnedItemsList.length > 0 ? returnedItemsList : (order.cartItems || []);
+      if (restockItems.length > 0) {
+        const itemsForRestock = restockItems.map((item: any) => ({
+          productName: item.productName || item.productId || "",
+          size: item.size || item.variant || "M",
+          color: item.color || "Default",
+          quantity: item.quantity || 1,
+        }));
+        await inventoryDb.restoreStock(itemsForRestock, orderId);
+        console.log(
+          '[processReturnRefund] Stock restored for order',
+          order.id
+        );
+      }
     }
   } catch (stockErr) {
     console.error(
       '[processReturnRefund] Stock restore failed (non-fatal, requires manual review):',
       stockErr
     );
-    // Do not abort the refund if stock restore fails; log for ops review.
   }
 
   // Update order status to Returned

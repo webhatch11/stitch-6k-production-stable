@@ -271,7 +271,7 @@ export async function saveOrder(order: Partial<Order>): Promise<Order> {
 
 export async function requestManualReturn(
   orderId: string,
-  payload: { reason: string; details: string; image: string; refundOption: string; imageUrl?: string }
+  payload: { reason: string; details: string; image: string; refundOption: string; imageUrl?: string; selectedItems?: string[] }
 ): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -290,6 +290,71 @@ export async function requestManualReturn(
   if (orderErr || !orderData) return false;
   if (orderData.status === "Returned" || orderData.status === "Return Requested") return false;
 
+  // Partial Return & Proportional Split Calculation
+  const cartItems = orderData.cart_items || [];
+  
+  // Find returned items from selection
+  const matchedReturnedItems = cartItems.map((item: any, idx: number) => {
+    const itemId = item.orderItemId || item.productId || `${orderId}-item-${idx}`;
+    return { ...item, _computedItemId: itemId };
+  }).filter((item: any) => payload.selectedItems?.includes(item._computedItemId));
+
+  const returnedSubset = matchedReturnedItems.length > 0 ? matchedReturnedItems : cartItems;
+
+  const originalSubtotal = cartItems.reduce((sum: number, item: any) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0) || Number(orderData.original_total) || Number(orderData.total);
+  const couponDiscount = Number(orderData.coupon_discount || 0);
+  const pointsDiscount = Number(orderData.points_discount || 0);
+  const totalDiscount = couponDiscount + pointsDiscount;
+
+  const returnedItemsToSave = returnedSubset.map((item: any) => {
+    const itemQty = Number(item.quantity || 1);
+    const itemPrice = Number(item.price || 0);
+    const itemLineTotal = itemPrice * itemQty;
+    
+    // Proportional discount distribution
+    const proportionalFactor = originalSubtotal > 0 ? (itemLineTotal / originalSubtotal) : (1 / cartItems.length);
+    const itemDiscount = totalDiscount * proportionalFactor;
+    const itemRefundAmount = Math.max(0, itemLineTotal - itemDiscount);
+    
+    // Proportional wallet/gateway refund shares
+    const walletPaid = Number(orderData.wallet_paid || 0);
+    const gatewayPaid = Number(orderData.gateway_paid || 0);
+    const netPayment = walletPaid + gatewayPaid;
+    
+    let walletRefund = 0;
+    let gatewayRefund = 0;
+    if (netPayment > 0) {
+      walletRefund = itemRefundAmount * (walletPaid / netPayment);
+      gatewayRefund = itemRefundAmount * (gatewayPaid / netPayment);
+    }
+    
+    // Points earned reversal
+    const pointsEarned = Number(orderData.points_earned || 0);
+    const pointsToReverse = Math.round(pointsEarned * proportionalFactor);
+    
+    // Points redeemed restoration
+    const pointsRedeemed = Number(orderData.points_redeemed || 0);
+    const pointsToRestore = Math.round(pointsRedeemed * proportionalFactor);
+    
+    return {
+      orderItemId: item.orderItemId || item.productId || "",
+      productId: item.productId || "",
+      productName: item.productName || item.title || item.name || "Shirt",
+      size: item.size || item.variant || "M",
+      color: item.color || "Default",
+      quantity: itemQty,
+      price: itemPrice,
+      refundAmount: Number(itemRefundAmount.toFixed(2)),
+      walletRefund: Number(walletRefund.toFixed(2)),
+      gatewayRefund: Number(gatewayRefund.toFixed(2)),
+      pointsToReverse,
+      pointsToRestore,
+      image: item.image || ""
+    };
+  });
+
+  const totalItemRefundAmount = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.refundAmount, 0);
+
   const { error } = await supabase
     .from("orders")
     .update({
@@ -300,6 +365,8 @@ export async function requestManualReturn(
       return_image_url: payload.imageUrl || null,
       refund_option: payload.refundOption === "bank" ? "original_source" : payload.refundOption,
       return_request_date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
+      returned_items: returnedItemsToSave,
+      refund_amount: totalItemRefundAmount
     })
     .eq("id", orderId);
 

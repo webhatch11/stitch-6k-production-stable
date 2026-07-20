@@ -101,6 +101,7 @@ export interface Order {
   shiprocketId?: string;
   idempotencyKey?: string;
   cartItems?: any[];
+  returnedItems?: any[];
   paymentStatus?: string;
   paymentProcessingState?: any;
   userId?: string;

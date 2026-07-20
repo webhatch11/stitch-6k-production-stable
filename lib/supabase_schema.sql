@@ -660,6 +660,9 @@ ALTER TABLE public.inventory_reservations ADD CONSTRAINT inventory_reservations_
 -- Alter orders table to store full JSON cart items
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS cart_items JSONB DEFAULT '[]';
 
+-- Alter orders table to store returned items for partial returns support
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS returned_items JSONB DEFAULT '[]';
+
 -- Alter orders table to store delivery address at checkout time (issue #8)
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS address_snapshot JSONB;
 

@@ -1251,14 +1251,21 @@ export async function assignShiprocketReturnPickupAction(
       pincode: "400001",
     };
 
-    const items = (order.cartItems && order.cartItems.length > 0)
-      ? order.cartItems.map((item: any) => ({
+    const items = (order.returnedItems && order.returnedItems.length > 0)
+      ? order.returnedItems.map((item: any) => ({
           name: item.productName || item.title || "Shirt",
           sku: item.productId || "sku",
           units: item.quantity || 1,
           price: item.price || 0
         }))
-      : [{ name: "Designer Shirt", sku: "sku-stitch", units: 1, price: order.total }];
+      : (order.cartItems && order.cartItems.length > 0)
+        ? order.cartItems.map((item: any) => ({
+            name: item.productName || item.title || "Shirt",
+            sku: item.productId || "sku",
+            units: item.quantity || 1,
+            price: item.price || 0
+          }))
+        : [{ name: "Designer Shirt", sku: "sku-stitch", units: 1, price: order.total }];
 
     const pickup = await shiprocket.createReversePickup(orderId, customerAddress, items);
 
@@ -1335,15 +1342,18 @@ export async function processQcResultAction(
 
   try {
     if (qcPassed) {
-      await db.transitionOrderStatus(orderId, "Return Approved", {
+      const success = await db.transitionOrderStatus(orderId, "Return Approved", {
         triggerSource: "Admin Panel - QC Passed",
         userOrAdmin: "admin",
-        reason: "QC passed — refund initiated"
+        reason: reason || "QC passed — pending admin refund approval"
       });
-
-      const refundRes = await processReturnRefundAction(orderId, true, reason || "Return QC Passed");
-      if (!refundRes.success) {
-        return { success: false, error: refundRes.error || "Failed to process refund" };
+      if (success) {
+        await db.saveOrder({
+          id: orderId,
+          qualityCheckPassed: true,
+        });
+      } else {
+        return { success: false, error: "Failed to transition status to Return Approved." };
       }
     } else {
       const success = await db.transitionOrderStatus(orderId, "Return QC Failed", {

@@ -84,6 +84,7 @@ export const mapDbOrderToOrder = (o: any): Order => {
     qualityCheckPassed: o.quality_check_passed,
     shiprocketId: o.shiprocket_id || o.shiprocketId || "",
     cartItems: o.cart_items || [],
+    returnedItems: o.returned_items || [],
     paymentStatus: o.payment_status || o.paymentStatus || "",
     userId: o.user_id || undefined,
     address_snapshot: o.address_snapshot || null,

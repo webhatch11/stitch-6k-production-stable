@@ -45,12 +45,29 @@ export async function getTodaySalesKPI(): Promise<{
   ordersTrendStatus: "up" | "down" | "none" | "first";
 }> {
   try {
-    const orders = (await ordersDb.getOrders()) as any[];
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const nowIST = new Date(Date.now() + IST_OFFSET_MS);
-    nowIST.setUTCHours(0, 0, 0, 0);
-    const todayStart = nowIST.getTime() - IST_OFFSET_MS;
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayStart = startOfToday.getTime();
     const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+
+    const { supabase, isSupabaseConfigured } = loadService();
+    let orders: any[] = [];
+    
+    if (isSupabaseConfigured && supabase) {
+      const yesterdayStartIso = new Date(yesterdayStart).toISOString();
+      const { data: dbOrders, error } = await supabase
+        .from("orders")
+        .select("id, total, refund_amount, status, created_at, date")
+        .gte("created_at", yesterdayStartIso);
+
+      if (!error && dbOrders && dbOrders.length > 0) {
+        orders = dbOrders;
+      }
+    }
+
+    if (!orders || orders.length === 0) {
+      orders = (await ordersDb.getOrders()) as any[];
+    }
 
     let todaySales = 0;
     let todayOrders = 0;

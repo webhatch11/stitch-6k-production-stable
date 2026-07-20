@@ -29,6 +29,13 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
   const wishlistStore = useWishlistStore();
   const recentStore = useRecentStore();
 
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      wishlistStore.reconcileWishlist(initialProducts);
+      recentStore.reconcileRecent(initialProducts);
+    }
+  }, [initialProducts]);
+
   // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {

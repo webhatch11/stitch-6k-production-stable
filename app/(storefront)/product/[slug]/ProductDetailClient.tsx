@@ -811,7 +811,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 .filter((item: Product) => item.id !== product.id)
                 .slice(0, 8)
                 .map((rec: Product) => {
-                  const primaryImg = rec.image || "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&q=80&w=800";
+                  const primaryImg = rec.image || "/assets/logo.png";
                   const secondaryImg = rec.images && rec.images.length > 1 ? rec.images[1] : primaryImg;
                   const totalRecStock = rec.sizeStock ? Object.values(rec.sizeStock).reduce((sum, val) => sum + (val || 0), 0) : 0;
                   const isRecOutOfStock = totalRecStock <= 0;

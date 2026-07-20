@@ -36,6 +36,14 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
   const wishlistStore = useWishlistStore();
   const recentStore = useRecentStore();
 
+  // Reconcile saved local storage items against active catalog products
+  useEffect(() => {
+    if (initialProducts && initialProducts.length > 0) {
+      wishlistStore.reconcileWishlist(initialProducts);
+      recentStore.reconcileRecent(initialProducts);
+    }
+  }, [initialProducts]);
+
   // Pagination & Infinite Scroll states
   const [visibleCount, setVisibleCount] = useState(6);
   const loaderRef = useRef<HTMLDivElement | null>(null);

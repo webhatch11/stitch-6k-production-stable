@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Order, WalletTransaction, LoyaltyTransaction, UserAddress } from "@/lib/types";
+import { Order, WalletTransaction, LoyaltyTransaction, UserAddress, Product } from "@/lib/types";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getProfileDataAction, updateProfileAction } from "@/app/actions/profile";
 import { useToastStore } from "@/stores/toastStore";
@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/addresses";
 import { getPendingPointsAction } from "@/app/actions/orders";
 import { useWishlistStore } from "@/stores/wishlistStore";
+import { useRecentStore } from "@/stores/recentStore";
 import { useCartStore } from "@/stores/cartStore";
 import ProductImage from "@/components/ProductImage";
 
@@ -29,6 +30,7 @@ interface MyProfileClientProps {
   initialLoyaltyTxs: LoyaltyTransaction[];
   initialRecentOrders: Order[];
   initialAllOrders: Order[];
+  activeProducts?: Product[];
 }
 
 export default function MyProfileClient({
@@ -42,6 +44,7 @@ export default function MyProfileClient({
   initialLoyaltyTxs,
   initialRecentOrders,
   initialAllOrders,
+  activeProducts = [],
 }: MyProfileClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "wishlist" | "returns">("profile");
@@ -49,6 +52,13 @@ export default function MyProfileClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const wishlistStore = useWishlistStore();
   const wishlistItems = wishlistStore.wishlistItems;
+
+  useEffect(() => {
+    if (activeProducts && activeProducts.length > 0) {
+      wishlistStore.reconcileWishlist(activeProducts);
+      useRecentStore.getState().reconcileRecent(activeProducts);
+    }
+  }, [activeProducts]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {

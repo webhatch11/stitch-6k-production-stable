@@ -41,6 +41,7 @@ export default async function MyProfilePage() {
   const points = await db.getLoyaltyPoints(user.id);
   const lTxs = await db.getLoyaltyTransactions(user.id);
   const orders = await db.getUserOrders(user.id);
+  const activeProducts = await db.getProducts();
 
   return (
     <MyProfileClient
@@ -54,6 +55,7 @@ export default async function MyProfilePage() {
       initialLoyaltyTxs={lTxs}
       initialRecentOrders={orders.slice(0, 3)}
       initialAllOrders={orders}
+      activeProducts={activeProducts}
     />
   );
 }

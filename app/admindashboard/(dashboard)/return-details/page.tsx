@@ -11,6 +11,7 @@ interface PageProps {
 
 const RETURN_STATUSES = [
   "return requested",
+  "return accepted",
   "return in transit",
   "returned",
   "return rejected",
@@ -36,7 +37,7 @@ export default async function ReturnDetailsPage({ searchParams }: PageProps) {
   }
 
   const statusLower = (returnData.order.status || "").toLowerCase();
-  const isReturn = RETURN_STATUSES.some(s => statusLower.includes(s));
+  const isReturn = statusLower.includes("return") || statusLower.includes("refund") || RETURN_STATUSES.some(s => statusLower.includes(s));
 
   if (!isReturn) {
     redirect(`/admindashboard/order-details?orderId=${orderId}`);

@@ -381,7 +381,9 @@ export async function approveReturnPickupAction(
 export async function processReturnRefundAction(
   orderId: string,
   qualityPassed: boolean,
-  reason: string
+  reason: string,
+  overrideAmount?: number,
+  overrideReason?: string
 ): Promise<{ success: boolean; error?: string }> {
   try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
@@ -412,12 +414,8 @@ export async function processReturnRefundAction(
       );
     }
 
-    const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim());
+    const success = await db.processReturnRefund(orderId, qualityPassed, reason.trim(), overrideAmount, overrideReason);
     if (success) {
-      // Loyalty point reversal is handled atomically inside db.processReturnRefund
-      // (applyLoyaltyDebit for pointsEarned, applyLoyaltyCredit for pointsRedeemed).
-      // Do NOT call loyalty RPCs here to avoid double-counting.
-
       db.getOrderById(orderId).then(async (latestOrder) => {
         if (!latestOrder) return;
         const email = await getCustomerEmailForOrder(latestOrder);
@@ -432,15 +430,12 @@ export async function processReturnRefundAction(
             id: latestOrder.id + suffix,
             customerName: latestOrder.customer || "Valued Customer",
             customerEmail: email,
-            refundAmount: latestOrder.total,
+            refundAmount: overrideAmount !== undefined ? overrideAmount : latestOrder.total,
             refundOption: (latestOrder as any).refund_option || (isWalletRefund ? "wallet" : "bank"),
           });
         }
       }).catch((err) => {
         console.error("[Email Dispatch Error] processReturnRefund:", err);
-        Sentry.captureException(err, {
-          extra: { orderId, emailType: "return_accepted" }
-        });
       });
     }
     return { success: !!success };
@@ -1226,7 +1221,10 @@ export async function rejectReturnWithReasonAction(
 }
 
 export async function assignShiprocketReturnPickupAction(
-  orderId: string
+  orderId: string,
+  awbCode: string,
+  courierName: string,
+  trackingUrl?: string
 ): Promise<{ success: boolean; awb?: string; error?: string }> {
   try {
     await requireAdmin();
@@ -1234,76 +1232,53 @@ export async function assignShiprocketReturnPickupAction(
     return { success: false, error: "Unauthorized" };
   }
 
+  if (!awbCode?.trim()) return { success: false, error: "AWB tracking code is required" };
+  if (!courierName?.trim()) return { success: false, error: "Courier name is required" };
+
   try {
     const order = await db.getOrderById(orderId);
     if (!order) {
       return { success: false, error: "Order not found" };
     }
 
-    const { shiprocket } = await import("@/lib/shiprocket");
+    const success = await db.transitionOrderStatus(orderId, "Return in Transit", {
+      triggerSource: "Admin Panel - Manual Return Shipment Linkage",
+      userOrAdmin: "admin",
+      reason: `Return shipment manually scheduled. Courier: ${courierName}, AWB: ${awbCode}`
+    });
 
-    const customerAddress = order.address_snapshot || {
-      name: order.customer || "Guest Customer",
-      phone: "9999999999",
-      address: "123 Main Street",
-      city: "Mumbai",
-      state: "Maharashtra",
-      pincode: "400001",
-    };
-
-    const items = (order.returnedItems && order.returnedItems.length > 0)
-      ? order.returnedItems.map((item: any) => ({
-          name: item.productName || item.title || "Shirt",
-          sku: item.productId || "sku",
-          units: item.quantity || 1,
-          price: item.price || 0
-        }))
-      : (order.cartItems && order.cartItems.length > 0)
-        ? order.cartItems.map((item: any) => ({
-            name: item.productName || item.title || "Shirt",
-            sku: item.productId || "sku",
-            units: item.quantity || 1,
-            price: item.price || 0
-          }))
-        : [{ name: "Designer Shirt", sku: "sku-stitch", units: 1, price: order.total }];
-
-    const pickup = await shiprocket.createReversePickup(orderId, customerAddress, items);
-
-    if (pickup.success && pickup.awb) {
-      const success = await db.transitionOrderStatus(orderId, "Return Pickup Scheduled", {
-        triggerSource: "Admin Panel - Return Pickup",
-        userOrAdmin: "admin",
-        reason: `Return pickup scheduled. AWB: ${pickup.awb}`
+    if (success) {
+      await db.saveOrder({
+        id: orderId,
+        returnAwb: awbCode.trim(),
+        courierName: courierName.trim(),
+        trackingUrl: trackingUrl?.trim() || `https://www.delhivery.com/track/package/${awbCode.trim()}`,
+        returnPickupScheduled: new Date().toISOString(),
       });
 
-      if (success) {
-        await db.saveOrder({
-          id: orderId,
-          returnAwb: pickup.awb,
-          returnPickupScheduled: pickup.pickupScheduled || new Date().toISOString(),
-        });
-
-        const email = await getCustomerEmailForOrder(order);
-        if (email) {
+      const email = await getCustomerEmailForOrder(order);
+      if (email) {
+        try {
           const { sendReturnPickupAssignedEmail } = await import("@/lib/email");
           await sendReturnPickupAssignedEmail({
             id: orderId,
             customerName: order.customer || "Valued Customer",
             customerEmail: email,
-            awb: pickup.awb,
+            awb: awbCode.trim(),
+            courierName: courierName.trim(),
           });
+        } catch (emailErr) {
+          console.error("[Email Dispatch Error] sendReturnPickupAssignedEmail failed:", emailErr);
         }
-
-        return { success: true, awb: pickup.awb };
-      } else {
-        return { success: false, error: "Failed to transition status to Return Pickup Scheduled." };
       }
+
+      return { success: true, awb: awbCode.trim() };
     } else {
-      return { success: false, error: pickup.error || "Shiprocket reverse pickup failed." };
+      return { success: false, error: "Failed to transition status to Return in Transit." };
     }
   } catch (e: any) {
     console.error("[assignShiprocketReturnPickupAction] Error:", e);
-    return { success: false, error: e.message || "Failed to assign reverse pickup" };
+    return { success: false, error: e.message || "Failed to assign manual reverse pickup" };
   }
 }
 

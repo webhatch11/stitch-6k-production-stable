@@ -39,6 +39,19 @@ export default function ReturnDetailsClient({
   const [qcFailReason, setQcFailReason] = useState("");
   const [newNoteText, setNewNoteText] = useState("");
 
+  // Manual shipment linkage states
+  const [awbCode, setAwbCode] = useState("");
+  const [courierName, setCourierName] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
+
+  // Refund override state
+  const calculatedRefund = order.returnedItems && order.returnedItems.length > 0
+    ? order.returnedItems.reduce((acc: number, item: any) => acc + (item.calculatedRefund || item.refundAmount || 0), 0)
+    : order.total;
+
+  const [approvedRefund, setApprovedRefund] = useState(calculatedRefund.toString());
+  const [overrideReason, setOverrideReason] = useState("Damaged Product");
+
   // Loading/submitting states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteSubmitting, setNoteSubmitting] = useState(false);
@@ -63,7 +76,6 @@ export default function ReturnDetailsClient({
       const res = await actionFn();
       if (res.success) {
         triggerToast(successMsg);
-        // Reload page to reflect updated DB state
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -85,13 +97,13 @@ export default function ReturnDetailsClient({
     handleAction(() => rejectReturnWithReasonAction(order.id, rejectReason.trim()), "Return request rejected.");
   };
 
-  const handleAssignPickup = async () => {
+  const handleAssignPickup = async (code: string, name: string, url?: string) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const res = await assignShiprocketReturnPickupAction(order.id);
+      const res = await assignShiprocketReturnPickupAction(order.id, code, name, url);
       if (res.success && res.awb) {
-        triggerToast(`Pickup assigned. AWB: ${res.awb}`);
+        triggerToast(`Manual pickup details recorded. AWB: ${res.awb}`);
         setTimeout(() => {
           window.location.reload();
         }, 1000);
@@ -111,8 +123,8 @@ export default function ReturnDetailsClient({
   const handleQcResult = (passed: boolean, reason: string) =>
     handleAction(() => processQcResultAction(order.id, passed, reason), passed ? "QC Passed & Return Approved." : "QC Failed & Customer Notified.");
 
-  const handleIssueRefund = () =>
-    handleAction(() => processReturnRefundAction(order.id, true, "Return approved by admin"), "Refund successfully processed.");
+  const handleIssueRefund = (overrideAmt?: number, overrideRes?: string) =>
+    handleAction(() => processReturnRefundAction(order.id, true, "Return approved by admin", overrideAmt, overrideRes), "Refund successfully processed.");
 
   const handleReship = () =>
     handleAction(() => reshipReturnItemAction(order.id), "Reship request registered.");
@@ -751,25 +763,87 @@ export default function ReturnDetailsClient({
 
             {/* STATUS: Return Accepted */}
             {orderStatusLower === "return accepted" && (
-              <button
-                onClick={handleAssignPickup}
-                disabled={isSubmitting}
-                className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
-              >
-                📦 Assign Shiprocket Pickup
-              </button>
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-none text-xs text-gray-700 space-y-3">
+                  <p className="font-bold text-[#775a19] uppercase tracking-wider">
+                    🚚 Schedule Reverse Shipment
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-gray-550 font-medium">
+                    1. Open the Shiprocket dashboard to book the reverse pickup manually.
+                  </p>
+                  <a
+                    href="https://app.shiprocket.in/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block w-full text-center bg-black hover:bg-zinc-800 text-white py-2.5 rounded-none text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer"
+                  >
+                    Open Shiprocket Dashboard ↗
+                  </a>
+                  <p className="text-[11px] leading-relaxed pt-2 border-t border-gray-200 text-gray-550 font-medium">
+                    2. Once booked, enter the generated reverse tracking credentials below:
+                  </p>
+                </div>
+                
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                      AWB Tracking Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 1432456789"
+                      value={awbCode}
+                      onChange={(e) => setAwbCode(e.target.value)}
+                      className="w-full border border-gray-200 rounded-none p-3 text-xs outline-none focus:border-black font-semibold text-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                      Courier Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Delhivery"
+                      value={courierName}
+                      onChange={(e) => setCourierName(e.target.value)}
+                      className="w-full border border-gray-200 rounded-none p-3 text-xs outline-none focus:border-black font-semibold text-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                      Tracking URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://www.delhivery.com/track/package/..."
+                      value={trackingUrl}
+                      onChange={(e) => setTrackingUrl(e.target.value)}
+                      className="w-full border border-gray-200 rounded-none p-3 text-xs outline-none focus:border-black font-semibold text-black"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleAssignPickup(awbCode, courierName, trackingUrl)}
+                    disabled={!awbCode.trim() || !courierName.trim() || isSubmitting}
+                    className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-3.5 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    Save Tracking & Set Return In Transit
+                  </button>
+                </div>
+              </div>
             )}
 
             {(orderStatusLower === "return pickup scheduled" || orderStatus === "Return Pickup Scheduled") && (
-              <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 space-y-3">
-                <p className="font-medium">
+              <div className="bg-blue-50 border border-blue-150 rounded-none p-4 text-xs text-blue-800 space-y-3 font-semibold">
+                <p className="font-bold uppercase tracking-wider">
                   📦 Pickup Scheduled
                 </p>
                 <p>
-                  Shiprocket courier will collect the item from the customer in 2-3 days.
+                  Reverse pickup is scheduled with the courier partner.
                 </p>
                 {order.returnAwb && (
-                  <div className="font-mono text-xs bg-blue-100 rounded-lg p-2">
+                  <div className="font-mono text-xs bg-blue-100/50 border border-blue-200/50 p-2 rounded-none">
                     Return AWB: {order.returnAwb}
                   </div>
                 )}
@@ -779,19 +853,24 @@ export default function ReturnDetailsClient({
             {/* STATUS: Return in Transit */}
             {orderStatusLower === "return in transit" && (
               <div className="space-y-4">
-                <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 text-xs leading-relaxed text-purple-800 font-medium">
+                <div className="bg-purple-50 border border-purple-150 rounded-none p-4 text-xs leading-relaxed text-purple-800 font-semibold">
                   <div className="flex gap-2">
                     <span className="material-symbols-outlined text-sm mt-0.5">local_shipping</span>
                     <div>
-                      <p className="font-bold">Item in transit.</p>
-                      <p className="mt-1">Shipment is currently route to the warehouse. Tracking updates automatically.</p>
+                      <p className="font-bold uppercase tracking-wider">Item in transit</p>
+                      <p className="mt-1 font-medium">The return package is route back to our warehouse.</p>
+                      {order.returnAwb && (
+                        <p className="mt-2 font-mono text-[10px] bg-purple-100/50 p-1.5 border border-purple-200/30">
+                          Courier: {order.courierName || "Standard"} | AWB: {order.returnAwb}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={handleMarkReceived}
                   disabled={isSubmitting}
-                  className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
                 >
                   📦 Mark Received at Warehouse
                 </button>
@@ -801,29 +880,29 @@ export default function ReturnDetailsClient({
             {/* STATUS: Return QC Pending */}
             {orderStatusLower === "return qc pending" && (
               <div className="space-y-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Quality Check Inspection</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quality Check Inspection</p>
                 <button
                   onClick={() => handleQcResult(true, "")}
                   disabled={isSubmitting}
-                  className="w-full bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-green-700 hover:bg-green-600 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
                 >
-                  ✅ QC Passed — Initiate Refund
+                  ✓ QC Passed — Approve Return
                 </button>
                 
-                <div className="pt-4 border-t border-dashed border-gray-200/60">
+                <div className="pt-4 border-t border-dashed border-gray-200">
                   <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">QC Failure Reason</span>
                   <textarea
                     value={qcFailReason}
                     onChange={(e) => setQcFailReason(e.target.value)}
-                    placeholder="Describe item defects, damage, or wear..."
-                    className="w-full border border-gray-200 rounded-lg p-3 text-xs resize-none h-20 mb-2 outline-none focus:border-red-400"
+                    placeholder="Describe defects or missing accessories..."
+                    className="w-full border border-gray-200 rounded-none p-3 text-xs resize-none h-20 mb-2 outline-none focus:border-red-400"
                   />
                   <button
                     onClick={() => handleQcResult(false, qcFailReason.trim())}
                     disabled={!qcFailReason.trim() || isSubmitting}
-                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    ❌ QC Failed — Reject Return
+                    ✗ QC Failed — Reject Return
                   </button>
                 </div>
               </div>
@@ -833,14 +912,14 @@ export default function ReturnDetailsClient({
               <div className="space-y-3">
                 <button 
                   onClick={handleReship}
-                  className="w-full bg-black text-white py-3 rounded-xl font-medium"
+                  className="w-full bg-black text-white py-3 rounded-none text-xs font-bold uppercase tracking-wider"
                 >
                   🚚 Reship Item to Customer
                 </button>
 
                 <button
                   onClick={handleHoldAtWarehouse}
-                  className="w-full border border-gray-300 text-gray-600 bg-gray-50 py-3 rounded-xl font-medium"
+                  className="w-full border border-gray-300 text-gray-600 bg-gray-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider"
                 >
                   📦 Hold at Warehouse
                 </button>
@@ -849,12 +928,12 @@ export default function ReturnDetailsClient({
 
             {/* STATUS: Refunded / Refund Initiated */}
             {(orderStatusLower === "returned" || orderStatusLower === "refund initiated") && (
-              <div className="bg-green-50 border border-green-150 rounded-none p-4 font-medium text-xs">
+              <div className="bg-green-50 border border-green-150 rounded-none p-4 font-semibold text-xs">
                 <p className="text-green-800 font-bold mb-2 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
                   Refund Processed
                 </p>
-                <div className="text-green-700 space-y-1 mt-2 border-t border-green-200/50 pt-2 font-semibold">
+                <div className="text-green-700 space-y-1 mt-2 border-t border-green-200/50 pt-2">
                   <div>Amount: ₹{(order.refund_amount !== undefined && order.refund_amount !== null ? order.refund_amount : order.total).toLocaleString("en-IN")}.00</div>
                   <div>Method: {order.refundOption === "wallet" ? "Store Wallet" : "Original payment source"}</div>
                   {order.refunded_at && <div>Processed: {new Date(order.refunded_at).toLocaleDateString("en-IN")}</div>}
@@ -874,37 +953,102 @@ export default function ReturnDetailsClient({
             {/* STATUS: Return Approved (QC Passed, Pending Refund Execution) */}
             {orderStatusLower === "return approved" && (
               <div className="space-y-4">
-                <div className="bg-amber-50 border border-amber-200 rounded-none p-4 text-xs text-amber-800 font-medium">
-                  <p className="font-bold uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                <div className="bg-amber-50 border border-amber-200 rounded-none p-4 text-xs text-amber-800 font-semibold space-y-2">
+                  <p className="font-bold uppercase tracking-[0.2em] flex items-center gap-1.5 text-amber-900">
                     <span className="material-symbols-outlined text-sm">assignment_turned_in</span>
                     QC Verified & Approved
                   </p>
-                  <p className="mt-1">Quality check passed. The refund is now pending authorization.</p>
-                  <div className="mt-3 pt-3 border-t border-amber-200/50 font-semibold space-y-1">
-                    <div>Calculated Refund: ₹{(order.refund_amount !== undefined && order.refund_amount !== null ? order.refund_amount : order.total).toLocaleString("en-IN")}.00</div>
-                    <div>Method: {order.refundOption === "wallet" ? "Store Wallet" : "Original payment source"}</div>
+                  <p className="text-[11px] leading-relaxed font-medium">Quality check passed. The refund is now pending authorization.</p>
+                  <div className="pt-2 border-t border-amber-200/50 font-semibold space-y-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span>Calculated Refund:</span>
+                      <span>₹{calculatedRefund.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Method:</span>
+                      <span>{order.refundOption === "wallet" ? "Store Wallet" : "Original payment source"}</span>
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={handleIssueRefund}
-                  disabled={isSubmitting}
-                  className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-4 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50"
-                >
-                  💰 Issue Refund
-                </button>
+
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                      Approved Refund Amount (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={approvedRefund}
+                      onChange={(e) => setApprovedRefund(e.target.value)}
+                      className="w-full border border-gray-200 rounded-none p-3 text-xs outline-none focus:border-black font-semibold text-black"
+                    />
+                    <p className="text-[9px] text-gray-400 font-semibold mt-1">
+                      Maximum refund remaining: ₹{calculatedRefund.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  {Number(approvedRefund) !== calculatedRefund && (
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-wider text-gray-400 mb-1">
+                        Override Reason *
+                      </label>
+                      <select
+                        value={overrideReason}
+                        onChange={(e) => setOverrideReason(e.target.value)}
+                        className="w-full border border-gray-200 rounded-none p-3 text-xs outline-none focus:border-black font-semibold text-black bg-white"
+                      >
+                        <option value="Damaged Product">Damaged Product</option>
+                        <option value="Missing Tags">Missing Tags</option>
+                        <option value="Used Product">Used Product</option>
+                        <option value="Courtesy Adjustment">Courtesy Adjustment</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Validation alerts */}
+                  {Number(approvedRefund) <= 0 && (
+                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none">
+                      ⚠️ Refund amount must be greater than zero.
+                    </div>
+                  )}
+                  {Number(approvedRefund) > calculatedRefund && (
+                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none">
+                      ⚠️ Refund amount cannot exceed calculated limit (₹{calculatedRefund.toLocaleString("en-IN")}).
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const amount = Number(approvedRefund);
+                      const hasChanged = amount !== calculatedRefund;
+                      handleIssueRefund(amount, hasChanged ? overrideReason : undefined);
+                    }}
+                    disabled={
+                      Number(approvedRefund) <= 0 ||
+                      Number(approvedRefund) > calculatedRefund ||
+                      isSubmitting
+                    }
+                    className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-4 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    💰 Issue Refund
+                  </button>
+                </div>
               </div>
             )}
 
             {/* STATUS: Return Rejected */}
             {orderStatusLower === "return rejected" && (
-              <div className="bg-red-50 border border-red-100 rounded-xl p-4 font-semibold text-xs leading-relaxed text-red-800">
+              <div className="bg-red-50 border border-red-100 rounded-none p-4 font-semibold text-xs leading-relaxed text-red-800">
                 <p className="font-bold flex items-center gap-1.5 text-red-900 mb-1">
                   <span className="material-symbols-outlined text-sm">cancel</span>
                   Return Declined
                 </p>
                 <p className="font-medium mt-1">This return request was rejected by admin. The customer has been notified.</p>
                 {order.returnRejectReason && (
-                  <p className="mt-2 italic opacity-95 text-[11px] bg-red-100/30 p-2 rounded">
+                  <p className="mt-2 italic opacity-95 text-[11px] bg-red-100/30 p-2 rounded-none">
                     Reason: "{order.returnRejectReason}"
                   </p>
                 )}

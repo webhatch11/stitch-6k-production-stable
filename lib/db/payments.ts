@@ -482,7 +482,13 @@ export async function cancelOrderAndRefund(orderId: string, reason?: string): Pr
   return true;
 }
 
-export async function processReturnRefund(orderId: string, qualityCheckPassed = true, reason?: string): Promise<boolean> {
+export async function processReturnRefund(
+  orderId: string,
+  qualityCheckPassed = true,
+  reason?: string,
+  overrideAmount?: number,
+  overrideReason?: string
+): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -500,6 +506,12 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
 
   if (orderErr || !orderData) return false;
   if (orderData.status === "Returned") return false;
+
+  // Double Refund Protection: Reject if refund_status is initiated, success, or wallet_only
+  const refStatus = (orderData.refund_status || "").toLowerCase();
+  if (["initiated", "success", "wallet_only", "wallet_credited"].includes(refStatus)) {
+    throw new Error("Refund has already been processed or initiated for this order.");
+  }
 
   const { data: claimed, error: claimErr } = await supabase
     .from("orders")
@@ -530,10 +542,6 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       pointsToReverse += Number(item.pointsToReverse || 0);
       pointsToRestore += Number(item.pointsToRestore || 0);
     }
-    // Cap at checkout payment limits to prevent over-refunding
-    walletRefundAmount = Math.min(walletRefundAmount, order.walletPaid || 0);
-    gatewayRefundAmount = Math.min(gatewayRefundAmount, order.gatewayPaid || 0);
-    totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
   } else {
     // Legacy support: refund the entire order
     const walletPaid = order.walletPaid || 0;
@@ -544,13 +552,60 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     pointsToReverse = order.pointsEarned || 0;
     pointsToRestore = order.pointsRedeemed || 0;
   }
+
+  // Handle manual refund overrides
+  let enrichedReturnedItemsList = [...returnedItemsList];
+  if (overrideAmount !== undefined && overrideAmount > 0) {
+    // Validate that the overrideAmount does not exceed the calculated refund total
+    if (overrideAmount > totalRefundAmount) {
+      throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed calculated refund (₹${totalRefundAmount})`);
+    }
+
+    const totalCalculated = totalRefundAmount || 1;
+    enrichedReturnedItemsList = returnedItemsList.map((item: any) => {
+      const origCalculated = item.calculatedRefund || item.refundAmount || 0;
+      const ratio = totalCalculated > 0 ? (origCalculated / totalCalculated) : (1 / returnedItemsList.length);
+      const itemOverrideRefund = Math.round(overrideAmount * ratio * 100) / 100;
+      const itemWalletOverride = Math.round(item.walletRefund * ratio * 100) / 100;
+      const itemGatewayOverride = Math.round(item.gatewayRefund * ratio * 100) / 100;
+      return {
+        ...item,
+        calculatedRefund: origCalculated,
+        refundAmount: itemOverrideRefund,
+        walletRefund: itemWalletOverride,
+        gatewayRefund: itemGatewayOverride,
+        overrideReason: overrideReason || "Admin manual override"
+      };
+    });
+
+    if (totalRefundAmount > 0) {
+      const ratio = overrideAmount / totalRefundAmount;
+      walletRefundAmount = Math.round(walletRefundAmount * ratio * 100) / 100;
+      gatewayRefundAmount = Math.round(gatewayRefundAmount * ratio * 100) / 100;
+    } else {
+      walletRefundAmount = overrideAmount;
+      gatewayRefundAmount = 0;
+    }
+    totalRefundAmount = overrideAmount;
+  } else {
+    // Ensure calculatedRefund key is initialized in snapshot
+    enrichedReturnedItemsList = returnedItemsList.map((item: any) => ({
+      ...item,
+      calculatedRefund: item.calculatedRefund || item.refundAmount || 0
+    }));
+  }
+
+  // Cap at checkout payment limits to prevent over-refunding
+  walletRefundAmount = Math.min(walletRefundAmount, order.walletPaid || 0);
+  gatewayRefundAmount = Math.min(gatewayRefundAmount, order.gatewayPaid || 0);
+  totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
   
-  const refundReason = reason || "Return approved by admin";
+  const refundReason = overrideReason 
+    ? `Override: ${overrideReason}. Reason: ${reason || "None"}`
+    : (reason || "Return approved by admin");
 
   // FIX 3: Reversing loyalty points on return
   try {
-    // 1. Reverse earned points (points customer earned from this order)
-    // Note: applyLoyaltyDebit takes 3 parameters: points, orderId, userId
     if (pointsToReverse > 0 && order.userId) {
       await loyaltyDb.applyLoyaltyDebit(
         pointsToReverse,
@@ -559,8 +614,6 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       );
     }
 
-    // 2. Restore redeemed points (points customer SPENT at checkout)
-    // Note: applyLoyaltyCredit takes 4 parameters: points, description, orderId, userId
     if (pointsToRestore > 0 && order.userId) {
       await loyaltyDb.applyLoyaltyCredit(
         pointsToRestore,
@@ -570,7 +623,6 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       );
     }
 
-    // 3. Cancel pending points credit if refunding entire order
     const originalWallet = order.walletPaid || 0;
     const originalGateway = order.gatewayPaid || 0;
     if (returnedItemsList.length === 0 || totalRefundAmount >= (originalWallet + originalGateway)) {
@@ -610,7 +662,11 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
     }
     await supabase
       .from("orders")
-      .update({ refund_status: "wallet_only", refunded_at: new Date().toISOString() })
+      .update({ 
+        refund_status: "wallet_only", 
+        refunded_at: new Date().toISOString(),
+        returned_items: enrichedReturnedItemsList
+      })
       .eq("id", orderId);
   } else {
     if (qualityCheckPassed) {
@@ -646,7 +702,8 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
               refund_id: razorpayRefund.id,
               refund_status: 'initiated',
               refund_amount: totalRefundAmount,
-              refunded_at: new Date().toISOString()
+              refunded_at: new Date().toISOString(),
+              returned_items: enrichedReturnedItemsList
             })
             .eq('id', orderId);
         } catch (razorpayErr: any) {
@@ -656,7 +713,8 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
             .update({
               refund_status: 'failed',
               refund_reason: `Razorpay refund failed: ${razorpayErr.message}`,
-              refunded_at: new Date().toISOString()
+              refunded_at: new Date().toISOString(),
+              returned_items: enrichedReturnedItemsList
             })
             .eq('id', orderId);
         }
@@ -669,17 +727,18 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
           .update({
             refund_status: 'wallet_only',
             refund_amount: walletRefundAmount,
-            refunded_at: new Date().toISOString()
+            refunded_at: new Date().toISOString(),
+            returned_items: enrichedReturnedItemsList
           })
           .eq('id', orderId);
       }
     }
   }
 
-  // Restore stock for returned items only if quality check passed.
+  // Restore stock for returned items only if quality check passed and refund was successful
   try {
     if (qualityCheckPassed) {
-      const restockItems = returnedItemsList.length > 0 ? returnedItemsList : (order.cartItems || []);
+      const restockItems = enrichedReturnedItemsList.length > 0 ? enrichedReturnedItemsList : (order.cartItems || []);
       if (restockItems.length > 0) {
         const itemsForRestock = restockItems.map((item: any) => ({
           productName: item.productName || item.productId || "",
@@ -711,6 +770,7 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       quality_check_passed: qualityCheckPassed,
       refund_reason: refundReason,
       refund_amount: totalRefundAmount,
+      returned_items: enrichedReturnedItemsList
     })
     .eq("id", orderId);
 

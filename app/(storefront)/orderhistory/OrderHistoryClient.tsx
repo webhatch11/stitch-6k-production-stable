@@ -525,6 +525,21 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                     {order.returnAwb || (order as any).return_awb ? (
                                       <p className="uppercase">Return AWB: <span className="text-[#0a0a0a] font-mono">{order.returnAwb || (order as any).return_awb}</span></p>
                                     ) : null}
+                                    {order.courierName && (
+                                      <p className="uppercase">Courier: <span className="text-[#0a0a0a] font-mono">{order.courierName}</span></p>
+                                    )}
+                                    {order.trackingUrl && (
+                                      <div className="pt-1.5">
+                                        <a
+                                          href={order.trackingUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-block bg-black hover:bg-zinc-800 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-none transition-colors"
+                                        >
+                                          Track Return Shipment ↗
+                                        </a>
+                                      </div>
+                                    )}
                                     {order.returnPickupScheduled || (order as any).return_pickup_scheduled ? (() => {
                                       const pickupDate = new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled);
                                       const estRefund = new Date(pickupDate);
@@ -533,7 +548,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                         <p className="uppercase">Expected Refund: <span className="text-[#0a0a0a] font-mono">{estRefund.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></p>
                                       );
                                     })() : null}
-                                    <p className="pt-1 text-[11px] tracking-wide text-gray-400">Taking too long? <a href="/contact" className="text-primary underline">Contact Support</a></p>
+                                    <p className="pt-1 text-[11px] tracking-wide text-gray-400">Taking too long? <a href="/contact" className="text-primary underline rounded-none">Contact Support</a></p>
                                   </div>
                                 </div>
                               )}

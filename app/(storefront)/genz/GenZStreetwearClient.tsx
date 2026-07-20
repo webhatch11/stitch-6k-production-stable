@@ -45,7 +45,6 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
   }, [searchQuery]);
   
   // Custom categories for Streetwear
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSize, setSelectedSize] = useState<string>("S"); // Default seed-selected S
   const [maxPrice, setMaxPrice] = useState<number>(12000);
   const [sortBy, setSortBy] = useState<string>("popularity");
@@ -62,14 +61,6 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
           p.title.toLowerCase().includes(query) ||
           p.category.toLowerCase().includes(query)
       );
-    }
-
-    // 2. Category Filter
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) => {
-        const cat = p.category ? p.category.toLowerCase() : "";
-        return selectedCategories.some((c) => cat.includes(c.toLowerCase()));
-      });
     }
 
     // 3. Size Filter
@@ -96,16 +87,9 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
     }
 
     setFilteredProducts(result);
-  }, [products, debouncedSearchQuery, selectedCategories, selectedSize, maxPrice, sortBy]);
+  }, [products, debouncedSearchQuery, selectedSize, maxPrice, sortBy]);
 
-  const handleCategoryChange = (category: string) => {
-    const lowerCat = category.toLowerCase();
-    if (selectedCategories.includes(lowerCat)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== lowerCat));
-    } else {
-      setSelectedCategories([...selectedCategories, lowerCat]);
-    }
-  };
+
 
   const showToast = (message: string) => {
     let toast = document.getElementById("prototype-toast");
@@ -255,32 +239,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
               <div className={`space-y-6 transition-all duration-500 ease-in-out overflow-hidden lg:block lg:max-h-none lg:opacity-100 relative z-10 ${filtersExpanded ? 'max-h-[1000px] opacity-100 mt-5' : 'max-h-0 opacity-0 lg:mt-5'}`}>
                 <div className="h-[1px] bg-gradient-to-r from-[#fed488]/20 via-white/5 to-transparent"></div>
 
-                {/* CATEGORIES */}
-                <div>
-                  <h3 className="text-[9px] font-bold uppercase tracking-[0.25em] text-neutral-500 mb-3 select-none">Streetwear Category</h3>
-                  <div className="space-y-3">
-                    {["Oversized", "Co-ord Sets", "Urban Utility", "Printed Luxury", "Monochrome", "Relaxed Fit"].map((cat) => (
-                      <label key={cat} className="flex items-center gap-3 cursor-pointer group select-none text-neutral-300 hover:text-[#fed488] transition-colors font-bold uppercase tracking-wider text-[10px]">
-                        <div className="relative flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedCategories.includes(cat.toLowerCase())}
-                            onChange={() => handleCategoryChange(cat)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 peer"
-                          />
-                          <div className="w-4 h-4 border border-white/10 rounded transition-all duration-300 bg-white/5 backdrop-blur-sm peer-checked:bg-[#fed488] peer-checked:border-[#fed488] group-hover:border-[#fed488]/40 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[10px] text-neutral-950 font-black opacity-0 peer-checked:opacity-100 transition-opacity duration-300 select-none">
-                              check
-                            </span>
-                          </div>
-                        </div>
-                        <span>{cat}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="h-[1px] bg-gradient-to-r from-[#fed488]/20 via-white/5 to-transparent"></div>
 
                 {/* SIZE */}
                 <div>

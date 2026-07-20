@@ -1730,30 +1730,35 @@ function OrderDetailsContent() {
                     ? new Date(deliveredAtDate).toLocaleDateString('en-IN')
                     : 'Delivered';
                   const returnDaysLeft = getReturnDaysRemaining();
+                  const hasReturnRequest = !!(order.returnReason || (order as any).return_reason || (order as any).return_request_date);
 
                   return (
                     <div className="flex flex-col gap-3">
-                      {/* Issue Refund */}
-                      {refundStatus?.toLowerCase() !== "credited" && refundStatus?.toLowerCase() !== "processed" && (
-                        <button
-                          onClick={() => openRefundModal("issue")}
-                          className="w-full flex flex-col items-center justify-center p-4 bg-white text-black hover:bg-white/90 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider cursor-pointer border-none"
-                        >
-                          <span className="material-symbols-outlined text-lg mb-1">sync</span>
-                          <span>Issue Refund</span>
-                        </button>
-                      )}
+                      {/* If return was requested by customer, route directly to Return Details page */}
+                      {hasReturnRequest ? (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-none border border-amber-500/20">
+                            Return Request Initiated by Customer
+                          </div>
+                          <Link
+                            href={`/admindashboard/return-details?orderId=${order.id}`}
+                            className="w-full flex items-center justify-center gap-2 p-4 bg-secondary text-black hover:bg-secondary/90 transition-all text-[11px] font-black uppercase tracking-widest text-center cursor-pointer border-none rounded-none"
+                          >
+                            <span>→ View Return Details & Process Refund</span>
+                          </Link>
+                        </div>
+                      ) : null}
 
                       {/* Print Invoice */}
                       <Link
                         href={`/invoice?orderId=${order.id}`}
-                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all text-[11px] font-bold uppercase tracking-wider text-center rounded-none"
                       >
                         <span className="material-symbols-outlined text-lg mb-1">print</span>
                         <span>Print Invoice</span>
                       </Link>
 
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-green-500 text-center bg-green-500/10 p-3 rounded-[6px] border border-green-500/20 space-y-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-green-500 text-center bg-green-500/10 p-3 rounded-none border border-green-500/20 space-y-1">
                         <div>Order delivered on {formattedDeliveredAt}</div>
                         <div className="text-[9px] text-gray-400">Return window: {returnDaysLeft} days remaining</div>
                       </div>
@@ -1767,18 +1772,18 @@ function OrderDetailsContent() {
                       {/* Print Invoice */}
                       <Link
                         href={`/invoice?orderId=${order.id}`}
-                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 rounded-[8px] transition-all text-[11px] font-bold uppercase tracking-wider text-center"
+                        className="w-full flex flex-col items-center justify-center p-4 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 transition-all text-[11px] font-bold uppercase tracking-wider text-center rounded-none"
                       >
                         <span className="material-symbols-outlined text-lg mb-1">print</span>
                         <span>Print Invoice</span>
                       </Link>
 
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-red-500 text-center bg-red-500/10 p-3 rounded-[6px] border border-red-500/20">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-red-500 text-center bg-red-500/10 p-3 rounded-none border border-red-500/20">
                         Order cancelled
                       </div>
 
                       {refundStatus && (
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-[6px] border border-amber-500/20">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-none border border-amber-500/20">
                           Refund Status: {refundStatus}
                         </div>
                       )}
@@ -1789,14 +1794,14 @@ function OrderDetailsContent() {
                 if (orderStatus?.includes("return")) {
                   return (
                     <div className="flex flex-col gap-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-[6px] border border-amber-500/20">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-500 text-center bg-amber-500/10 p-3 rounded-none border border-amber-500/20">
                         Return in progress — manage from Returns page
                       </div>
                       <Link
                         href={`/admindashboard/return-details?orderId=${order.id}`}
-                        className="w-full flex items-center justify-center gap-2 p-3 bg-zinc-900 text-white border border-zinc-850 hover:bg-zinc-800 rounded-[8px] transition-all text-[10px] font-bold uppercase tracking-wider text-center"
+                        className="w-full flex items-center justify-center gap-2 p-4 bg-secondary text-black hover:bg-secondary/90 transition-all text-[11px] font-black uppercase tracking-widest text-center cursor-pointer border-none rounded-none"
                       >
-                        <span>→ View Return Details</span>
+                        <span>→ View Return Details & Process Refund</span>
                       </Link>
                     </div>
                   );
@@ -1831,8 +1836,8 @@ function OrderDetailsContent() {
                 </button>
               )}
 
-              {/* Warehouse return arrived button - shown for return-related orders where status is Delivered or Return Requested */}
-              {(order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'return requested') && (
+              {/* Warehouse return arrived button - ONLY shown for active return-related orders */}
+              {['return requested', 'return in transit', 'return pickup scheduled', 'return qc pending'].includes(order.status?.toLowerCase() || '') && (
                 <button
                   type="button"
                   disabled={overrideSubmitting}

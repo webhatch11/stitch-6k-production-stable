@@ -6,6 +6,36 @@ import { productsDb } from "./products";
 import { CategorySales, RepeatPurchaseStats, AdSpend, ROASReport } from "./types";
 import { InventoryService } from "../services/inventory";
 
+export const EXCLUDED_ANALYTICS_ORDER_STATUSES = new Set([
+  "cancelled",
+  "returned",
+  "failed",
+  "payment pending",
+  "expired",
+  "payment review required",
+  "exchanged",
+]);
+
+export function parseSafeOrderDate(o: any): number | null {
+  const orderDateStr = o.created_at || o.createdAt || o.date;
+  if (!orderDateStr) return null;
+  let orderTime = Date.parse(orderDateStr);
+  if (isNaN(orderTime)) {
+    const parts = String(orderDateStr).trim().split("/");
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+      orderTime = d.getTime();
+    }
+  }
+  return isNaN(orderTime) ? null : orderTime;
+}
+
+export function getOrderNetTotal(o: any): number {
+  const total = Number(o.total || 0);
+  const refund = Number(o.refund_amount || o.refundAmount || 0);
+  return Math.max(0, total - refund);
+}
+
 export async function getTodaySalesKPI(): Promise<{
   todaySales: number;
   todayOrders: number;
@@ -27,41 +57,22 @@ export async function getTodaySalesKPI(): Promise<{
     let yesterdaySales = 0;
     let yesterdayOrders = 0;
 
-    const parseOrderDate = (o: any): number => {
-      const orderDateStr = o.created_at || o.createdAt || o.date;
-      if (!orderDateStr) return Date.now();
-      let orderTime = Date.parse(orderDateStr);
-      if (isNaN(orderTime)) {
-        const parts = orderDateStr.split("/");
-        if (parts.length === 3) {
-          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          orderTime = d.getTime();
-        } else {
-          orderTime = Date.now();
-        }
-      }
-      return orderTime;
-    };
-
     for (const o of orders) {
-      const status = (o.status || "").toLowerCase();
-      if (
-        status === "cancelled" ||
-        status === "returned" ||
-        status === "failed" ||
-        status === "payment pending" ||
-        status === "expired" ||
-        status === "payment review required"
-      ) {
+      const status = (o.status || "").toLowerCase().trim();
+      if (EXCLUDED_ANALYTICS_ORDER_STATUSES.has(status)) {
         continue;
       }
 
-      const orderTime = parseOrderDate(o);
+      const orderTime = parseSafeOrderDate(o);
+      if (orderTime === null) continue;
+
+      const netSales = getOrderNetTotal(o);
+
       if (orderTime >= todayStart) {
-        todaySales += Number(o.total || 0);
+        todaySales += netSales;
         todayOrders += 1;
       } else if (orderTime >= yesterdayStart && orderTime < todayStart) {
-        yesterdaySales += Number(o.total || 0);
+        yesterdaySales += netSales;
         yesterdayOrders += 1;
       }
     }
@@ -316,25 +327,20 @@ export async function getRevenueTrend(
     };
 
     for (const o of orders) {
-      const status = (o.status || "").toLowerCase();
-      if (
-        status === "cancelled" ||
-        status === "returned" ||
-        status === "failed" ||
-        status === "payment pending" ||
-        status === "expired" ||
-        status === "payment review required"
-      ) {
+      const status = (o.status || "").toLowerCase().trim();
+      if (EXCLUDED_ANALYTICS_ORDER_STATUSES.has(status)) {
         continue;
       }
 
-      const orderTime = parseOrderDate(o);
+      const orderTime = parseSafeOrderDate(o);
+      if (orderTime === null) continue;
+
       const orderDate = new Date(orderTime);
       const key = orderDate.toISOString().split("T")[0];
 
       if (dateMap.has(key)) {
         const entry = dateMap.get(key);
-        entry.revenue += Number(o.total || 0);
+        entry.revenue += getOrderNetTotal(o);
         entry.order_count += 1;
         entry.gateway_revenue += Number(o.gatewayPaid || o.gateway_paid || 0);
         entry.wallet_revenue += Number(o.walletPaid || o.wallet_paid || 0);
@@ -368,39 +374,16 @@ export async function getTopProducts(
     const orders = (await ordersDb.getOrders()) as any[];
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
-    const parseOrderDate = (o: any): number => {
-      const orderDateStr = o.created_at || o.createdAt || o.date;
-      if (!orderDateStr) return Date.now();
-      let orderTime = Date.parse(orderDateStr);
-      if (isNaN(orderTime)) {
-        const parts = orderDateStr.split("/");
-        if (parts.length === 3) {
-          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
-          orderTime = d.getTime();
-        } else {
-          orderTime = Date.now();
-        }
-      }
-      return orderTime;
-    };
-
     const productMap = new Map<string, { productName: string; unitsSold: number; revenue: number }>();
 
     for (const o of orders) {
-      const status = (o.status || "").toLowerCase();
-      if (
-        status === "cancelled" ||
-        status === "returned" ||
-        status === "failed" ||
-        status === "payment pending" ||
-        status === "expired" ||
-        status === "payment review required"
-      ) {
+      const status = (o.status || "").toLowerCase().trim();
+      if (EXCLUDED_ANALYTICS_ORDER_STATUSES.has(status)) {
         continue;
       }
 
-      const orderTime = parseOrderDate(o);
-      if (orderTime < cutoff) continue;
+      const orderTime = parseSafeOrderDate(o);
+      if (orderTime === null || orderTime < cutoff) continue;
 
       const rawItems = o.cartItems || o.cart_items || [];
       if (Array.isArray(rawItems)) {
@@ -409,7 +392,7 @@ export async function getTopProducts(
           let qty = 1;
           let price = 0;
           if (typeof item === "object" && item !== null) {
-            pName = item.productName || item.title || item.productId || "Unnamed Product";
+            pName = item.productName || item.title || item.name || item.productId || "Unnamed Product";
             qty = Number(item.quantity || item.qty || 1);
             price = Number(item.price || 0);
           } else if (typeof item === "string") {
@@ -903,7 +886,7 @@ export async function getGSTReport(
   }
 }
 
-export async function getCityOrders(): Promise<Array<{ city: string; count: number; revenue: number; state?: string }>> {
+export async function getCityOrders(days: number = 30): Promise<Array<{ city: string; count: number; revenue: number; state?: string }>> {
   const { supabase, isSupabaseConfigured } = loadService();
 
   if (!isSupabaseConfigured || !supabase) {
@@ -914,14 +897,12 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
     );
   }
 
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  // orders table does NOT have a deleted_at column (soft-delete is products-only).
-  // Status filtering below handles exclusion of non-revenue orders.
   const { data, error } = await supabase
     .from("orders")
-    .select("address_snapshot, total, status, cart_items")
-    .gte("created_at", thirtyDaysAgo);
+    .select("address_snapshot, shipping_address, total, refund_amount, status, cart_items")
+    .gte("created_at", cutoffDate);
 
   if (error) {
     console.error("Error loading city orders:", error);
@@ -934,15 +915,8 @@ export async function getCityOrders(): Promise<Array<{ city: string; count: numb
 function processCityOrdersData(data: any[]): Array<{ city: string; count: number; revenue: number; state?: string }> {
   const cityData: Record<string, { count: number; revenue: number; state: string }> = {};
   for (const row of data || []) {
-    
-    const statusLower = (row.status || "").toLowerCase();
-    if (
-      statusLower === "cancelled" ||
-      statusLower === "failed" ||
-      statusLower === "payment pending" ||
-      statusLower === "expired" ||
-      statusLower === "payment review required"
-    ) {
+    const statusLower = (row.status || "").toLowerCase().trim();
+    if (EXCLUDED_ANALYTICS_ORDER_STATUSES.has(statusLower)) {
       continue;
     }
     
@@ -955,20 +929,33 @@ function processCityOrdersData(data: any[]): Array<{ city: string; count: number
     }
 
     const snap = row.address_snapshot;
+    let city = "";
+    let state = "";
+
     if (snap && snap.city) {
-      const city = snap.city
-        .trim()
-        .replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
-      const state = snap.state
-        ? snap.state.trim().replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase())
-        : "";
+      city = String(snap.city).trim();
+      state = snap.state ? String(snap.state).trim() : "";
+    } else if (typeof row.shipping_address === "string" && row.shipping_address.trim()) {
+      const parts = row.shipping_address.split(",").map((s: string) => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        city = parts[parts.length - 2].replace(/\d+/g, "").trim() || parts[0];
+        state = parts[parts.length - 1].replace(/\d+/g, "").trim();
+      } else {
+        city = parts[0] || "Unknown";
+      }
+    }
+
+    if (city) {
+      city = city.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+      state = state ? state.replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()) : "";
       
       const key = `${city}:${state}`;
       if (!cityData[key]) {
         cityData[key] = { count: 0, revenue: 0, state };
       }
       cityData[key].count += 1;
-      cityData[key].revenue += Number(row.total || 0);
+      const netTotal = Math.max(0, Number(row.total || 0) - Number(row.refund_amount || 0));
+      cityData[key].revenue += netTotal;
     }
   }
 

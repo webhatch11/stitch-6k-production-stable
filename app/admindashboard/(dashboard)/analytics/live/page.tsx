@@ -482,11 +482,8 @@ export default function LiveAnalyticsPage() {
                         <Geography
                           key={geo.rsmKey}
                           geography={geo}
-                          fill="#e5e7eb"
-                          stroke="#d1d5db"
-                          strokeWidth={0.5}
                           style={{
-                            default: { outline: "none" },
+                            default: { fill: "#e5e7eb", stroke: "#d1d5db", strokeWidth: 0.5, outline: "none" },
                             hover: { fill: "#d1d5db", outline: "none" },
                             pressed: { outline: "none" }
                           }}

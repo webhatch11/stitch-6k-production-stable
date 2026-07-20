@@ -45,7 +45,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
   }, [searchQuery]);
   
   // Custom categories for Streetwear
-  const [selectedSize, setSelectedSize] = useState<string>("S"); // Default seed-selected S
+  const [selectedSize, setSelectedSize] = useState<string>(""); // No size filter by default
   const [maxPrice, setMaxPrice] = useState<number>(12000);
   const [sortBy, setSortBy] = useState<string>("popularity");
 
@@ -248,7 +248,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                     {["S", "M", "L", "XL"].map((size) => (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
+                        onClick={() => setSelectedSize(selectedSize === size ? "" : size)}
                         className={`py-2 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 rounded-lg border ${
                           selectedSize === size
                             ? "border-[#fed488] text-[#fed488] bg-[#fed488]/10 font-bold"

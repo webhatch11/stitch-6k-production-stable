@@ -29,7 +29,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>(["cotton"]); // Default seed-checked in prototype
-  const [selectedSize, setSelectedSize] = useState<string>("S"); // Default seed-selected S
+  const [selectedSize, setSelectedSize] = useState<string>(""); // No size filter by default
   const [maxPrice, setMaxPrice] = useState<number>(12000);
   const [sortBy, setSortBy] = useState<string>("popularity");
 
@@ -287,7 +287,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
                     {["S", "M", "L", "XL"].map((size) => (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
+                        onClick={() => setSelectedSize(selectedSize === size ? "" : size)}
                         className={`py-2 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 rounded-lg shadow-sm border ${
                           selectedSize === size
                             ? "border-[#fed488] text-[#fed488] bg-[#fed488]/10 font-bold"

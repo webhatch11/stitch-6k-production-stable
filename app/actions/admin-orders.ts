@@ -392,10 +392,15 @@ export async function processReturnRefundAction(
     return { success: false, error: "Refund override amount must be greater than zero" };
   }
   try {
-    // STEP 1: Payment guard
+    // STEP 1: Payment & Status guard (Pre-CAS validation sequence)
     const order = await db.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
     
+    const refStatus = (order.refundStatus || "").toLowerCase();
+    if (order.status === "Returned" || ["pending", "initiated", "success", "wallet_only", "processed", "completed"].includes(refStatus)) {
+      return { success: false, error: "Refund has already been processed or is currently in progress." };
+    }
+
     const isPaidViaGateway = 
       order.paymentStatus?.toLowerCase() === 'paid';
 
@@ -1237,8 +1242,19 @@ export async function assignShiprocketReturnPickupAction(
 
   if (!awbCode?.trim()) return { success: false, error: "AWB tracking code is required" };
   if (!courierName?.trim()) return { success: false, error: "Courier name is required" };
-  if (trackingUrl && trackingUrl.trim().length > 0 && !trackingUrl.trim().startsWith("https://")) {
-    return { success: false, error: "Tracking URL must be a valid HTTPS link (e.g. https://shiprocket.co/tracking/...)" };
+  if (trackingUrl && trackingUrl.trim().length > 0) {
+    const trimmedUrl = trackingUrl.trim();
+    if (!trimmedUrl.startsWith("https://")) {
+      return { success: false, error: "Tracking URL must be a valid HTTPS link (e.g. https://shiprocket.co/tracking/...)" };
+    }
+    try {
+      const parsed = new URL(trimmedUrl);
+      if (parsed.protocol !== "https:") {
+        return { success: false, error: "Tracking URL must use HTTPS protocol" };
+      }
+    } catch {
+      return { success: false, error: "Invalid tracking URL format" };
+    }
   }
 
   try {

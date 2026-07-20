@@ -326,15 +326,24 @@ export async function rejectReturn(orderId: string, rejectReason: string): Promi
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
-  const { error } = await supabase
+
+  const { error: reasonErr } = await supabase
     .from("orders")
     .update({
-      status: "Return Rejected",
       return_reject_reason: rejectReason,
     })
     .eq("id", orderId);
 
-  return !error;
+  if (reasonErr) {
+    console.error(`[rejectReturn] Failed to update reject reason for order ${orderId}:`, reasonErr);
+    return false;
+  }
+
+  return transitionOrderStatus(orderId, "Return Rejected", {
+    triggerSource: "Admin: Reject Return",
+    userOrAdmin: "admin",
+    reason: rejectReason,
+  });
 }
 
 export async function getOrderStatusHistory(orderId: string): Promise<OrderStatusHistory[]> {

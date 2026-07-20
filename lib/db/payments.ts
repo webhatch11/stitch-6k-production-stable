@@ -261,7 +261,6 @@ export async function cancelOrderAndRefund(orderId: string, reason?: string): Pr
   const { error: updateErr } = await supabase
     .from("orders")
     .update({
-      status: "Cancelled",
       refund_reason: refundReason,
       refund_amount: totalRefundAmount,
     })
@@ -269,6 +268,18 @@ export async function cancelOrderAndRefund(orderId: string, reason?: string): Pr
 
   if (updateErr) {
     await supabase.from("orders").update({ refund_status: null }).eq("id", orderId);
+    return false;
+  }
+
+  const { transitionOrderStatus } = await import("./orders");
+  const transitionOk = await transitionOrderStatus(orderId, "Cancelled", {
+    triggerSource: "Cancel & Refund Action",
+    userOrAdmin: "admin",
+    reason: refundReason,
+  });
+
+  if (!transitionOk) {
+    console.error(`[cancelOrderAndRefund] Failed to transition order status to Cancelled for order ${orderId}`);
     return false;
   }
 

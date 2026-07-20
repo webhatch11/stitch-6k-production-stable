@@ -85,6 +85,17 @@ export async function processOutbox(): Promise<void> {
           tags: { area: "outbox", status: "FAILED" },
           extra: { eventId: event.id, payload: event.payload }
         });
+
+        try {
+          const { sendAdminAlert } = await import("@/lib/email");
+          await sendAdminAlert({
+            subject: `🚨 Outbox DLQ Alert: Event #${event.id} Failed`,
+            body: `Outbox Event ID: ${event.id}\nEvent Type: ${event.event_type}\nOrder ID: ${event.payload?.order_id || "N/A"}\nAttempts: ${nextAttempts}\nError: ${err.message || String(err)}\nAction Required: Please inspect database outbox_events or manually retry.`,
+            orderId: event.payload?.order_id
+          });
+        } catch (emailErr) {
+          console.error("[Outbox DLQ Alert] Failed to send admin alert email:", emailErr);
+        }
       } else {
         // Revert status to PENDING for retry on the next interval loop
         await supabase

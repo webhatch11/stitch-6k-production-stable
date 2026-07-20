@@ -528,10 +528,10 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                     {order.courierName && (
                                       <p className="uppercase">Courier: <span className="text-[#0a0a0a] font-mono">{order.courierName}</span></p>
                                     )}
-                                    {order.trackingUrl && (
+                                    {order.trackingUrl && typeof order.trackingUrl === "string" && order.trackingUrl.trim().startsWith("https://") && (
                                       <div className="pt-1.5">
                                         <a
-                                          href={order.trackingUrl}
+                                          href={order.trackingUrl.trim()}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="inline-block bg-black hover:bg-zinc-800 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-none transition-colors"

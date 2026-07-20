@@ -99,9 +99,13 @@ export default function ReturnDetailsClient({
 
   const handleAssignPickup = async (code: string, name: string, url?: string) => {
     if (isSubmitting) return;
+    if (url && url.trim().length > 0 && !url.trim().startsWith("https://")) {
+      triggerToast("Tracking URL must be a valid HTTPS link (e.g. https://shiprocket.co/tracking/...)");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      const res = await assignShiprocketReturnPickupAction(order.id, code, name, url);
+      const res = await assignShiprocketReturnPickupAction(order.id, code, name, url?.trim());
       if (res.success && res.awb) {
         triggerToast(`Manual pickup details recorded. AWB: ${res.awb}`);
         setTimeout(() => {

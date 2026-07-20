@@ -388,6 +388,9 @@ export async function processReturnRefundAction(
   try { await requireAdmin(); } catch { return { success: false, error: "Unauthorized" }; }
   if (!orderId?.trim()) return { success: false, error: "Invalid order ID" };
   if (!reason?.trim()) return { success: false, error: "Refund reason is required" };
+  if (overrideAmount !== undefined && overrideAmount <= 0) {
+    return { success: false, error: "Refund override amount must be greater than zero" };
+  }
   try {
     // STEP 1: Payment guard
     const order = await db.getOrderById(orderId);
@@ -1234,6 +1237,9 @@ export async function assignShiprocketReturnPickupAction(
 
   if (!awbCode?.trim()) return { success: false, error: "AWB tracking code is required" };
   if (!courierName?.trim()) return { success: false, error: "Courier name is required" };
+  if (trackingUrl && trackingUrl.trim().length > 0 && !trackingUrl.trim().startsWith("https://")) {
+    return { success: false, error: "Tracking URL must be a valid HTTPS link (e.g. https://shiprocket.co/tracking/...)" };
+  }
 
   try {
     const order = await db.getOrderById(orderId);

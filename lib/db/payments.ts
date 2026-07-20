@@ -492,293 +492,267 @@ export async function processReturnRefund(
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
-      "Database connection not configured. " +
-      "Check NEXT_PUBLIC_SUPABASE_URL and " +
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
+      "Database connection not configured. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
     );
   }
 
+  // 1. Fetch current order state
   const { data: orderData, error: orderErr } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at")
+    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, returned_items")
     .eq("id", orderId)
     .maybeSingle();
 
-  if (orderErr || !orderData) return false;
-  if (orderData.status === "Returned") return false;
+  if (orderErr || !orderData) {
+    throw new Error("Order not found.");
+  }
 
-  // Double Refund Protection: Reject if refund_status is initiated, success, or wallet_only
+  // Task 8 & Task 3 & Task 2: Server-Side Idempotency & Concurrency Locking
   const refStatus = (orderData.refund_status || "").toLowerCase();
-  if (["initiated", "success", "wallet_only", "wallet_credited"].includes(refStatus)) {
+  if (orderData.status === "Returned" || ["initiated", "success", "wallet_only", "processed", "wallet_credited", "completed"].includes(refStatus)) {
     throw new Error("Refund has already been processed or initiated for this order.");
   }
 
+  // CAS Lock: Atomically claim refund execution by moving refund_status to 'pending'
   const { data: claimed, error: claimErr } = await supabase
     .from("orders")
     .update({ refund_status: "pending" })
     .eq("id", orderId)
-    .is("refund_status", null)
+    .or("refund_status.is.null,refund_status.eq.failed")
+    .neq("status", "Returned")
     .select("id")
     .maybeSingle();
 
   if (claimErr || !claimed) {
-    return false;
+    throw new Error("Refund operation in progress by another request or already completed.");
   }
 
-  const order = mapDbOrderToOrder(orderData);
-  const returnedItemsList = order.returnedItems || [];
-  
-  let totalRefundAmount = 0;
-  let walletRefundAmount = 0;
-  let gatewayRefundAmount = 0;
-  let pointsToReverse = 0;
-  let pointsToRestore = 0;
-
-  if (returnedItemsList.length > 0) {
-    for (const item of returnedItemsList) {
-      totalRefundAmount += Number(item.refundAmount || 0);
-      walletRefundAmount += Number(item.walletRefund || 0);
-      gatewayRefundAmount += Number(item.gatewayRefund || 0);
-      pointsToReverse += Number(item.pointsToReverse || 0);
-      pointsToRestore += Number(item.pointsToRestore || 0);
-    }
-  } else {
-    // Legacy support: refund the entire order
-    const walletPaid = order.walletPaid || 0;
-    const gatewayPaid = order.gatewayPaid || 0;
-    totalRefundAmount = walletPaid + gatewayPaid;
-    walletRefundAmount = walletPaid;
-    gatewayRefundAmount = gatewayPaid;
-    pointsToReverse = order.pointsEarned || 0;
-    pointsToRestore = order.pointsRedeemed || 0;
-  }
-
-  // Handle manual refund overrides
-  let enrichedReturnedItemsList = [...returnedItemsList];
-  if (overrideAmount !== undefined && overrideAmount > 0) {
-    // Validate that the overrideAmount does not exceed the calculated refund total
-    if (overrideAmount > totalRefundAmount) {
-      throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed calculated refund (₹${totalRefundAmount})`);
-    }
-
-    const totalCalculated = totalRefundAmount || 1;
-    enrichedReturnedItemsList = returnedItemsList.map((item: any) => {
-      const origCalculated = item.calculatedRefund || item.refundAmount || 0;
-      const ratio = totalCalculated > 0 ? (origCalculated / totalCalculated) : (1 / returnedItemsList.length);
-      const itemOverrideRefund = Math.round(overrideAmount * ratio * 100) / 100;
-      const itemWalletOverride = Math.round(item.walletRefund * ratio * 100) / 100;
-      const itemGatewayOverride = Math.round(item.gatewayRefund * ratio * 100) / 100;
-      return {
-        ...item,
-        calculatedRefund: origCalculated,
-        refundAmount: itemOverrideRefund,
-        walletRefund: itemWalletOverride,
-        gatewayRefund: itemGatewayOverride,
-        overrideReason: overrideReason || "Admin manual override"
-      };
-    });
-
-    if (totalRefundAmount > 0) {
-      const ratio = overrideAmount / totalRefundAmount;
-      walletRefundAmount = Math.round(walletRefundAmount * ratio * 100) / 100;
-      gatewayRefundAmount = Math.round(gatewayRefundAmount * ratio * 100) / 100;
-    } else {
-      walletRefundAmount = overrideAmount;
-      gatewayRefundAmount = 0;
-    }
-    totalRefundAmount = overrideAmount;
-  } else {
-    // Ensure calculatedRefund key is initialized in snapshot
-    enrichedReturnedItemsList = returnedItemsList.map((item: any) => ({
-      ...item,
-      calculatedRefund: item.calculatedRefund || item.refundAmount || 0
-    }));
-  }
-
-  // Cap at checkout payment limits to prevent over-refunding
-  walletRefundAmount = Math.min(walletRefundAmount, order.walletPaid || 0);
-  gatewayRefundAmount = Math.min(gatewayRefundAmount, order.gatewayPaid || 0);
-  totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
-  
-  const refundReason = overrideReason 
-    ? `Override: ${overrideReason}. Reason: ${reason || "None"}`
-    : (reason || "Return approved by admin");
-
-  // FIX 3: Reversing loyalty points on return
   try {
-    if (pointsToReverse > 0 && order.userId) {
-      await loyaltyDb.applyLoyaltyDebit(
-        pointsToReverse,
-        orderId,
-        order.userId
-      );
-    }
+    const order = mapDbOrderToOrder(orderData);
+    const returnedItemsList = order.returnedItems || [];
+    
+    let totalRefundAmount = 0;
+    let walletRefundAmount = 0;
+    let gatewayRefundAmount = 0;
+    let pointsToReverse = 0;
+    let pointsToRestore = 0;
 
-    if (pointsToRestore > 0 && order.userId) {
-      await loyaltyDb.applyLoyaltyCredit(
-        pointsToRestore,
-        `Redeemed points restored — Order #${orderId}`,
-        orderId,
-        order.userId
-      );
-    }
-
-    const originalWallet = order.walletPaid || 0;
-    const originalGateway = order.gatewayPaid || 0;
-    if (returnedItemsList.length === 0 || totalRefundAmount >= (originalWallet + originalGateway)) {
-      await supabase
-        .from('orders')
-        .update({ points_credit_status: 'cancelled' })
-        .eq('id', orderId);
-    }
-  } catch (loyaltyErr) {
-    console.error('[processReturnRefund] loyalty reversal failed:', loyaltyErr);
-  }
-
-  if (qualityCheckPassed) {
-    try {
-      const codeToDecrement = orderData?.coupon_code;
-      if (codeToDecrement) {
-        await couponsDb.decrementCouponUsage(codeToDecrement);
+    if (returnedItemsList.length > 0) {
+      for (const item of returnedItemsList) {
+        totalRefundAmount += Number(item.refundAmount || item.calculatedRefund || 0);
+        walletRefundAmount += Number(item.walletRefund || 0);
+        gatewayRefundAmount += Number(item.gatewayRefund || 0);
+        pointsToReverse += Number(item.pointsToReverse || 0);
+        pointsToRestore += Number(item.pointsToRestore || 0);
       }
-    } catch (e) {
-      console.error("[processReturnRefund] coupon decrement failed:", e);
+    } else {
+      // Legacy order fallback: refund full order totals safely
+      const walletPaid = Number(order.walletPaid || 0);
+      const gatewayPaid = Number(order.gatewayPaid || 0);
+      totalRefundAmount = walletPaid + gatewayPaid;
+      walletRefundAmount = walletPaid;
+      gatewayRefundAmount = gatewayPaid;
+      pointsToReverse = Number(order.pointsEarned || 0);
+      pointsToRestore = Number(order.pointsRedeemed || 0);
     }
-  }
 
-  // FIX 4: Split payment refund
-  if (order.refundOption === "wallet") {
-    if (order.userId) {
-      const creditResult = await usersDb.applyWalletCredit(
-        totalRefundAmount,
-        `Return Credit for Order #${orderId}`,
-        orderId,
-        order.userId
-      );
-      if (!creditResult.success) {
-        console.error("[processReturnRefund] wallet credit failed:", creditResult.error);
-        throw new Error(`Wallet credit failed: ${creditResult.error}`);
+    const originalWallet = Number(order.walletPaid || 0);
+    const originalGateway = Number(order.gatewayPaid || 0);
+    const maxRefundable = originalWallet + originalGateway;
+
+    // Task 4: Refund Validation
+    if (overrideAmount !== undefined) {
+      if (overrideAmount <= 0) {
+        throw new Error("Refund override amount must be greater than zero.");
+      }
+      if (overrideAmount > maxRefundable) {
+        throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed original payment total (₹${maxRefundable}).`);
+      }
+      if (totalRefundAmount > 0 && overrideAmount > totalRefundAmount) {
+        throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed calculated item refund (₹${totalRefundAmount}).`);
       }
     }
-    await supabase
-      .from("orders")
-      .update({ 
-        refund_status: "wallet_only", 
-        refunded_at: new Date().toISOString(),
-        returned_items: enrichedReturnedItemsList
-      })
-      .eq("id", orderId);
-  } else {
-    if (qualityCheckPassed) {
-      // Refund wallet portion back to wallet
-      if (walletRefundAmount > 0 && order.userId) {
+
+    // Handle manual refund overrides
+    let enrichedReturnedItemsList = [...returnedItemsList];
+    if (overrideAmount !== undefined && overrideAmount > 0) {
+      const totalCalculated = totalRefundAmount || 1;
+      enrichedReturnedItemsList = returnedItemsList.map((item: any) => {
+        const origCalculated = item.calculatedRefund || item.refundAmount || 0;
+        const ratio = totalCalculated > 0 ? (origCalculated / totalCalculated) : (1 / (returnedItemsList.length || 1));
+        const itemOverrideRefund = Math.round(overrideAmount * ratio * 100) / 100;
+        const itemWalletOverride = Math.round((item.walletRefund || 0) * ratio * 100) / 100;
+        const itemGatewayOverride = Math.round((item.gatewayRefund || 0) * ratio * 100) / 100;
+        return {
+          ...item,
+          calculatedRefund: origCalculated,
+          refundAmount: itemOverrideRefund,
+          walletRefund: itemWalletOverride,
+          gatewayRefund: itemGatewayOverride,
+          overrideReason: overrideReason || "Admin manual override"
+        };
+      });
+
+      if (totalRefundAmount > 0) {
+        const ratio = overrideAmount / totalRefundAmount;
+        walletRefundAmount = Math.round(walletRefundAmount * ratio * 100) / 100;
+        gatewayRefundAmount = Math.round(gatewayRefundAmount * ratio * 100) / 100;
+      } else {
+        walletRefundAmount = overrideAmount;
+        gatewayRefundAmount = 0;
+      }
+      totalRefundAmount = overrideAmount;
+    } else {
+      // Legacy / default safety: Ensure calculatedRefund key is initialized in snapshot
+      enrichedReturnedItemsList = returnedItemsList.map((item: any) => ({
+        ...item,
+        calculatedRefund: item.calculatedRefund || item.refundAmount || 0
+      }));
+    }
+
+    // Task 4: Cap & Validate Split Payments
+    walletRefundAmount = Math.min(walletRefundAmount, originalWallet);
+    gatewayRefundAmount = Math.min(gatewayRefundAmount, originalGateway);
+    totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
+
+    if (totalRefundAmount <= 0) {
+      throw new Error("Calculated net refund amount must be greater than zero.");
+    }
+
+    const refundReason = overrideReason 
+      ? `Override: ${overrideReason}. Reason: ${reason || "None"}`
+      : (reason || "Return approved by admin");
+
+    let refundSuccessful = false;
+    let finalRefundStatus = "processed";
+    let razorpayRefundId: string | null = null;
+
+    // Split payment refund execution
+    if (order.refundOption === "wallet") {
+      if (order.userId) {
         const creditResult = await usersDb.applyWalletCredit(
-          walletRefundAmount,
-          `Refund for return — Order #${orderId}`,
+          totalRefundAmount,
+          `Return Credit for Order #${orderId}`,
           orderId,
           order.userId
         );
         if (!creditResult.success) {
-          console.error("[processReturnRefund] wallet credit failed:", creditResult.error);
           throw new Error(`Wallet credit failed: ${creditResult.error}`);
         }
       }
-
-      // Refund Razorpay portion back to bank
-      if (gatewayRefundAmount > 0 && order.razorpayPaymentId) {
-        try {
-          const { razorpay } = require("../razorpay") as typeof import("../razorpay");
-          const razorpayRefund = await razorpay.payments.refund(order.razorpayPaymentId, {
-            amount: Math.round(gatewayRefundAmount * 100), // paise
-            notes: {
-              orderId: orderId,
-              reason: 'Return approved'
-            }
-          });
-          
-          await supabase
-            .from('orders')
-            .update({
-              refund_id: razorpayRefund.id,
-              refund_status: 'initiated',
-              refund_amount: totalRefundAmount,
-              refunded_at: new Date().toISOString(),
-              returned_items: enrichedReturnedItemsList
-            })
-            .eq('id', orderId);
-        } catch (razorpayErr: any) {
-          console.error('[processReturnRefund] Razorpay refund failed:', razorpayErr);
-          await supabase
-            .from('orders')
-            .update({
-              refund_status: 'failed',
-              refund_reason: `Razorpay refund failed: ${razorpayErr.message}`,
-              refunded_at: new Date().toISOString(),
-              returned_items: enrichedReturnedItemsList
-            })
-            .eq('id', orderId);
+      refundSuccessful = true;
+      finalRefundStatus = "wallet_only";
+    } else {
+      // Quality passed: split wallet vs bank refund
+      if (qualityCheckPassed) {
+        if (walletRefundAmount > 0 && order.userId) {
+          const creditResult = await usersDb.applyWalletCredit(
+            walletRefundAmount,
+            `Refund for return — Order #${orderId}`,
+            orderId,
+            order.userId
+          );
+          if (!creditResult.success) {
+            throw new Error(`Wallet credit failed: ${creditResult.error}`);
+          }
         }
-      }
 
-      // If wallet-only order
-      if (walletRefundAmount > 0 && gatewayRefundAmount === 0) {
-        await supabase
-          .from('orders')
-          .update({
-            refund_status: 'wallet_only',
-            refund_amount: walletRefundAmount,
-            refunded_at: new Date().toISOString(),
-            returned_items: enrichedReturnedItemsList
-          })
-          .eq('id', orderId);
-      }
-    }
-  }
-
-  // Restore stock for returned items only if quality check passed and refund was successful
-  try {
-    if (qualityCheckPassed) {
-      const restockItems = enrichedReturnedItemsList.length > 0 ? enrichedReturnedItemsList : (order.cartItems || []);
-      if (restockItems.length > 0) {
-        const itemsForRestock = restockItems.map((item: any) => ({
-          productName: item.productName || item.productId || "",
-          size: item.size || item.variant || "M",
-          color: item.color || "Default",
-          quantity: item.quantity || 1,
-        }));
-        await inventoryDb.restoreStock(itemsForRestock, orderId);
-        console.log(
-          '[processReturnRefund] Stock restored for order',
-          order.id
-        );
+        if (gatewayRefundAmount > 0 && order.razorpayPaymentId) {
+          try {
+            const { razorpay } = require("../razorpay") as typeof import("../razorpay");
+            const razorpayRefund = await razorpay.payments.refund(order.razorpayPaymentId, {
+              amount: Math.round(gatewayRefundAmount * 100),
+              notes: { orderId: orderId, reason: 'Return approved' }
+            });
+            razorpayRefundId = razorpayRefund.id;
+            finalRefundStatus = "initiated";
+            refundSuccessful = true;
+          } catch (razorpayErr: any) {
+            console.error('[processReturnRefund] Razorpay refund failed:', razorpayErr);
+            throw new Error(`Razorpay gateway refund failed: ${razorpayErr.message}`);
+          }
+        } else {
+          refundSuccessful = true;
+          finalRefundStatus = walletRefundAmount > 0 ? "wallet_only" : "processed";
+        }
+      } else {
+        refundSuccessful = true;
+        finalRefundStatus = "qc_rejected";
       }
     }
-  } catch (stockErr) {
-    console.error(
-      '[processReturnRefund] Stock restore failed (non-fatal, requires manual review):',
-      stockErr
-    );
+
+    // Task 7 & Task 1: Inventory Restoration Guard
+    // Inventory restoration MUST occur ONLY when QC Passed AND Refund Completed!
+    if (qualityCheckPassed && refundSuccessful) {
+      try {
+        const restockItems = enrichedReturnedItemsList.length > 0 ? enrichedReturnedItemsList : (order.cartItems || []);
+        if (restockItems.length > 0) {
+          const itemsForRestock = restockItems.map((item: any) => ({
+            productName: item.productName || item.productId || "",
+            size: item.size || item.variant || "M",
+            color: item.color || "Default",
+            quantity: item.quantity || 1,
+          }));
+          await inventoryDb.restoreStock(itemsForRestock, orderId);
+          console.log('[processReturnRefund] Stock restored for order', order.id);
+        }
+      } catch (stockErr) {
+        console.error('[processReturnRefund] Stock restore warning:', stockErr);
+      }
+    }
+
+    // Reversing loyalty points on return
+    try {
+      if (pointsToReverse > 0 && order.userId) {
+        await loyaltyDb.applyLoyaltyDebit(pointsToReverse, orderId, order.userId);
+      }
+      if (pointsToRestore > 0 && order.userId) {
+        await loyaltyDb.applyLoyaltyCredit(pointsToRestore, `Redeemed points restored — Order #${orderId}`, orderId, order.userId);
+      }
+      if (returnedItemsList.length === 0 || totalRefundAmount >= maxRefundable) {
+        await supabase.from('orders').update({ points_credit_status: 'cancelled' }).eq('id', orderId);
+      }
+    } catch (loyaltyErr) {
+      console.error('[processReturnRefund] loyalty reversal warning:', loyaltyErr);
+    }
+
+    if (qualityCheckPassed && orderData?.coupon_code) {
+      try { await couponsDb.decrementCouponUsage(orderData.coupon_code); } catch {}
+    }
+
+    // Final Order Status Update
+    const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+    const { error: orderUpdateErr } = await supabase
+      .from("orders")
+      .update({
+        status: "Returned",
+        return_date: returnDate,
+        quality_check_passed: qualityCheckPassed,
+        refund_reason: refundReason,
+        refund_amount: totalRefundAmount,
+        refund_status: finalRefundStatus,
+        refund_id: razorpayRefundId || orderData.refund_id,
+        refunded_at: new Date().toISOString(),
+        returned_items: enrichedReturnedItemsList
+      })
+      .eq("id", orderId);
+
+    if (orderUpdateErr) {
+      throw new Error(`Failed to update final order status: ${orderUpdateErr.message}`);
+    }
+
+    return true;
+  } catch (err: any) {
+    // Transaction Rollback Guard: Revert refund_status from 'pending' back to 'failed' on error
+    await supabase
+      .from("orders")
+      .update({
+        refund_status: "failed",
+        refund_reason: `Refund Failed: ${err.message}`
+      })
+      .eq("id", orderId);
+    throw err;
   }
-
-  // Update order status to Returned
-  const returnDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
-  const { error: orderUpdateErr } = await supabase
-    .from("orders")
-    .update({
-      status: "Returned",
-      return_date: returnDate,
-      quality_check_passed: qualityCheckPassed,
-      refund_reason: refundReason,
-      refund_amount: totalRefundAmount,
-      returned_items: enrichedReturnedItemsList
-    })
-    .eq("id", orderId);
-
-  if (orderUpdateErr) {
-    console.error("[processReturnRefund] Failed to update final status to Returned:", orderUpdateErr.message);
-  }
-
-  return true;
 }
 
 export async function claimPaymentAtomically(orderId: string, razorpayPaymentId: string): Promise<{ success: boolean; message: string; status?: string }> {

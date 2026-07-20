@@ -857,29 +857,70 @@ export async function getGSTReport(
     let totalSGST = 0;
     let totalIGST = 0;
     let totalGSTAmount = 0;
-    
+
+    let slab5Taxable = 0;
+    let slab5Gst = 0;
+    let slab12Taxable = 0;
+    let slab12Gst = 0;
+    let slab18Taxable = 0;
+    let slab18Gst = 0;
+
     for (const order of data || []) {
-      const items = order.cart_items || [];
+      const rawItems = order.cart_items || [];
+      const items = typeof rawItems === "string" ? (rawItems.trim() ? JSON.parse(rawItems) : []) : rawItems;
       const snap = typeof order.address_snapshot === "string"
-        ? JSON.parse(order.address_snapshot)
+        ? (order.address_snapshot.trim() ? JSON.parse(order.address_snapshot) : null)
         : order.address_snapshot;
       const stateStr = snap?.state || "";
       const isInterstate = stateStr && !["tamil nadu", "tamilnadu", "tn"].includes(stateStr.trim().toLowerCase());
-      
-      for (const item of items) {
-        const price = Number(item.price || 0);
-        const qty = Number(item.quantity || 1);
-        const gstRate = item.gstRate || 
-          item.gst_rate || 
-          (price <= 1000 ? 5 : 12);
-        
-        const itemTotal = price * qty;
-        const taxable = itemTotal / (1 + gstRate/100);
-        const gst = itemTotal - taxable;
-        
+
+      if (Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          const price = Number(item.price || 0);
+          const qty = Number(item.quantity || item.qty || 1);
+          const gstRate = Number(item.gstRate || item.gst_rate || (price <= 1000 ? 5 : 12));
+          const itemTotal = price * qty;
+          const taxable = itemTotal / (1 + gstRate / 100);
+          const gst = itemTotal - taxable;
+
+          totalTaxableValue += taxable;
+          totalGSTAmount += gst;
+
+          if (gstRate === 5) {
+            slab5Taxable += taxable;
+            slab5Gst += gst;
+          } else if (gstRate === 18) {
+            slab18Taxable += taxable;
+            slab18Gst += gst;
+          } else {
+            slab12Taxable += taxable;
+            slab12Gst += gst;
+          }
+
+          if (isInterstate) {
+            totalIGST += gst;
+          } else {
+            totalCGST += gst / 2;
+            totalSGST += gst / 2;
+          }
+        }
+      } else {
+        const total = Number(order.total || 0);
+        const gstRate = total <= 1000 ? 5 : 12;
+        const taxable = total / (1 + gstRate / 100);
+        const gst = total - taxable;
+
         totalTaxableValue += taxable;
         totalGSTAmount += gst;
-        
+
+        if (gstRate === 5) {
+          slab5Taxable += taxable;
+          slab5Gst += gst;
+        } else {
+          slab12Taxable += taxable;
+          slab12Gst += gst;
+        }
+
         if (isInterstate) {
           totalIGST += gst;
         } else {
@@ -890,15 +931,16 @@ export async function getGSTReport(
     }
     
     return {
-      totalOrders: data?.length || 0,
+      totalOrders: (data || []).length,
       totalTaxableValue: Math.round(totalTaxableValue),
       totalCGST: Math.round(totalCGST),
       totalSGST: Math.round(totalSGST),
       totalIGST: Math.round(totalIGST),
       totalGSTAmount: Math.round(totalGSTAmount),
-      totalRevenue: Math.round(
-        totalTaxableValue + totalGSTAmount
-      )
+      totalRevenue: Math.round(totalTaxableValue + totalGSTAmount),
+      slab5: { taxable: Math.round(slab5Taxable), gst: Math.round(slab5Gst) },
+      slab12: { taxable: Math.round(slab12Taxable), gst: Math.round(slab12Gst) },
+      slab18: { taxable: Math.round(slab18Taxable), gst: Math.round(slab18Gst) }
     };
   }
 }

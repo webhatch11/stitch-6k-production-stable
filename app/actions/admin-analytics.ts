@@ -294,16 +294,13 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
     const liability = await db.getLiabilityReport();
     const netRevenueReport = await db.getNetRevenueReport(startOfMonth, endOfMonth);
 
-    let paymentsBreakdown = [
-      { name: "Razorpay Only", value: 70 },
-      { name: "Wallet Only", value: 15 },
-      { name: "Wallet + Razorpay", value: 15 },
-    ];
+    let paymentLogs: any[] = [];
+    let refundLogs: any[] = [];
 
     if (isSupabaseConfigured && supabase) {
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("wallet_paid, gateway_paid, status")
+        .select("id, customer, wallet_paid, gateway_paid, total, refund_amount, refund_status, refund_reason, status, payment_status, created_at, refunded_at, razorpay_payment_id")
         .gte("created_at", startOfMonth)
         .lte("created_at", endOfMonth);
 
@@ -326,6 +323,28 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
           { name: "Wallet Only", value: walletOnly },
           { name: "Wallet + Razorpay", value: combined },
         ];
+
+        paymentLogs = valid.map((o) => ({
+          orderId: o.id,
+          customer: o.customer || "Customer",
+          gatewayPaid: Number(o.gateway_paid || 0),
+          walletPaid: Number(o.wallet_paid || 0),
+          total: Number(o.total || 0),
+          paymentStatus: o.payment_status || "Paid",
+          paymentId: o.razorpay_payment_id || "N/A",
+          date: o.created_at
+        }));
+
+        refundLogs = orders
+          .filter((o) => Number(o.refund_amount || 0) > 0 || ["Returned", "Return Approved", "Return QC Passed"].includes(o.status))
+          .map((o) => ({
+            orderId: o.id,
+            customer: o.customer || "Customer",
+            refundAmount: Number(o.refund_amount || o.total || 0),
+            refundStatus: o.refund_status || "processed",
+            refundReason: o.refund_reason || "Return processed",
+            date: o.refunded_at || o.created_at
+          }));
       }
     }
 
@@ -337,6 +356,8 @@ export async function getFinanceAnalyticsAction(year: number, month: number) {
       liability,
       netRevenueReport,
       paymentsBreakdown,
+      paymentLogs,
+      refundLogs
     };
   } catch (err: any) {
     console.error("Finance action error:", err);

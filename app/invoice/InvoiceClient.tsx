@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Order, Product } from "@/lib/types";
 import { updateOrderToProcessingAction } from "@/app/actions/orders";
+import { markOrderPackedAction } from "@/app/actions/admin-orders";
 import { buildInvoiceHtml, orderToInvoiceData } from "@/lib/invoice-template";
 
 interface InvoiceClientProps {
@@ -15,6 +16,7 @@ interface InvoiceClientProps {
   walletPaid: number;
   couponDiscount: number;
   gstin?: string;
+  isAdmin?: boolean;
 }
 
 export default function InvoiceClient({
@@ -26,6 +28,7 @@ export default function InvoiceClient({
   walletPaid,
   couponDiscount,
   gstin = "33BFOPT4938Q1ZE",
+  isAdmin = false,
 }: InvoiceClientProps) {
   const router = useRouter();
   const [matchedOrder, setMatchedOrder] = useState<Order>(initialOrder);
@@ -40,11 +43,20 @@ export default function InvoiceClient({
   }, []);
 
   const handlePrint = async () => {
-    if (matchedOrder && matchedOrder.status === "Paid") {
-      const res = await updateOrderToProcessingAction(matchedOrder.id);
-      if (res.success && res.order) {
-        setMatchedOrder(res.order);
-        window.dispatchEvent(new Event("storage"));
+    if (matchedOrder) {
+      const currentStatus = (matchedOrder.status || "").toLowerCase();
+      if (currentStatus === "paid" || currentStatus === "paid via wallet") {
+        const res = await updateOrderToProcessingAction(matchedOrder.id);
+        if (res.success && res.order) {
+          setMatchedOrder(res.order);
+          window.dispatchEvent(new Event("storage"));
+        }
+      } else if (isAdmin && currentStatus === "processing") {
+        const res = await markOrderPackedAction(matchedOrder.id);
+        if (res.success) {
+          setMatchedOrder(prev => ({ ...prev, status: "Packed" }));
+          window.dispatchEvent(new Event("storage"));
+        }
       }
     }
     const iframe = document.querySelector("iframe");
@@ -53,6 +65,16 @@ export default function InvoiceClient({
       iframe.contentWindow.print();
     } else {
       window.print();
+    }
+  };
+
+  const handleGoBack = () => {
+    if (typeof window !== "undefined") {
+      if (window.opener || window.history.length <= 1) {
+        window.close();
+      } else {
+        router.back();
+      }
     }
   };
 
@@ -97,19 +119,19 @@ export default function InvoiceClient({
       <div className="fixed top-6 right-6 left-6 sm:left-auto flex flex-col sm:flex-row gap-4 no-print z-50">
         <button
           onClick={handlePrint}
-          className="w-full sm:w-auto px-6 py-3 bg-black text-white rounded-none text-[10px] font-black uppercase tracking-[0.2em] LoggedInAdminOnly hover:bg-gray-800 transition-all shadow-xl border-none cursor-pointer text-center"
+          className="w-full sm:w-auto px-6 py-3 bg-[#1a1c1c] text-[#faf9f8] rounded-none text-[10px] font-black uppercase tracking-[0.2em] LoggedInAdminOnly hover:bg-[#775a19] transition-all shadow-xl border-none cursor-pointer text-center"
         >
           Print / Download PDF
         </button>
         <button
-          onClick={() => router.back()}
-          className="w-full sm:w-auto px-6 py-3 bg-white border border-gray-200 text-gray-500 rounded-none text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-50 transition-all cursor-pointer text-center"
+          onClick={handleGoBack}
+          className="w-full sm:w-auto px-6 py-3 bg-white border border-[#7f7667]/20 text-[#1a1c1c] rounded-none text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#faf9f8] transition-all cursor-pointer text-center"
         >
           Go Back
         </button>
       </div>
 
-      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mt-20 sm:mt-0">
+      <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mt-36 sm:mt-24">
         <div className="min-w-[320px] invoice-preview-container max-w-[800px] mx-auto shadow-sm border border-gray-200 bg-white invoice-preview">
           <iframe
             srcDoc={html}

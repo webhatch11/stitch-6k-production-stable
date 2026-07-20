@@ -81,6 +81,7 @@ async function InvoiceContent({ searchParams }: InvoicePageProps) {
       walletPaid={walletPaid}
       couponDiscount={couponDiscount}
       gstin={gstin}
+      isAdmin={user.role === "admin"}
     />
   );
 }

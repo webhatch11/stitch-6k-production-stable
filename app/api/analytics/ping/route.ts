@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Uses service role so mutable session state remains server-write-only.
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const BOT_PATTERNS = [
+  "bot", "crawler", "spider", "slurp", "googlebot", "bingbot", "yandex", 
+  "baidu", "duckduckbot", "ahrefs", "semrush", "facebookexternalhit", 
+  "twitterbot", "pinterest", "headlesschrome", "python-requests", "curl", "wget"
+];
+
+function isBot(ua: string): boolean {
+  const lower = ua.toLowerCase();
+  return BOT_PATTERNS.some((pattern) => lower.includes(pattern));
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +29,17 @@ export async function POST(req: NextRequest) {
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
       "unknown";
+
+    // 1. Filter out bot/crawler traffic
+    if (isBot(userAgent)) {
+      return NextResponse.json({ ok: true, ignored: "bot" });
+    }
+
+    // 2. Filter out admin dashboard sessions
+    const currentPage = (page || "/").toLowerCase();
+    if (currentPage.startsWith("/admindashboard") || currentPage.startsWith("/admin")) {
+      return NextResponse.json({ ok: true, ignored: "admin" });
+    }
 
     const now = new Date().toISOString();
 

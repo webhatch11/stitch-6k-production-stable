@@ -101,10 +101,8 @@ export async function getProducts(options?: {
 
   if (options?.trashedOnly) {
     query = query.not("deleted_at", "is", null);
-  } else if (options?.adminView) {
-    query = query.is("deleted_at", null);
   } else if (!options?.includeDeleted) {
-    query = query.is("deleted_at", null).or("product_status.eq.active,product_status.is.null");
+    query = query.is("deleted_at", null);
   }
 
   if (options?.display_section) {

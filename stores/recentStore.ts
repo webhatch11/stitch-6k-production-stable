@@ -27,16 +27,15 @@ export const useRecentStore = create<RecentState>()(
       reconcileRecent: (validProducts) => {
         if (!validProducts || validProducts.length === 0) return;
         set((state) => {
-          const validMap = new Map(validProducts.map((p) => [p.id, p]));
+          const idMap = new Map(validProducts.map((p) => [p.id, p]));
+          const slugMap = new Map(validProducts.map((p) => [p.slug, p]));
           const updatedRecent: Product[] = [];
           
           for (const item of state.recentItems) {
-            const freshProduct = validMap.get(item.id);
+            const freshProduct = idMap.get(item.id) || (item.slug ? slugMap.get(item.slug) : undefined);
             if (freshProduct) {
-              // Product still exists, update to fresh product details
               updatedRecent.push(freshProduct);
             }
-            // If freshProduct is undefined, item was deleted from database -> purged automatically!
           }
 
           return { recentItems: updatedRecent };

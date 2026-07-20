@@ -37,16 +37,15 @@ export const useWishlistStore = create<WishlistState>()(
       reconcileWishlist: (validProducts) => {
         if (!validProducts || validProducts.length === 0) return;
         set((state) => {
-          const validMap = new Map(validProducts.map((p) => [p.id, p]));
+          const idMap = new Map(validProducts.map((p) => [p.id, p]));
+          const slugMap = new Map(validProducts.map((p) => [p.slug, p]));
           const updatedWishlist: Product[] = [];
           
           for (const item of state.wishlistItems) {
-            const freshProduct = validMap.get(item.id);
+            const freshProduct = idMap.get(item.id) || (item.slug ? slugMap.get(item.slug) : undefined);
             if (freshProduct) {
-              // Product still exists, update to fresh product details
               updatedWishlist.push(freshProduct);
             }
-            // If freshProduct is undefined, item is deleted from catalog -> purged automatically!
           }
 
           return { wishlistItems: updatedWishlist };

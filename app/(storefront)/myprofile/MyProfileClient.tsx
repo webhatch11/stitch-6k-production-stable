@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Order, WalletTransaction, LoyaltyTransaction, UserAddress, Product } from "@/lib/types";
@@ -52,6 +52,15 @@ export default function MyProfileClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const wishlistStore = useWishlistStore();
   const wishlistItems = wishlistStore.wishlistItems;
+
+  const displayWishlistItems = useMemo(() => {
+    if (!activeProducts || activeProducts.length === 0) return wishlistItems;
+    const activeIds = new Set(activeProducts.map((p) => p.id));
+    const activeSlugs = new Set(activeProducts.map((p) => p.slug));
+    return wishlistItems.filter(
+      (item) => activeIds.has(item.id) || (item.slug && activeSlugs.has(item.slug))
+    );
+  }, [wishlistItems, activeProducts]);
 
   useEffect(() => {
     if (activeProducts && activeProducts.length > 0) {
@@ -1058,7 +1067,7 @@ export default function MyProfileClient({
                 <h1 className="text-on-surface text-5xl font-headline font-extrabold tracking-tighter">MY WISHLIST</h1>
               </div>
 
-              {wishlistItems.length === 0 && (
+              {displayWishlistItems.length === 0 && (
                 <div className="text-center py-16 px-6 border border-dashed border-outline-variant/30 bg-surface-container-lowest/30">
                   <div className="text-4xl mb-4">🖤</div>
                   <h3 className="font-headline font-black uppercase text-sm text-gray-900 mb-2 tracking-wider">
@@ -1076,9 +1085,9 @@ export default function MyProfileClient({
                 </div>
               )}
 
-              {wishlistItems.length > 0 && (
+              {displayWishlistItems.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                  {wishlistItems.map((item) => {
+                  {displayWishlistItems.map((item) => {
                     const totalStock = item.sizeStock
                       ? Object.values(item.sizeStock).reduce((sum, val) => sum + (val || 0), 0)
                       : 0;

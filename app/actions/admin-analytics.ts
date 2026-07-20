@@ -31,7 +31,7 @@ export async function getTopProductsAction(days: number) {
 
 import { supabaseService as supabase, isServiceClientConfigured as isSupabaseConfigured } from "@/lib/supabase-service";
 
-export async function getMarketingAnalyticsAction() {
+export async function getMarketingAnalyticsAction(year?: number, month?: number) {
   try {
     await requireAdmin();
 
@@ -62,10 +62,19 @@ export async function getMarketingAnalyticsAction() {
       };
     }
 
-    const { data: orders, error } = await supabase
+    let query = supabase
       .from("orders")
-      .select("total, utm_source, utm_medium, utm_campaign, status")
+      .select("total, utm_source, utm_medium, utm_campaign, status, created_at")
       .not("utm_source", "is", null);
+
+    if (year && month) {
+      const startOfMonth = `${year}-${String(month).padStart(2, "0")}-01T00:00:00.000+05:30`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endOfMonth = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+05:30`;
+      query = query.gte("created_at", startOfMonth).lte("created_at", endOfMonth);
+    }
+
+    const { data: orders, error } = await query;
 
     if (error) throw error;
 
@@ -105,8 +114,8 @@ export async function getMarketingAnalyticsAction() {
       };
     }).sort((a, b) => b.revenue - a.revenue);
 
-    const adSpend = await db.getAdSpend(3);
-    const roasReport = await db.getROASReport(3);
+    const adSpend = await db.getAdSpend(6);
+    const roasReport = await db.getROASReport(6);
 
     return { success: true, utmSources, campaigns, adSpend, roasReport };
   } catch (err: any) {

@@ -94,7 +94,7 @@ export default function SalesAnalyticsPage() {
     // 1. Executive Summary
     csv += "=== 6K SALES ANALYTICS REPORT ===\n";
     csv += `Report Generated At,${sanitizeCSVCell(new Date().toLocaleString())}\n`;
-    csv += `Period Selected,${sanitizeCSVCell(`Last ${days} Days`)}\n\n`;
+    csv += `Period Selected,${sanitizeCSVCell(useCustom ? `Custom (${startDate} to ${endDate})` : `Last ${days} Days`)}\n\n`;
 
     csv += "=== KPI SUMMARY ===\n";
     csv += `Today's Sales (INR),${todayKPI.todaySales || 0}\n`;
@@ -147,36 +147,10 @@ export default function SalesAnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportCSV = () => {
-    const salesData = revenueTrend || [];
-    if (salesData.length === 0) return;
-    const rows = salesData.map((d: any) => ({
-      Date: d.date,
-      Orders: d.order_count || 0,
-      Revenue: d.revenue || 0,
-      AOV: d.order_count > 0 ? Math.round(d.revenue / d.order_count) : 0,
-      Refunds: 0,
-      'Net Revenue': d.revenue
-    }));
-    
-    const csv = [
-      Object.keys(rows[0]).join(','),
-      ...rows.map((r: any) => Object.values(r).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `6k-sales-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (loading && !data) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <div className="size-8 rounded-full border-2 border-white/20 border-t-[#fed488] animate-spin"></div>
+        <div className="size-8 rounded-none border-2 border-gray-200 border-t-[#775a19] animate-spin"></div>
       </div>
     );
   }
@@ -207,18 +181,22 @@ export default function SalesAnalyticsPage() {
   const revenueTrend = filterByDateRange(rawRevenueTrend);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto text-white font-body">
+    <div className="p-8 lg:p-16 min-h-screen bg-[#fafafa] text-[#1a1c1c] font-body">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-white/10 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-gray-200 pb-8">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#fed488]">Sales Intelligence</span>
-          <h1 className="font-headline text-3xl font-black uppercase tracking-tight mt-1 text-white">Sales Analytics Dashboard</h1>
-          <p className="text-[11px] text-white/50 mt-1 uppercase tracking-wider">Monitor direct store conversion rates, category aggregates, and geographic ordering trends</p>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#775a19]">Sales Intelligence</span>
+          <h1 className="font-headline text-4xl lg:text-5xl font-black uppercase tracking-tighter text-[#1a1c1c] leading-none mt-2">
+            Sales Analytics Dashboard
+          </h1>
+          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-3">
+            Monitor direct store conversion rates, category aggregates, and geographic ordering trends
+          </p>
         </div>
 
         {/* Date Filter & Export */}
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex bg-white/5 border border-white/10 p-1 flex-wrap items-center gap-2">
+          <div className="flex bg-white border border-gray-200 p-1 flex-wrap items-center gap-2 rounded-none shadow-sm">
             {([7, 30, 90] as const).map((r) => (
               <button
                 key={r}
@@ -228,16 +206,16 @@ export default function SalesAnalyticsPage() {
                 }}
                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-none cursor-pointer border-none ${
                   !useCustom && days === r
-                    ? "bg-[#fed488] text-[#0a0a0a]"
-                    : "bg-transparent text-zinc-300 hover:text-white"
+                    ? "bg-[#1a1c1c] text-[#faf9f8]"
+                    : "bg-transparent text-gray-400 hover:text-[#1a1c1c]"
                 }`}
               >
                 {r}D
               </button>
             ))}
             
-            <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
-              <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold">Custom:</span>
+            <div className="flex items-center gap-1.5 pl-2 border-l border-gray-200">
+              <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Custom:</span>
               <input
                 type="date"
                 value={startDate}
@@ -245,9 +223,9 @@ export default function SalesAnalyticsPage() {
                   setStartDate(e.target.value);
                   setUseCustom(true);
                 }}
-                className="bg-[#171717] border border-white/15 text-white text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#fed488]"
+                className="bg-gray-50 border border-gray-200 text-[#1a1c1c] text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#775a19]"
               />
-              <span className="text-[9px] text-zinc-400">to</span>
+              <span className="text-[9px] text-gray-400">to</span>
               <input
                 type="date"
                 value={endDate}
@@ -255,156 +233,149 @@ export default function SalesAnalyticsPage() {
                   setEndDate(e.target.value);
                   setUseCustom(true);
                 }}
-                className="bg-[#171717] border border-white/15 text-white text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#fed488]"
+                className="bg-gray-50 border border-gray-200 text-[#1a1c1c] text-[9px] px-2 py-1 outline-none rounded-none focus:border-[#775a19]"
               />
             </div>
           </div>
 
           <button
             onClick={handleExportDetailedReport}
-            className="px-5 py-2.5 bg-[#fed488] text-[#0a0a0a] text-[10px] font-black uppercase tracking-widest hover:bg-[#e0bb70] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer select-none"
+            className="px-5 py-2.5 bg-[#775a19] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#5f4713] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer select-none shadow-sm"
           >
-            <span className="material-symbols-outlined text-[13px] font-black">download</span>
+            <span className="material-symbols-outlined text-[14px]">download</span>
             <span>Export Report</span>
-          </button>
-
-          <button
-            onClick={handleExportCSV}
-            className="bg-black text-white px-4 py-2 rounded-lg text-sm cursor-pointer select-none hover:bg-neutral-900 border-none transition-colors"
-          >
-            Export CSV
           </button>
         </div>
       </div>
 
-      {/* Loading Overlay */}
+      {/* Loading Toast Overlay */}
       {loading && (
-        <div className="fixed top-6 right-6 z-[1000] bg-black text-white border border-white/10 py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl animate-pulse">
+        <div className="fixed top-6 right-6 z-[1000] bg-[#1a1c1c] text-[#faf9f8] border border-[#775a19]/30 py-4 px-6 text-[10px] font-bold uppercase tracking-[0.2em] shadow-2xl animate-pulse">
           Refreshing data...
         </div>
       )}
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {/* Card 1: Today's Sales */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Sales</h3>
-            <p className="text-2xl font-headline font-black text-white mt-2">
+            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Today's Sales</h3>
+            <p className="text-3xl font-headline font-black text-[#1a1c1c] mt-2">
               ₹{(todayKPI.todaySales || 0).toLocaleString("en-IN")}
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Refreshes in real-time</span>
+          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold block">Refreshes in real-time</span>
         </div>
 
         {/* Card 2: Today's Orders */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Today's Orders</h3>
-            <p className="text-2xl font-headline font-black text-white mt-2">
+            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Today's Orders</h3>
+            <p className="text-3xl font-headline font-black text-[#1a1c1c] mt-2">
               {todayKPI.todayOrders || 0}
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Direct purchases logged</span>
+          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold block">Direct purchases logged</span>
         </div>
 
         {/* Card 3: Conversion Rate */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Conversion Rate</h3>
+            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Conversion Rate</h3>
             <div className="flex items-baseline justify-between mt-2">
-              <p className="text-2xl font-headline font-black text-white">
+              <p className="text-3xl font-headline font-black text-[#1a1c1c]">
                 {kpis.conversionRate || 0}%
               </p>
               {(() => {
                 const diff = (kpis.conversionRate || 0) - (kpis.conversionRatePrev || 0);
                 if (diff > 0) {
-                  return <span className="text-xs font-bold text-green-500">↑ +{diff}%</span>;
+                  return <span className="text-xs font-bold text-green-700">↑ +{diff}%</span>;
                 } else if (diff < 0) {
-                  return <span className="text-xs font-bold text-red-500">↓ -{Math.abs(diff)}%</span>;
+                  return <span className="text-xs font-bold text-red-600">↓ -{Math.abs(diff)}%</span>;
                 }
-                return <span className="text-xs font-bold text-zinc-400">→ 0%</span>;
+                return <span className="text-xs font-bold text-gray-400">→ 0%</span>;
               })()}
             </div>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">Checkout → Payment ({days} days)</span>
+          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold block">Checkout → Payment ({days} days)</span>
         </div>
 
         {/* Card 4: Repeat Customers */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border border-gray-200 p-6 rounded-none shadow-sm flex flex-col justify-between h-36">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">Repeat Customers</h3>
-            <p className="text-2xl font-headline font-black text-white mt-2">
+            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Repeat Customers</h3>
+            <p className="text-3xl font-headline font-black text-[#1a1c1c] mt-2">
               {repeatPurchaseStats?.repeatRate || 0}%
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-wider text-zinc-400 font-bold block">
+          <span className="text-[8px] uppercase tracking-wider text-gray-400 font-bold block">
             {repeatPurchaseStats?.repeatCustomers || 0} of {repeatPurchaseStats?.totalCustomers || 0} returned ({days} days)
           </span>
         </div>
       </div>
 
       {/* Revenue Trend Line Chart */}
-      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mb-8">
+      <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm mb-10">
         <div className="mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-[#fed488]">Revenue Trend</h3>
-          <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Aggregate daily sales value & order counts</p>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19]">Revenue Trend</h3>
+          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Aggregate daily sales value & order counts</p>
         </div>
         <div className="w-full h-80 relative">
           {mounted && revenueTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrend} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" />
-                <YAxis tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" tickFormatter={(val) => `₹${val}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }} stroke="#ccc" />
+                <YAxis tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }} stroke="#ccc" tickFormatter={(val) => `₹${val}`} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#171717",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    backgroundColor: "#1a1c1c",
+                    border: "1px solid #775a19",
                     borderRadius: "0px",
-                    color: "#fff",
+                    color: "#faf9f8",
                     fontFamily: "monospace",
                     fontSize: "11px",
                   }}
                   formatter={(value: any) => [`₹${value.toLocaleString()}`, "Revenue"]}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#fed488" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                <Line type="monotone" dataKey="revenue" stroke="#775a19" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center italic text-xs text-zinc-400">No revenue data loaded</div>
+            <div className="h-full flex items-center justify-center italic text-xs text-gray-400">No revenue data loaded</div>
           )}
         </div>
       </div>
 
       {/* Grid: Sales by Category & Top Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
         {/* Sales by Category Horizontal Bar Chart */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between h-[380px]">
+        <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm flex flex-col justify-between h-[380px]">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Sales by Category</h3>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Distribution of sales volume by product type</p>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">Sales by Category</h3>
+            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Distribution of sales volume by product type</p>
           </div>
 
           <div className="flex-grow w-full relative h-[250px]">
             {mounted && categoryStats.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryStats} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" tickFormatter={(val) => `₹${val}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" horizontal={true} vertical={false} />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }} stroke="#ccc" tickFormatter={(val) => `₹${val}`} />
                   <YAxis
                     dataKey="category"
                     type="category"
-                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }}
-                    stroke="rgba(255,255,255,0.25)"
+                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }}
+                    stroke="#ccc"
                     width={80}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#171717",
-                      border: "1px solid rgba(255,255,255,0.15)",
+                      backgroundColor: "#1a1c1c",
+                      border: "1px solid #775a19",
                       borderRadius: "0px",
-                      color: "#fff",
+                      color: "#faf9f8",
                       fontFamily: "monospace",
                       fontSize: "11px",
                     }}
@@ -413,42 +384,42 @@ export default function SalesAnalyticsPage() {
                       `Revenue (${props.payload.percentage}%, ${props.payload.unitsSold} units)`,
                     ]}
                   />
-                  <Bar dataKey="revenue" fill="#fed488" barSize={12} />
+                  <Bar dataKey="revenue" fill="#775a19" barSize={14} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-12">No category stats recorded</p>
+              <p className="text-xs text-gray-400 uppercase tracking-widest text-center py-12">No category stats recorded</p>
             )}
           </div>
         </div>
 
         {/* Top Performing Products */}
-        <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none flex flex-col justify-between h-[380px]">
+        <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm flex flex-col justify-between h-[380px]">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Products</h3>
-            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Best selling items ranked by total units sold</p>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">Top Products</h3>
+            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Best selling items ranked by total units sold</p>
           </div>
 
           <div className="flex-grow w-full relative h-[250px]">
             {mounted && topProducts.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topProducts} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={true} vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }} stroke="rgba(255,255,255,0.25)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" horizontal={true} vertical={false} />
+                  <XAxis type="number" tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }} stroke="#ccc" />
                   <YAxis
                     dataKey="productName"
                     type="category"
-                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#d4d4d8" }}
-                    stroke="rgba(255,255,255,0.25)"
+                    tick={{ fontSize: 9, fontFamily: "monospace", fill: "#666" }}
+                    stroke="#ccc"
                     width={80}
                     tickFormatter={(val) => (val.length > 12 ? val.slice(0, 12) + "..." : val)}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#171717",
-                      border: "1px solid rgba(255,255,255,0.15)",
+                      backgroundColor: "#1a1c1c",
+                      border: "1px solid #775a19",
                       borderRadius: "0px",
-                      color: "#fff",
+                      color: "#faf9f8",
                       fontFamily: "monospace",
                       fontSize: "11px",
                     }}
@@ -457,20 +428,20 @@ export default function SalesAnalyticsPage() {
                       `Units Sold (Revenue: ₹${props.payload.revenue.toLocaleString()})`,
                     ]}
                   />
-                  <Bar dataKey="unitsSold" fill="#fed488" barSize={12} />
+                  <Bar dataKey="unitsSold" fill="#775a19" barSize={14} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-12">No products sold in this period</p>
+              <p className="text-xs text-gray-400 uppercase tracking-widest text-center py-12">No products sold in this period</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Geographic Breakdown */}
-      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none">
-        <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">Top Ordering Cities</h3>
-        <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">Delivery address distribution in the last 30 days</p>
+      <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm mb-10">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">Top Ordering Cities</h3>
+        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">Delivery address distribution in the last {days} days</p>
 
         <div className="space-y-4">
           {cityOrders && cityOrders.length > 0 ? (
@@ -481,15 +452,15 @@ export default function SalesAnalyticsPage() {
                 return (
                   <div key={item.city} className="space-y-1.5">
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider">
-                      <span className="text-white/80">{index + 1}. {item.city}</span>
-                      <div className="flex gap-4 font-mono text-white">
+                      <span className="text-[#1a1c1c]">{index + 1}. {item.city}</span>
+                      <div className="flex gap-4 font-mono text-[#1a1c1c]">
                         <span>{item.count} Orders</span>
                         <span>₹{(item.revenue || 0).toLocaleString()}</span>
                       </div>
                     </div>
-                    <div className="h-2.5 bg-white/5 border border-white/10 rounded-none overflow-hidden">
+                    <div className="h-2 bg-gray-100 border border-gray-200 rounded-none overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#fed488]/50 to-[#fed488] transition-all duration-1000 ease-out"
+                        className="h-full bg-[#775a19] transition-all duration-1000 ease-out"
                         style={{ width: `${pct}%` }}
                       ></div>
                     </div>
@@ -498,24 +469,24 @@ export default function SalesAnalyticsPage() {
               });
             })()
           ) : (
-            <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
-              No orders loaded in the last 30 days.
+            <p className="text-xs text-gray-400 uppercase tracking-widest text-center py-8">
+              No orders loaded in the last {days} days.
             </p>
           )}
         </div>
       </div>
 
       {/* Revenue by Collection (display_section grouping) */}
-      <div className="bg-[#0d0d0d] border border-white/15 p-6 rounded-none mt-8">
-        <h3 className="text-xs font-black uppercase tracking-wider mb-2 text-[#fed488]">
+      <div className="bg-white border border-gray-200 p-8 rounded-none shadow-sm">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#775a19] mb-1">
           Revenue by Collection
         </h3>
-        <p className="text-[10px] text-zinc-400 uppercase tracking-widest mb-6">
+        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-6">
           Sales breakdown by product display section — last {days} days
         </p>
 
         {categoryData.length === 0 ? (
-          <p className="text-xs text-zinc-400 uppercase tracking-widest text-center py-8">
+          <p className="text-xs text-gray-400 uppercase tracking-widest text-center py-8">
             No collection data available for this period
           </p>
         ) : (
@@ -524,24 +495,24 @@ export default function SalesAnalyticsPage() {
               {categoryData.map((cat) => (
                 <div key={cat.category}>
                   <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-white/80">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#1a1c1c]">
                       {cat.category}
                     </span>
                     <div className="flex items-center gap-5 font-mono">
-                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest">
+                      <span className="text-[9px] text-gray-400 uppercase tracking-widest">
                         {cat.orders} items
                       </span>
-                      <span className="text-xs font-bold text-white">
+                      <span className="text-xs font-bold text-[#1a1c1c]">
                         ₹{cat.revenue.toLocaleString("en-IN")}
                       </span>
-                      <span className="text-[9px] font-bold text-[#fed488] w-9 text-right">
+                      <span className="text-[9px] font-bold text-[#775a19] w-9 text-right">
                         {cat.percentage}%
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-white/5 border border-white/10 h-2 overflow-hidden">
+                  <div className="w-full bg-gray-100 border border-gray-200 h-2 overflow-hidden rounded-none">
                     <div
-                      className="bg-gradient-to-r from-[#fed488]/60 to-[#fed488] h-full transition-all duration-700 ease-out"
+                      className="bg-[#775a19] h-full transition-all duration-700 ease-out"
                       style={{ width: `${cat.percentage}%` }}
                     />
                   </div>
@@ -550,11 +521,11 @@ export default function SalesAnalyticsPage() {
             </div>
 
             {/* Summary footer */}
-            <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-              <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-bold">
+            <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+              <span className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">
                 {categoryData.length} collections tracked
               </span>
-              <span className="text-xs font-black font-mono text-white">
+              <span className="text-xs font-black font-mono text-[#1a1c1c]">
                 Total: ₹{categoryData
                   .reduce((sum, c) => sum + c.revenue, 0)
                   .toLocaleString("en-IN")}

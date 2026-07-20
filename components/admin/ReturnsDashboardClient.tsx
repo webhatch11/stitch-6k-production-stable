@@ -32,7 +32,7 @@ interface ReturnsDashboardClientProps {
 export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboardClientProps) {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [activeTab, setActiveTab] = useState<"pending" | "transit" | "completed" | "analytics">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "transit" | "rejected" | "completed" | "analytics">("pending");
 
   // Modal States
   const [modalType, setModalType] = useState<"pickup" | "reject" | "receive" | null>(null);
@@ -58,8 +58,9 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
 
   // Filters
   const pendingOrders = orders.filter((o) => o.status === "Return Requested");
-  const transitOrders = orders.filter((o) => o.status === "Return in Transit");
-  const completedOrders = orders.filter((o) => ["Returned", "Return Rejected"].includes(o.status));
+  const transitOrders = orders.filter((o) => ["Return Accepted", "Return Pickup Scheduled", "Return in Transit", "Return QC Pending"].includes(o.status));
+  const rejectedOrders = orders.filter((o) => ["Return Rejected", "Return QC Failed"].includes(o.status));
+  const completedOrders = orders.filter((o) => o.status === "Returned");
 
   // --- Analytics Calculations ---
   const now = Date.now();
@@ -282,9 +283,10 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
       {/* Tabs Row */}
       <div className="flex border-b border-gray-200 gap-6 mb-10 overflow-x-auto">
         {([
-          { key: "pending", label: `Pending Returns (${pendingOrders.length})` },
-          { key: "transit", label: `In Transit (${transitOrders.length})` },
-          { key: "completed", label: "Completed" },
+          { key: "pending", label: `Pending Requests (${pendingOrders.length})` },
+          { key: "transit", label: `In Transit / In Progress (${transitOrders.length})` },
+          { key: "rejected", label: `Rejected Returns (${rejectedOrders.length})` },
+          { key: "completed", label: `Completed Returns (${completedOrders.length})` },
           { key: "analytics", label: "Return Analytics" },
         ] as const).map((tab) => (
           <button
@@ -447,6 +449,56 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                             View
                           </Link>
                         </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "rejected" && (
+        <div className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[9px] font-black uppercase tracking-[.2em] text-gray-500 border-b border-gray-200 bg-[#fafafa]">
+                  <th className="px-8 py-6">Order ID</th>
+                  <th className="px-8 py-6">Customer</th>
+                  <th className="px-8 py-6">Return Reason</th>
+                  <th className="px-8 py-6">Rejection Reason</th>
+                  <th className="px-8 py-6">Date</th>
+                  <th className="px-8 py-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 text-xs font-bold uppercase tracking-wider">
+                {rejectedOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-12 text-center text-gray-400 italic">
+                      No rejected returns found.
+                    </td>
+                  </tr>
+                ) : (
+                  rejectedOrders.map((o) => (
+                    <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-8 py-6 text-primary">#{o.id}</td>
+                      <td className="px-8 py-6">{o.customer}</td>
+                      <td className="px-8 py-6 text-gray-600">{o.returnReason || "Not specified"}</td>
+                      <td className="px-8 py-6 text-red-600 font-semibold">
+                        {(o as any).returnRejectReason || (o as any).refund_reason || (o as any).refundReason || "Declined by admin"}
+                      </td>
+                      <td className="px-8 py-6 text-gray-500">
+                        {o.returnDate || o.date}
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <Link
+                          href={`/admindashboard/return-details?orderId=${o.id}`}
+                          className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] inline-flex items-center gap-1"
+                        >
+                          View Details
+                        </Link>
                       </td>
                     </tr>
                   ))

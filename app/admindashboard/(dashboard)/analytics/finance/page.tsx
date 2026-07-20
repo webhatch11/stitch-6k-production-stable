@@ -35,55 +35,43 @@ export default function FinanceAnalyticsPage() {
     return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const sanitizeCSVCell = (val: any): string => {
-    if (val === null || val === undefined) return '""';
-    let str = String(val);
-    if (/^[=+@-]/.test(str)) {
-      str = "'" + str;
-    }
-    str = str.replace(/"/g, '""');
-    return `"${str}"`;
-  };
-
-  // Export 1: Payments CSV
-  const handleExportPaymentsCSV = () => {
+  // Export 1: Payments Excel (.xlsx)
+  const handleExportPaymentsExcel = () => {
     const logs = data?.paymentLogs || [];
-    let csv = "Order ID,Customer,Gateway Paid (INR),Wallet Paid (INR),Total Paid (INR),Payment Status,Razorpay ID,Date\n";
-    logs.forEach((row: any) => {
-      csv += `${sanitizeCSVCell(row.orderId)},${sanitizeCSVCell(row.customer)},${row.gatewayPaid},${row.walletPaid},${row.total},${sanitizeCSVCell(row.paymentStatus)},${sanitizeCSVCell(row.paymentId)},${sanitizeCSVCell(row.date)}\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Payments_Report_${selectedYear}_${selectedMonth}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const rows = logs.map((row: any) => ({
+      "Order ID": row.orderId,
+      "Customer Name": row.customer,
+      "Gateway Paid (INR)": row.gatewayPaid,
+      "Wallet Paid (INR)": row.walletPaid,
+      "Total Paid (INR)": row.total,
+      "Payment Status": row.paymentStatus,
+      "Razorpay Payment ID": row.paymentId,
+      "Transaction Date": row.date,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Payments Ledger");
+    XLSX.writeFile(workbook, `Payments_Report_${selectedYear}_${selectedMonth}.xlsx`);
   };
 
-  // Export 2: Refunds CSV
-  const handleExportRefundsCSV = () => {
+  // Export 2: Refunds Excel (.xlsx)
+  const handleExportRefundsExcel = () => {
     const logs = data?.refundLogs || [];
-    let csv = "Order ID,Customer,Refund Amount (INR),Refund Status,Refund Reason,Date\n";
-    logs.forEach((row: any) => {
-      csv += `${sanitizeCSVCell(row.orderId)},${sanitizeCSVCell(row.customer)},${row.refundAmount},${sanitizeCSVCell(row.refundStatus)},${sanitizeCSVCell(row.refundReason)},${sanitizeCSVCell(row.date)}\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Refunds_Report_${selectedYear}_${selectedMonth}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const rows = logs.map((row: any) => ({
+      "Order ID": row.orderId,
+      "Customer Name": row.customer,
+      "Refund Amount (INR)": row.refundAmount,
+      "Refund Status": row.refundStatus,
+      "Refund Reason": row.refundReason,
+      "Refund Date": row.date,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Refunds Ledger");
+    XLSX.writeFile(workbook, `Refunds_Report_${selectedYear}_${selectedMonth}.xlsx`);
   };
 
-  // Export 3: Multi-Tier GST Excel
+  // Export 3: Multi-Tier GST Excel (.xlsx)
   const exportGSTReport = () => {
     if (!data?.gstReportRange) return;
     const r = data.gstReportRange;
@@ -127,36 +115,34 @@ export default function FinanceAnalyticsPage() {
     XLSX.writeFile(workbook, `GST_Tax_Report_${selectedYear}_${selectedMonth}.xlsx`);
   };
 
-  // Export 4: Executive Revenue Summary CSV
-  const handleExportRevenueCSV = () => {
+  // Export 4: Executive Revenue Summary Excel (.xlsx)
+  const handleExportRevenueExcel = () => {
     const s = data?.summary || {};
     const nr = data?.netRevenueReport || {};
     const l = data?.liability || {};
 
-    let csv = "=== EXECUTIVE FINANCIAL SUMMARY REPORT ===\n";
-    csv += `Period,${selectedMonth}/${selectedYear}\n\n`;
+    const revenueMetrics = [
+      { Metric: "Gross Revenue (INR)", Value: nr.grossRevenue || s.grossRevenue || 0 },
+      { Metric: "Total Refunds (INR)", Value: s.totalRefunds || nr.totalRefunds || 0 },
+      { Metric: "Total Discounts (INR)", Value: nr.totalDiscounts || 0 },
+      { Metric: "Net Revenue (INR)", Value: nr.netRevenue || 0 },
+      { Metric: "Wallet Revenue (INR)", Value: nr.walletRevenue || 0 },
+      { Metric: "Gateway Revenue (Razorpay) (INR)", Value: nr.gatewayRevenue || 0 },
+      { Metric: "Average Order Value (AOV) (INR)", Value: s.avgOrderValue || 0 },
+    ];
 
-    csv += "Metric,Amount (INR)\n";
-    csv += `Gross Sales,${s.grossRevenue || 0}\n`;
-    csv += `Total Refunds,${s.totalRefunds || 0}\n`;
-    csv += `Total Discounts,${nr.totalDiscounts || 0}\n`;
-    csv += `Net Revenue,${nr.netRevenue || 0}\n`;
-    csv += `Wallet Revenue,${nr.walletRevenue || 0}\n`;
-    csv += `Gateway Revenue (Razorpay),${nr.gatewayRevenue || 0}\n`;
-    csv += `Average Order Value (AOV),${s.avgOrderValue || 0}\n`;
-    csv += `Wallet Credits Owed,${l.totalWalletLiability || 0}\n`;
-    csv += `Loyalty Points Liability,${l.totalLoyaltyLiability || 0}\n`;
-    csv += `Total Customer Liability,${l.totalLiability || 0}\n`;
+    const liabilityMetrics = [
+      { Liability: "Wallet Credits Owed (INR)", Value: l.totalWalletLiability || 0 },
+      { Liability: "Loyalty Points Liability (INR)", Value: l.totalLoyaltyLiability || 0 },
+      { Liability: "Total Customer Liability (INR)", Value: l.totalLiability || 0 },
+    ];
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Revenue_Financial_Summary_${selectedYear}_${selectedMonth}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const sheet1 = XLSX.utils.json_to_sheet(revenueMetrics);
+    const sheet2 = XLSX.utils.json_to_sheet(liabilityMetrics);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet1, "Revenue Summary");
+    XLSX.utils.book_append_sheet(workbook, sheet2, "Customer Liabilities");
+    XLSX.writeFile(workbook, `Revenue_Financial_Summary_${selectedYear}_${selectedMonth}.xlsx`);
   };
 
   const summary = data?.summary || {
@@ -304,11 +290,11 @@ export default function FinanceAnalyticsPage() {
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Gateway vs Wallet transactions audit</p>
                 </div>
                 <button
-                  onClick={handleExportPaymentsCSV}
-                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
+                  onClick={handleExportPaymentsExcel}
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
                 >
-                  <span className="material-symbols-outlined text-[14px]">download</span>
-                  <span>Export Payments CSV</span>
+                  <span className="material-symbols-outlined text-[14px]">table_view</span>
+                  <span>Export Payments Excel</span>
                 </button>
               </div>
 
@@ -389,11 +375,11 @@ export default function FinanceAnalyticsPage() {
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Processed customer refunds & return payouts audit</p>
                 </div>
                 <button
-                  onClick={handleExportRefundsCSV}
-                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
+                  onClick={handleExportRefundsExcel}
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
                 >
-                  <span className="material-symbols-outlined text-[14px]">download</span>
-                  <span>Export Refunds CSV</span>
+                  <span className="material-symbols-outlined text-[14px]">table_view</span>
+                  <span>Export Refunds Excel</span>
                 </button>
               </div>
 
@@ -465,9 +451,9 @@ export default function FinanceAnalyticsPage() {
                 </div>
                 <button
                   onClick={exportGSTReport}
-                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
                 >
-                  <span className="material-symbols-outlined text-[14px]">download</span>
+                  <span className="material-symbols-outlined text-[14px]">table_view</span>
                   <span>Export GST Excel Workbook</span>
                 </button>
               </div>
@@ -643,11 +629,11 @@ export default function FinanceAnalyticsPage() {
                   <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Overall monthly financial performance audit</p>
                 </div>
                 <button
-                  onClick={handleExportRevenueCSV}
-                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer"
+                  onClick={handleExportRevenueExcel}
+                  className="px-5 py-3 bg-[#1a1c1c] text-[#faf9f8] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#775a19] transition-all flex items-center gap-2 border-none rounded-none cursor-pointer shadow-sm"
                 >
-                  <span className="material-symbols-outlined text-[14px]">download</span>
-                  <span>Export Financial Summary CSV</span>
+                  <span className="material-symbols-outlined text-[14px]">table_view</span>
+                  <span>Export Financial Summary Excel</span>
                 </button>
               </div>
 

@@ -414,6 +414,108 @@ export default function ReturnDetailsClient({
             </div>
           </div>
 
+          {/* Card 4: Return Financial & Tax Breakdown */}
+          {order.returnedItems && order.returnedItems.length > 0 && (
+            <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm space-y-8">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#775a19]">
+                Financial & Tax Audit Breakdown
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                {/* 1. Refund Calculation */}
+                <div className="space-y-4">
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                    1. Refund Calculation
+                  </h4>
+                  <div className="space-y-2 text-xs font-semibold text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Line Price Subtotal:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0).toLocaleString("en-IN")}.00
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>Pro-Rata Coupon Share:</span>
+                      <span>
+                        -₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.couponShare || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>Pro-Rata Points Share:</span>
+                      <span>
+                        -₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.pointsShare || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-black uppercase tracking-wider">
+                      <span>Net Refund Value:</span>
+                      <span>
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.refundAmount || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Payment Method Split */}
+                <div className="space-y-4 md:pl-8">
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                    2. Payment Method Split
+                  </h4>
+                  <div className="space-y-2 text-xs font-semibold text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Wallet Refund:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.walletRefund || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gateway/Bank Refund:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gatewayRefund || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2 flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                      <span>Shipping Fee (Non-Ref):</span>
+                      <span>₹{(order.shippingAmount || 0).toLocaleString("en-IN")}.00</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Included GST Breakdown */}
+                <div className="space-y-4 md:pl-8">
+                  <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">
+                    3. Included GST Breakdown
+                  </h4>
+                  <div className="space-y-2 text-xs font-semibold text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Taxable Net Value:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.taxableAmount || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>CGST portion:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.cgst || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>SGST portion:</span>
+                      <span className="text-black font-bold">
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.sgst || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-100 pt-2 flex justify-between text-xs font-bold text-[#775a19] uppercase tracking-wider">
+                      <span>Total GST Refunded:</span>
+                      <span>
+                        ₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gstAmount || 0), 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right Column */}

@@ -530,6 +530,10 @@ export async function processReturnRefund(orderId: string, qualityCheckPassed = 
       pointsToReverse += Number(item.pointsToReverse || 0);
       pointsToRestore += Number(item.pointsToRestore || 0);
     }
+    // Cap at checkout payment limits to prevent over-refunding
+    walletRefundAmount = Math.min(walletRefundAmount, order.walletPaid || 0);
+    gatewayRefundAmount = Math.min(gatewayRefundAmount, order.gatewayPaid || 0);
+    totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
   } else {
     // Legacy support: refund the entire order
     const walletPaid = order.walletPaid || 0;

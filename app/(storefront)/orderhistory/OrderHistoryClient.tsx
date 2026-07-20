@@ -31,6 +31,17 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   // Toast Alerts
   const [toastText, setToastText] = useState("");
   const [showToast, setShowToast] = useState(false);
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
+
+  const toggleBreakdown = (orderId: string) => {
+    const next = new Set(expandedBreakdowns);
+    if (next.has(orderId)) {
+      next.delete(orderId);
+    } else {
+      next.add(orderId);
+    }
+    setExpandedBreakdowns(next);
+  };
 
   const triggerToast = (msg: string) => {
     setToastText(msg);
@@ -755,6 +766,85 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                         <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Premium Quality</p>
                       </div>
                     </div>
+
+                    {/* Return Calculations Accordion */}
+                    {order.returnedItems && order.returnedItems.length > 0 && (
+                      <div className="border border-outline-variant/15 p-4 rounded-none bg-stone-50/50 space-y-4">
+                        <div className="flex justify-between items-center cursor-pointer select-none" onClick={() => toggleBreakdown(order.id)}>
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#775a19] flex items-center gap-1">
+                            📋 Return & Refund Audit details
+                          </span>
+                          <span className="text-xs font-bold text-gray-500">
+                            {expandedBreakdowns.has(order.id) ? "▲ Hide" : "▼ Show"}
+                          </span>
+                        </div>
+                        
+                        {expandedBreakdowns.has(order.id) && (
+                          <div className="space-y-4 pt-3 border-t border-dashed border-gray-200">
+                            {/* 1. Refund Calculation */}
+                            <div className="space-y-1.5">
+                              <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">1. Refund Calculation</span>
+                              <div className="text-[11px] space-y-1 text-gray-600 font-medium">
+                                <div className="flex justify-between">
+                                  <span>Original Item Price:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0).toLocaleString("en-IN")}.00</span>
+                                </div>
+                                <div className="flex justify-between text-red-600">
+                                  <span>Pro-Rata Coupon Share:</span>
+                                  <span>-₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.couponShare || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between text-red-600">
+                                  <span>Pro-Rata Points Share:</span>
+                                  <span>-₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.pointsShare || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-black border-t border-gray-150 pt-1">
+                                  <span>Net Refund Value:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.refundAmount || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. Payment Method Split */}
+                            <div className="space-y-1.5">
+                              <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">2. Payment Method Split</span>
+                              <div className="text-[11px] space-y-1 text-gray-600 font-medium">
+                                <div className="flex justify-between">
+                                  <span>Refund to Wallet:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.walletRefund || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Refund to Original Bank Source:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gatewayRefund || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 3. Included GST Breakdown */}
+                            <div className="space-y-1.5">
+                              <span className="text-[8px] font-black uppercase tracking-wider text-gray-400">3. Included GST Breakdown</span>
+                              <div className="text-[11px] space-y-1 text-gray-600 font-medium">
+                                <div className="flex justify-between">
+                                  <span>Taxable net value (excl. tax):</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.taxableAmount || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>CGST portion:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.cgst || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>SGST portion:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.sgst || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-[#775a19] border-t border-gray-150 pt-1">
+                                  <span>Total GST Refunded:</span>
+                                  <span>₹{order.returnedItems.reduce((acc: number, item: any) => acc + (item.gstAmount || 0), 0).toLocaleString("en-IN")}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Financial summary */}
                     <div className="flex justify-between items-center border-t border-outline-variant/10 pt-3 text-xs">

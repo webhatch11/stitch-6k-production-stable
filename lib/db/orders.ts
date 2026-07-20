@@ -306,6 +306,21 @@ export async function requestManualReturn(
   const pointsDiscount = Number(orderData.points_discount || 0);
   const totalDiscount = couponDiscount + pointsDiscount;
 
+  // Load products to fetch GST rate
+  const productIds = returnedSubset.map((item: any) => item.productId).filter(Boolean);
+  let productsMap = new Map<string, number>();
+  if (productIds.length > 0) {
+    const { data: productsData } = await supabase
+      .from("products")
+      .select("id, gst_rate")
+      .in("id", productIds);
+    if (productsData) {
+      productsData.forEach((p: any) => {
+        productsMap.set(p.id, Number(p.gst_rate || 0));
+      });
+    }
+  }
+
   const returnedItemsToSave = returnedSubset.map((item: any) => {
     const itemQty = Number(item.quantity || 1);
     const itemPrice = Number(item.price || 0);
@@ -313,8 +328,9 @@ export async function requestManualReturn(
     
     // Proportional discount distribution
     const proportionalFactor = originalSubtotal > 0 ? (itemLineTotal / originalSubtotal) : (1 / cartItems.length);
-    const itemDiscount = totalDiscount * proportionalFactor;
-    const itemRefundAmount = Math.max(0, itemLineTotal - itemDiscount);
+    const couponShare = Math.round(couponDiscount * proportionalFactor * 100) / 100;
+    const pointsShare = Math.round(pointsDiscount * proportionalFactor * 100) / 100;
+    const refundAmount = Math.max(0, itemLineTotal - couponShare - pointsShare);
     
     // Proportional wallet/gateway refund shares
     const walletPaid = Number(orderData.wallet_paid || 0);
@@ -324,9 +340,20 @@ export async function requestManualReturn(
     let walletRefund = 0;
     let gatewayRefund = 0;
     if (netPayment > 0) {
-      walletRefund = itemRefundAmount * (walletPaid / netPayment);
-      gatewayRefund = itemRefundAmount * (gatewayPaid / netPayment);
+      walletRefund = Math.round(refundAmount * (walletPaid / netPayment) * 100) / 100;
+      gatewayRefund = Math.round(refundAmount * (gatewayPaid / netPayment) * 100) / 100;
     }
+    
+    // GST Rate (Fallback: 5% if line total <= 1000, 12% if > 1000)
+    const rawGstRate = productsMap.get(item.productId) ?? (itemLineTotal <= 1000 ? 5 : 12);
+    const gstRate = Number(rawGstRate);
+    const gstFraction = gstRate / 100;
+    
+    // Taxable Net Value (excluding GST)
+    const taxableAmount = Math.round((refundAmount / (1 + gstFraction)) * 100) / 100;
+    const gstAmount = Math.round((refundAmount - taxableAmount) * 100) / 100;
+    const cgst = Math.round((gstAmount / 2) * 100) / 100;
+    const sgst = Math.round((gstAmount - cgst) * 100) / 100;
     
     // Points earned reversal
     const pointsEarned = Number(orderData.points_earned || 0);
@@ -344,14 +371,50 @@ export async function requestManualReturn(
       color: item.color || "Default",
       quantity: itemQty,
       price: itemPrice,
-      refundAmount: Number(itemRefundAmount.toFixed(2)),
+      refundAmount: Number(refundAmount.toFixed(2)),
       walletRefund: Number(walletRefund.toFixed(2)),
       gatewayRefund: Number(gatewayRefund.toFixed(2)),
+      couponShare: Number(couponShare.toFixed(2)),
+      pointsShare: Number(pointsShare.toFixed(2)),
+      taxableAmount: Number(taxableAmount.toFixed(2)),
+      gstAmount: Number(gstAmount.toFixed(2)),
+      gstRate: gstRate,
+      cgst: Number(cgst.toFixed(2)),
+      sgst: Number(sgst.toFixed(2)),
       pointsToReverse,
       pointsToRestore,
       image: item.image || ""
     };
   });
+
+  // Rounding Reconciliation on full return
+  if (returnedSubset.length === cartItems.length && returnedItemsToSave.length > 0) {
+    const targetTotalRefund = Math.max(0, Number(orderData.total) - Number(orderData.shipping_amount || 0));
+    const calculatedSum = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.refundAmount, 0);
+    const diff = targetTotalRefund - calculatedSum;
+    if (Math.abs(diff) < 2.0) {
+      const lastItem = returnedItemsToSave[returnedItemsToSave.length - 1];
+      lastItem.refundAmount = Number((lastItem.refundAmount + diff).toFixed(2));
+      const gstFraction = lastItem.gstRate / 100;
+      lastItem.taxableAmount = Number((lastItem.refundAmount / (1 + gstFraction)).toFixed(2));
+      lastItem.gstAmount = Number((lastItem.refundAmount - lastItem.taxableAmount).toFixed(2));
+      lastItem.cgst = Number((lastItem.gstAmount / 2).toFixed(2));
+      lastItem.sgst = Number((lastItem.gstAmount - lastItem.cgst).toFixed(2));
+
+      // Reconcile Wallet/Gateway splits
+      const originalWallet = Number(orderData.wallet_paid || 0);
+      const originalGateway = Number(orderData.gateway_paid || 0);
+      
+      const sumWallet = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.walletRefund, 0);
+      const sumGateway = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.gatewayRefund, 0);
+      
+      const walletDiff = originalWallet - sumWallet;
+      const gatewayDiff = (originalGateway - Number(orderData.shipping_amount || 0)) - sumGateway;
+      
+      lastItem.walletRefund = Number((lastItem.walletRefund + walletDiff).toFixed(2));
+      lastItem.gatewayRefund = Number((lastItem.gatewayRefund + gatewayDiff).toFixed(2));
+    }
+  }
 
   const totalItemRefundAmount = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.refundAmount, 0);
 

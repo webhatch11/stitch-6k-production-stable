@@ -12,6 +12,74 @@ import { dispatchFulfillment } from "./shipments";
 import { InventoryService } from "../services/inventory";
 import { OrderStatusHistory } from "../types";
 
+export interface ProRataRefundResult {
+  returnedSubtotal: number;
+  orderOriginalSubtotal: number;
+  weightRatio: number;
+  itemCouponShare: number;
+  itemPointsShare: number;
+  netRefundAmount: number;
+  walletShare: number;
+  gatewayShare: number;
+  taxableAmount: number;
+  gstAmount: number;
+}
+
+export function calculateProRataItemRefund(
+  order: any,
+  returnedItems: Array<{ price: number; quantity: number }>
+): ProRataRefundResult {
+  const returnedSubtotal = returnedItems.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+  const orderOriginalSubtotal = Number(order.original_total || order.subtotal || order.total || 0);
+
+  if (orderOriginalSubtotal <= 0 || returnedSubtotal <= 0) {
+    return {
+      returnedSubtotal: 0,
+      orderOriginalSubtotal: 0,
+      weightRatio: 0,
+      itemCouponShare: 0,
+      itemPointsShare: 0,
+      netRefundAmount: 0,
+      walletShare: 0,
+      gatewayShare: 0,
+      taxableAmount: 0,
+      gstAmount: 0,
+    };
+  }
+
+  const weightRatio = Math.min(1, Math.round((returnedSubtotal / orderOriginalSubtotal) * 10000) / 10000);
+  const couponDiscount = Number(order.coupon_discount || 0);
+  const pointsDiscount = Number(order.points_discount || 0);
+  const walletPaid = Number(order.wallet_paid || 0);
+
+  const itemCouponShare = Math.round((weightRatio * couponDiscount) * 100) / 100;
+  const itemPointsShare = Math.round((weightRatio * pointsDiscount) * 100) / 100;
+  const rawNetRefund = Math.max(0, returnedSubtotal - itemCouponShare - itemPointsShare);
+  const netRefundAmount = Math.round(rawNetRefund * 100) / 100;
+
+  // Wallet First Split Policy
+  const maxWalletShare = Math.round((weightRatio * walletPaid) * 100) / 100;
+  const walletShare = Math.min(netRefundAmount, maxWalletShare);
+  const gatewayShare = Math.round(Math.min(netRefundAmount - walletShare, Number(order.gateway_paid || 0)) * 100) / 100;
+
+  // 18% GST Divisor Accounting
+  const taxableAmount = Math.round((netRefundAmount / 1.18) * 100) / 100;
+  const gstAmount = Math.round((netRefundAmount - taxableAmount) * 100) / 100;
+
+  return {
+    returnedSubtotal,
+    orderOriginalSubtotal,
+    weightRatio,
+    itemCouponShare,
+    itemPointsShare,
+    netRefundAmount,
+    walletShare,
+    gatewayShare,
+    taxableAmount,
+    gstAmount,
+  };
+}
+
 export async function createPaymentAuditLog(
   orderId: string,
   previousStatus: string | null,

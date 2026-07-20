@@ -557,13 +557,23 @@ export const shiprocket = {
       sku: string;
       units: number;
       price: number;
-    }>
+    }>,
+    existingAwb?: string
   ): Promise<{
     success: boolean;
     awb?: string;
     pickupScheduled?: string;
     error?: string;
   }> {
+    if (existingAwb) {
+      console.log(`[Shiprocket SDK] Idempotency hit — reverse pickup already scheduled with AWB: ${existingAwb}`);
+      return {
+        success: true,
+        awb: existingAwb,
+        pickupScheduled: "Already Scheduled",
+      };
+    }
+
     if (!process.env.SHIPROCKET_EMAIL) {
       console.warn("Shiprocket not configured — reverse pickup in mock mode");
       return {

@@ -52,7 +52,7 @@ export async function getPaymentAuditLogs(limit: number = 100): Promise<any[]> {
   return data || [];
 }
 
-export async function issueRefund(orderId: string, reason: string): Promise<boolean> {
+export async function issueRefund(orderId: string, reason: string, customAmount?: number): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -84,7 +84,8 @@ export async function issueRefund(orderId: string, reason: string): Promise<bool
 
   const gatewayPaid = Number(orderData.gateway_paid || 0);
   const walletPaid = Number(orderData.wallet_paid || 0);
-  const totalRefund = gatewayPaid + walletPaid;
+  const maxRefund = gatewayPaid + walletPaid;
+  const totalRefund = customAmount !== undefined && customAmount > 0 ? Math.min(customAmount, maxRefund) : maxRefund;
 
   if (walletPaid > 0 && orderData.user_id) {
     const creditResult = await usersDb.applyWalletCredit(

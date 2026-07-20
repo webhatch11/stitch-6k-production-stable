@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { checkEmail } from "@/lib/health";
 import { verifyAdminAccess } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +14,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await checkEmail();
-  return NextResponse.json(result, { status: result.status === "healthy" ? 200 : 503 });
+  return NextResponse.json({
+    status: "disabled",
+    service: "email",
+    message: "Email subsystem is intentionally decoupled and disabled."
+  }, { status: 200 });
 }

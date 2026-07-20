@@ -40,7 +40,7 @@ export default async function ReturnDetailsPage({ searchParams }: PageProps) {
   const isReturn = statusLower.includes("return") || statusLower.includes("refund") || RETURN_STATUSES.some(s => statusLower.includes(s));
 
   if (!isReturn) {
-    redirect(`/admindashboard/order-details?orderId=${orderId}`);
+    redirect("/admindashboard/returns");
   }
 
   return (

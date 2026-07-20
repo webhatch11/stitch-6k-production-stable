@@ -271,18 +271,15 @@ export default function ReturnDetailsClient({
 
           <div className="flex flex-wrap items-center gap-4 mt-4 font-bold uppercase text-[10px] text-gray-500 tracking-wider">
             <span>
-              Original Order:{" "}
-              <Link href={`/admindashboard/order-details?orderId=${order.id}`} className="text-black hover:underline no-underline">
-                #{order.id}
-              </Link>
+              Original Order ID: <span className="text-black font-bold">#{order.id}</span>
             </span>
             <span>•</span>
             <Link href={`/invoice?orderId=${order.id}`} target="_blank" className="text-black hover:underline no-underline flex items-center gap-1">
-              📄 View Invoice
+              <span className="material-symbols-outlined text-sm">description</span> View Invoice
             </Link>
             <span>•</span>
-            <Link href="/admindashboard/returns" className="text-[#BA7517] hover:underline no-underline">
-              ← Back to Returns
+            <Link href="/admindashboard/returns" className="text-[#BA7517] hover:underline no-underline flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Back to Returns
             </Link>
           </div>
         </div>
@@ -295,7 +292,7 @@ export default function ReturnDetailsClient({
         <div className="space-y-8">
           
           {/* Card 1: Return Information */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Return Information
             </h3>
@@ -306,14 +303,12 @@ export default function ReturnDetailsClient({
               </div>
               <div className="space-y-1">
                 <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Original Order ID</span>
-                <Link href={`/admindashboard/order-details?orderId=${order.id}`} className="font-bold text-black hover:underline text-sm no-underline">
-                  #{order.id}
-                </Link>
+                <span className="font-bold text-black text-sm">#{order.id}</span>
               </div>
               <div className="space-y-1">
                 <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Original Invoice</span>
-                <Link href={`/invoice?orderId=${order.id}`} target="_blank" className="font-bold text-[#BA7517] hover:underline text-sm no-underline">
-                  📄 View Invoice
+                <Link href={`/invoice?orderId=${order.id}`} target="_blank" className="font-bold text-[#BA7517] hover:underline text-sm no-underline flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">description</span> View Invoice
                 </Link>
               </div>
               <div className="space-y-1">
@@ -326,8 +321,9 @@ export default function ReturnDetailsClient({
               </div>
               <div className="space-y-1">
                 <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Refund Method</span>
-                <span className="font-bold text-black">
-                  {order.refundOption === "bank" ? "🏦 Bank Refund" : "💳 Store Wallet"}
+                <span className="font-bold text-black flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">{order.refundOption === "bank" ? "account_balance" : "account_balance_wallet"}</span>
+                  {order.refundOption === "bank" ? "Bank Refund" : "Store Wallet"}
                 </span>
               </div>
               <div className="space-y-1">
@@ -339,7 +335,7 @@ export default function ReturnDetailsClient({
               {order.returnDetails && (
                 <div className="md:col-span-2 space-y-1 pt-4 border-t border-gray-100">
                   <span className="block text-[9px] font-black uppercase tracking-widest text-gray-400">Customer Comments</span>
-                  <p className="text-gray-800 bg-gray-50 p-4 rounded-xl italic border border-gray-200/50">
+                  <p className="text-gray-800 bg-gray-50 p-4 rounded-none italic border border-gray-200/50">
                     "{order.returnDetails}"
                   </p>
                 </div>
@@ -348,7 +344,7 @@ export default function ReturnDetailsClient({
           </div>
 
           {/* Card 2: Customer Uploaded Image */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Customer Uploaded Image
             </h3>
@@ -356,7 +352,7 @@ export default function ReturnDetailsClient({
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">Image uploaded by customer:</p>
                 {isImageUrl ? (
-                  <div className="group relative max-w-sm rounded-xl overflow-hidden border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                  <div className="group relative max-w-sm rounded-none overflow-hidden border border-gray-200 shadow-sm transition-all hover:shadow-md">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={returnImage}
@@ -369,14 +365,14 @@ export default function ReturnDetailsClient({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl font-mono text-xs text-gray-700 flex items-center justify-between">
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-none font-mono text-xs text-gray-700 flex items-center justify-between">
                     <span>Attached: {returnImage}</span>
                     <button
                       type="button"
                       onClick={() => window.open(`/uploads/returns/${returnImage}`, "_blank")}
-                      className="text-xs font-bold text-[#BA7517] hover:underline bg-transparent border-none cursor-pointer"
+                      className="text-xs font-bold text-[#BA7517] hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1"
                     >
-                      Download File 📥
+                      <span className="material-symbols-outlined text-sm">download</span> Download File
                     </button>
                   </div>
                 )}
@@ -583,13 +579,13 @@ export default function ReturnDetailsClient({
         <div className="space-y-8">
           
           {/* Card 1: Customer Dossier */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Customer Details
             </h3>
             <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="size-11 rounded-full bg-[#1e293b] text-[#38bdf8] flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                <div className="size-11 rounded-none bg-[#1e293b] text-[#38bdf8] flex items-center justify-center font-bold text-xs shrink-0 select-none">
                   {initials}
                 </div>
                 <div>
@@ -629,30 +625,34 @@ export default function ReturnDetailsClient({
                 {displayEmail && !isFakeEmail(displayEmail) ? (
                   <a
                     href={`mailto:${displayEmail}`}
-                    className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 no-underline"
+                    className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-none border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 no-underline"
                   >
-                    ✉ Email
+                    <span className="material-symbols-outlined text-sm">mail</span> Email
                   </a>
                 ) : (
-                  <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-lg border border-gray-200 bg-gray-50 text-gray-400">✉ Email</span>
+                  <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-none border border-gray-200 bg-gray-50 text-gray-400 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">mail</span> Email
+                  </span>
                 )}
 
                 {phone && phone !== "Not provided" ? (
                   <a
                     href={`tel:${phone}`}
-                    className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 no-underline"
+                    className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center flex items-center justify-center gap-1.5 transition-all rounded-none border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 no-underline"
                   >
-                    📞 Call
+                    <span className="material-symbols-outlined text-sm">call</span> Call
                   </a>
                 ) : (
-                  <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-lg border border-gray-200 bg-gray-50 text-gray-400">📞 Call</span>
+                  <span className="py-2.5 text-[10px] font-bold uppercase tracking-wider text-center opacity-40 select-none rounded-none border border-gray-200 bg-gray-50 text-gray-400 flex items-center justify-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">call</span> Call
+                  </span>
                 )}
               </div>
             </div>
           </div>
 
           {/* Card 2: Return Summary */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Return Summary
             </h3>
@@ -669,7 +669,7 @@ export default function ReturnDetailsClient({
               </div>
               <div className="flex justify-between items-center">
                 <span>Refund Method</span>
-                <span className={`px-2 py-0.5 rounded text-[9px] uppercase tracking-widest font-extrabold ${
+                <span className={`px-2 py-0.5 rounded-none text-[9px] uppercase tracking-widest font-extrabold ${
                   order.refundOption === "wallet" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
                 }`}>
                   {order.refundOption === "wallet" ? "Store Wallet" : "Original Source"}
@@ -687,9 +687,9 @@ export default function ReturnDetailsClient({
                     navigator.clipboard.writeText(order.returnAwb || "");
                     triggerToast("AWB copied to clipboard!");
                   }}
-                  className="w-full py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-[9px] font-bold uppercase tracking-widest cursor-pointer text-gray-700"
+                  className="w-full py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-none text-[9px] font-bold uppercase tracking-widest cursor-pointer text-gray-700 flex items-center justify-center gap-1"
                 >
-                  📋 Copy AWB Code
+                  <span className="material-symbols-outlined text-sm">content_copy</span> Copy AWB Code
                 </button>
               )}
 
@@ -730,7 +730,7 @@ export default function ReturnDetailsClient({
 
 
           {/* Card 3: Actions (status-based) */}
-          <div className="p-8 bg-white border border-gray-200 rounded-[12px] shadow-sm">
+          <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
               Return Operations
             </h3>
@@ -741,9 +741,9 @@ export default function ReturnDetailsClient({
                 <button
                   onClick={handleAcceptReturn}
                   disabled={isSubmitting}
-                  className="w-full bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  ✓ Accept Return Request
+                  <span className="material-symbols-outlined text-sm">check</span> Accept Return Request
                 </button>
                 
                 <div className="pt-4 border-t border-dashed border-gray-200/60">
@@ -752,14 +752,14 @@ export default function ReturnDetailsClient({
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="Enter reason for declining request (required to reject)..."
-                    className="w-full border border-gray-200 rounded-lg p-3 text-xs resize-none h-20 mb-2 outline-none focus:border-red-400"
+                    className="w-full border border-gray-200 rounded-none p-3 text-xs resize-none h-20 mb-2 outline-none focus:border-red-400"
                   />
                   <button
                     onClick={handleRejectReturn}
                     disabled={!rejectReason.trim() || isSubmitting}
-                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5"
                   >
-                    ✗ Decline Return Request
+                    <span className="material-symbols-outlined text-sm">close</span> Decline Return Request
                   </button>
                 </div>
               </div>
@@ -769,8 +769,8 @@ export default function ReturnDetailsClient({
             {orderStatusLower === "return accepted" && (
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-none text-xs text-gray-700 space-y-3">
-                  <p className="font-bold text-[#775a19] uppercase tracking-wider">
-                    🚚 Schedule Reverse Shipment
+                  <p className="font-bold text-[#775a19] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm">local_shipping</span> Schedule Reverse Shipment
                   </p>
                   <p className="text-[11px] leading-relaxed text-gray-550 font-medium">
                     1. Open the Shiprocket dashboard to book the reverse pickup manually.
@@ -840,8 +840,8 @@ export default function ReturnDetailsClient({
 
             {(orderStatusLower === "return pickup scheduled" || orderStatus === "Return Pickup Scheduled") && (
               <div className="bg-blue-50 border border-blue-150 rounded-none p-4 text-xs text-blue-800 space-y-3 font-semibold">
-                <p className="font-bold uppercase tracking-wider">
-                  📦 Pickup Scheduled
+                <p className="font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm">inventory_2</span> Pickup Scheduled
                 </p>
                 <p>
                   Reverse pickup is scheduled with the courier partner.
@@ -874,9 +874,9 @@ export default function ReturnDetailsClient({
                 <button
                   onClick={handleMarkReceived}
                   disabled={isSubmitting}
-                  className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-black hover:bg-zinc-800 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  📦 Mark Received at Warehouse
+                  <span className="material-symbols-outlined text-sm">inventory_2</span> Mark Received at Warehouse
                 </button>
               </div>
             )}
@@ -888,9 +888,9 @@ export default function ReturnDetailsClient({
                 <button
                   onClick={() => handleQcResult(true, "")}
                   disabled={isSubmitting}
-                  className="w-full bg-green-700 hover:bg-green-600 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50"
+                  className="w-full bg-green-700 hover:bg-green-600 text-white py-3.5 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer border-none transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  ✓ QC Passed — Approve Return
+                  <span className="material-symbols-outlined text-sm">check</span> QC Passed — Approve Return
                 </button>
                 
                 <div className="pt-4 border-t border-dashed border-gray-200">
@@ -904,9 +904,9 @@ export default function ReturnDetailsClient({
                   <button
                     onClick={() => handleQcResult(false, qcFailReason.trim())}
                     disabled={!qcFailReason.trim() || isSubmitting}
-                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full border border-red-200 text-red-600 hover:bg-red-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5"
                   >
-                    ✗ QC Failed — Reject Return
+                    <span className="material-symbols-outlined text-sm">close</span> QC Failed — Reject Return
                   </button>
                 </div>
               </div>
@@ -916,16 +916,16 @@ export default function ReturnDetailsClient({
               <div className="space-y-3">
                 <button 
                   onClick={handleReship}
-                  className="w-full bg-black text-white py-3 rounded-none text-xs font-bold uppercase tracking-wider"
+                  className="w-full bg-black text-white py-3 rounded-none text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                 >
-                  🚚 Reship Item to Customer
+                  <span className="material-symbols-outlined text-sm">local_shipping</span> Reship Item to Customer
                 </button>
 
                 <button
                   onClick={handleHoldAtWarehouse}
-                  className="w-full border border-gray-300 text-gray-600 bg-gray-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider"
+                  className="w-full border border-gray-300 text-gray-600 bg-gray-50 py-3 rounded-none text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5"
                 >
-                  📦 Hold at Warehouse
+                  <span className="material-symbols-outlined text-sm">inventory_2</span> Hold at Warehouse
                 </button>
               </div>
             )}
@@ -1014,13 +1014,13 @@ export default function ReturnDetailsClient({
 
                   {/* Validation alerts */}
                   {Number(approvedRefund) <= 0 && (
-                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none">
-                      ⚠️ Refund amount must be greater than zero.
+                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">warning</span> Refund amount must be greater than zero.
                     </div>
                   )}
                   {Number(approvedRefund) > calculatedRefund && (
-                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none">
-                      ⚠️ Refund amount cannot exceed calculated limit (₹{calculatedRefund.toLocaleString("en-IN")}).
+                    <div className="text-[10px] text-red-600 font-bold bg-red-50 p-2 border border-red-150 rounded-none flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">warning</span> Refund amount cannot exceed calculated limit (₹{calculatedRefund.toLocaleString("en-IN")}).
                     </div>
                   )}
 
@@ -1035,9 +1035,9 @@ export default function ReturnDetailsClient({
                       Number(approvedRefund) > calculatedRefund ||
                       isSubmitting
                     }
-                    className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-4 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full bg-[#775a19] hover:bg-[#5f4713] text-[#faf9f8] py-4 rounded-none text-xs font-black uppercase tracking-[0.2em] cursor-pointer border-none transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-1.5"
                   >
-                    💰 Issue Refund
+                    <span className="material-symbols-outlined text-sm">payments</span> Issue Refund
                   </button>
                 </div>
               </div>
@@ -1061,7 +1061,7 @@ export default function ReturnDetailsClient({
 
             {/* STATUS: Reship Requested */}
             {orderStatusLower === "reship requested" && (
-              <div className="bg-blue-50 border border-blue-150 rounded-xl p-4 font-semibold text-xs leading-relaxed text-blue-800">
+              <div className="bg-blue-50 border border-blue-150 rounded-none p-4 font-semibold text-xs leading-relaxed text-blue-800">
                 <p className="font-bold flex items-center gap-1.5 text-blue-900 mb-1">
                   <span className="material-symbols-outlined text-sm">local_shipping</span>
                   Reship Requested

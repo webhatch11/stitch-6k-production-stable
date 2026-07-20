@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Order } from "@/lib/types";
-import { approveReturnPickupAction, rejectReturnAction, processReturnRefundAction } from "@/app/actions/admin-orders";
+import { approveReturnPickupAction, rejectReturnAction, processReturnRefundAction, acceptReturnRequestAction } from "@/app/actions/admin-orders";
 
 const refundOptionDisplay: Record<string, string> = {
   'wallet': 'Store Wallet',
@@ -164,6 +164,29 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
     .slice(0, 5);
 
   // Actions
+  const handleDirectAcceptReturn = async (orderId: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setSubmitting(orderId);
+    try {
+      const res = await acceptReturnRequestAction(orderId);
+      if (res.success) {
+        triggerToast(`Return request accepted for Order #${orderId}`);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: "Return Accepted" } : o))
+        );
+        router.refresh();
+      } else {
+        triggerToast(res.error || "Failed to accept return request");
+      }
+    } catch (e: any) {
+      triggerToast(e.message || "An error occurred");
+    } finally {
+      setIsSubmitting(false);
+      setSubmitting(null);
+    }
+  };
+
   const handleApprovePickup = async () => {
     if (!targetOrder || isSubmitting) return;
     setIsSubmitting(true);
@@ -358,12 +381,13 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                       </td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex justify-end gap-2 flex-wrap">
-                          <Link
-                            href={`/admindashboard/return-details?orderId=${o.id}`}
-                            className="bg-primary text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 flex items-center justify-center no-underline hover:opacity-90"
+                          <button
+                            disabled={submitting === o.id}
+                            onClick={() => handleDirectAcceptReturn(o.id)}
+                            className={`bg-green-700 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:bg-green-600 border-none rounded-none ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
-                            View & Approve
-                          </Link>
+                            Accept Return
+                          </button>
                           <button
                             disabled={submitting === o.id}
                             onClick={() => {
@@ -372,15 +396,15 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                               setModalType("reject");
                               setModalError("");
                             }}
-                            className={`border border-red-200 text-red-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:bg-red-50 ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            className={`border border-red-200 text-red-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:bg-red-50 rounded-none ${submitting === o.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                           >
-                            Reject
+                            Decline Return
                           </button>
                           <Link
                             href={`/admindashboard/return-details?orderId=${o.id}`}
-                            className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] flex items-center gap-1"
+                            className="border border-gray-200 text-gray-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 hover:border-[#0a0a0a] flex items-center justify-center rounded-none no-underline"
                           >
-                            View
+                            View Details
                           </Link>
                         </div>
                       </td>
@@ -545,8 +569,8 @@ export default function ReturnsDashboardClient({ initialOrders }: ReturnsDashboa
                           {o.status === "Returned" ? "Returned" : "Rejected"}
                         </span>
                         {(o as any).refund_status === "manual_review_required" && (
-                          <span className="block mt-1.5 text-[8px] font-black text-red-700 bg-red-50 border border-red-200 px-1 py-0.5 uppercase text-center tracking-wider">
-                            ⚠️ Review Required
+                          <span className="inline-flex items-center gap-1 mt-1.5 text-[8px] font-black text-red-700 bg-red-50 border border-red-200 px-1 py-0.5 uppercase text-center tracking-wider">
+                            <span className="material-symbols-outlined text-xs">warning</span> Review Required
                           </span>
                         )}
                       </td>

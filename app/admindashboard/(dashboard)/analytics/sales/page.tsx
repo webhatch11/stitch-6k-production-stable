@@ -68,6 +68,16 @@ export default function SalesAnalyticsPage() {
     });
   }, [days, useCustom, startDate, endDate]);
 
+  const sanitizeCSVCell = (val: any): string => {
+    if (val === null || val === undefined) return '""';
+    let str = String(val);
+    if (/^[=+@-]/.test(str)) {
+      str = "'" + str;
+    }
+    str = str.replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
   const handleExportDetailedReport = () => {
     if (!data) return;
 
@@ -79,60 +89,62 @@ export default function SalesAnalyticsPage() {
     const topProducts = data.topProducts || [];
     const trend = data.revenueTrend || [];
 
-    let csvContent = "data:text/csv;charset=utf-8,";
+    let csv = "";
 
     // 1. Executive Summary
-    csvContent += "=== 6K SALES ANALYTICS REPORT ===\n";
-    csvContent += `Report Generated At,${new Date().toLocaleString()}\n`;
-    csvContent += `Period Selected,Last ${days} Days\n\n`;
+    csv += "=== 6K SALES ANALYTICS REPORT ===\n";
+    csv += `Report Generated At,${sanitizeCSVCell(new Date().toLocaleString())}\n`;
+    csv += `Period Selected,${sanitizeCSVCell(`Last ${days} Days`)}\n\n`;
 
-    csvContent += "=== KPI SUMMARY ===\n";
-    csvContent += `Today's Sales (INR),${todayKPI.todaySales || 0}\n`;
-    csvContent += `Today's Orders,${todayKPI.todayOrders || 0}\n`;
-    csvContent += `Average Order Value (AOV - INR),${kpiMetrics.aov || 0}\n`;
-    csvContent += `Conversion Rate,${kpiMetrics.conversionRate || 0}%\n`;
-    csvContent += `Repeat Customers Rate,${repeatStats.repeatRate || 0}%\n`;
-    csvContent += `Repeat Customers,${repeatStats.repeatCustomers || 0}\n`;
-    csvContent += `Total Customers,${repeatStats.totalCustomers || 0}\n\n`;
+    csv += "=== KPI SUMMARY ===\n";
+    csv += `Today's Sales (INR),${todayKPI.todaySales || 0}\n`;
+    csv += `Today's Orders,${todayKPI.todayOrders || 0}\n`;
+    csv += `Average Order Value (AOV - INR),${kpiMetrics.aov || 0}\n`;
+    csv += `Conversion Rate,${kpiMetrics.conversionRate || 0}%\n`;
+    csv += `Repeat Customers Rate,${repeatStats.repeatRate || 0}%\n`;
+    csv += `Repeat Customers,${repeatStats.repeatCustomers || 0}\n`;
+    csv += `Total Customers,${repeatStats.totalCustomers || 0}\n\n`;
 
     // 2. Sales by Category
-    csvContent += "=== SALES BY CATEGORY ===\n";
-    csvContent += "Category,Revenue (INR),Order Count,Units Sold,Percentage\n";
+    csv += "=== SALES BY CATEGORY ===\n";
+    csv += "Category,Revenue (INR),Order Count,Units Sold,Percentage\n";
     categoryStats.forEach((row: any) => {
-      csvContent += `"${row.category}",${row.revenue},${row.orderCount},${row.unitsSold},${row.percentage}%\n`;
+      csv += `${sanitizeCSVCell(row.category)},${row.revenue},${row.orderCount},${row.unitsSold},${row.percentage}%\n`;
     });
-    csvContent += "\n";
+    csv += "\n";
 
     // 3. Top Products
-    csvContent += "=== TOP PRODUCTS ===\n";
-    csvContent += "Product Name,Units Sold,Revenue (INR)\n";
+    csv += "=== TOP PRODUCTS ===\n";
+    csv += "Product Name,Units Sold,Revenue (INR)\n";
     topProducts.forEach((row: any) => {
-      csvContent += `"${row.productName}",${row.unitsSold},${row.revenue}\n`;
+      csv += `${sanitizeCSVCell(row.productName)},${row.unitsSold},${row.revenue}\n`;
     });
-    csvContent += "\n";
+    csv += "\n";
 
     // 4. Geographic Breakdown
-    csvContent += "=== TOP CITIES ===\n";
-    csvContent += "City,Orders,Revenue (INR)\n";
+    csv += "=== TOP CITIES ===\n";
+    csv += "City,Orders,Revenue (INR)\n";
     cityOrders.forEach((row: any) => {
-      csvContent += `"${row.city}",${row.count},${row.revenue || 0}\n`;
+      csv += `${sanitizeCSVCell(row.city)},${row.count},${row.revenue || 0}\n`;
     });
-    csvContent += "\n";
+    csv += "\n";
 
     // 5. Daily Sales Trend
-    csvContent += "=== DAILY SALES TREND ===\n";
-    csvContent += "Date,Revenue (INR),Order Count\n";
+    csv += "=== DAILY SALES TREND ===\n";
+    csv += "Date,Revenue (INR),Order Count\n";
     trend.forEach((row: any) => {
-      csvContent += `"${row.date}",${row.revenue},${row.order_count}\n`;
+      csv += `${sanitizeCSVCell(row.date)},${row.revenue},${row.order_count}\n`;
     });
 
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `6K_Sales_Report_${days}D.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportCSV = () => {

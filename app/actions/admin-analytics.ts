@@ -354,7 +354,7 @@ export async function getSalesAnalyticsAction(days: number = 30) {
     const categoryStats = await db.getSalesByCategory(days);
     const topProducts = await db.getTopProducts(days, 8);
     const repeatPurchaseStats = await db.getRepeatPurchaseRate(days);
-    const cityOrders = await db.getCityOrders();
+    const cityOrders = await db.getCityOrders(days);
 
     return {
       success: true,

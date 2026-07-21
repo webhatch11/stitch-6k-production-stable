@@ -863,26 +863,36 @@ export default function HomeClient({
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative w-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-black select-none">
+        <section className="relative w-full min-h-[45vh] md:min-h-[65vh] lg:min-h-[78vh] max-h-[82vh] bg-[#121110] select-none flex items-center justify-center overflow-hidden py-2 md:py-4">
           {/* Layered Backgrounds for Cross-Fade */}
-          <div className="relative w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden z-0">
+          <div className="relative w-full h-full max-h-[80vh] flex items-center justify-center overflow-hidden z-0">
             {activeSlides.map((slide: any, i: number) => (
               <div
                 key={`bg-${i}`}
-                className={`w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
+                className={`w-full h-full max-h-[80vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
                   i === currentHeroSlide
                     ? "opacity-100 scale-100 relative z-10"
                     : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
                 }`}
               >
+                {/* Ambient Soft Blur Backdrop */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-35 scale-125 pointer-events-none"
+                  style={{ backgroundImage: `url('${slide.bgImage}')` }}
+                ></div>
+
+                {/* Foreground Crisp Image (100% Uncropped) */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={slide.bgImage}
                   alt="Hero Banner"
-                  className="w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] object-cover object-top mx-auto block"
+                  className="w-auto h-auto max-w-full max-h-[78vh] object-contain mx-auto block relative z-10 shadow-2xl"
                 />
               </div>
             ))}
+
+            {/* Top Header Vignette Guard */}
+            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/80 via-black/35 to-transparent z-20 pointer-events-none"></div>
 
             {/* Ambient Organic glow gradient */}
             <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl pointer-events-none"></div>

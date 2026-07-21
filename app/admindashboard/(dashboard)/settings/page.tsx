@@ -599,9 +599,9 @@ export default function SettingsDashboardPage() {
                 </label>
                 {heroImage ? (
                   <div className="space-y-4">
-                    <div className="relative w-full max-w-lg aspect-[21/9] bg-black border border-gray-200 overflow-hidden flex items-center justify-center rounded-md shadow-sm">
+                    <div className="relative w-full max-w-xl h-auto max-h-80 bg-neutral-900 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md p-2 shadow-sm">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={heroImage} alt="Hero preview" className="w-full h-full object-contain" />
+                      <img src={heroImage} alt="Hero preview" className="w-full h-auto max-h-80 object-contain block mx-auto" />
                     </div>
                     <div className="flex gap-4">
                       <button

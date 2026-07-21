@@ -863,26 +863,30 @@ export default function HomeClient({
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative w-full min-h-[45vh] md:min-h-[65vh] lg:min-h-[80vh] flex flex-col justify-center overflow-hidden bg-black select-none">
+        <section className="relative w-full bg-black select-none overflow-hidden flex items-center justify-center min-h-[40vh] md:min-h-[60vh] lg:min-h-[75vh]">
           {/* Layered Backgrounds for Cross-Fade */}
-          <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center bg-black">
+          <div className="relative w-full h-full max-h-[85vh] flex items-center justify-center overflow-hidden z-0">
             {activeSlides.map((slide: any, i: number) => (
               <div
                 key={`bg-${i}`}
-                className={`absolute inset-0 bg-contain md:bg-cover bg-center bg-no-repeat transition-all duration-[1000ms] ease-out ${
-                  i === currentHeroSlide ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
+                className={`w-full h-full min-h-[40vh] md:min-h-[60vh] lg:min-h-[75vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
+                  i === currentHeroSlide
+                    ? "opacity-100 scale-100 relative z-10"
+                    : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
                 }`}
-                style={{
-                  backgroundImage: `url('${slide.bgImage}')`,
-                }}
-              ></div>
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={slide.bgImage}
+                  alt="Hero Banner"
+                  className="w-full h-auto max-h-[85vh] object-contain mx-auto block"
+                />
+              </div>
             ))}
 
             {/* Ambient Organic glow gradient */}
-            <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
-            <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl"></div>
-            {/* Vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10"></div>
+            <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl pointer-events-none"></div>
           </div>
 
           {/* Interactive Slide Dots on the Right */}

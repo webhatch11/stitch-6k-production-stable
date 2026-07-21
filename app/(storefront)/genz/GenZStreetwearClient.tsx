@@ -156,56 +156,8 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
 
   return (
     <div className="min-h-screen bg-[#0f0f11] text-[#eae8e4] flex flex-col font-sans">
-      {/* Immersive Streetwear Hero Banner */}
-      <section className="relative w-full h-[60vh] md:h-[65vh] flex items-center justify-center overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top,0px))]">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-[#0f0f11]/40 to-black/75 z-10" />
-          <Image
-            src="/assets/hero_navy_street.webp"
-            alt="streetwear background"
-            className="w-full h-full object-cover grayscale opacity-45 scale-[1.05]"
-            fill
-            priority
-            draggable={false}
-          />
-        </div>
-
-        <div className="relative z-20 text-center px-6 max-w-3xl">
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-[#fed488] font-black tracking-[0.45em] text-[10px] md:text-xs uppercase mb-4"
-          >
-            6K ATELIER STREETWEAR
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-black font-headline tracking-tighter uppercase mb-6 leading-none text-white shadow-sm"
-          >
-            ATELIER STREET
-          </motion.h1>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="w-16 h-[2px] bg-[#fed488] mx-auto mb-6"
-          />
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-[11px] md:text-xs text-neutral-400 font-bold uppercase tracking-widest leading-relaxed"
-          >
-            Oversized silhouettes, drop shoulders, minimal utility twills, and printed silk blends. Raw edge structures meets high-density tailoring.
-          </motion.p>
-        </div>
-      </section>
-
       {/* Main Catalog Section */}
-      <main className="pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1400px] mx-auto w-full flex-grow">
+      <main className="pt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:pt-20 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1400px] mx-auto w-full flex-grow">
         {/* HEADER BAR */}
         <div className="mb-8 md:mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-8">
           <div className="max-w-xl">

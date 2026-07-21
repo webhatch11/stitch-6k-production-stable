@@ -19,7 +19,7 @@ import {
   saveShippingAction,
   saveStoreIdentityAction,
   saveLoyaltyConfigAction,
-  saveShiprocketConfigAction,
+
 } from "@/app/actions/admin-settings";
 import { calculateShipping, getShippingMessage, type ShippingMode } from "@/lib/shipping";
 
@@ -96,13 +96,7 @@ export default function SettingsDashboardPage() {
   const [rupeesPerPoint, setRupeesPerPoint] = useState(0.5);
   const [minRedeemPoints, setMinRedeemPoints] = useState(100);
 
-  // States for Shiprocket Config
-  const [pickupLocationName, setPickupLocationName] = useState("");
-  const [pickupPincode, setPickupPincode] = useState("");
-  const [pickupAddress, setPickupAddress] = useState("");
-  const [pickupCity, setPickupCity] = useState("");
-  const [pickupState, setPickupState] = useState("");
-  const [pickupPhone, setPickupPhone] = useState("");
+
 
   // States for Shipping Settings
   const [shippingMode, setShippingMode] = useState<ShippingMode>("free_above");
@@ -147,7 +141,7 @@ export default function SettingsDashboardPage() {
       setLoading(true);
       const [
         heroRes, bizRes, flagsRes, marqueeRes, offerRes, trustRes, categoriesRes, shippingRes,
-        storeIdentityRes, loyaltyRes, shiprocketRes
+        storeIdentityRes, loyaltyRes
       ] = await Promise.all([
         getSettingAction("hero"),
         getSettingAction("business"),
@@ -159,7 +153,6 @@ export default function SettingsDashboardPage() {
         getSettingAction("shipping_rules"),
         getSettingAction("store_identity" as any),
         getSettingAction("loyalty_config" as any),
-        getSettingAction("shiprocket_config" as any),
       ]);
 
       if (heroRes.success && heroRes.value) {
@@ -229,14 +222,7 @@ export default function SettingsDashboardPage() {
         setMinRedeemPoints(loyaltyRes.value.min_redeem_points ?? 100);
       }
 
-      if (shiprocketRes.success && shiprocketRes.value) {
-        setPickupLocationName(shiprocketRes.value.pickup_location_name || "");
-        setPickupPincode(shiprocketRes.value.pickup_pincode || "");
-        setPickupAddress(shiprocketRes.value.pickup_address || "");
-        setPickupCity(shiprocketRes.value.pickup_city || "");
-        setPickupState(shiprocketRes.value.pickup_state || "");
-        setPickupPhone(shiprocketRes.value.pickup_phone || "");
-      }
+
     } catch (err: any) {
       triggerToast("Error loading settings: " + err.message);
     } finally {
@@ -412,23 +398,7 @@ export default function SettingsDashboardPage() {
     }
   };
 
-  const handleSaveShiprocket = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await saveShiprocketConfigAction({
-      pickup_location_name: pickupLocationName,
-      pickup_pincode: pickupPincode,
-      pickup_address: pickupAddress,
-      pickup_city: pickupCity,
-      pickup_state: pickupState,
-      pickup_phone: pickupPhone,
-    });
-    if (res.success) {
-      triggerToast("Shiprocket settings updated successfully");
-      router.refresh();
-    } else {
-      triggerToast(res.error || "Failed to update Shiprocket settings");
-    }
-  };
+
 
   const loadReviews = async () => {
     const res = await getReviewsAction();
@@ -577,7 +547,7 @@ export default function SettingsDashboardPage() {
           { id: "reviews", label: "Reviews" },
           { id: "shipping", label: "Shipping" },
           { id: "loyalty", label: "Loyalty & Points" },
-          { id: "shiprocket", label: "Shiprocket" },
+
         ].map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -2249,121 +2219,6 @@ export default function SettingsDashboardPage() {
           </section>
         )}
 
-        {/* Section 12: Shiprocket Settings */}
-        {activeTab === "shiprocket" && (
-          <section className="bg-white border border-gray-150 rounded-xl p-6 shadow-sm">
-            <header className="mb-8 border-b border-gray-100 pb-4">
-              <h3 className="text-xl font-headline font-black tracking-tight text-primary uppercase">
-                Shiprocket Configuration
-              </h3>
-              <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold opacity-60">
-                Manage logistics and shipment dispatch address settings
-              </p>
-            </header>
-
-            <form onSubmit={handleSaveShiprocket} className="space-y-6">
-              <div className="p-4 bg-blue-50 border border-blue-200 text-blue-800 text-[10px] rounded-lg font-bold">
-                ℹ️ Changes here update the database config. You still need to update .env for SHIPROCKET_PICKUP_LOCATION on server restarts.
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup Location Name
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={pickupLocationName}
-                    onChange={(e) => setPickupLocationName(e.target.value)}
-                    placeholder="e.g. CHENNAI_WAREHOUSE"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup Pincode
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    maxLength={6}
-                    value={pickupPincode}
-                    onChange={(e) => setPickupPincode(e.target.value)}
-                    placeholder="600001"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup Address Line 1
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={pickupAddress}
-                    onChange={(e) => setPickupAddress(e.target.value)}
-                    placeholder="e.g. 12, Nungambakkam High Road"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup City
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={pickupCity}
-                    onChange={(e) => setPickupCity(e.target.value)}
-                    placeholder="Chennai"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup State
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={pickupState}
-                    onChange={(e) => setPickupState(e.target.value)}
-                    placeholder="Tamil Nadu"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Pickup Contact Phone
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={pickupPhone}
-                    onChange={(e) => setPickupPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full h-9 border border-gray-200 focus:border-primary focus:ring-0 text-xs px-3 bg-white rounded-md font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
-                <button
-                  type="submit"
-                  className="bg-black text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-[#775a19] transition-all rounded-md cursor-pointer border-none shadow-md"
-                >
-                  Save Shiprocket Config
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
       </div>
     </div>
   );

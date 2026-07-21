@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
       } else if (config.sendEmail === 'pickup_error') {
         await sendAdminAlert({
           subject: `Pickup Failed — Order #${order.id}`,
-          body: `Order ID: #${order.id}\nAWB: ${awb}\nWarehouse Address: Tiruchirappalli (620018)\nReason: ${body.pickup_error || body.reason || "Courier pickup failed"}`,
+          body: `Order ID: #${order.id}\nAWB: ${awb}\nReason: ${body.pickup_error || body.reason || "Courier pickup failed"}`,
           orderId: order.id,
           awb,
         }).catch(err => console.error("[Webhook Pickup Error Alert] Failed to send email:", err));

@@ -34,6 +34,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   // Interactive Product States
   const [activeImg, setActiveImg] = useState("");
+  const [touchStartX, setTouchStartX] = useState(0);
   const [imgAnimating, setImgAnimating] = useState(false);
   const [selectedSize, setSelectedSize] = useState("M");
   const [selectedColor, setSelectedColor] = useState("");
@@ -118,6 +119,28 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       setActiveImg(newSrc);
       setImgAnimating(false);
     }, 300);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+
+    const images = product.images && product.images.length > 0 ? product.images : [product.image];
+    const currentIndex = images.indexOf(activeImg);
+
+    if (diffX > 50) {
+      // Swipe Left -> next image
+      const nextIndex = (currentIndex + 1) % images.length;
+      swapImage(images[nextIndex]);
+    } else if (diffX < -50) {
+      // Swipe Right -> previous image
+      const prevIndex = (currentIndex - 1 + images.length) % images.length;
+      swapImage(images[prevIndex]);
+    }
   };
 
   const toggleAccordion = (section: "details" | "material" | "care") => {
@@ -263,9 +286,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           
           {/* Left Side: Product Gallery */}
           <div className="lg:col-span-7">
+            {/* Gallery Layout */}
             <div className="grid grid-cols-12 gap-4">
               
-              {/* Vertical Thumbnails */}
+              {/* Vertical Thumbnails (Desktop Only) */}
               <div className="hidden md:flex flex-col gap-4 col-span-2">
                 {(product.images && product.images.length > 0 ? product.images : [product.image]).map((src, idx) => (
                   <button
@@ -288,13 +312,15 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 ))}
               </div>
 
-              {/* Main Image Display */}
+              {/* Main Image Display (Swipeable on mobile) */}
               <div className="col-span-12 md:col-span-10">
                 <div 
                   onMouseEnter={() => setIsZoomed(true)}
                   onMouseLeave={() => setIsZoomed(false)}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
                   style={{ overflow: "hidden", cursor: "zoom-in" }}
-                  className="aspect-[4/5] bg-surface-container-low border border-outline-variant/10 gallery-zoom-container relative overflow-hidden"
+                  className="aspect-[4/5] bg-surface-container-low border border-outline-variant/10 gallery-zoom-container relative overflow-hidden select-none"
                 >
                   {activeImg && (
                     <ProductImage
@@ -309,11 +335,50 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       alt={product.title}
                       fill
                       priority
-                      sizes="(max-w-780px) 100vw, 800px"
+                      sizes="(max-width: 768px) 100vw, 800px"
                     />
                   )}
+
+                  {/* Swipe Gallery Pagination Dots (Mobile Only) */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 md:hidden z-10">
+                    {(product.images && product.images.length > 0 ? product.images : [product.image]).map((_, idx) => {
+                      const images = product.images && product.images.length > 0 ? product.images : [product.image];
+                      const activeIndex = images.indexOf(activeImg);
+                      return (
+                        <span
+                          key={idx}
+                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                            activeIndex === idx ? "bg-white scale-125" : "bg-white/40"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Thumbnail Strip (Mobile Only) */}
+            <div className="flex md:hidden overflow-x-auto scrollbar-none gap-3 py-4 w-full snap-x justify-start mt-2 border-b border-outline-variant/5">
+              {(product.images && product.images.length > 0 ? product.images : [product.image]).map((src, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => swapImage(src)}
+                  className={`aspect-[3/4] w-14 shrink-0 bg-surface-container-low border overflow-hidden cursor-pointer snap-start transition-all duration-300 ${
+                    activeImg === src ? "border-secondary" : "border-outline-variant/10 opacity-70"
+                  }`}
+                >
+                  <div className="w-full h-full relative">
+                    <ProductImage
+                      className="object-cover"
+                      src={src}
+                      alt={`${product.title} thumb ${idx + 1}`}
+                      fill
+                      sizes="60px"
+                    />
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

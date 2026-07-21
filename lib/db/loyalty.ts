@@ -132,6 +132,7 @@ export async function awardLoyaltyPoints(total: number, orderId: string, userId?
     p_points: points,
     p_idempotency_key: "EARNED-" + orderId,
     p_desc: `Earned on Order #${orderId}`,
+    p_expires_at: null,
   });
 
   if (error) {
@@ -166,6 +167,7 @@ export async function applyLoyaltyCredit(
     p_points: points,
     p_idempotency_key: customIdempotencyKey || ("LOYALTY-CREDIT-" + orderId),
     p_desc: description || `Refund for Order #${orderId}`,
+    p_expires_at: null,
   });
 }
 

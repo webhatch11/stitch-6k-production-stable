@@ -211,18 +211,20 @@ async function handleProxy(request: NextRequest) {
     const rateLimitRes = await checkRateLimit(ip, path, routeRateLimit.limit, routeRateLimit.windowMs);
     
     if (!rateLimitRes.success) {
-      console.error(`[RATE LIMIT EXCEEDED] IP ${ip} exceeded rate limit on "${path}". Limit: ${routeRateLimit.limit}/${routeRateLimit.windowMs / 1000}s.`);
+      const retryAfterSecs = Math.ceil(routeRateLimit.windowMs / 1000);
+      console.error(`[RATE LIMIT EXCEEDED] IP ${ip} exceeded rate limit on "${path}". Limit: ${routeRateLimit.limit}/${retryAfterSecs}s.`);
       return new NextResponse(
         JSON.stringify({
           success: false,
-          error: "Too Many Requests",
-          message: "You have exceeded the rate limit. Please try again in a minute."
+          error: "rate_limit_exceeded",
+          message: `Too many payment attempts. Please wait ${retryAfterSecs} seconds before trying again.`,
+          retryAfter: retryAfterSecs,
         }),
         {
           status: 429,
           headers: {
             "Content-Type": "application/json",
-            "Retry-After": "60",
+            "Retry-After": String(retryAfterSecs),
           }
         }
       );

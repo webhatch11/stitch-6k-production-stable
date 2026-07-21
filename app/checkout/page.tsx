@@ -629,7 +629,10 @@ export default function CheckoutPage() {
                   error: retryData.error
                 });
                 console.error("[Razorpay] Session rotation retry failed:", retryData.error);
-                triggerToast(`❌ Payment initialization failed: ${retryData.error || "Please try again."}`);
+                const retryMsg = retryData.error === "rate_limit_exceeded"
+                  ? `⏳ Too many payment attempts. Please wait ${retryData.retryAfter || 60} seconds and try again.`
+                  : `❌ Payment initialization failed: ${retryData.error || "Please try again."}`;
+                triggerToast(retryMsg);
                 setProcessingPayment(false);
                 return;
               }
@@ -637,7 +640,7 @@ export default function CheckoutPage() {
               // Reassign createData to the successful retry response so the widget opens normally
               Object.assign(createData, retryData);
             } else {
-              // Generic failure path (unchanged)
+              // Generic failure path
               paymentDebugLog({
                 traceId: clientTraceId,
                 functionName: "handleSubmit (Razorpay block)",
@@ -645,7 +648,10 @@ export default function CheckoutPage() {
                 error: createData.error
               });
               console.error("[Razorpay] Order creation failed:", createData.error);
-              triggerToast(`❌ Payment initialization failed: ${createData.error || "Please try again."}`);
+              const errorMsg = createData.error === "rate_limit_exceeded"
+                ? `⏳ Too many payment attempts. Please wait ${createData.retryAfter || 60} seconds before trying again. Your cart is saved.`
+                : `❌ Payment initialization failed: ${createData.message || createData.error || "Please try again."}`;
+              triggerToast(errorMsg);
               setProcessingPayment(false);
               return;
             }

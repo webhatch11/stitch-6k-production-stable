@@ -80,7 +80,8 @@ export async function getLoyaltyData(userId?: string) {
 export async function applyLoyaltyDebit(
   points: number,
   orderId: string,
-  userId?: string
+  userId?: string,
+  customIdempotencyKey?: string
 ): Promise<{ success: boolean; error?: string }> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -96,7 +97,7 @@ export async function applyLoyaltyDebit(
   const { data, error } = await supabase.rpc("loyalty_atomic_debit", {
     p_user_id: uid,
     p_points: points,
-    p_idempotency_key: orderId,
+    p_idempotency_key: customIdempotencyKey || orderId,
     p_desc: `Redeemed on Order #${orderId}`,
   });
 
@@ -146,7 +147,8 @@ export async function applyLoyaltyCredit(
   points: number,
   description: string,
   orderId: string,
-  userId?: string
+  userId?: string,
+  customIdempotencyKey?: string
 ): Promise<void> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -162,7 +164,7 @@ export async function applyLoyaltyCredit(
   await supabase.rpc("loyalty_atomic_credit", {
     p_user_id: uid,
     p_points: points,
-    p_idempotency_key: "LOYALTY-CREDIT-" + orderId,
+    p_idempotency_key: customIdempotencyKey || ("LOYALTY-CREDIT-" + orderId),
     p_desc: description || `Refund for Order #${orderId}`,
   });
 }

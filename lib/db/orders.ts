@@ -169,6 +169,9 @@ export async function saveOrder(order: Partial<Order>): Promise<Order> {
   if (order.userId !== undefined || order.user_id !== undefined) dbPayload.user_id = order.userId || order.user_id;
   if (order.address_snapshot !== undefined) dbPayload.address_snapshot = order.address_snapshot;
   if (order.deliveredAt !== undefined || order.delivered_at !== undefined) dbPayload.delivered_at = order.deliveredAt || order.delivered_at;
+  if (order.invoice_template_version !== undefined || order.invoiceTemplateVersion !== undefined) {
+    dbPayload.invoice_template_version = order.invoice_template_version ?? order.invoiceTemplateVersion;
+  }
   if (order.returnAwb !== undefined || order.return_awb !== undefined) dbPayload.return_awb = order.returnAwb || order.return_awb;
   if (order.returnPickupScheduled !== undefined || order.return_pickup_scheduled !== undefined) dbPayload.return_pickup_scheduled = order.returnPickupScheduled || order.return_pickup_scheduled;
   if (order.utmSource !== undefined || order.utm_source !== undefined) dbPayload.utm_source = order.utmSource || order.utm_source;
@@ -344,8 +347,11 @@ export async function requestManualReturn(
       gatewayRefund = Math.round(refundAmount * (gatewayPaid / netPayment) * 100) / 100;
     }
     
-    // GST Rate (Fallback: 5% if line total <= 1000, 12% if > 1000)
-    const rawGstRate = productsMap.get(item.productId) ?? (itemLineTotal <= 1000 ? 5 : 12);
+    // GST Rate (Precedence Hierarchy: 1. historical order-line GST, 2. catalog product GST, 3. unit rate fallback)
+    const orderLineGst = item.gstRate ?? item.gst_rate;
+    const productCatalogGst = productsMap.get(item.productId);
+    const businessFallbackGst = itemPrice <= 1000 ? 5 : 12;
+    const rawGstRate = orderLineGst ?? productCatalogGst ?? businessFallbackGst;
     const gstRate = Number(rawGstRate);
     const gstFraction = gstRate / 100;
     
@@ -381,6 +387,7 @@ export async function requestManualReturn(
       gstRate: gstRate,
       cgst: Number(cgst.toFixed(2)),
       sgst: Number(sgst.toFixed(2)),
+      hsn: item.hsn || item.hsnCode || (itemPrice <= 1000 ? "61091000" : "62059090"),
       pointsToReverse,
       pointsToRestore,
       image: item.image || ""
@@ -404,15 +411,22 @@ export async function requestManualReturn(
       // Reconcile Wallet/Gateway splits
       const originalWallet = Number(orderData.wallet_paid || 0);
       const originalGateway = Number(orderData.gateway_paid || 0);
+      const shippingAmount = Number(orderData.shipping_amount || 0);
       
       const sumWallet = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.walletRefund, 0);
       const sumGateway = returnedItemsToSave.reduce((sum: number, item: any) => sum + item.gatewayRefund, 0);
       
-      const walletDiff = originalWallet - sumWallet;
-      const gatewayDiff = (originalGateway - Number(orderData.shipping_amount || 0)) - sumGateway;
+      let walletDiff = originalWallet - sumWallet;
+      let gatewayDiff = originalGateway - sumGateway;
+
+      if (originalGateway > 0) {
+        gatewayDiff = (originalGateway - shippingAmount) - sumGateway;
+      } else {
+        walletDiff = (originalWallet - shippingAmount) - sumWallet;
+      }
       
       lastItem.walletRefund = Number((lastItem.walletRefund + walletDiff).toFixed(2));
-      lastItem.gatewayRefund = Number((lastItem.gatewayRefund + gatewayDiff).toFixed(2));
+      lastItem.gatewayRefund = Number(Math.max(0, lastItem.gatewayRefund + gatewayDiff).toFixed(2));
     }
   }
 

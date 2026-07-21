@@ -104,7 +104,8 @@ export async function applyWalletCredit(
   amount: number,
   description: string,
   orderId: string,
-  userId?: string
+  userId?: string,
+  customIdempotencyKey?: string
 ): Promise<{ success: boolean; error?: string }> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -120,7 +121,7 @@ export async function applyWalletCredit(
   const { data: creditData, error: creditError } = await supabase.rpc("wallet_atomic_credit", {
     p_user_id: uid,
     p_amount: amount,
-    p_idempotency_key: "WALLET-CREDIT-" + orderId,
+    p_idempotency_key: customIdempotencyKey || ("WALLET-CREDIT-" + orderId),
     p_desc: description || `Refund for Order #${orderId}`,
   });
 

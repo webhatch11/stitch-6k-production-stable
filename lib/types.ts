@@ -134,6 +134,8 @@ export interface Order {
   shipping_amount?: number;
   packedAt?: string | null;
   acceptedAt?: string | null;
+  invoice_template_version?: number;
+  invoiceTemplateVersion?: number;
 }
 
 export interface OrderStatusHistory {

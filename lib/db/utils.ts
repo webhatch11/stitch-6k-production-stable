@@ -115,6 +115,8 @@ export const mapDbOrderToOrder = (o: any): Order => {
     awbCode: o.awb_code || o.shiprocket_id || null,
     courierName: o.courier_name || null,
     trackingUrl: o.tracking_url || null,
+    invoiceTemplateVersion: o.invoice_template_version || 1,
+    invoice_template_version: o.invoice_template_version || 1,
   };
 };
 

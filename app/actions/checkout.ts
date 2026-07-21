@@ -213,6 +213,7 @@ export async function processWalletPointsCheckoutAction(payload: {
       shippingAmount: shippingAmount,
       shipping_amount: shippingAmount,
       originalTotal: verifiedSubtotal,
+      invoice_template_version: 1,
       couponDiscount: verifiedCouponDiscount,
       couponCode: couponCode,
       walletPaid: walletDeduction,
@@ -223,15 +224,42 @@ export async function processWalletPointsCheckoutAction(payload: {
       status: "Payment Pending",
       paymentStatus: "Payment Pending",
       items: cart.map((item) => item.productName),
-      cartItems: cart.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        price: item.price,
-        size: item.size,
-        color: item.color,
-        quantity: (item as any).quantity || 1,
-        image: item.image || (item as any).images?.[0] || ''
-      })),
+      cartItems: cart.map(item => {
+        const itemQty = Number((item as any).quantity || 1);
+        const itemPrice = Number(item.price || 0);
+        const itemLineTotal = itemPrice * itemQty;
+        const proportionalFactor = verifiedSubtotal > 0 ? (itemLineTotal / verifiedSubtotal) : (1 / cart.length);
+        const couponShare = Math.round(verifiedCouponDiscount * proportionalFactor * 100) / 100;
+        const pointsShare = Math.round(verifiedPointsDiscount * proportionalFactor * 100) / 100;
+        const finalPrice = Math.max(0, itemLineTotal - couponShare - pointsShare);
+        const rawGstRate = (item as any).gst_rate ?? (item as any).gstRate ?? (itemPrice <= 1000 ? 5 : 12);
+        const gstRate = Number(rawGstRate);
+        const gstFraction = gstRate / 100;
+        const taxableValue = Math.round((finalPrice / (1 + gstFraction)) * 100) / 100;
+        const gstAmount = Math.round((finalPrice - taxableValue) * 100) / 100;
+        const cgst = Math.round((gstAmount / 2) * 100) / 100;
+        const sgst = Math.round((gstAmount - cgst) * 100) / 100;
+        const hsn = (item as any).hsn || "61091000";
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          price: itemPrice,
+          size: item.size,
+          color: item.color,
+          quantity: itemQty,
+          image: item.image || (item as any).images?.[0] || '',
+          originalPrice: itemPrice,
+          discountAllocated: couponShare + pointsShare,
+          finalPrice: finalPrice,
+          gstRate,
+          taxableValue,
+          cgst,
+          sgst,
+          igst: 0,
+          hsn,
+          currency: 'INR'
+        };
+      }),
       address_snapshot: addressSnapshot,
       userId: user_id,
       user_id: user_id,
@@ -551,18 +579,46 @@ export async function verifyAndPrepareGatewayCheckoutAction(payload: {
       pointsDiscount: verifiedPointsDiscount,
       finalPayable: verifiedFinalPayable,
       items: cart.map((item) => item.productName),
-      cartItems: cart.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        price: item.price,
-        size: item.size,
-        color: item.color,
-        quantity: (item as any).quantity || 1,
-        image: item.image || (item as any).images?.[0] || ''
-      })),
+      cartItems: cart.map(item => {
+        const itemQty = Number((item as any).quantity || 1);
+        const itemPrice = Number(item.price || 0);
+        const itemLineTotal = itemPrice * itemQty;
+        const proportionalFactor = verifiedSubtotal > 0 ? (itemLineTotal / verifiedSubtotal) : (1 / cart.length);
+        const couponShare = Math.round(verifiedCouponDiscount * proportionalFactor * 100) / 100;
+        const pointsShare = Math.round(verifiedPointsDiscount * proportionalFactor * 100) / 100;
+        const finalPrice = Math.max(0, itemLineTotal - couponShare - pointsShare);
+        const rawGstRate = (item as any).gst_rate ?? (item as any).gstRate ?? (itemPrice <= 1000 ? 5 : 12);
+        const gstRate = Number(rawGstRate);
+        const gstFraction = gstRate / 100;
+        const taxableValue = Math.round((finalPrice / (1 + gstFraction)) * 100) / 100;
+        const gstAmount = Math.round((finalPrice - taxableValue) * 100) / 100;
+        const cgst = Math.round((gstAmount / 2) * 100) / 100;
+        const sgst = Math.round((gstAmount - cgst) * 100) / 100;
+        const hsn = (item as any).hsn || "61091000";
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          price: itemPrice,
+          size: item.size,
+          color: item.color,
+          quantity: itemQty,
+          image: item.image || (item as any).images?.[0] || '',
+          originalPrice: itemPrice,
+          discountAllocated: couponShare + pointsShare,
+          finalPrice: finalPrice,
+          gstRate,
+          taxableValue,
+          cgst,
+          sgst,
+          igst: 0,
+          hsn,
+          currency: 'INR'
+        };
+      }),
       idempotencyKey,
       userId,
       addressSnapshot,
+      invoice_template_version: 1,
     }
   };
 }

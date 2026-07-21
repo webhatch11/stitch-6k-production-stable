@@ -27,7 +27,7 @@ export interface ProRataRefundResult {
 
 export function calculateProRataItemRefund(
   order: any,
-  returnedItems: Array<{ price: number; quantity: number; gst_rate?: number; tax_rate?: number; taxRate?: number }>
+  returnedItems: Array<{ price: number; quantity: number; gst_rate?: number; tax_rate?: number; taxRate?: number; gstRate?: number }>
 ): ProRataRefundResult {
   const returnedSubtotal = returnedItems.reduce((acc, item) => acc + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
   const orderOriginalSubtotal = Number(order.original_total || order.subtotal || order.total || 0);
@@ -62,11 +62,13 @@ export function calculateProRataItemRefund(
   const walletShare = Math.min(netRefundAmount, maxWalletShare);
   const gatewayShare = Math.round(Math.min(netRefundAmount - walletShare, Number(order.gateway_paid || 0)) * 100) / 100;
 
-  // Product-Specific GST Rate: Read from product item (or fallback to Garment Slabs: 5% for <= ₹1000, 12% for > ₹1000)
-  const itemGst = returnedItems[0]?.gst_rate ?? returnedItems[0]?.tax_rate ?? returnedItems[0]?.taxRate;
+  // Product-Specific GST Rate: Precedence Hierarchy
+  const firstItem = returnedItems[0] || {};
+  const itemGst = firstItem.gst_rate ?? firstItem.tax_rate ?? firstItem.taxRate ?? firstItem.gstRate;
+  const unitPrice = Number(firstItem.price || returnedSubtotal);
   const gstRate = itemGst !== undefined && itemGst > 0
     ? (itemGst > 1 ? itemGst / 100 : itemGst)
-    : (returnedSubtotal <= 1000 ? 0.05 : 0.12);
+    : (unitPrice <= 1000 ? 0.05 : 0.12);
   const gstDivisor = 1 + gstRate;
   const taxableAmount = Math.round((netRefundAmount / gstDivisor) * 100) / 100;
   const gstAmount = Math.round((netRefundAmount - taxableAmount) * 100) / 100;
@@ -482,6 +484,30 @@ export async function cancelOrderAndRefund(orderId: string, reason?: string): Pr
   return true;
 }
 
+export interface RefundSplit {
+  walletRefundPaise: number;
+  gatewayRefundPaise: number;
+  targetRefundPaise: number;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errorReason?: string;
+}
+
+export function validateRefundSplit(split: RefundSplit): ValidationResult {
+  if (split.walletRefundPaise < 0 || split.gatewayRefundPaise < 0) {
+    return { isValid: false, errorReason: "Negative refund splits are not permitted." };
+  }
+  if ((split.walletRefundPaise + split.gatewayRefundPaise) !== split.targetRefundPaise) {
+    return {
+      isValid: false,
+      errorReason: `Split mismatch. Wallet: ${split.walletRefundPaise} paise, Gateway: ${split.gatewayRefundPaise} paise, Target: ${split.targetRefundPaise} paise.`
+    };
+  }
+  return { isValid: true };
+}
+
 export async function processReturnRefund(
   orderId: string,
   qualityCheckPassed = true,
@@ -560,48 +586,55 @@ export async function processReturnRefund(
     const originalGateway = Number(order.gatewayPaid || 0);
     const maxRefundable = originalWallet + originalGateway;
 
-    // Task 4: Refund Validation
+    // Convert inputs to integer paise
+    const originalWalletPaise = Math.round(originalWallet * 100);
+    const originalGatewayPaise = Math.round(originalGateway * 100);
+    const maxRefundablePaise = originalWalletPaise + originalGatewayPaise;
+
+    let walletRefundPaise = Math.round(walletRefundAmount * 100);
+    let gatewayRefundPaise = Math.round(gatewayRefundAmount * 100);
+    let totalRefundPaise = Math.round(totalRefundAmount * 100);
+
+    // Task 4: Refund Validation and override
+    let enrichedReturnedItemsList = [...returnedItemsList];
     if (overrideAmount !== undefined) {
-      if (overrideAmount <= 0) {
+      const overrideAmountPaise = Math.round(overrideAmount * 100);
+      if (overrideAmountPaise <= 0) {
         throw new Error("Refund override amount must be greater than zero.");
       }
-      if (overrideAmount > maxRefundable) {
+      if (overrideAmountPaise > maxRefundablePaise) {
         throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed original payment total (₹${maxRefundable}).`);
       }
-      if (totalRefundAmount > 0 && overrideAmount > totalRefundAmount) {
+      if (totalRefundPaise > 0 && overrideAmountPaise > totalRefundPaise) {
         throw new Error(`Refund override amount (₹${overrideAmount}) cannot exceed calculated item refund (₹${totalRefundAmount}).`);
       }
-    }
 
-    // Handle manual refund overrides
-    let enrichedReturnedItemsList = [...returnedItemsList];
-    if (overrideAmount !== undefined && overrideAmount > 0) {
-      const totalCalculated = totalRefundAmount || 1;
+      const totalCalculated = totalRefundPaise || 1;
       enrichedReturnedItemsList = returnedItemsList.map((item: any) => {
-        const origCalculated = item.calculatedRefund || item.refundAmount || 0;
+        const origCalculated = Math.round((item.calculatedRefund || item.refundAmount || 0) * 100);
         const ratio = totalCalculated > 0 ? (origCalculated / totalCalculated) : (1 / (returnedItemsList.length || 1));
-        const itemOverrideRefund = Math.round(overrideAmount * ratio * 100) / 100;
-        const itemWalletOverride = Math.round((item.walletRefund || 0) * ratio * 100) / 100;
-        const itemGatewayOverride = Math.round((item.gatewayRefund || 0) * ratio * 100) / 100;
+        const itemOverrideRefundPaise = Math.round(overrideAmountPaise * ratio);
+        const itemWalletOverridePaise = Math.round(Math.round((item.walletRefund || 0) * 100) * ratio);
+        const itemGatewayOverridePaise = Math.round(Math.round((item.gatewayRefund || 0) * 100) * ratio);
         return {
           ...item,
-          calculatedRefund: origCalculated,
-          refundAmount: itemOverrideRefund,
-          walletRefund: itemWalletOverride,
-          gatewayRefund: itemGatewayOverride,
+          calculatedRefund: origCalculated / 100,
+          refundAmount: itemOverrideRefundPaise / 100,
+          walletRefund: itemWalletOverridePaise / 100,
+          gatewayRefund: itemGatewayOverridePaise / 100,
           overrideReason: overrideReason || "Admin manual override"
         };
       });
 
-      if (totalRefundAmount > 0) {
-        const ratio = overrideAmount / totalRefundAmount;
-        walletRefundAmount = Math.round(walletRefundAmount * ratio * 100) / 100;
-        gatewayRefundAmount = Math.round(gatewayRefundAmount * ratio * 100) / 100;
+      if (totalRefundPaise > 0) {
+        const ratio = overrideAmountPaise / totalRefundPaise;
+        walletRefundPaise = Math.round(walletRefundPaise * ratio);
+        gatewayRefundPaise = Math.round(gatewayRefundPaise * ratio);
       } else {
-        walletRefundAmount = overrideAmount;
-        gatewayRefundAmount = 0;
+        walletRefundPaise = overrideAmountPaise;
+        gatewayRefundPaise = 0;
       }
-      totalRefundAmount = overrideAmount;
+      totalRefundPaise = overrideAmountPaise;
     } else {
       // Legacy / default safety: Ensure calculatedRefund key is initialized in snapshot
       enrichedReturnedItemsList = returnedItemsList.map((item: any) => ({
@@ -611,17 +644,55 @@ export async function processReturnRefund(
     }
 
     // Task 4: Cap & Validate Split Payments
-    walletRefundAmount = Math.min(walletRefundAmount, originalWallet);
-    gatewayRefundAmount = Math.min(gatewayRefundAmount, originalGateway);
-    totalRefundAmount = walletRefundAmount + gatewayRefundAmount;
+    walletRefundPaise = Math.min(walletRefundPaise, originalWalletPaise);
+    gatewayRefundPaise = Math.min(gatewayRefundPaise, originalGatewayPaise);
+    totalRefundPaise = walletRefundPaise + gatewayRefundPaise;
 
-    if (totalRefundAmount <= 0) {
+    if (totalRefundPaise <= 0) {
       throw new Error("Calculated net refund amount must be greater than zero.");
     }
+
+    // Enforce split assertions
+    const validationResult = validateRefundSplit({
+      walletRefundPaise,
+      gatewayRefundPaise,
+      targetRefundPaise: totalRefundPaise
+    });
+    if (!validationResult.isValid) {
+      throw new Error(`[Ledger Invariant Violation] ${validationResult.errorReason}`);
+    }
+
+    // Convert back to Rupees
+    walletRefundAmount = walletRefundPaise / 100;
+    gatewayRefundAmount = gatewayRefundPaise / 100;
+    totalRefundAmount = totalRefundPaise / 100;
 
     const refundReason = overrideReason 
       ? `Override: ${overrideReason}. Reason: ${reason || "None"}`
       : (reason || "Return approved by admin");
+
+    // Fetch user profile and create or fetch database refund record to obtain a stable refundId
+    let refundId = orderData.refund_id;
+    if (!refundId) {
+      const { data: newRefund, error: refundErr } = await supabase
+        .from("refunds")
+        .insert({
+          order_id: orderId,
+          user_id: orderData.user_id,
+          wallet_amount: walletRefundAmount,
+          gateway_amount: gatewayRefundAmount,
+          total_refund_amount: totalRefundAmount,
+          status: "PENDING",
+          reason: refundReason
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (refundErr || !newRefund) {
+        throw new Error(`Failed to create database refund record: ${refundErr?.message || "unknown error"}`);
+      }
+      refundId = newRefund.id;
+    }
 
     let refundSuccessful = false;
     let finalRefundStatus = "processed";
@@ -634,7 +705,8 @@ export async function processReturnRefund(
           totalRefundAmount,
           `Return Credit for Order #${orderId}`,
           orderId,
-          order.userId
+          order.userId,
+          `WALLET-CREDIT-${orderId}-REF-${refundId}`
         );
         if (!creditResult.success) {
           throw new Error(`Wallet credit failed: ${creditResult.error}`);
@@ -650,7 +722,8 @@ export async function processReturnRefund(
             walletRefundAmount,
             `Refund for return — Order #${orderId}`,
             orderId,
-            order.userId
+            order.userId,
+            `WALLET-CREDIT-${orderId}-REF-${refundId}`
           );
           if (!creditResult.success) {
             throw new Error(`Wallet credit failed: ${creditResult.error}`);
@@ -681,6 +754,84 @@ export async function processReturnRefund(
       }
     }
 
+    if (refundSuccessful) {
+      // Update refund record status to PROCESSED
+      await supabase
+        .from("refunds")
+        .update({
+          status: finalRefundStatus === "qc_rejected" ? "FAILED" : "PROCESSED",
+          gateway_refund_id: razorpayRefundId
+        })
+        .eq("id", refundId);
+
+      // Record in Financial Ledger
+      if (finalRefundStatus !== "qc_rejected") {
+        await supabase
+          .from("financial_ledger")
+          .insert({
+            order_id: orderId,
+            event_type: "refund_issued",
+            amount: totalRefundAmount,
+            source_entity_type: "refund",
+            source_entity_id: refundId,
+            metadata: {
+              wallet_refund: walletRefundAmount,
+              gateway_refund: gatewayRefundAmount,
+              reason: refundReason
+            }
+          });
+
+        // Generate GST Credit Note
+        try {
+          const cnItems = enrichedReturnedItemsList.map((item: any) => ({
+            product_id: item.productId || null,
+            order_line_id: item.orderItemId || item.productId || "",
+            sku: item.sku || item.size || "M",
+            quantity: item.quantity || 1,
+            gst_rate: item.gstRate || 12,
+            taxable_value: item.taxableAmount || 0,
+            cgst: item.cgst || 0,
+            sgst: item.sgst || 0,
+            igst: 0,
+            hsn: item.hsn || "61091000",
+            reason: item.reason || refundReason
+          }));
+
+          const originalInvoiceId = orderId.replace("6K-RPO-", "").replace("6K-WPO-", "");
+          const originalInvoiceDate = orderData.created_at 
+            ? new Date(orderData.created_at).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0];
+
+          const totalTaxable = enrichedReturnedItemsList.reduce((sum: number, item: any) => sum + (item.taxableAmount || 0), 0);
+          const totalCgst = enrichedReturnedItemsList.reduce((sum: number, item: any) => sum + (item.cgst || 0), 0);
+          const totalSgst = enrichedReturnedItemsList.reduce((sum: number, item: any) => sum + (item.sgst || 0), 0);
+
+          const { data: cnResult, error: cnErr } = await supabase.rpc("create_credit_note_atomic", {
+            p_order_id: orderId,
+            p_return_request_id: null,
+            p_original_invoice_id: originalInvoiceId,
+            p_original_invoice_date: originalInvoiceDate,
+            p_taxable: totalTaxable,
+            p_cgst: totalCgst,
+            p_sgst: totalSgst,
+            p_igst: 0,
+            p_refund: totalRefundAmount,
+            p_reason_code: "Sales Return",
+            p_issued_by: "system",
+            p_items: cnItems
+          });
+
+          if (cnErr) {
+            console.error("[processReturnRefund] Failed to generate credit note:", cnErr.message);
+          } else {
+            console.log("[processReturnRefund] Credit note result:", cnResult);
+          }
+        } catch (cnCatchErr: any) {
+          console.error("[processReturnRefund] Credit note error catch:", cnCatchErr.message);
+        }
+      }
+    }
+
     // Task 7 & Task 1: Inventory Restoration Guard
     // Inventory restoration MUST occur ONLY when QC Passed AND Refund Completed!
     if (qualityCheckPassed && refundSuccessful) {
@@ -704,10 +855,21 @@ export async function processReturnRefund(
     // Reversing loyalty points on return
     try {
       if (pointsToReverse > 0 && order.userId) {
-        await loyaltyDb.applyLoyaltyDebit(pointsToReverse, orderId, order.userId);
+        await loyaltyDb.applyLoyaltyDebit(
+          pointsToReverse, 
+          orderId, 
+          order.userId,
+          `LOYALTY-DEBIT-${orderId}-REF-${refundId}`
+        );
       }
       if (pointsToRestore > 0 && order.userId) {
-        await loyaltyDb.applyLoyaltyCredit(pointsToRestore, `Redeemed points restored — Order #${orderId}`, orderId, order.userId);
+        await loyaltyDb.applyLoyaltyCredit(
+          pointsToRestore, 
+          `Redeemed points restored — Order #${orderId}`, 
+          orderId, 
+          order.userId,
+          `LOYALTY-CREDIT-${orderId}-REF-${refundId}`
+        );
       }
       if (returnedItemsList.length === 0 || totalRefundAmount >= maxRefundable) {
         await supabase.from('orders').update({ points_credit_status: 'cancelled' }).eq('id', orderId);

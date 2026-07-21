@@ -356,6 +356,7 @@ export async function POST(req: NextRequest) {
       items: checkoutState.items,
       idempotencyKey: payload.idempotencyKey,
       cartItems: checkoutState.cartItems,
+      invoice_template_version: checkoutState.invoice_template_version || 1,
       paymentStatus: "Payment Pending",
       address_snapshot: checkoutState.addressSnapshot ?? null,
       userId: user_id || undefined,

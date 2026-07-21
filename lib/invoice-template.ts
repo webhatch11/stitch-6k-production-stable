@@ -74,11 +74,15 @@ const processedItems = data.items.map(item => {
   const qty = item.quantity || 1;
   const rate = item.rate || 0;
   const gstRate = item.gstRate || 12;
-  const taxableValue = rate / (1 + gstRate / 100);
-  const gstAmt = rate - taxableValue;
 
-  sumItemPrices += rate * qty;
-  sumItemTaxable += taxableValue * qty;
+  // Use pre-computed immutable values if available from the snapshot
+  const rawItem = item as any;
+  const finalPrice = rawItem.finalPrice !== undefined ? Number(rawItem.finalPrice) : rate * qty;
+  const taxableValue = rawItem.taxableValue !== undefined ? Number(rawItem.taxableValue) : finalPrice / (1 + gstRate / 100);
+  const gstAmt = finalPrice - taxableValue;
+
+  sumItemPrices += finalPrice;
+  sumItemTaxable += taxableValue;
 
   return {
     ...item,
@@ -87,10 +91,10 @@ const processedItems = data.items.map(item => {
     gstRate,
     taxableValue,
     gstAmt,
-    cgst: isLocal ? gstAmt / 2 : 0,
-    sgst: isLocal ? gstAmt / 2 : 0,
-    igst: isLocal ? 0 : gstAmt,
-    total: rate * qty
+    cgst: rawItem.cgst !== undefined ? Number(rawItem.cgst) : (isLocal ? gstAmt / 2 : 0),
+    sgst: rawItem.sgst !== undefined ? Number(rawItem.sgst) : (isLocal ? gstAmt / 2 : 0),
+    igst: rawItem.igst !== undefined ? Number(rawItem.igst) : (isLocal ? 0 : gstAmt),
+    total: finalPrice
   };
 });
 
@@ -105,9 +109,11 @@ const igst = isLocal ? 0 : totalGst;
 const gstGroups: Record<string, { hsn: string; rate: number; taxableBase: number; cgst: number; sgst: number; igst: number; totalTax: number }> = {};
 processedItems.forEach(item => {
   const key = `${item.hsn}_${item.gstRate}`;
-  const proportion = sumItemPrices > 0 ? (item.rate * item.qty) / sumItemPrices : 0;
-  const itemTotal = data.total * proportion;
-  const itemTaxableBase = itemTotal / (1 + item.gstRate / 100);
+  const rawItem = item as any;
+  const hasSnapshot = rawItem.finalPrice !== undefined;
+  
+  const itemTotal = hasSnapshot ? item.total : (sumItemPrices > 0 ? data.total * (item.rate * item.qty / sumItemPrices) : 0);
+  const itemTaxableBase = hasSnapshot ? item.taxableValue : (itemTotal / (1 + item.gstRate / 100));
   const itemGst = itemTotal - itemTaxableBase;
 
   if (!gstGroups[key]) {
@@ -123,12 +129,12 @@ processedItems.forEach(item => {
   }
   gstGroups[key].taxableBase += itemTaxableBase;
   if (isLocal) {
-    gstGroups[key].cgst += itemGst / 2;
-    gstGroups[key].sgst += itemGst / 2;
+    gstGroups[key].cgst += hasSnapshot ? item.cgst : itemGst / 2;
+    gstGroups[key].sgst += hasSnapshot ? item.sgst : itemGst / 2;
   } else {
-    gstGroups[key].igst += itemGst;
+    gstGroups[key].igst += hasSnapshot ? item.igst : itemGst;
   }
-  gstGroups[key].totalTax += itemGst;
+  gstGroups[key].totalTax += hasSnapshot ? (item.cgst + item.sgst + item.igst) : itemGst;
 });
 
 const walletPaid = data.walletPaid || 0;
@@ -552,9 +558,16 @@ export function orderToInvoiceData(
     name: i.productName || i.name || 'Item',
     hsn: i.hsn || i.hsnCode || (i.price <= 1000 ? '6109' : '6205'),
     quantity: i.quantity || 1,
-    rate: i.price || 0,
+    rate: i.originalPrice !== undefined ? i.originalPrice : (i.price || 0),
     gstRate: i.gstRate || i.gst_rate || (i.price <= 1000 ? 5 : 12),
-    category: i.category || (i.price <= 1000 ? "Premium Gen-Z T-Shirt" : "Premium Woven Luxury Shirt")
+    category: i.category || (i.price <= 1000 ? "Premium Gen-Z T-Shirt" : "Premium Woven Luxury Shirt"),
+    originalPrice: i.originalPrice,
+    discountAllocated: i.discountAllocated,
+    finalPrice: i.finalPrice,
+    taxableValue: i.taxableValue,
+    cgst: i.cgst,
+    sgst: i.sgst,
+    igst: i.igst
   })) : (order.items || []).map((name: string) => {
     const rate = name.includes("Classic") ? 1299 : 1450;
     return {
@@ -591,7 +604,8 @@ export function orderToInvoiceData(
     total: order.total || 0,
     status: order.status || '',
     date: order.date || '',
-    originalTotal: order.originalTotal !== undefined ? order.originalTotal : (order.total + (order.pointsDiscount || order.points_discount || 0) + (order.couponDiscount || order.coupon_discount || 0))
+    originalTotal: order.originalTotal !== undefined ? order.originalTotal : (order.total + (order.pointsDiscount || order.points_discount || 0) + (order.couponDiscount || order.coupon_discount || 0)),
+    invoiceTemplateVersion: order.invoice_template_version || order.invoiceTemplateVersion || 1
   };
 }
 
@@ -623,4 +637,5 @@ export interface InvoiceData {
   status: string;
   date: string;
   originalTotal?: number;
+  invoiceTemplateVersion?: number;
 }

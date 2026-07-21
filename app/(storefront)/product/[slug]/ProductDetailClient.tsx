@@ -440,7 +440,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   </span>
                 )}
                 
-                {!product.customBadge && product.isNew && (
+                {false && !product.customBadge && product.isNew && (
                   <span className="bg-secondary/10 border border-secondary/20 text-secondary text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1">
                     New Arrival
                   </span>

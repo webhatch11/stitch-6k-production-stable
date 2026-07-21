@@ -331,7 +331,7 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {filteredProducts.slice(0, visibleCount).map((product, index) => {
                   let badgeElement = null;
-                  if (product.isNew) {
+                  if (false && product.isNew) {
                     badgeElement = (
                       <span className="absolute top-2.5 left-2.5 bg-black/80 backdrop-blur-md text-[#fed488] border border-[#fed488]/30 px-2.5 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] z-10 rounded-full shadow-md">
                         Drop New

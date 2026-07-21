@@ -287,13 +287,6 @@ export default function ShoppingBagClient({ initialProducts }: ShoppingBagClient
                 </button>
 
                 <div className="mt-8 space-y-4">
-                  <div className="p-4 bg-secondary-container/10 flex items-start gap-3">
-                    <span className="material-symbols-outlined text-secondary">info</span>
-                    <p className="text-xs leading-relaxed font-medium">
-                      Members get <span className="text-secondary font-bold">FREE SHIPPING</span> and exclusive access to the
-                      Heritage Collection. <Link className="underline" href="/about">Join Now</Link>.
-                    </p>
-                  </div>
                   <div className="flex justify-center gap-4 opacity-40 grayscale">
                     <Image
                       alt="Visa"

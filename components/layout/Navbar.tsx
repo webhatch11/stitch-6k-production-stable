@@ -243,12 +243,6 @@ export default function Navbar() {
                 Sign In
               </Link>
             )}
-            <Link
-              href="/admindashboard/login"
-              className={`hidden md:block ${iconClass}`}
-            >
-              admin_panel_settings
-            </Link>
           </div>
         </div>
       </header>
@@ -481,15 +475,6 @@ export default function Navbar() {
             </Link>
           )}
         </nav>
-        <div className="absolute bottom-28 flex gap-6 border-t border-outline/10 pt-6 w-full justify-center px-10">
-          <Link
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-xs font-bold uppercase tracking-widest text-outline hover:text-on-surface"
-            href="/admindashboard/login"
-          >
-            Admin Dashboard
-          </Link>
-        </div>
       </div>
     </>
   );

@@ -15,14 +15,15 @@ const heroSlideSchema = z.object({
 });
 
 const heroSchema = z.object({
-  image_url: z.string().optional().default(""),
-  mobile_image_url: z.string().optional().default(""),
-  headline: z.string().min(1).max(120).optional(),
-  subheadline: z.string().max(300).optional(),
-  cta_text: z.string().max(40).optional().default(""),
-  cta_url: z.string().max(200).optional().default(""),
-  slides: z.array(heroSlideSchema).max(6).optional().default([]),
-  carousel_slides: z.array(z.string()).max(6).optional().default([]),
+  image_url: z.string().max(1000).optional().default(""),
+  mobile_image_url: z.string().max(1000).optional().default(""),
+  headline: z.string().max(300).optional().default(""),
+  subheadline: z.string().max(500).optional().default(""),
+  cta_text: z.string().max(100).optional().default(""),
+  cta_url: z.string().max(1000).optional().default(""),
+  slides: z.array(heroSlideSchema).max(10).optional().default([]),
+  carousel_slides: z.array(z.string()).max(10).optional().default([]),
+  mobile_carousel_slides: z.array(z.string()).max(10).optional().default([]),
 });
 
 

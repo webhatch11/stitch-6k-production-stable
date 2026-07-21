@@ -33,12 +33,13 @@ export default function SettingsDashboardPage() {
   const [heroImage, setHeroImage] = useState("");
   const [mobileHeroImage, setMobileHeroImage] = useState("");
   const [carouselSlides, setCarouselSlides] = useState<string[]>([]);
+  const [mobileCarouselSlides, setMobileCarouselSlides] = useState<string[]>([]);
   const [activeUploadHeroSlideIndex, setActiveUploadHeroSlideIndex] = useState<number | null>(null);
   const [uploadOptions, setUploadOptions] = useState<any>({});
 
 
   // Upload target
-  const [uploadTarget, setUploadTarget] = useState<"hero" | "mobile_hero" | "offer" | "category" | "hero_slide" | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "mobile_hero" | "offer" | "category" | "hero_slide" | "mobile_hero_slide" | null>(null);
   // States for Business Settings
   const [bizPhone, setBizPhone] = useState("");
   const [bizEmail, setBizEmail] = useState("");
@@ -165,6 +166,7 @@ export default function SettingsDashboardPage() {
         setHeroImage(heroRes.value.image_url || "");
         setMobileHeroImage(heroRes.value.mobile_image_url || heroRes.value.mobile_image || "");
         setCarouselSlides(heroRes.value.carousel_slides || []);
+        setMobileCarouselSlides(heroRes.value.mobile_carousel_slides || []);
       }
 
 
@@ -247,7 +249,8 @@ export default function SettingsDashboardPage() {
     const payload = {
       image_url: heroImage,
       mobile_image_url: mobileHeroImage,
-      carousel_slides: carouselSlides,
+      carousel_slides: carouselSlides.filter(Boolean),
+      mobile_carousel_slides: mobileCarouselSlides.filter(Boolean),
     };
     const res = await saveHeroAction(payload);
 
@@ -536,7 +539,11 @@ export default function SettingsDashboardPage() {
           } else if (uploadTarget === "hero_slide" && activeUploadHeroSlideIndex !== null) {
             const newSlides = [...carouselSlides];
             newSlides[activeUploadHeroSlideIndex] = newUrl;
-            setCarouselSlides(newSlides.filter(Boolean));
+            setCarouselSlides(newSlides);
+          } else if (uploadTarget === "mobile_hero_slide" && activeUploadHeroSlideIndex !== null) {
+            const newSlides = [...mobileCarouselSlides];
+            newSlides[activeUploadHeroSlideIndex] = newUrl;
+            setMobileCarouselSlides(newSlides);
           }
         }}
       />
@@ -763,82 +770,170 @@ export default function SettingsDashboardPage() {
                 </div>
               </div>
 
-              {/* Carousel Slides Section */}
+              {/* Carousel Slides Section (Dual Desktop + Mobile for all 6 slides) */}
               <div className="border-t border-gray-200 pt-8 space-y-6">
-                <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 block">
-                  Carousel Slides (Max 6)
-                </span>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.08em] text-gray-400 block mb-1">
+                    Carousel Slides (Max 6 — Dual Desktop & Mobile Uploads)
+                  </span>
+                  <p className="text-[10px] text-gray-400 italic">
+                    Upload separate Desktop and Mobile images for each slide so carousel banners fit both PC and Phone screens perfectly.
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[0, 1, 2, 3, 4, 5].map((index) => {
-                    const url = carouselSlides[index];
-                    const isFilled = !!url;
+                    const desktopUrl = carouselSlides[index] || "";
+                    const mobileUrl = mobileCarouselSlides[index] || "";
+                    const isFilled = !!desktopUrl || !!mobileUrl;
+
                     return (
                       <div
                         key={index}
-                        className={`relative aspect-[16/9] border rounded-lg overflow-hidden flex flex-col items-center justify-center transition-all ${
+                        className={`p-4 border rounded-xl space-y-3 transition-all ${
                           isFilled
-                            ? "border-[#BA7517] bg-white"
-                            : "border-dashed border-gray-300 hover:border-primary hover:bg-[#fbfbfb] bg-[#fbfbfb]"
+                            ? "border-[#BA7517] bg-white shadow-sm"
+                            : "border-dashed border-gray-300 bg-[#fbfbfb]"
                         }`}
                       >
-                        <span className="absolute top-2 left-2 text-[10px] font-bold text-gray-400 bg-white/80 px-1.5 py-0.5 rounded shadow-sm z-10">
-                          {index + 1}
-                        </span>
-
-                        {isFilled ? (
-                          <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={url}
-                              alt={`Slide ${index + 1}`}
-                              className="w-full h-full object-cover"
-                            />
+                        <div className="flex justify-between items-center pb-1 border-b border-gray-100">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#BA7517]">
+                            Slide #{index + 1}
+                          </span>
+                          {isFilled && (
                             <button
                               type="button"
                               onClick={() => {
-                                const newSlides = carouselSlides.filter((_, i) => i !== index);
-                                setCarouselSlides(newSlides);
+                                const newDesktop = [...carouselSlides];
+                                const newMobile = [...mobileCarouselSlides];
+                                newDesktop[index] = "";
+                                newMobile[index] = "";
+                                setCarouselSlides(newDesktop);
+                                setMobileCarouselSlides(newMobile);
                               }}
-                              className="absolute top-2 right-2 size-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center border-none shadow-md cursor-pointer transition-all z-20"
+                              className="text-[9px] font-bold uppercase tracking-wider text-red-600 hover:text-red-800 cursor-pointer border-none bg-transparent"
                             >
-                              <span className="material-symbols-outlined text-[14px]">close</span>
+                              Clear Slide
                             </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setUploadTarget("hero_slide");
-                              setActiveUploadHeroSlideIndex(index);
-                              setUploadOptions({
-                                maxFileSize: 5000000,
-                                minImageWidth: 1920,
-                                minImageHeight: 1080,
-                                clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
-                                showPoweredBy: false,
-                                cropping: false,
-                              });
-                              cloudinaryRef.current?.open();
+                          )}
+                        </div>
+
+                        {/* Desktop Image Slot */}
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-gray-500 block">
+                            🖥️ Desktop Image (1920 × 800 px)
+                          </label>
+                          {desktopUrl ? (
+                            <div className="relative aspect-[16/7] bg-neutral-900 rounded-md overflow-hidden border border-gray-200">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={desktopUrl} alt={`Desktop Slide ${index + 1}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSlides = [...carouselSlides];
+                                  newSlides[index] = "";
+                                  setCarouselSlides(newSlides);
+                                }}
+                                className="absolute top-1 right-1 size-5 bg-red-600 text-white rounded-full flex items-center justify-center border-none cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUploadTarget("hero_slide");
+                                setActiveUploadHeroSlideIndex(index);
+                                setUploadOptions({
+                                  maxFileSize: 5000000,
+                                  minImageWidth: 1200,
+                                  clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                                  showPoweredBy: false,
+                                  cropping: false,
+                                });
+                                cloudinaryRef.current?.open();
+                              }}
+                              className="w-full py-3 border border-dashed border-gray-300 rounded-md text-[10px] text-gray-400 hover:border-primary cursor-pointer bg-white"
+                            >
+                              + Upload Desktop Banner
+                            </button>
+                          )}
+                          <input
+                            type="text"
+                            value={desktopUrl}
+                            onChange={(e) => {
+                              const newSlides = [...carouselSlides];
+                              newSlides[index] = e.target.value;
+                              setCarouselSlides(newSlides);
                             }}
-                            className="w-full h-full flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer p-2"
-                          >
-                            <span className="material-symbols-outlined text-2xl text-gray-400">cloud_upload</span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Add Slide</span>
-                          </button>
-                        )}
+                            placeholder="Direct Desktop Image URL..."
+                            className="w-full border border-gray-200 text-[10px] p-1.5 rounded-md bg-neutral-50"
+                          />
+                        </div>
+
+                        {/* Mobile Image Slot */}
+                        <div className="space-y-1.5 pt-1">
+                          <label className="text-[9px] font-bold uppercase tracking-wider text-blue-600 block">
+                            📱 Mobile Image (1080 × 1350 px)
+                          </label>
+                          {mobileUrl ? (
+                            <div className="relative aspect-[4/3] bg-neutral-900 rounded-md overflow-hidden border border-gray-200">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={mobileUrl} alt={`Mobile Slide ${index + 1}`} className="w-full h-full object-contain" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSlides = [...mobileCarouselSlides];
+                                  newSlides[index] = "";
+                                  setMobileCarouselSlides(newSlides);
+                                }}
+                                className="absolute top-1 right-1 size-5 bg-red-600 text-white rounded-full flex items-center justify-center border-none cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUploadTarget("mobile_hero_slide");
+                                setActiveUploadHeroSlideIndex(index);
+                                setUploadOptions({
+                                  maxFileSize: 5000000,
+                                  minImageWidth: 800,
+                                  clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                                  showPoweredBy: false,
+                                  cropping: false,
+                                });
+                                cloudinaryRef.current?.open();
+                              }}
+                              className="w-full py-2.5 border border-dashed border-blue-200 rounded-md text-[10px] text-blue-500 hover:border-blue-400 cursor-pointer bg-blue-50/30"
+                            >
+                              + Upload Mobile Banner
+                            </button>
+                          )}
+                          <input
+                            type="text"
+                            value={mobileUrl}
+                            onChange={(e) => {
+                              const newSlides = [...mobileCarouselSlides];
+                              newSlides[index] = e.target.value;
+                              setMobileCarouselSlides(newSlides);
+                            }}
+                            placeholder="Direct Mobile Image URL..."
+                            className="w-full border border-gray-200 text-[10px] p-1.5 rounded-md bg-neutral-50"
+                          />
+                        </div>
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-500">
-                  <span>{carouselSlides.length} of 6 slides uploaded</span>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-500 pt-2">
+                  <span>{carouselSlides.filter(Boolean).length} of 6 slides uploaded</span>
                   <span>Max 6 slides allowed</span>
                 </div>
-                <p className="text-[10px] text-gray-400 italic">
-                  If slides are added, the storefront shows a carousel instead of the single hero image above.
-                </p>
               </div>
 
               <div className="pt-4">

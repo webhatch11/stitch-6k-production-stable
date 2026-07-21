@@ -405,9 +405,9 @@ export default function HomeClient({
   const [heroTransitioning, setHeroTransitioning] = useState(false);
 
   const activeSlides = (hero?.carousel_slides && hero.carousel_slides.length > 0)
-    ? hero.carousel_slides.map((url: string) => ({
+    ? hero.carousel_slides.map((url: string, idx: number) => ({
         bgImage: url,
-        mobileBgImage: hero?.mobile_image_url || hero?.mobile_image || "",
+        mobileBgImage: hero?.mobile_carousel_slides?.[idx] || hero?.mobile_image_url || hero?.mobile_image || "",
         title: "",
         desc: "",
         ctaText: hero.cta_text || hero.ctaText || "View Collection",

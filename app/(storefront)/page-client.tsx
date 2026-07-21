@@ -875,12 +875,12 @@ export default function HomeClient({
                     : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
                 }`}
               >
-                {/* Full-Bleed Foreground Image (Zero Side Blur) */}
+                {/* Full-Bleed Foreground Image: object-contain on mobile to preserve left text, object-cover on desktop for full-bleed perfection */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={slide.bgImage}
                   alt="Hero Banner"
-                  className="w-full h-full object-cover object-center mx-auto block"
+                  className="w-full h-full object-contain md:object-cover object-center mx-auto block"
                 />
               </div>
             ))}

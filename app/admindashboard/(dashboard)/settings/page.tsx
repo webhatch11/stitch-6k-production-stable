@@ -31,11 +31,14 @@ export default function SettingsDashboardPage() {
 
   // States for Hero Settings
   const [heroImage, setHeroImage] = useState("");
+  const [mobileHeroImage, setMobileHeroImage] = useState("");
   const [carouselSlides, setCarouselSlides] = useState<string[]>([]);
   const [activeUploadHeroSlideIndex, setActiveUploadHeroSlideIndex] = useState<number | null>(null);
   const [uploadOptions, setUploadOptions] = useState<any>({});
 
 
+  // Upload target
+  const [uploadTarget, setUploadTarget] = useState<"hero" | "mobile_hero" | "offer" | "category" | "hero_slide" | null>(null);
   // States for Business Settings
   const [bizPhone, setBizPhone] = useState("");
   const [bizEmail, setBizEmail] = useState("");
@@ -62,8 +65,6 @@ export default function SettingsDashboardPage() {
   const [offerCtaUrl, setOfferCtaUrl] = useState("");
   const [offerBgImageUrl, setOfferBgImageUrl] = useState("");
 
-  // Upload target
-  const [uploadTarget, setUploadTarget] = useState<"hero" | "offer" | "category" | "hero_slide" | null>(null);
   const [activeUploadCategoryIndex, setActiveUploadCategoryIndex] = useState<number | null>(null);
 
 
@@ -162,6 +163,7 @@ export default function SettingsDashboardPage() {
 
       if (heroRes.success && heroRes.value) {
         setHeroImage(heroRes.value.image_url || "");
+        setMobileHeroImage(heroRes.value.mobile_image_url || heroRes.value.mobile_image || "");
         setCarouselSlides(heroRes.value.carousel_slides || []);
       }
 
@@ -244,6 +246,7 @@ export default function SettingsDashboardPage() {
     e.preventDefault();
     const payload = {
       image_url: heroImage,
+      mobile_image_url: mobileHeroImage,
       carousel_slides: carouselSlides,
     };
     const res = await saveHeroAction(payload);
@@ -522,6 +525,8 @@ export default function SettingsDashboardPage() {
         onUpload={(newUrl) => {
           if (uploadTarget === "hero") {
             setHeroImage(newUrl);
+          } else if (uploadTarget === "mobile_hero") {
+            setMobileHeroImage(newUrl);
           } else if (uploadTarget === "offer") {
             setOfferBgImageUrl(newUrl);
           } else if (uploadTarget === "category" && activeUploadCategoryIndex !== null) {
@@ -674,6 +679,87 @@ export default function SettingsDashboardPage() {
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Max 5 MB</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">JPG / PNG / WebP</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 rounded-full">Recommended Desktop: 1920 × 800 px (Landscape Widescreen)</span>
+                </div>
+
+                {/* Mobile Hero Background Image Section */}
+                <div className="pt-6 border-t border-gray-100 space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">
+                    Mobile Hero Background Image (Optional for Mobile Phone Display)
+                  </label>
+                  {mobileHeroImage ? (
+                    <div className="space-y-4">
+                      <div className="relative w-full max-w-xs h-auto max-h-72 bg-neutral-900 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md p-2 shadow-sm">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={mobileHeroImage} alt="Mobile hero preview" className="w-full h-auto max-h-72 object-contain block mx-auto" />
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUploadTarget("mobile_hero");
+                            setUploadOptions({
+                              maxFileSize: 5000000,
+                              minImageWidth: 800,
+                              minImageHeight: 1000,
+                              clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                              showPoweredBy: false,
+                              cropping: false,
+                            });
+                            cloudinaryRef.current?.open();
+                          }}
+                          className="border border-gray-200 text-primary px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-neutral-50 transition-all rounded-md cursor-pointer"
+                        >
+                          Change Mobile Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMobileHeroImage("")}
+                          className="border border-red-200 text-red-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all rounded-md cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadTarget("mobile_hero");
+                          setUploadOptions({
+                            maxFileSize: 5000000,
+                            minImageWidth: 800,
+                            minImageHeight: 1000,
+                            clientAllowedFormats: ["jpg", "jpeg", "png", "webp"],
+                            showPoweredBy: false,
+                            cropping: false,
+                          });
+                          cloudinaryRef.current?.open();
+                        }}
+                        className="w-full max-w-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb] rounded-md"
+                      >
+                        <span className="material-symbols-outlined text-3xl block mb-2 opacity-50">smartphone</span>
+                        Upload Mobile Hero Image (Cloudinary)
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="pt-2 max-w-md">
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                      Or Paste Mobile Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={mobileHeroImage}
+                      onChange={(e) => setMobileHeroImage(e.target.value)}
+                      placeholder="https://images.unsplash.com/... or https://..."
+                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-2.5 bg-neutral-50 rounded-md"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 rounded-full">Recommended Mobile: 1080 × 1350 px (Portrait / 4:5)</span>
+                  </div>
                 </div>
               </div>
 

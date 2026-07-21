@@ -407,6 +407,7 @@ export default function HomeClient({
   const activeSlides = (hero?.carousel_slides && hero.carousel_slides.length > 0)
     ? hero.carousel_slides.map((url: string) => ({
         bgImage: url,
+        mobileBgImage: hero?.mobile_image_url || hero?.mobile_image || "",
         title: "",
         desc: "",
         ctaText: hero.cta_text || hero.ctaText || "View Collection",
@@ -415,6 +416,7 @@ export default function HomeClient({
     : (hero?.slides && hero.slides.length > 0)
     ? hero.slides.map((s: any) => ({
         bgImage: s.image_url,
+        mobileBgImage: s.mobile_image_url || hero?.mobile_image_url || "",
         title: s.headline,
         desc: s.subheadline,
         ctaText: s.cta_text || "View Collection",
@@ -423,6 +425,7 @@ export default function HomeClient({
     : (hero?.image_url ? [
         {
           bgImage: hero.image_url,
+          mobileBgImage: hero?.mobile_image_url || hero?.mobile_image || "",
           title: "",
           desc: "",
           ctaText: hero.cta_text || hero.ctaText || "View Collection",
@@ -430,6 +433,7 @@ export default function HomeClient({
         }
       ] : heroSlides.map((s: any) => ({
         bgImage: s.bgImage,
+        mobileBgImage: "",
         title: s.title,
         desc: s.desc,
         ctaText: s.ctaText || "Shop Collection",
@@ -875,13 +879,18 @@ export default function HomeClient({
                     : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
                 }`}
               >
-                {/* Full-Bleed Foreground Image: object-contain on mobile to preserve left text, object-cover on desktop for full-bleed perfection */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slide.bgImage}
-                  alt="Hero Banner"
-                  className="w-full h-full object-contain md:object-cover object-center mx-auto block"
-                />
+                {/* Responsive Dual Hero Image (Desktop vs Mobile) */}
+                <picture className="w-full h-full block">
+                  {slide.mobileBgImage ? (
+                    <source media="(max-width: 767px)" srcSet={slide.mobileBgImage} />
+                  ) : null}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={slide.bgImage}
+                    alt="Hero Banner"
+                    className="w-full h-full object-contain md:object-cover object-center mx-auto block"
+                  />
+                </picture>
               </div>
             ))}
 

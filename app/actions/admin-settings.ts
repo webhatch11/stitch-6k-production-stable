@@ -16,6 +16,7 @@ const heroSlideSchema = z.object({
 
 const heroSchema = z.object({
   image_url: z.string().optional().default(""),
+  mobile_image_url: z.string().optional().default(""),
   headline: z.string().min(1).max(120).optional(),
   subheadline: z.string().max(300).optional(),
   cta_text: z.string().max(40).optional().default(""),

@@ -49,6 +49,10 @@ export default function ReturnDetailsClient({
     ? order.returnedItems.reduce((acc: number, item: any) => acc + (item.calculatedRefund || item.refundAmount || 0), 0)
     : order.total;
 
+  const pointsRestored = order.returnedItems && order.returnedItems.length > 0
+    ? order.returnedItems.reduce((acc: number, item: any) => acc + Number(item.pointsToRestore || 0), 0)
+    : Number(order.pointsRedeemed || 0);
+
   const [approvedRefund, setApprovedRefund] = useState(calculatedRefund.toString());
   const [overrideReason, setOverrideReason] = useState("Damaged Product");
 
@@ -703,9 +707,11 @@ export default function ReturnDetailsClient({
                   </div>
                   <div className="flex justify-between">
                     <span>Current Credit Status</span>
-                    <span className="font-bold uppercase text-[#BA7517]">{(order as any).pointsCreditStatus || "pending"}</span>
+                    <span className={`font-bold uppercase ${(order as any).pointsCreditStatus === "cancelled" ? "text-red-600" : "text-[#BA7517]"}`}>
+                      {(order as any).pointsCreditStatus === "cancelled" ? "REVOKED (Returned)" : ((order as any).pointsCreditStatus || "pending")}
+                    </span>
                   </div>
-                  {(order as any).pointsCreditScheduledAt && (
+                  {(order as any).pointsCreditScheduledAt && (order as any).pointsCreditStatus !== "cancelled" && (
                     <div className="flex justify-between">
                       <span>Expected Credit Date</span>
                       <span className="font-mono">{new Date((order as any).pointsCreditScheduledAt).toLocaleDateString("en-IN")}</span>
@@ -717,10 +723,16 @@ export default function ReturnDetailsClient({
                       <span className="font-mono">{new Date((order as any).creditedAt).toLocaleDateString("en-IN")}</span>
                     </div>
                   )}
+                  {Number(order.pointsRedeemed || 0) > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                      <span>Redeemed Points Restored</span>
+                      <span>+{pointsRestored} PTS</span>
+                    </div>
+                  )}
                   {((order as any).pointsCreditStatus === "cancelled" || orderStatusLower === "return approved" || orderStatusLower === "returned") && (
                     <div className="flex justify-between text-red-600">
                       <span>Reversal / Cancellation</span>
-                      <span>Approved Return Reversal</span>
+                      <span>Revoked due to Return</span>
                     </div>
                   )}
                 </div>

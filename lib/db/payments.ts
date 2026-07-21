@@ -571,6 +571,15 @@ export async function processReturnRefund(
         pointsToReverse += Number(item.pointsToReverse || 0);
         pointsToRestore += Number(item.pointsToRestore || 0);
       }
+      // Safety Fallback: if pointsToRestore calculated as 0, but order had pointsRedeemed, calculate proportionally
+      if (pointsToRestore === 0 && Number(order.pointsRedeemed || 0) > 0) {
+        const originalTotal = Number(order.originalTotal || order.total || 0);
+        if (originalTotal > 0) {
+          const returnedSubtotal = returnedItemsList.reduce((acc: number, item: any) => acc + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+          const proportion = returnedSubtotal / originalTotal;
+          pointsToRestore = Math.round(Number(order.pointsRedeemed) * proportion);
+        }
+      }
     } else {
       // Legacy order fallback: refund full order totals safely
       const walletPaid = Number(order.walletPaid || 0);

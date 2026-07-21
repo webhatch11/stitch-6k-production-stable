@@ -2251,7 +2251,7 @@ export default function HomeClient({
         return (
           <a
             id="whatsapp-sticky-btn"
-            className="fixed bottom-8 right-8 z-[100] bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
+            className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-6 md:bottom-8 md:right-8 z-[110] bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"

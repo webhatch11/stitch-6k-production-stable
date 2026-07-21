@@ -25,6 +25,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
   const [refundOption, setRefundOption] = useState("wallet");
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
+  const [returnImagesList, setReturnImagesList] = useState<{ name: string; url: string; public_id: string; }[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedReturnItems, setSelectedReturnItems] = useState<string[]>([]);
 
@@ -178,37 +179,55 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     setSelectedOrderId(null);
     setUploadedImageUrl("");
     setUploadedImageName("");
+    setReturnImagesList([]);
     setSelectedReturnItems([]);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setUploadedImageName(file.name);
+      if (returnImagesList.length >= 4) {
+        triggerToast("Maximum of 4 images allowed");
+        return;
+      }
+
+      const files = Array.from(e.target.files);
+      const remainingSlots = 4 - returnImagesList.length;
+      const filesToUpload = files.slice(0, remainingSlots);
+
       setUploadingImage(true);
-      
+
       try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, ""));
-        
-        const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-          method: "POST",
-          body: formData,
+        const uploadPromises = filesToUpload.map(async (file) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, ""));
+          formData.append("format", "webp"); // Request conversion to WebP format
+
+          const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            return {
+              name: file.name,
+              url: data.secure_url,
+              public_id: data.public_id
+            };
+          } else {
+            console.error("Cloudinary upload failed:", await res.text());
+            throw new Error(`Upload failed for ${file.name}`);
+          }
         });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setUploadedImageUrl(data.secure_url);
-          triggerToast("Image uploaded successfully!");
-        } else {
-          console.error("Cloudinary upload failed:", await res.text());
-          triggerToast("Failed to upload image. Using local filename fallback.");
-        }
+
+        const uploadedResults = await Promise.all(uploadPromises);
+        setReturnImagesList((prev) => [...prev, ...uploadedResults]);
+        triggerToast("Images uploaded successfully!");
       } catch (err) {
         console.error("Cloudinary upload error:", err);
-        triggerToast("Upload failed due to network error.");
+        triggerToast("Failed to upload some images. Please try again.");
       } finally {
         setUploadingImage(false);
       }
@@ -225,10 +244,11 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     const payload = {
       reason: returnReason,
       details: returnDetails,
-      image: uploadedImageName || "No image provided",
+      image: returnImagesList.map(img => img.name).join(", ") || "No image provided",
       refundOption: refundOption,
-      imageUrl: uploadedImageUrl || undefined,
-      selectedItems: selectedReturnItems
+      imageUrl: returnImagesList[0]?.url || undefined,
+      selectedItems: selectedReturnItems,
+      returnImages: returnImagesList
     };
 
     const res = await requestManualReturnAction(selectedOrderId, payload);
@@ -1144,18 +1164,30 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
 
               {/* Product Image Upload */}
               <div>
-                <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Product Image *</label>
+                <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-outline mb-2">Product Images *</label>
                 <div className="relative border border-dashed border-outline-variant/40 p-6 text-center cursor-pointer hover:border-secondary/60 transition-colors">
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                   <div className="flex flex-col items-center justify-center">
                     <span className="material-symbols-outlined text-outline/60 text-3xl mb-2">upload_file</span>
                     <span className="text-[9px] font-black uppercase tracking-widest text-outline">
-                      {uploadingImage ? "Uploading to Cloudinary..." : "Upload Product Image *"}
+                      {uploadingImage ? "Uploading to Cloudinary..." : `Upload Return Photos (${returnImagesList.length} of 4) *`}
                     </span>
-                    {uploadedImageName && (
-                      <span className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-2">
-                        {uploadedImageName}
-                      </span>
+                    {returnImagesList && returnImagesList.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-center mt-3 relative z-10" onClick={(e) => e.stopPropagation()}>
+                        {returnImagesList.map((img: any, idx: number) => (
+                          <div key={idx} className="relative border border-outline-variant/30 p-1 bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.url} alt={`preview ${idx}`} className="w-12 h-12 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setReturnImagesList((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full size-4 flex items-center justify-center text-[8px] border-none cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

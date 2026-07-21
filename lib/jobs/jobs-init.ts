@@ -159,6 +159,28 @@ export async function initJobs() {
     );
     console.log("[Jobs Init] ✓ Scheduled product-cleanup sweep job (every 24h)");
 
+    // 5.5. Return Images Deletion Cleanup — daily sweep to purge expired return images from Cloudinary
+    const returnImagesCleanupQueue = new Queue("return-images-cleanup", { connection: connection as any });
+    const returnImagesCleanupRepeatables = await returnImagesCleanupQueue.getRepeatableJobs();
+    for (const job of returnImagesCleanupRepeatables) {
+      await returnImagesCleanupQueue.removeRepeatableByKey(job.key);
+    }
+    await returnImagesCleanupQueue.add(
+      "cleanup_expired_return_images",
+      {},
+      {
+        repeat: { every: 24 * 60 * 60 * 1000 }, // Run once every 24 hours
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: 100,
+        removeOnFail: 50
+      }
+    );
+    console.log("[Jobs Init] ✓ Scheduled return-images-cleanup sweep job (every 24h)");
+
     // 6. Points Credit — daily sweep around 2:00 AM to credit pending loyalty points
     const pointsCreditQueue = new Queue("points-credit", { connection: connection as any });
     const pointsCreditRepeatables = await pointsCreditQueue.getRepeatableJobs();

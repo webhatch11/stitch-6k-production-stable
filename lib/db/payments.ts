@@ -907,7 +907,8 @@ export async function processReturnRefund(
         refund_status: finalRefundStatus,
         refund_id: razorpayRefundId || orderData.refund_id,
         refunded_at: new Date().toISOString(),
-        returned_items: enrichedReturnedItemsList
+        returned_items: enrichedReturnedItemsList,
+        return_images_deletion_scheduled_at: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
       })
       .eq("id", orderId);
 

@@ -5,6 +5,8 @@ import { mapDbOrderToOrder } from "./utils";
 import { Order, OrderStatusHistory, OrderNote, OrderEvent } from "../types";
 import { paymentDebugLog } from "../payment-debug";
 
+const ORDER_SELECT_COLUMNS = "id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url, return_images, return_images_deletion_scheduled_at, return_images_deleted";
+
 export async function getOrders(userId?: string): Promise<Order[]> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -16,7 +18,7 @@ export async function getOrders(userId?: string): Promise<Order[]> {
   }
   let query = supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .gt("total", 0);
   if (userId) {
     query = query.eq("user_id", userId);
@@ -49,7 +51,7 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
   }
   const { data, error } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .eq("id", orderId)
     .maybeSingle();
 
@@ -71,7 +73,7 @@ export async function getOrderByIdempotencyKey(key: string): Promise<Order | nul
   }
   const { data, error } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .eq("idempotency_key", key)
     .maybeSingle();
 
@@ -93,7 +95,7 @@ export async function getOrderByAwb(awb: string): Promise<Order | null> {
   }
   const { data, error } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .or(`shiprocket_id.eq.${awb},return_awb.eq.${awb}`)
     .maybeSingle();
 
@@ -120,7 +122,7 @@ export async function saveOrder(order: Partial<Order>): Promise<Order> {
 
   const { data: existingOrder, error: fetchError } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .eq("id", orderId)
     .maybeSingle();
 
@@ -274,7 +276,15 @@ export async function saveOrder(order: Partial<Order>): Promise<Order> {
 
 export async function requestManualReturn(
   orderId: string,
-  payload: { reason: string; details: string; image: string; refundOption: string; imageUrl?: string; selectedItems?: string[] }
+  payload: {
+    reason: string;
+    details: string;
+    image: string;
+    refundOption: string;
+    imageUrl?: string;
+    selectedItems?: string[];
+    returnImages?: { name: string; url: string; public_id: string; }[];
+  }
 ): Promise<boolean> {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
@@ -286,7 +296,7 @@ export async function requestManualReturn(
   }
   const { data: orderData, error: orderErr } = await supabase
     .from("orders")
-    .select("id, customer, date, total, status, items, original_total, coupon_discount, coupon_code, wallet_paid, gateway_paid, points_redeemed, points_discount, points_earned, return_reason, return_details, return_image, return_image_url, refund_option, return_request_date, return_date, return_reject_reason, quality_check_passed, shiprocket_id, cart_items, payment_status, user_id, address_snapshot, refund_id, refund_amount, refund_status, refund_reason, refunded_at, razorpay_payment_id, created_at, delivered_at, return_awb, return_pickup_scheduled, utm_source, utm_medium, utm_campaign, shipping_amount, points_credit_status, points_credit_scheduled_at, packed_at, accepted_at, awb_code, courier_name, tracking_url")
+    .select(ORDER_SELECT_COLUMNS)
     .eq("id", orderId)
     .maybeSingle();
 
@@ -443,7 +453,8 @@ export async function requestManualReturn(
       refund_option: payload.refundOption === "bank" ? "original_source" : payload.refundOption,
       return_request_date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
       returned_items: returnedItemsToSave,
-      refund_amount: totalItemRefundAmount
+      refund_amount: totalItemRefundAmount,
+      return_images: payload.returnImages || []
     })
     .eq("id", orderId);
 

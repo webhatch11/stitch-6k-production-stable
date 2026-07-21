@@ -120,6 +120,9 @@ export const mapDbOrderToOrder = (o: any): Order => {
     trackingUrl: o.tracking_url || null,
     invoiceTemplateVersion: o.invoice_template_version || 1,
     invoice_template_version: o.invoice_template_version || 1,
+    returnImages: o.return_images || [],
+    returnImagesDeletionScheduledAt: o.return_images_deletion_scheduled_at || null,
+    returnImagesDeleted: o.return_images_deleted || false,
   };
 };
 

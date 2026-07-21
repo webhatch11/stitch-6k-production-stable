@@ -5,6 +5,7 @@ import "../env";
 import { Worker } from "bullmq";
 import { reservationCleanupProcessor } from "../reservation-cleanup";
 import { productCleanupProcessor } from "../product-cleanup";
+import { returnImageCleanupProcessor } from "../return-image-cleanup";
 import { paymentRecoveryProcessor } from "../payment-recovery";
 import { processOutbox } from "../outbox";
 import { validateWorkerStartup } from "./startup-validation";
@@ -19,7 +20,7 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 async function main() {
   await validateWorkerStartup({
     workerName: "Cleanup Worker",
-    queues: ["reservation-cleanup", "product-cleanup", "payment-recovery"],
+    queues: ["reservation-cleanup", "product-cleanup", "payment-recovery", "return-images-cleanup"],
     requiredEnvs: ["REDIS_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
     redisUrl: REDIS_URL,
   });
@@ -195,6 +196,46 @@ async function main() {
     }
   };
 
+  const wrappedReturnImagesProcessor = async (job: any) => {
+    const start = Date.now();
+    workerLog({
+      level: "info",
+      worker: "cleanup",
+      queue: "return-images-cleanup",
+      jobId: job.id,
+      event: "job_started",
+      message: "Starting expired return images cleanup sweep"
+    });
+
+    try {
+      const res = await returnImageCleanupProcessor(job);
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "info",
+        worker: "cleanup",
+        queue: "return-images-cleanup",
+        jobId: job.id,
+        event: "job_completed",
+        durationMs,
+        message: "Completed expired return images cleanup sweep"
+      });
+      return res;
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      workerLog({
+        level: "error",
+        worker: "cleanup",
+        queue: "return-images-cleanup",
+        jobId: job.id,
+        event: "job_failed",
+        durationMs,
+        error: err.message || String(err),
+        message: "Failed expired return images cleanup sweep"
+      });
+      throw err;
+    }
+  };
+
   const reservationWorker = new Worker("reservation-cleanup", wrappedReservationProcessor, {
     connection: connection as any,
     concurrency: 1,
@@ -211,6 +252,11 @@ async function main() {
   });
 
   const outboxWorker = new Worker("outbox-processing", wrappedOutboxProcessor, {
+    connection: connection as any,
+    concurrency: 1,
+  });
+
+  const returnImagesWorker = new Worker("return-images-cleanup", wrappedReturnImagesProcessor, {
     connection: connection as any,
     concurrency: 1,
   });
@@ -243,11 +289,18 @@ async function main() {
     });
   });
 
-  registerGracefulShutdown([reservationWorker, productWorker, recoveryWorker, outboxWorker], connection);
+  returnImagesWorker.on("failed", (job, err) => {
+    Sentry.captureException(err, {
+      tags: { queue: "return-images-cleanup" },
+      extra: { jobId: job?.id, jobData: job?.data },
+    });
+  });
+
+  registerGracefulShutdown([reservationWorker, productWorker, recoveryWorker, outboxWorker, returnImagesWorker], connection);
   workerLog({
     worker: "cleanup",
     event: "info",
-    message: "Cleanup Worker is active and listening for jobs on reservation, product, recovery, and outbox queues."
+    message: "Cleanup Worker is active and listening for jobs on reservation, product, recovery, return-images-cleanup, and outbox queues."
   });
 }
 

@@ -45,6 +45,7 @@ export async function requestManualReturnAction(orderId: string, payload: {
   refundOption: string;
   imageUrl?: string;
   selectedItems?: string[];
+  returnImages?: { name: string; url: string; public_id: string; }[];
 }) {
   try {
     const ownership = await assertOrderOwnership(orderId);

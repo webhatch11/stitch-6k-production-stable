@@ -350,9 +350,38 @@ export default function ReturnDetailsClient({
           {/* Card 2: Customer Uploaded Image */}
           <div className="p-8 bg-white border border-gray-200 rounded-none shadow-sm">
             <h3 className="text-[10px] font-bold uppercase tracking-wider mb-6 text-gray-400">
-              Customer Uploaded Image
+              Customer Uploaded Images
             </h3>
-            {returnImage ? (
+            {order.returnImagesDeleted ? (
+              <div className="p-4 bg-[#faf9f8] border border-red-200 text-red-800 text-[10px] font-black uppercase tracking-[0.2em] rounded-none flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">lock</span>
+                <span>Images have been deleted from Cloudinary (15-day privacy retention policy).</span>
+              </div>
+            ) : order.returnImages && order.returnImages.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Uploaded Images ({order.returnImages.length} of 4):</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {order.returnImages.map((img: any, idx: number) => (
+                    <div key={idx} className="group relative rounded-none overflow-hidden border border-gray-200 shadow-sm transition-all hover:shadow-md aspect-video max-h-48 bg-gray-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={`Return attachment ${idx + 1}`}
+                        className="w-full h-full object-contain cursor-pointer"
+                        onClick={() => window.open(img.url, "_blank")}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer" onClick={() => window.open(img.url, "_blank")}>
+                        <span className="text-white text-[9px] font-bold uppercase tracking-wider">View Full ↗</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 truncate">
+                        {img.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[9px] text-gray-400 uppercase tracking-widest mt-2">Click any image to open full size in a new tab</p>
+              </div>
+            ) : returnImage ? (
               <div className="space-y-3">
                 <p className="text-xs text-gray-500">Image uploaded by customer:</p>
                 {isImageUrl ? (

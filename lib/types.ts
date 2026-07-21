@@ -136,6 +136,9 @@ export interface Order {
   acceptedAt?: string | null;
   invoice_template_version?: number;
   invoiceTemplateVersion?: number;
+  returnImages?: { name: string; url: string; public_id: string; }[];
+  returnImagesDeletionScheduledAt?: string | null;
+  returnImagesDeleted?: boolean;
 }
 
 export interface OrderStatusHistory {

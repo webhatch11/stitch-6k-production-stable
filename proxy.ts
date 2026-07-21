@@ -5,8 +5,11 @@ import { NextResponse, type NextRequest } from "next/server";
 const rateLimitCache = new Map<string, number[]>();
 
 const RATE_LIMIT_CONFIG: Record<string, { limit: number; windowMs: number }> = {
-  "/api/payments/create-order": { limit: 5, windowMs: 60 * 1000 },
-  "/api/payments/verify": { limit: 10, windowMs: 60 * 1000 },
+  // Raised from 5→10: iOS users retrying after a dismissed Razorpay modal
+  // were routinely hitting the limit. 10/min still blocks abuse while allowing
+  // up to 10 legitimate attempts (modal open → dismiss → retry cycle).
+  "/api/payments/create-order": { limit: 10, windowMs: 60 * 1000 },
+  "/api/payments/verify": { limit: 15, windowMs: 60 * 1000 },
   "/login": { limit: 15, windowMs: 60 * 1000 },
   "/admindashboard/login": { limit: 15, windowMs: 60 * 1000 },
 };

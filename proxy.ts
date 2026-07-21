@@ -136,7 +136,50 @@ async function handleProxy(request: NextRequest) {
   const isStateChanging = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method);
   if (isStateChanging && path.startsWith("/api/") && !path.startsWith("/api/webhooks/")) {
     const origin = request.headers.get("origin");
-    if (origin) {
+
+    // ── Razorpay Callback: scoped origin allowlist (not a full CSRF bypass).
+    // On iOS WKWebView, Razorpay submits the payment result via form POST from
+    // its own WKWebView context, so Origin arrives as "https://api.razorpay.com",
+    // "https://checkout.razorpay.com", or "null". We cannot apply the same-origin
+    // check here. Instead we allow only the known Razorpay origins and let the
+    // route's own HMAC SHA-256 signature verification be the trust gate.
+    // TEMP DIAGNOSTIC LOG: remove after confirming iPhone traffic is healthy.
+    const isRazorpayCallback = path === "/api/payments/razorpay-callback";
+    if (isRazorpayCallback) {
+      console.info("[Razorpay Callback] Incoming request diagnostic", {
+        method: request.method,
+        origin: request.headers.get("origin"),
+        referer: request.headers.get("referer"),
+        userAgent: request.headers.get("user-agent"),
+        ip,
+      });
+
+      if (origin) {
+        const RAZORPAY_ALLOWED_ORIGINS = [
+          "https://api.razorpay.com",
+          "https://checkout.razorpay.com",
+          "https://razorpay.com",
+        ];
+        const isKnownRazorpayOrigin = RAZORPAY_ALLOWED_ORIGINS.some(
+          (allowed) => origin === allowed || origin.startsWith(allowed)
+        );
+        // Also allow origin: "null" (string) which some WKWebView versions send
+        const isNullOrigin = origin === "null";
+
+        if (!isKnownRazorpayOrigin && !isNullOrigin) {
+          console.error(
+            `[CSRF BLOCKED] Razorpay callback from unexpected origin "${origin}" (IP: ${ip}). Rejecting.`
+          );
+          return new NextResponse(
+            JSON.stringify({ success: false, error: "Invalid callback origin" }),
+            { status: 403, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+      // No Origin header (e.g. curl, server-to-server, or absent on some devices):
+      // allow through — HMAC signature in the route is the trust gate.
+    } else if (origin) {
+      // ── Standard same-origin CSRF check for all other API routes
       let originHost = "";
       try {
         originHost = new URL(origin).host;

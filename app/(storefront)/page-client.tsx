@@ -1375,13 +1375,6 @@ export default function HomeClient({
                       sizes="(max-width: 768px) 50vw, 25vw"
                     />
                     
-                    {/* Badge */}
-                    {item.badge && (
-                      <div className="absolute top-4 left-4 bg-black/95 text-secondary border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
-                        {item.badge}
-                      </div>
-                    )}
-
                     {/* Wishlist Heart Icon */}
                     {(() => {
                       const originalProduct = (bestsellers || []).find(p => p.id === item.id);
@@ -1424,6 +1417,15 @@ export default function HomeClient({
                       ))}
                     </div>
                   </div>
+
+                  {/* Badge details below the image */}
+                  {item.badge && (
+                    <div className="mb-2.5 text-left">
+                      <span className="bg-black/95 text-secondary border border-[#775a19]/30 px-2 py-0.5 text-[7.5px] font-black uppercase tracking-[0.2em] rounded-none inline-block">
+                        {item.badge}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Text details below the image */}
                   <div className="flex justify-between items-start gap-4 mb-1">
@@ -1523,13 +1525,6 @@ export default function HomeClient({
                         sizes="(max-width: 768px) 50vw, 25vw"
                       />
                       
-                      {/* Badge */}
-                      {item.badge && (
-                        <div className="absolute top-4 left-4 bg-secondary text-black border border-secondary/35 px-3 py-1.5 text-[7.5px] font-black uppercase tracking-[0.25em] rounded-none shadow-md">
-                          {item.badge}
-                        </div>
-                      )}
-
                       {/* Wishlist Heart Icon */}
                       {(() => {
                         const originalProduct = (exclusives || []).find(p => p.id === item.id);
@@ -1572,6 +1567,15 @@ export default function HomeClient({
                         ))}
                       </div>
                     </div>
+
+                    {/* Badge details below the image */}
+                    {item.badge && (
+                      <div className="mb-2.5 text-left">
+                        <span className="bg-secondary text-black border border-secondary/30 px-2 py-0.5 text-[7.5px] font-black uppercase tracking-[0.2em] rounded-none inline-block">
+                          {item.badge}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Text details below the image */}
                     <div className="flex justify-between items-start gap-4 mb-1">

@@ -611,8 +611,8 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   "Delivered": ["Completed", "Returned", "Return Requested", "Cancelled"],
   "Completed": [],
   "Return Requested": ["Return in Transit", "Return Rejected", "Returned", "Cancelled", "Return Accepted"],
-  "Return Accepted": ["Return Pickup Scheduled", "Cancelled"],
-  "Return Pickup Scheduled": ["Return QC Pending", "Cancelled"],
+  "Return Accepted": ["Return Pickup Scheduled", "Return in Transit", "Cancelled"],
+  "Return Pickup Scheduled": ["Return in Transit", "Return QC Pending", "Cancelled"],
   // FIX: Allow warehouse to mark a parcel as received (Return in Transit → Return QC Pending)
   "Return in Transit": ["Return QC Pending", "Returned", "Cancelled"],
   "Return QC Pending": ["Return Approved", "Return QC Failed", "Return QC Failed - Held", "Cancelled"],

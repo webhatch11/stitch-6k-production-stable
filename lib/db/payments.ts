@@ -726,19 +726,7 @@ export async function processReturnRefund(
     } else {
       // Quality passed: split wallet vs bank refund
       if (qualityCheckPassed) {
-        if (walletRefundAmount > 0 && order.userId) {
-          const creditResult = await usersDb.applyWalletCredit(
-            walletRefundAmount,
-            `Refund for return — Order #${orderId}`,
-            orderId,
-            order.userId,
-            `WALLET-CREDIT-${orderId}-REF-${refundId}`
-          );
-          if (!creditResult.success) {
-            throw new Error(`Wallet credit failed: ${creditResult.error}`);
-          }
-        }
-
+        // Execute gateway refund first to prevent partial success inconsistencies
         if (gatewayRefundAmount > 0 && order.razorpayPaymentId) {
           try {
             const { razorpay } = require("../razorpay") as typeof import("../razorpay");
@@ -753,7 +741,22 @@ export async function processReturnRefund(
             console.error('[processReturnRefund] Razorpay refund failed:', razorpayErr);
             throw new Error(`Razorpay gateway refund failed: ${razorpayErr.message}`);
           }
-        } else {
+        }
+
+        if (walletRefundAmount > 0 && order.userId) {
+          const creditResult = await usersDb.applyWalletCredit(
+            walletRefundAmount,
+            `Refund for return — Order #${orderId}`,
+            orderId,
+            order.userId,
+            `WALLET-CREDIT-${orderId}-REF-${refundId}`
+          );
+          if (!creditResult.success) {
+            throw new Error(`Wallet credit failed: ${creditResult.error}`);
+          }
+        }
+
+        if (gatewayRefundAmount <= 0) {
           refundSuccessful = true;
           finalRefundStatus = walletRefundAmount > 0 ? "wallet_only" : "processed";
         }

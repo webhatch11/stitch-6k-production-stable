@@ -711,7 +711,8 @@ function AddProductContent() {
                       editProductId ? "bg-gray-100 cursor-not-allowed opacity-60" : ""
                     }`}
                   />
-                   <div>
+                </div>
+                <div>
                   <div className="flex justify-between items-center mb-3">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a]">
                       Product Category
@@ -735,7 +736,7 @@ function AddProductContent() {
                       </option>
                     ))}
                   </select>
-                </div>               </div>
+                </div>
               </div>
 
               {/* Size Allocation Matrix */}

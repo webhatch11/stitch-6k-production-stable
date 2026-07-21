@@ -673,7 +673,7 @@ export default function SettingsDashboardPage() {
                 <div className="flex flex-wrap gap-2 mt-3">
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Max 5 MB</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">JPG / PNG / WebP</span>
-                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Recommended 1920 × 800px</span>
+                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 rounded-full">Recommended Desktop: 1920 × 800 px (Landscape Widescreen)</span>
                 </div>
               </div>
 

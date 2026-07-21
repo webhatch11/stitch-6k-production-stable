@@ -254,99 +254,101 @@ export default function Navbar() {
       </header>
 
       {/* Modern Mobile Bottom Navigation Capsule */}
-      <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/85 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
-        {/* Home */}
-        <Link 
-          href="/" 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
-            isLinkActive("/") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">home</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider">Home</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </Link>
- 
-        {/* Shop */}
-        <Link 
-          href="/shopallshirts" 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
-            isLinkActive("/shopallshirts") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">storefront</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider">Shop</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/shopallshirts") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </Link>
- 
-        {/* Wishlist */}
-        <Link 
-          href="/myprofile?tab=wishlist" 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
-            pathname.includes("wishlist") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">favorite</span>
-          {wishlistCount > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e]">
-              {wishlistCount}
+      {!pathname.startsWith("/product/") && (
+        <div className="md:hidden fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-[115] bg-[#0c0c0e]/85 backdrop-blur-md border border-white/10 rounded-full py-2.5 px-6 shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex items-center justify-between text-[#eae8e4] transition-all duration-300">
+          {/* Home */}
+          <Link 
+            href="/" 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+              isLinkActive("/") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">home</span>
+            <span className="text-[8px] font-bold uppercase tracking-wider">Home</span>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </Link>
+   
+          {/* Shop */}
+          <Link 
+            href="/shopallshirts" 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+              isLinkActive("/shopallshirts") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">storefront</span>
+            <span className="text-[8px] font-bold uppercase tracking-wider">Shop</span>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/shopallshirts") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </Link>
+   
+          {/* Wishlist */}
+          <Link 
+            href="/myprofile?tab=wishlist" 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
+              pathname.includes("wishlist") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">favorite</span>
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e]">
+                {wishlistCount}
+              </span>
+            )}
+            <span className="text-[8px] font-bold uppercase tracking-wider">Saved</span>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${pathname.includes("wishlist") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </Link>
+   
+          {/* Bag */}
+          <Link 
+            href="/shoppingbag" 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
+              isLinkActive("/shoppingbag") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">shopping_bag</span>
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
+                {cartCount}
+              </span>
+            )}
+            <span className="text-[8px] font-bold uppercase tracking-wider">Bag</span>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/shoppingbag") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </Link>
+   
+          {/* GEN-Z */}
+          <Link 
+            href="/genz" 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
+              isLinkActive("/genz") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">style</span>
+            <span className="text-[8px] font-bold uppercase tracking-wider">GEN-Z</span>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/genz") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </Link>
+   
+          {/* Menu Toggle */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none bg-transparent border-none ${
+              mobileMenuOpen ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
+              {mobileMenuOpen ? "close" : "menu"}
             </span>
-          )}
-          <span className="text-[8px] font-bold uppercase tracking-wider">Saved</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${pathname.includes("wishlist") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </Link>
- 
-        {/* Bag */}
-        <Link 
-          href="/shoppingbag" 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group relative focus:outline-none ${
-            isLinkActive("/shoppingbag") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">shopping_bag</span>
-          {cartCount > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-secondary text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-[#0c0c0e] animate-pulse">
-              {cartCount}
+            <span className="text-[8px] font-bold uppercase tracking-wider">
+              {mobileMenuOpen ? "Close" : "Menu"}
             </span>
-          )}
-          <span className="text-[8px] font-bold uppercase tracking-wider">Bag</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/shoppingbag") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </Link>
- 
-        {/* GEN-Z */}
-        <Link 
-          href="/genz" 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none ${
-            isLinkActive("/genz") ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">style</span>
-          <span className="text-[8px] font-bold uppercase tracking-wider">GEN-Z</span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${isLinkActive("/genz") ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </Link>
- 
-        {/* Menu Toggle */}
-        <button 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-300 active:scale-95 group focus:outline-none bg-transparent border-none ${
-            mobileMenuOpen ? "text-[#fed488] font-bold scale-105" : "text-[#eae8e4]/60 hover:text-white"
-          }`}
-        >
-          <span className="material-symbols-outlined text-[20px] transition-transform duration-300">
-            {mobileMenuOpen ? "close" : "menu"}
-          </span>
-          <span className="text-[8px] font-bold uppercase tracking-wider">
-            {mobileMenuOpen ? "Close" : "Menu"}
-          </span>
-          <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${mobileMenuOpen ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
-        </button>
-      </div>
+            <span className={`w-1 h-1 rounded-full bg-[#fed488] transition-all duration-300 mt-0.5 ${mobileMenuOpen ? "scale-100 opacity-100 animate-pulse" : "scale-0 opacity-0"}`} />
+          </button>
+        </div>
+      )}
 
       {/* Mobile Drawer Menu Overlay */}
       <div

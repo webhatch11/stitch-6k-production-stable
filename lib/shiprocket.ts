@@ -89,8 +89,8 @@ async function getAuthToken(): Promise<string> {
 
     return token;
   } catch (err) {
-    console.error("[Shiprocket SDK] Failed to authenticate with Shiprocket API, falling back to mock:", err);
-    return "mock_shiprocket_fallback_token";
+    console.error("[Shiprocket SDK] Failed to authenticate with Shiprocket API:", err);
+    throw new Error(`Shiprocket Authentication Failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

@@ -105,6 +105,103 @@ function AddProductContent() {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
 
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  const handleAddCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    if (categories.includes(trimmed)) {
+      triggerToast("Category already exists");
+      return;
+    }
+    setIsSavingCategory(true);
+    try {
+      const { getSettingAction, saveCategoriesAction } = await import("@/app/actions/admin-settings");
+      const getRes = await getSettingAction("categories");
+      let currentItems: any[] = [];
+      let enabled = true;
+      if (getRes.success && getRes.value) {
+        currentItems = getRes.value.items || [];
+        enabled = getRes.value.enabled ?? true;
+      }
+      
+      if (currentItems.length >= 8) {
+        triggerToast("Maximum of 8 categories allowed");
+        setIsSavingCategory(false);
+        return;
+      }
+
+      const newItem = {
+        title: trimmed,
+        subtitle: `${trimmed} Collection`,
+        image_url: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c",
+        theme: "cream",
+        cta_url: "/shopallshirts"
+      };
+
+      const updatedItems = [...currentItems, newItem];
+      const res = await saveCategoriesAction({
+        enabled,
+        items: updatedItems
+      });
+
+      if (res.success) {
+        const updatedList = updatedItems.map(item => item.title);
+        setCategories(updatedList);
+        setCategory(trimmed);
+        setNewCategoryName("");
+        triggerToast("Category added successfully");
+      } else {
+        triggerToast(res.error || "Failed to add category");
+      }
+    } catch (err: any) {
+      triggerToast("Error: " + err.message);
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catToDelete: string) => {
+    if (categories.length <= 1) {
+      triggerToast("Must keep at least one category");
+      return;
+    }
+    setIsSavingCategory(true);
+    try {
+      const { getSettingAction, saveCategoriesAction } = await import("@/app/actions/admin-settings");
+      const getRes = await getSettingAction("categories");
+      let currentItems: any[] = [];
+      let enabled = true;
+      if (getRes.success && getRes.value) {
+        currentItems = getRes.value.items || [];
+        enabled = getRes.value.enabled ?? true;
+      }
+
+      const updatedItems = currentItems.filter((item: any) => item.title !== catToDelete);
+      const res = await saveCategoriesAction({
+        enabled,
+        items: updatedItems
+      });
+
+      if (res.success) {
+        const updatedList = updatedItems.map(item => item.title);
+        setCategories(updatedList);
+        if (category === catToDelete) {
+          setCategory(updatedList[0]);
+        }
+        triggerToast("Category deleted successfully");
+      } else {
+        triggerToast(res.error || "Failed to delete category");
+      }
+    } catch (err: any) {
+      triggerToast("Error: " + err.message);
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
   // Load categories dynamically from database site settings
   useEffect(() => {
     import("@/app/actions/admin-settings").then(({ getSettingAction }) => {
@@ -231,13 +328,11 @@ function AddProductContent() {
           setProductSlug(p.slug || "");
           
           // Pre-populate category
-          if (combinedCats.includes(p.category || "Cotton")) {
-            setCategory(p.category || "Cotton");
-            setIsCustomCategory(false);
+          if (p.category) {
+            setCategories((prev) => Array.from(new Set([...prev, p.category])));
+            setCategory(p.category);
           } else {
             setCategory("Cotton");
-            setIsCustomCategory(true);
-            setCustomCategory(p.category || "");
           }
           
           setDescription(p.description || "");
@@ -616,60 +711,31 @@ function AddProductContent() {
                       editProductId ? "bg-gray-100 cursor-not-allowed opacity-60" : ""
                     }`}
                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a] mb-3">
-                    Product Category
-                  </label>
-                  {!isCustomCategory ? (
-                    <select
-                      value={category}
-                      onChange={(e) => {
-                        if (e.target.value === "NEW_CUSTOM") {
-                          setIsCustomCategory(true);
-                          setCustomCategory("");
-                        } else {
-                          setCategory(e.target.value);
-                        }
-                      }}
-                      className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
+                   <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#0a0a0a]">
+                      Product Category
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsManageModalOpen(true)}
+                      className="text-[9px] font-black uppercase tracking-widest text-secondary hover:underline cursor-pointer bg-transparent border-none outline-none"
                     >
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      <option value="NEW_CUSTOM">+ Add Custom Category...</option>
-                    </select>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={customCategory}
-                          onChange={(e) => setCustomCategory(e.target.value)}
-                          placeholder="Enter new category name"
-                          className="flex-1 bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCustomCategory(false);
-                            if (categories.length > 0) {
-                              setCategory(categories[0]);
-                            }
-                          }}
-                          className="px-4 py-2 border border-gray-200 text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 transition-colors rounded-none cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest italic">
-                        Creating a custom category. Click cancel to select an existing one.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                      ⚙️ Manage Categories
+                    </button>
+                  </div>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-white border border-gray-200 p-4 text-xs font-black uppercase tracking-widest outline-none focus:border-primary rounded-none cursor-pointer"
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>               </div>
               </div>
 
               {/* Size Allocation Matrix */}
@@ -1492,6 +1558,75 @@ function AddProductContent() {
                 className="w-full bg-[#1a1c1c] text-white hover:bg-secondary py-3 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold"
               >
                 Continue to Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Categories Modal */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-[2000] bg-[#0a0a0a]/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-[#775a19]/20 shadow-2xl p-6 max-w-md w-full space-y-6 rounded-none">
+            <div className="flex justify-between items-center border-b border-gray-150 pb-3">
+              <h3 className="font-headline font-black text-sm uppercase tracking-wider text-primary">Manage Categories</h3>
+              <button
+                type="button"
+                onClick={() => setIsManageModalOpen(false)}
+                className="text-gray-400 hover:text-black font-bold text-sm bg-transparent border-none cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List of categories with delete buttons */}
+            <div className="max-h-60 overflow-y-auto border border-gray-200 divide-y divide-gray-100 p-2">
+              {categories.map((cat) => (
+                <div key={cat} className="flex justify-between items-center py-2 px-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-gray-800">{cat}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(cat)}
+                    disabled={isSavingCategory}
+                    className="text-red-500 hover:text-red-700 text-[10px] font-black uppercase tracking-widest bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add New Category form */}
+            <div className="space-y-2 border-t border-gray-150 pt-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Add New Category</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g. Linen"
+                  disabled={isSavingCategory}
+                  className="flex-1 bg-white border border-gray-200 p-3 text-xs font-semibold outline-none focus:border-primary rounded-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  disabled={isSavingCategory || !newCategoryName.trim()}
+                  className="px-6 py-3 bg-[#1a1c1c] text-white hover:bg-secondary text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Close button */}
+            <div className="pt-2 border-t border-gray-150">
+              <button
+                type="button"
+                onClick={() => setIsManageModalOpen(false)}
+                className="w-full bg-[#1a1c1c] text-white hover:bg-secondary py-3 text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer rounded-none border-none font-bold animate-fade-in"
+              >
+                Close
               </button>
             </div>
           </div>

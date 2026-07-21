@@ -863,30 +863,24 @@ export default function HomeClient({
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative w-full min-h-[45vh] md:min-h-[65vh] lg:min-h-[78vh] max-h-[82vh] bg-[#121110] select-none flex items-center justify-center overflow-hidden py-2 md:py-4">
+        <section className="relative w-full h-[60vh] md:h-[75vh] lg:h-[82vh] bg-black select-none flex items-center justify-center overflow-hidden">
           {/* Layered Backgrounds for Cross-Fade */}
-          <div className="relative w-full h-full max-h-[80vh] flex items-center justify-center overflow-hidden z-0">
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden z-0">
             {activeSlides.map((slide: any, i: number) => (
               <div
                 key={`bg-${i}`}
-                className={`w-full h-full max-h-[80vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
+                className={`w-full h-full flex items-center justify-center transition-all duration-[1000ms] ease-out ${
                   i === currentHeroSlide
                     ? "opacity-100 scale-100 relative z-10"
                     : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
                 }`}
               >
-                {/* Ambient Soft Blur Backdrop */}
-                <div
-                  className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-35 scale-125 pointer-events-none"
-                  style={{ backgroundImage: `url('${slide.bgImage}')` }}
-                ></div>
-
-                {/* Foreground Crisp Image (100% Uncropped) */}
+                {/* Full-Bleed Foreground Image (Zero Side Blur) */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={slide.bgImage}
                   alt="Hero Banner"
-                  className="w-auto h-auto max-w-full max-h-[78vh] object-contain mx-auto block relative z-10 shadow-2xl"
+                  className="w-full h-full object-cover object-center mx-auto block"
                 />
               </div>
             ))}

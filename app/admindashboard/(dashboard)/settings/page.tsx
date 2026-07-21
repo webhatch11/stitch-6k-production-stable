@@ -599,9 +599,9 @@ export default function SettingsDashboardPage() {
                 </label>
                 {heroImage ? (
                   <div className="space-y-4">
-                    <div className="relative w-full max-w-md h-48 bg-neutral-100 border border-gray-200 overflow-hidden flex items-center justify-center rounded-md">
+                    <div className="relative w-full max-w-lg aspect-[21/9] bg-black border border-gray-200 overflow-hidden flex items-center justify-center rounded-md shadow-sm">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={heroImage} alt="Hero preview" className="w-full h-full object-cover" />
+                      <img src={heroImage} alt="Hero preview" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex gap-4">
                       <button
@@ -647,7 +647,7 @@ export default function SettingsDashboardPage() {
                         });
                         cloudinaryRef.current?.open();
                       }}
-                      className="w-full max-w-md border border-dashed border-gray-300 py-12 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb] rounded-md"
+                      className="w-full max-w-md border border-dashed border-gray-300 py-10 text-center text-xs text-gray-400 hover:border-primary transition-colors cursor-pointer bg-[#fbfbfb] rounded-md"
                     >
                       <span className="material-symbols-outlined text-3xl block mb-2 opacity-50">cloud_upload</span>
                       Upload Custom Hero Image (Cloudinary)
@@ -655,11 +655,25 @@ export default function SettingsDashboardPage() {
                   </div>
                 )}
 
+                {/* Direct Image URL fallback */}
+                <div className="pt-2 max-w-md">
+                  <label className="text-[9px] font-bold uppercase tracking-wider text-gray-400 block mb-1">
+                    Or Paste Direct Image URL
+                  </label>
+                  <input
+                    type="text"
+                    value={heroImage}
+                    onChange={(e) => setHeroImage(e.target.value)}
+                    placeholder="https://images.unsplash.com/... or https://..."
+                    className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-2.5 bg-neutral-50 rounded-md"
+                  />
+                </div>
+
                 {/* Upload details chips */}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Max 5 MB</span>
                   <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">JPG / PNG / WebP</span>
-                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Min 1920 × 1080px</span>
+                  <span className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full">Recommended 1920 × 800px</span>
                 </div>
               </div>
 

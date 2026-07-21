@@ -863,18 +863,17 @@ export default function HomeClient({
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative min-h-[55svh] md:min-h-[70svh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-on-surface py-16 md:py-20 lg:py-0">
+        <section className="relative w-full min-h-[45vh] md:min-h-[65vh] lg:min-h-[80vh] flex flex-col justify-center overflow-hidden bg-black select-none">
           {/* Layered Backgrounds for Cross-Fade */}
-          <div className="absolute inset-0 z-0 select-none pointer-events-none">
+          <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center bg-black">
             {activeSlides.map((slide: any, i: number) => (
               <div
                 key={`bg-${i}`}
-                className={`absolute inset-0 bg-cover bg-center transition-all duration-[8000ms] ease-out ${
-                  i === currentHeroSlide ? "opacity-100 scale-105" : "opacity-0 scale-100 pointer-events-none"
+                className={`absolute inset-0 bg-contain md:bg-cover bg-center bg-no-repeat transition-all duration-[1000ms] ease-out ${
+                  i === currentHeroSlide ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
                 }`}
                 style={{
                   backgroundImage: `url('${slide.bgImage}')`,
-                  filter: "none",
                 }}
               ></div>
             ))}
@@ -883,7 +882,7 @@ export default function HomeClient({
             <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl"></div>
             <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-tertiary/10 blur-3xl"></div>
             {/* Vignette overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/65 via-transparent to-[#0a0a0a]/90 z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 z-10"></div>
           </div>
 
           {/* Interactive Slide Dots on the Right */}

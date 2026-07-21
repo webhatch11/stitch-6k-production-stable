@@ -669,19 +669,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                                 Track Shipment
                               </Link>
                             </div>
-                            {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
-                              <div className="mb-2 md:mb-0 md:mt-2 mr-2 md:mr-0 w-full md:w-auto">
-                                <button
-                                  onClick={() => {
-                                    setSelectedOrderId(order.id);
-                                    setLabelModalOpen(true);
-                                  }}
-                                  className="inline-flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary px-4 py-2.5 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary w-full md:w-auto"
-                                >
-                                  Return Label
-                                </button>
-                              </div>
-                            )}
+
                             {returnEligible && (
                               <div className="mb-2 md:mb-0 md:mt-2 mr-2 md:mr-0 w-full md:w-auto">
                                 <button
@@ -781,6 +769,111 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                         <p className="text-[9px] text-outline uppercase tracking-wider font-semibold">Premium Quality</p>
                       </div>
                     </div>
+
+                    {/* Part 4: Dynamic Loyalty status rendering on Mobile */}
+                    {order.pointsEarned !== undefined && order.pointsEarned > 0 && (() => {
+                      const ptsStatus = (order as any).pointsCreditStatus || "pending";
+                      const scheduledDate = (order as any).pointsCreditScheduledAt ? new Date((order as any).pointsCreditScheduledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "soon";
+                      const creditedDate = (order as any).creditedAt ? new Date((order as any).creditedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "";
+                      
+                      if (ptsStatus === "pending") {
+                        return (
+                          <div className="text-[9px] text-orange-700 font-bold uppercase tracking-widest bg-orange-500/5 p-2.5 border border-orange-500/10">
+                            Pending Loyalty Reward: +{order.pointsEarned} Points (Available on {scheduledDate})
+                          </div>
+                        );
+                      } else if (ptsStatus === "credited") {
+                        return (
+                          <div className="text-[9px] text-green-700 font-bold uppercase tracking-widest bg-green-500/5 p-2.5 border border-green-500/10">
+                            Loyalty Reward Credited: +{order.pointsEarned} Points {creditedDate ? `on ${creditedDate}` : ""}
+                          </div>
+                        );
+                      } else if (ptsStatus === "cancelled") {
+                        return (
+                          <div className="text-[9px] text-red-700 font-bold uppercase tracking-widest bg-red-500/5 p-2.5 border border-red-500/10">
+                            Loyalty Reward Cancelled (Reason: Approved Return / Cancelled Order)
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Returns timeline on Mobile */}
+                    {["Return Requested", "Return in Transit", "Returned", "Return Rejected"].includes(order.status) && (
+                      <div className="border border-[#e5e5e5]/60 p-4 bg-gray-50/50 space-y-4 rounded-none text-left">
+                        <h4 className="text-[9px] font-black uppercase tracking-[0.15em] text-[#0a0a0a] border-b border-gray-100 pb-1.5">Return Status Timeline</h4>
+                        
+                        <div className="flex flex-col gap-3 relative pl-3.5 border-l border-gray-200">
+                          {/* Step 1: Requested */}
+                          <div className="relative">
+                            <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
+                            <p className="text-[9px] font-bold uppercase text-gray-800">Return Requested</p>
+                            <p className="text-[11px] text-gray-400 font-mono">{order.returnRequestDate || order.date}</p>
+                          </div>
+
+                          {/* Step 2: Pickup Scheduled */}
+                          {(order.returnPickupScheduled || (order as any).return_pickup_scheduled || order.status === "Return in Transit" || order.status === "Returned") && (
+                            <div className="relative">
+                              <span className={`absolute -left-[20px] top-1 w-2 h-2 rounded-full ${order.status !== "Return Requested" ? "bg-primary" : "bg-gray-300"}`} />
+                              <p className="text-[9px] font-bold uppercase text-gray-800">Pickup Scheduled</p>
+                              <p className="text-[11px] text-gray-400 font-mono">
+                                {order.returnPickupScheduled || (order as any).return_pickup_scheduled
+                                  ? new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                  : "Awaiting partner confirmation"}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Step 3: Refund Processed */}
+                          {order.status === "Returned" && (
+                            <div className="relative">
+                              <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-primary" />
+                              <p className="text-[9px] font-bold uppercase text-gray-800">Refund Processed</p>
+                              <p className="text-[11px] text-gray-400 font-mono">{order.returnDate || "Completed"}</p>
+                            </div>
+                          )}
+
+                          {/* Step 4: Rejected */}
+                          {order.status === "Return Rejected" && (
+                            <div className="relative">
+                              <span className="absolute -left-[20px] top-1 w-2 h-2 rounded-full bg-red-600" />
+                              <p className="text-[9px] font-bold uppercase text-red-600">Return Rejected</p>
+                              <p className="text-[11px] text-gray-400 font-mono">Reason: "{order.returnRejectReason}"</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Return Details metadata */}
+                        <div className="pt-2.5 border-t border-gray-200/60 text-[9px] font-bold text-gray-500 space-y-1.5">
+                          {order.returnAwb || (order as any).return_awb ? (
+                            <p className="uppercase">Return AWB: <span className="text-[#0a0a0a] font-mono">{order.returnAwb || (order as any).return_awb}</span></p>
+                          ) : null}
+                          {order.courierName && (
+                            <p className="uppercase">Courier: <span className="text-[#0a0a0a] font-mono">{order.courierName}</span></p>
+                          )}
+                          {order.trackingUrl && typeof order.trackingUrl === "string" && order.trackingUrl.trim().startsWith("https://") && (
+                            <div className="pt-1.5">
+                              <a
+                                href={order.trackingUrl.trim()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block bg-black hover:bg-zinc-800 text-white text-[9px] font-black uppercase tracking-widest px-4 py-2.5 rounded-none transition-colors w-full text-center"
+                              >
+                                Track Return Shipment ↗
+                              </a>
+                            </div>
+                          )}
+                          {order.returnPickupScheduled || (order as any).return_pickup_scheduled ? (() => {
+                            const pickupDate = new Date(order.returnPickupScheduled || (order as any).return_pickup_scheduled);
+                            const estRefund = new Date(pickupDate);
+                            estRefund.setDate(estRefund.getDate() + 7);
+                            return (
+                              <p className="uppercase">Expected Refund: <span className="text-[#0a0a0a] font-mono">{estRefund.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></p>
+                            );
+                          })() : null}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Return Calculations Accordion */}
                     {order.returnedItems && order.returnedItems.length > 0 && (
@@ -953,19 +1046,7 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
                           Track Shipment
                         </Link>
                       </div>
-                      {["Return Requested", "Return in Transit", "Returned"].includes(order.status) && (
-                        <div className="mb-2">
-                          <button
-                            onClick={() => {
-                              setSelectedOrderId(order.id);
-                              setLabelModalOpen(true);
-                            }}
-                            className="flex items-center justify-center bg-secondary text-white hover:bg-white hover:text-primary py-3 text-[9px] font-black uppercase tracking-widest transition-all border border-secondary w-full"
-                          >
-                            Return Label
-                          </button>
-                        </div>
-                      )}
+
                       {returnEligibleMobile && (
                         <div>
                           <button

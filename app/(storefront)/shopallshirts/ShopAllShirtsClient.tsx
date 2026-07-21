@@ -28,7 +28,6 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const selectedMaterials: string[] = [];
   const [selectedSize, setSelectedSize] = useState<string>(""); // No size filter by default
   const [maxPrice, setMaxPrice] = useState<number>(12000);
   const [sortBy, setSortBy] = useState<string>("popularity");
@@ -65,7 +64,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
   // Reset pagination on filter change
   useEffect(() => {
     setVisibleCount(6);
-  }, [debouncedSearchQuery, selectedMaterials, selectedSize, maxPrice, sortBy]);
+  }, [debouncedSearchQuery, selectedSize, maxPrice, sortBy]);
 
   // Infinite Scroll IntersectionObserver hook
   useEffect(() => {
@@ -108,14 +107,6 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
       );
     }
 
-    // 2. Material/Category Filter
-    if (selectedMaterials.length > 0) {
-      result = result.filter((p) => {
-        const category = p.category ? p.category.toLowerCase() : "";
-        return selectedMaterials.some((m) => category.includes(m));
-      });
-    }
-
     // 2.5 Size Filter
     if (selectedSize) {
       result = result.filter((p) => {
@@ -140,7 +131,7 @@ export default function ShopAllShirtsClient({ initialProducts }: ShopAllShirtsCl
     }
 
     setFilteredProducts(result);
-  }, [products, debouncedSearchQuery, selectedMaterials, selectedSize, maxPrice, sortBy]);
+  }, [products, debouncedSearchQuery, selectedSize, maxPrice, sortBy]);
 
 
 

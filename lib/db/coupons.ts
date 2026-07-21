@@ -185,29 +185,7 @@ export async function validateCoupon(
     }
   }
 
-  if (
-    cartItems &&
-    cartItems.length > 0 &&
-    (coupon.type === "bogo_quantity" || coupon.type === "bogo_product")
-  ) {
-    const dbProducts = await productsDb.getProducts();
-    const priceById = new Map<string, number>();
-    const priceByTitle = new Map<string, number>();
-    for (const p of dbProducts) {
-      if (p.id !== undefined && p.id !== null) priceById.set(String(p.id), p.price);
-      if (p.title) priceByTitle.set(p.title.toLowerCase(), p.price);
-    }
-    cartItems = cartItems.map((item) => {
-      let authoritativePrice: number | undefined;
-      if (item.productId !== undefined && item.productId !== null) {
-        authoritativePrice = priceById.get(String(item.productId));
-      }
-      if (authoritativePrice === undefined && item.productName) {
-        authoritativePrice = priceByTitle.get(String(item.productName).toLowerCase());
-      }
-      return { ...item, price: authoritativePrice ?? 0 };
-    });
-  }
+
 
   let discountAmount = 0;
   if (coupon.type === "percent") {
@@ -220,133 +198,8 @@ export async function validateCoupon(
     return { valid: true, coupon, discountAmount };
   }
 
-  if (coupon.type === "bogo_quantity") {
-    const buyQty = coupon.buyQuantity || 1;
-    const getQty = coupon.getQuantity || 1;
-    const requiredTotal = buyQty + getQty;
-
-    const totalUnits = (cartItems || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
-
-    if (totalUnits < requiredTotal) {
-      return {
-        valid: false,
-        error: `Add at least ${requiredTotal} items to your cart to use this offer.`,
-      };
-    }
-
-    const sortedItems: any[] = [];
-    for (const item of cartItems || []) {
-      const qty = item.quantity || 1;
-      for (let i = 0; i < qty; i++) {
-        sortedItems.push({ ...item, quantity: 1 });
-      }
-    }
-    sortedItems.sort((a, b) => a.price - b.price);
-
-    const freeCount = Math.floor(totalUnits / requiredTotal) * getQty;
-    const freeItems = sortedItems.slice(0, freeCount);
-    const discountAmount = freeItems.reduce((sum, item) => sum + item.price, 0);
-
-    return {
-      valid: true,
-      coupon,
-      discountAmount,
-      freeItems,
-    };
-  }
-
-  if (coupon.type === "bogo_product") {
-    const buyProductId = coupon.buyProductId;
-    const getProductId = coupon.getProductId;
-    if (!cartItems) {
-      return { valid: false, error: "Cart items required for validation." };
-    }
-
-    const buyItem = cartItems.find((item) => item.productId === buyProductId);
-    const getItem = cartItems.find((item) => item.productId === getProductId);
-
-    const buyQtyInCart = buyItem ? (buyItem.quantity || 1) : 0;
-    const getQtyInCart = getItem ? (getItem.quantity || 1) : 0;
-
-    // Same product BOGO (e.g. Buy 1 A, Get 1 A Free)
-    if (buyProductId === getProductId) {
-      const requiredTotal = (coupon.buyQuantity || 1) + (coupon.getQuantity || 1);
-      if (buyQtyInCart < requiredTotal) {
-        let buyProductName = buyProductId || "";
-        const { data: buyProdData } = await supabase
-          .from("products")
-          .select("title")
-          .eq("id", buyProductId)
-          .maybeSingle();
-        if (buyProdData?.title) {
-          buyProductName = buyProdData.title;
-        }
-        return {
-          valid: false,
-          error: `Add at least ${requiredTotal} units of "${buyProductName}" to your cart to unlock the offer.`,
-        };
-      }
-
-      // Calculate sets and discount amount for same product BOGO
-      const buyRequirement = coupon.buyQuantity || 1;
-      const getAward = coupon.getQuantity || 1;
-      const setTotal = buyRequirement + getAward;
-      const sets = Math.floor(buyQtyInCart / setTotal);
-      const claimableQty = sets * getAward;
-      const discountAmount = Math.floor((buyItem!.price * claimableQty * (coupon.getDiscountPercent || 0)) / 100);
-
-      return {
-        valid: true,
-        coupon,
-        discountAmount,
-      };
-    }
-
-    // Different products BOGO (e.g. Buy A, Get B Free)
-    if (buyQtyInCart < (coupon.buyQuantity || 1)) {
-      let buyProductName = buyProductId || "";
-      const { data: buyProdData } = await supabase
-        .from("products")
-        .select("title")
-        .eq("id", buyProductId)
-        .maybeSingle();
-      if (buyProdData?.title) {
-        buyProductName = buyProdData.title;
-      }
-      return {
-        valid: false,
-        error: `Buy "${buyProductName}" to unlock this coupon.`,
-      };
-    }
-
-    if (getQtyInCart === 0) {
-      let getProductName = getProductId || "";
-      const { data: getProdData } = await supabase
-        .from("products")
-        .select("title")
-        .eq("id", getProductId)
-        .maybeSingle();
-      if (getProdData?.title) {
-        getProductName = getProdData.title;
-      }
-      return {
-        valid: true,
-        coupon,
-        discountAmount: 0,
-        message: `Add "${getProductName}" to cart to get ${coupon.getDiscountPercent}% off.`,
-      };
-    }
-
-    // Calculate sets and discount amount for different products BOGO
-    const sets = Math.floor(buyQtyInCart / (coupon.buyQuantity || 1));
-    const claimableQty = Math.min(getQtyInCart, sets * (coupon.getQuantity || 1));
-    const discountAmount = Math.floor((getItem!.price * claimableQty * (coupon.getDiscountPercent || 0)) / 100);
-
-    return {
-      valid: true,
-      coupon,
-      discountAmount,
-    };
+  if (coupon.type === ("bogo_quantity" as any) || coupon.type === ("bogo_product" as any)) {
+    return { valid: false, error: "Coupon type not supported." };
   }
 
   if (coupon.type === "spend_discount") {

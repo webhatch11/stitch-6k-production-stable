@@ -53,7 +53,7 @@ export default function CouponsLedgerPage() {
   // New Coupon Form
   const [cpnCode, setCpnCode] = useState("");
   const [cpnValue, setCpnValue] = useState(0);
-  const [cpnType, setCpnType] = useState<"percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount">("percent");
+  const [cpnType, setCpnType] = useState<"percent" | "flat" | "spend_discount">("percent");
   const [cpnMinCartValue, setCpnMinCartValue] = useState(0);
   const [cpnMaxUsage, setCpnMaxUsage] = useState<string>("");
   const [cpnExpiryDate, setCpnExpiryDate] = useState<string>("");
@@ -70,7 +70,7 @@ export default function CouponsLedgerPage() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [editCode, setEditCode] = useState("");
   const [editValue, setEditValue] = useState(0);
-  const [editType, setEditType] = useState<"percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount">("percent");
+  const [editType, setEditType] = useState<"percent" | "flat" | "spend_discount">("percent");
   const [editActive, setEditActive] = useState(true);
   const [editMinCartValue, setEditMinCartValue] = useState(0);
   const [editMaxUsage, setEditMaxUsage] = useState<string>("");
@@ -162,11 +162,11 @@ export default function CouponsLedgerPage() {
       min_cart_value: cpnMinCartValue,
       max_usage: maxUsageNum,
       expiry_date: cpnExpiryDate || null,
-      buy_quantity: cpnType === "bogo_quantity" && cpnBuyQuantity !== "" ? Number(cpnBuyQuantity) : null,
-      get_quantity: cpnType === "bogo_quantity" && cpnGetQuantity !== "" ? Number(cpnGetQuantity) : null,
-      get_discount_percent: (cpnType === "bogo_product" || cpnType === "spend_discount") && cpnGetDiscountPercent !== "" ? Number(cpnGetDiscountPercent) : null,
-      buy_product_id: cpnType === "bogo_product" ? cpnBuyProductId || null : null,
-      get_product_id: cpnType === "bogo_product" ? cpnGetProductId || null : null,
+      buy_quantity: null,
+      get_quantity: null,
+      get_discount_percent: cpnType === "spend_discount" && cpnGetDiscountPercent !== "" ? Number(cpnGetDiscountPercent) : null,
+      buy_product_id: null,
+      get_product_id: null,
     });
     if (!res.success) {
       triggerToast(res.error || "Failed to create coupon");
@@ -245,11 +245,11 @@ export default function CouponsLedgerPage() {
       min_cart_value: editMinCartValue,
       max_usage: maxUsageNum,
       expiry_date: editExpiryDate || null,
-      buy_quantity: editType === "bogo_quantity" && editBuyQuantity !== "" ? Number(editBuyQuantity) : null,
-      get_quantity: editType === "bogo_quantity" && editGetQuantity !== "" ? Number(editGetQuantity) : null,
-      get_discount_percent: (editType === "bogo_product" || editType === "spend_discount") && editGetDiscountPercent !== "" ? Number(editGetDiscountPercent) : null,
-      buy_product_id: editType === "bogo_product" ? editBuyProductId || null : null,
-      get_product_id: editType === "bogo_product" ? editGetProductId || null : null,
+      buy_quantity: null,
+      get_quantity: null,
+      get_discount_percent: editType === "spend_discount" && editGetDiscountPercent !== "" ? Number(editGetDiscountPercent) : null,
+      buy_product_id: null,
+      get_product_id: null,
     });
     if (!res.success) {
       triggerToast(res.error || "Failed to update coupon");
@@ -501,8 +501,6 @@ export default function CouponsLedgerPage() {
                 >
                   <option value="percent">Percentage (%)</option>
                   <option value="flat">Flat Amount (₹)</option>
-                  <option value="bogo_quantity">Buy X Get Y (Quantity)</option>
-                  <option value="bogo_product">Buy Product Get Product</option>
                   <option value="spend_discount">Spend & Save</option>
                 </select>
               </div>
@@ -525,80 +523,7 @@ export default function CouponsLedgerPage() {
                 </div>
               )}
 
-              {cpnType === "bogo_quantity" && (
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Quantity</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      value={cpnBuyQuantity}
-                      onChange={(e) => setCpnBuyQuantity(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Quantity (Free)</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      value={cpnGetQuantity}
-                      onChange={(e) => setCpnGetQuantity(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="1"
-                    />
-                  </div>
-                </div>
-              )}
 
-              {cpnType === "bogo_product" && (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Product</label>
-                    <select
-                      required
-                      value={cpnBuyProductId}
-                      onChange={(e) => setCpnBuyProductId(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                    >
-                      <option value="">Select Buy Product</option>
-                      {productsList.map((p) => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Product</label>
-                    <select
-                      required
-                      value={cpnGetProductId}
-                      onChange={(e) => setCpnGetProductId(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                    >
-                      <option value="">Select Get Product</option>
-                      {productsList.map((p) => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount % on Get Product</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={cpnGetDiscountPercent}
-                      onChange={(e) => setCpnGetDiscountPercent(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="50"
-                    />
-                  </div>
-                </div>
-              )}
 
               {cpnType === "spend_discount" && (
                 <div className="space-y-6">
@@ -717,8 +642,6 @@ export default function CouponsLedgerPage() {
                 >
                   <option value="percent">Percentage (%)</option>
                   <option value="flat">Flat Amount (₹)</option>
-                  <option value="bogo_quantity">Buy X Get Y (Quantity)</option>
-                  <option value="bogo_product">Buy Product Get Product</option>
                   <option value="spend_discount">Spend & Save</option>
                 </select>
               </div>
@@ -741,80 +664,7 @@ export default function CouponsLedgerPage() {
                 </div>
               )}
 
-              {editType === "bogo_quantity" && (
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Quantity</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      value={editBuyQuantity}
-                      onChange={(e) => setEditBuyQuantity(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="2"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Quantity (Free)</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      value={editGetQuantity}
-                      onChange={(e) => setEditGetQuantity(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="1"
-                    />
-                  </div>
-                </div>
-              )}
 
-              {editType === "bogo_product" && (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Buy Product</label>
-                    <select
-                      required
-                      value={editBuyProductId}
-                      onChange={(e) => setEditBuyProductId(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                    >
-                      <option value="">Select Buy Product</option>
-                      {productsList.map((p) => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Get Product</label>
-                    <select
-                      required
-                      value={editGetProductId}
-                      onChange={(e) => setEditGetProductId(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-[10px] uppercase tracking-widest py-3 px-4 rounded-none cursor-pointer bg-white"
-                    >
-                      <option value="">Select Get Product</option>
-                      {productsList.map((p) => (
-                        <option key={p.id} value={p.id}>{p.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 block">Discount % on Get Product</label>
-                    <input
-                      required
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={editGetDiscountPercent}
-                      onChange={(e) => setEditGetDiscountPercent(e.target.value)}
-                      className="w-full border border-gray-200 focus:border-primary focus:ring-0 font-bold text-sm py-3 px-4 rounded-none"
-                      placeholder="50"
-                    />
-                  </div>
-                </div>
-              )}
 
               {editType === "spend_discount" && (
                 <div className="space-y-6">

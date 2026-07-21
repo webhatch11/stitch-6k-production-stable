@@ -14,7 +14,7 @@ const couponSchema = z
       .max(50)
       .transform((v) => v.trim().toUpperCase()),
     discount: z.number().min(0).optional().default(0),
-    type: z.enum(["percent", "flat", "bogo_quantity", "bogo_product", "spend_discount"]),
+    type: z.enum(["percent", "flat", "spend_discount"]),
     active: z.boolean().default(true),
     min_cart_value: z.number().min(0).optional().default(0),
     max_usage: z.number().int().min(0).optional().nullable(),

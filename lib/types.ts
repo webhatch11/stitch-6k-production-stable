@@ -172,7 +172,7 @@ export interface Coupon {
   id: string;
   code: string;
   discount: number;
-  type: "percent" | "flat" | "bogo_quantity" | "bogo_product" | "spend_discount";
+  type: "percent" | "flat" | "spend_discount";
   active: boolean;
   expiryDate?: string | null;
   minCartValue?: number | null;

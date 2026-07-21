@@ -863,13 +863,13 @@ export default function HomeClient({
 
       <main className="pb-20 md:pb-0">
         {/* Section 1: Hero */}
-        <section className="relative w-full bg-black select-none overflow-hidden flex items-center justify-center min-h-[40vh] md:min-h-[60vh] lg:min-h-[75vh]">
+        <section className="relative w-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex flex-col justify-center overflow-hidden bg-black select-none">
           {/* Layered Backgrounds for Cross-Fade */}
-          <div className="relative w-full h-full max-h-[85vh] flex items-center justify-center overflow-hidden z-0">
+          <div className="relative w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center overflow-hidden z-0">
             {activeSlides.map((slide: any, i: number) => (
               <div
                 key={`bg-${i}`}
-                className={`w-full h-full min-h-[40vh] md:min-h-[60vh] lg:min-h-[75vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
+                className={`w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] flex items-center justify-center transition-all duration-[1000ms] ease-out ${
                   i === currentHeroSlide
                     ? "opacity-100 scale-100 relative z-10"
                     : "opacity-0 scale-95 absolute inset-0 pointer-events-none z-0"
@@ -879,7 +879,7 @@ export default function HomeClient({
                 <img
                   src={slide.bgImage}
                   alt="Hero Banner"
-                  className="w-full h-auto max-h-[85vh] object-contain mx-auto block"
+                  className="w-full h-full min-h-[50vh] md:min-h-[70vh] lg:min-h-[85vh] object-cover object-top mx-auto block"
                 />
               </div>
             ))}

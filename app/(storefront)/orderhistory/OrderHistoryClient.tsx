@@ -183,6 +183,47 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
     setSelectedReturnItems([]);
   };
 
+  const convertToWebP = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      if (file.type === "image/webp") {
+        resolve(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement("img");
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                const webpFile = new File([blob], `${baseName}.webp`, { type: "image/webp" });
+                resolve(webpFile);
+              } else {
+                resolve(file);
+              }
+            },
+            "image/webp",
+            0.85
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       if (returnImagesList.length >= 4) {
@@ -198,10 +239,10 @@ export default function OrderHistoryClient({ initialOrders, userId }: OrderHisto
 
       try {
         const uploadPromises = filesToUpload.map(async (file) => {
+          const webpFile = await convertToWebP(file);
           const formData = new FormData();
-          formData.append("file", file);
+          formData.append("file", webpFile);
           formData.append("upload_preset", (process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "stitch6k_products").replace(/"/g, ""));
-          formData.append("format", "webp"); // Request conversion to WebP format
 
           const cloudName = (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "qc0yrj1o").replace(/"/g, "");
           const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {

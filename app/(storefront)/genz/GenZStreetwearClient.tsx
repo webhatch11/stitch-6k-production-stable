@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -29,6 +29,10 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
   const wishlistStore = useWishlistStore();
   const recentStore = useRecentStore();
 
+  // Pagination & Infinite Scroll states
+  const [visibleCount, setVisibleCount] = useState(6);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (initialProducts && initialProducts.length > 0) {
       wishlistStore.reconcileWishlist(initialProducts);
@@ -48,6 +52,35 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
   const [selectedSize, setSelectedSize] = useState<string>(""); // No size filter by default
   const [maxPrice, setMaxPrice] = useState<number>(12000);
   const [sortBy, setSortBy] = useState<string>("popularity");
+
+  // Reset pagination on filter change
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [debouncedSearchQuery, selectedSize, maxPrice, sortBy]);
+
+  // Infinite Scroll IntersectionObserver hook
+  useEffect(() => {
+    if (!loaderRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 6, filteredProducts.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLoader = loaderRef.current;
+    observer.observe(currentLoader);
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [filteredProducts, visibleCount]);
 
   // Filter products logic
   useEffect(() => {
@@ -294,8 +327,9 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                 <p className="text-neutral-400 text-xs uppercase tracking-widest">No streetwear drops match the selected filters.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-                {filteredProducts.map((product, index) => {
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+                {filteredProducts.slice(0, visibleCount).map((product, index) => {
                   let badgeElement = null;
                   if (product.isNew) {
                     badgeElement = (
@@ -432,7 +466,19 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                   );
                 })}
               </div>
-            )}
+
+              {/* Infinite Scroll Trigger */}
+              {visibleCount < filteredProducts.length && (
+                <div ref={loaderRef} className="col-span-full py-12 flex justify-center items-center">
+                  <div className="size-8 text-[#fed488] animate-spin relative flex items-center justify-center">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 48 48">
+                      <circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="3" strokeDasharray="30 30" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
           </section>
         </div>
 

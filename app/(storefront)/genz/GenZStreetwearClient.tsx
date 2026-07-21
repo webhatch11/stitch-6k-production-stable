@@ -244,8 +244,8 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                 {/* SIZE */}
                 <div>
                   <h3 className="text-[9px] font-bold uppercase tracking-[0.25em] text-neutral-500 mb-3 select-none">Select Size</h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    {["S", "M", "L", "XL"].map((size) => (
+                  <div className="grid grid-cols-5 gap-1">
+                    {["S", "M", "L", "XL", "XXL"].map((size) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(selectedSize === size ? "" : size)}
@@ -382,8 +382,8 @@ export default function GenZStreetwearClient({ initialProducts }: GenZStreetwear
                           <p className="text-[8px] font-black uppercase tracking-widest text-center mb-3 text-neutral-400">
                             Select Size to Add
                           </p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {["S", "M", "L", "XL"].map((size) => (
+                          <div className="grid grid-cols-5 gap-1">
+                            {["S", "M", "L", "XL", "XXL"].map((size) => (
                               <button
                                 key={size}
                                 onClick={(e) => {

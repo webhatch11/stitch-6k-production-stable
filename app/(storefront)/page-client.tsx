@@ -1272,7 +1272,7 @@ export default function HomeClient({
                             </div>
 
                             <div className="flex gap-2 md:gap-2.5 w-full justify-center">
-                              {["S", "M", "L", "XL"].map((size) => (
+                              {["S", "M", "L", "XL", "XXL"].map((size) => (
                                 <button
                                   key={size}
                                   onClick={(e) => {

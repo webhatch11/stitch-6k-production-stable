@@ -60,10 +60,15 @@ export default function InvoiceClient({
       }
     }
     const iframe = document.querySelector("iframe");
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    } else {
+    try {
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } else {
+        window.print();
+      }
+    } catch (e) {
+      console.warn("Iframe print blocked by security policy, falling back to window.print()", e);
       window.print();
     }
   };

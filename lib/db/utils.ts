@@ -16,6 +16,9 @@ export const mapDbProductToProduct = (p: any): Product => {
     stock: p.stock,
     description: p.description,
     isAtelierExclusive: p.is_agent_exclusive || p.is_atelier_exclusive,
+    isGenz: p.display_sections && Array.isArray(p.display_sections)
+      ? p.display_sections.includes("genz")
+      : (p.is_genz || false),
     sizeStock: {
       S: p.size_stock_s || 0,
       M: p.size_stock_m || 0,

@@ -190,6 +190,9 @@ export async function saveProduct(product: Partial<Product>): Promise<void> {
       stock: product.stock || 0,
       description: product.description || "",
       is_atelier_exclusive: product.isAtelierExclusive || false,
+      is_genz: product.display_sections && Array.isArray(product.display_sections)
+        ? product.display_sections.includes("genz")
+        : false,
       size_stock_s: product.sizeStock?.S || 0,
       size_stock_m: product.sizeStock?.M || 0,
       size_stock_l: product.sizeStock?.L || 0,

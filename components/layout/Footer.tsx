@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -16,6 +18,9 @@ interface FooterProps {
 }
 
 export default function Footer({ business }: FooterProps) {
+  const [clientServicesOpen, setClientServicesOpen] = useState(false);
+  const [legalPolicyOpen, setLegalPolicyOpen] = useState(false);
+
   const phone = business?.phone?.trim() || "";
   const email = business?.email?.trim() || "";
   const address = business?.address?.trim() || "";
@@ -24,7 +29,7 @@ export default function Footer({ business }: FooterProps) {
   const facebook = business?.facebook?.trim() || "";
 
   return (
-    <footer className="py-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary mt-auto">
+    <footer className="pt-12 pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-12 bg-[#0A0A0A] text-white px-6 lg:px-20 border-t-4 border-secondary mt-auto">
       <div className="max-w-7xl mx-auto">
         {/* Top Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
@@ -142,9 +147,9 @@ export default function Footer({ business }: FooterProps) {
               </p>
             )}
 
-            {/* Social Links */}
+            {/* Social Links — hidden on mobile to avoid duplication */}
             {(instagram || facebook) && (
-              <div className="flex items-center gap-4 mt-5 ml-8">
+              <div className="hidden md:flex items-center gap-4 mt-5 ml-8">
                 {instagram && (
                   <a
                     href={instagram}
@@ -179,8 +184,19 @@ export default function Footer({ business }: FooterProps) {
 
           {/* Client Services */}
           <div>
-            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Client Services</h4>
-            <ul className="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70 list-none p-0">
+            <button
+              onClick={() => setClientServicesOpen(!clientServicesOpen)}
+              className="w-full flex items-center justify-between py-3 md:py-0 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 border-b border-white/5 md:border-b-0 text-left md:pointer-events-none focus:outline-none bg-transparent border-none cursor-pointer"
+            >
+              <span>Client Services</span>
+              <span 
+                className="material-symbols-outlined text-sm md:hidden transition-transform duration-300"
+                style={{ transform: clientServicesOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              >
+                keyboard_arrow_down
+              </span>
+            </button>
+            <ul className={`${clientServicesOpen ? "block animate-fadeIn" : "hidden"} md:block mt-4 md:mt-0 space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70 list-none p-0`}>
               <li>
                 <Link href="/shipping-policy" className="hover:text-secondary hover:translate-x-1 inline-block transition-all">
                   Global Shipping
@@ -206,8 +222,19 @@ export default function Footer({ business }: FooterProps) {
 
           {/* Legal & Policy */}
           <div>
-            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-white/40">Legal &amp; Policy</h4>
-            <ul className="space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70 list-none p-0">
+            <button
+              onClick={() => setLegalPolicyOpen(!legalPolicyOpen)}
+              className="w-full flex items-center justify-between py-3 md:py-0 text-[9px] font-black uppercase tracking-[0.3em] text-white/40 border-b border-white/5 md:border-b-0 text-left md:pointer-events-none focus:outline-none bg-transparent border-none cursor-pointer"
+            >
+              <span>Legal &amp; Policy</span>
+              <span 
+                className="material-symbols-outlined text-sm md:hidden transition-transform duration-300"
+                style={{ transform: legalPolicyOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              >
+                keyboard_arrow_down
+              </span>
+            </button>
+            <ul className={`${legalPolicyOpen ? "block animate-fadeIn" : "hidden"} md:block mt-4 md:mt-0 space-y-3 text-[10px] font-light uppercase tracking-widest text-white/70 list-none p-0`}>
               <li>
                 <Link href="/about" className="hover:text-white transition-colors">
                   About Us

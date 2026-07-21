@@ -47,6 +47,9 @@ const ORDERS_CRITICAL_COLUMNS = [
   "user_id",
   "payment_processing_state", // Added: 20260718002000_phase2_reliability.sql
   "returned_items", // Added: 20260720_returned_items.sql
+  "return_images",
+  "return_images_deletion_scheduled_at",
+  "return_images_deleted",
 ];
 
 const PAYMENTS_CRITICAL_COLUMNS = [

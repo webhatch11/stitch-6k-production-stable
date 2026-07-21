@@ -188,6 +188,7 @@ export async function approveReviewAction(id: string) {
   const ok = await db.updateReviewStatus(id, true, adminUser.id);
   if (!ok) return { success: false, error: "Failed to approve review" };
   revalidatePath("/", "layout");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -200,6 +201,7 @@ export async function rejectReviewAction(id: string) {
   const ok = await db.deleteReview(id);
   if (!ok) return { success: false, error: "Failed to delete review" };
   revalidatePath("/", "layout");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -224,6 +226,7 @@ export async function updateReviewAction(id: string, comment: string, rating?: n
   const ok = await db.updateReview(id, updatePayload);
   if (!ok) return { success: false, error: "Failed to update review" };
   revalidatePath("/", "layout");
+  revalidatePath("/");
   return { success: true };
 }
 

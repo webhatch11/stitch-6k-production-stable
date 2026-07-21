@@ -497,17 +497,7 @@ export default function HomeClient({
   }
 
   const [reviews, setReviews] = useState<Review[]>(() => {
-    if (approvedReviews && approvedReviews.length > 0) {
-      return approvedReviews.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        location: r.location,
-        rating: Number(r.rating) || 5,
-        comment: r.comment,
-        avatar: r.name ? r.name.charAt(0).toUpperCase() : "R"
-      }));
-    }
-    return [
+    const defaultMocks: Review[] = [
       {
         id: "rev-1",
         name: "Aditya Verma",
@@ -589,6 +579,18 @@ export default function HomeClient({
         avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=150&h=150&q=80"
       }
     ];
+
+    const real = (approvedReviews || []).map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      location: r.location,
+      rating: Number(r.rating) || 5,
+      comment: r.comment,
+      avatar: r.name ? r.name.charAt(0).toUpperCase() : "R"
+    }));
+
+    if (real.length >= 10) return real;
+    return [...real, ...defaultMocks.slice(0, 10 - real.length)];
   });
 
 
@@ -600,6 +602,7 @@ export default function HomeClient({
   const [newComment, setNewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isReviewHovered, setIsReviewHovered] = useState(false);
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -662,6 +665,16 @@ export default function HomeClient({
       setSlideIndex(maxIndex);
     }
   }, [itemsPerPage, reviews.length, slideIndex]);
+
+  // Auto-play interval for review section slider (pauses on mouse hover)
+  useEffect(() => {
+    if (isReviewHovered || reviews.length <= itemsPerPage) return;
+    const maxIndex = Math.max(0, reviews.length - itemsPerPage);
+    const interval = setInterval(() => {
+      setSlideIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isReviewHovered, reviews.length, itemsPerPage]);
 
   // Preloader transition
   useEffect(() => {
@@ -1947,7 +1960,35 @@ export default function HomeClient({
             </motion.div>
 
             {/* Reviews Carousel Grid */}
-            <div className="max-w-[1400px] mx-auto overflow-hidden relative px-0 md:px-4">
+            <div 
+              className="max-w-[1400px] mx-auto overflow-hidden relative px-0 md:px-12 group"
+              onMouseEnter={() => setIsReviewHovered(true)}
+              onMouseLeave={() => setIsReviewHovered(false)}
+            >
+              {/* Left Arrow Button */}
+              {Math.max(0, reviews.length - itemsPerPage) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSlideIndex((prev) => (prev > 0 ? prev - 1 : Math.max(0, reviews.length - itemsPerPage)))}
+                  className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 border border-gray-200 text-black hover:bg-black hover:text-white transition-all items-center justify-center shadow-md cursor-pointer rounded-none"
+                  aria-label="Previous Review Slide"
+                >
+                  <span className="material-symbols-outlined text-base font-bold">chevron_left</span>
+                </button>
+              )}
+
+              {/* Right Arrow Button */}
+              {Math.max(0, reviews.length - itemsPerPage) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSlideIndex((prev) => (prev < Math.max(0, reviews.length - itemsPerPage) ? prev + 1 : 0))}
+                  className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 border border-gray-200 text-black hover:bg-black hover:text-white transition-all items-center justify-center shadow-md cursor-pointer rounded-none"
+                  aria-label="Next Review Slide"
+                >
+                  <span className="material-symbols-outlined text-base font-bold">chevron_right</span>
+                </button>
+              )}
+
               <div 
                 className="flex transition-transform duration-500 ease-out mx-0 md:-mx-[10px]"
                 style={{ transform: `translateX(-${slideIndex * (100 / itemsPerPage)}%)` }}
@@ -1957,7 +1998,7 @@ export default function HomeClient({
                     key={rev.id} 
                     className="w-full md:w-1/2 lg:w-1/3 px-4 md:px-[10px] shrink-0"
                   >
-                    <div className="bg-white p-6 border border-[#e5e5e5] rounded-[8px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex flex-col justify-between h-full min-h-[220px]">
+                    <div className="bg-white p-6 border border-[#e5e5e5] rounded-none shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex flex-col justify-between h-full min-h-[220px]">
                       <div>
                         {/* Top row: stars + verified badge */}
                         <div className="flex justify-between items-center mb-4">
@@ -1995,7 +2036,7 @@ export default function HomeClient({
                     <button
                       key={idx}
                       onClick={() => setSlideIndex(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                      className={`w-2.5 h-2.5 rounded-none transition-all duration-300 ${
                         slideIndex === idx ? "bg-[#BA7517] scale-110" : "bg-neutral-300 hover:bg-neutral-400"
                       }`}
                       aria-label={`Go to slide ${idx + 1}`}

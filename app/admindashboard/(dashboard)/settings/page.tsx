@@ -1639,9 +1639,16 @@ export default function SettingsDashboardPage() {
                                 className="w-full border border-gray-200 focus:border-primary focus:ring-0 text-xs p-3 bg-neutral-50 rounded-md h-20 resize-none"
                               />
                             ) : (
-                              <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                                "{review.comment}"
-                              </p>
+                              <div>
+                                <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                                  "{review.comment}"
+                                </p>
+                                {review.approved_by && (
+                                  <span className="inline-block mt-2 text-[9px] font-bold uppercase tracking-wider text-green-700 bg-green-50 px-2 py-0.5 border border-green-200">
+                                    Approved by Moderator
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
 

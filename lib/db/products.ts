@@ -607,7 +607,7 @@ export async function getActiveProductIds(productIds: string[]): Promise<string[
   return (data || []).map((p) => p.id);
 }
 
-export async function submitReview(review: { name: string; location: string; rating: number; comment: string }) {
+export async function submitReview(review: { name: string; location: string; rating: number; comment: string; ip_hash?: string; product_id?: string; order_id?: string }) {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -620,7 +620,7 @@ export async function submitReview(review: { name: string; location: string; rat
   return !error;
 }
 
-export async function getReviews(filter?: { approved?: boolean }) {
+export async function getReviews(filter?: { approved?: boolean; limit?: number; offset?: number }) {
   const { supabase, isSupabaseConfigured } = loadService();
   if (!isSupabaseConfigured || !supabase) {
     throw new Error(
@@ -631,12 +631,23 @@ export async function getReviews(filter?: { approved?: boolean }) {
   }
   let q = supabase
     .from("reviews")
-    .select("id, rating, comment, name, location, approved, created_at")
+    .select("id, rating, comment, name, location, approved, created_at, approved_by")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
+
   if (filter && typeof filter.approved === "boolean") {
     q = q.eq("approved", filter.approved);
   }
-  const { data } = await q;
+
+  const limit = filter?.limit ?? 50;
+  const offset = filter?.offset ?? 0;
+  q = q.range(offset, offset + limit - 1);
+
+  const { data, error } = await q;
+  if (error) {
+    console.error("Error fetching reviews:", error);
+    return [];
+  }
   return data || [];
 }
 
@@ -666,7 +677,10 @@ export async function deleteReview(id: string) {
       "NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables."
     );
   }
-  const { error } = await supabase.from("reviews").delete().eq("id", id);
+  const { error } = await supabase
+    .from("reviews")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id);
   return !error;
 }
 
